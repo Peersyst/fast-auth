@@ -1,0 +1,19 @@
+{
+  "name": "relayer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@shared/eslint": "workspace:*",
+    "@shared/tsconfig": "workspace:*",
+    "jest": "^29.7.0"
+  }
+}
