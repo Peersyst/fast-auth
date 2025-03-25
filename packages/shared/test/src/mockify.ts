@@ -9,12 +9,10 @@ export type { DeepPartial } from "@swisstype/essential";
  * @param defaultValues The default values to use for the mock.
  * @returns The mock class.
  */
-export function mockify<T extends object>(
-  defaultValues: DeepPartial<T> = {},
-): { new (data?: DeepPartial<T>): T } {
-  return class {
-    constructor(data: DeepPartial<T> = {}) {
-      Object.assign(this, deepmerge(defaultValues, data));
-    }
-  } as { new (data?: DeepPartial<T>): T };
+export function mockify<T extends object>(defaultValues: DeepPartial<T> = {}): { new (data?: DeepPartial<T>): T } {
+    return class {
+        constructor(data: DeepPartial<T> = {}) {
+            Object.assign(this, deepmerge(defaultValues, data));
+        }
+    } as { new (data?: DeepPartial<T>): T };
 }

@@ -1,3 +1,3 @@
 module.exports = {
-  extends: [require.resolve("@shared/eslint/node")],
+    extends: [require.resolve("@shared/eslint/package")],
 };

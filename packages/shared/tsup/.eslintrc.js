@@ -1,4 +1,4 @@
 module.exports = {
-  extends: [require.resolve("@shared/eslint/package")],
-  ignorePatterns: ["build"],
+    extends: [require.resolve("@shared/eslint/package")],
+    ignorePatterns: ["build"],
 };
