@@ -1,0 +1,27 @@
+{
+    "name": "@shared/tsup",
+    "author": "Peersyst",
+    "version": "0.0.0",
+    "license": "UNLICENSED",
+    "scripts": {
+        "dev": "tsup --watch",
+        "build": "tsup",
+        "clean": "rimraf .turbo dist node_modules",
+        "lint": "eslint .",
+        "check-types": "npx tsc --noEmit"
+    },
+    "exports": {
+        ".": {
+            "types": "./build/index.d.ts",
+            "require": "./build/index.js",
+            "import": "./build/index.mjs"
+        }
+    },
+    "devDependencies": {
+        "@shared/eslint": "workspace:*",
+        "@shared/tsconfig": "workspace:*",
+        "@types/node": "latest",
+        "tsup": "^8.2.4",
+        "typescript": "latest"
+    }
+}

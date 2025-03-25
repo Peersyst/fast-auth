@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "lib": ["ES2022"],
+        "moduleDetection": "force",
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "allowJs": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "strict": true,
+        "forceConsistentCasingInFileNames": true,
+        "strictPropertyInitialization": false,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+        "experimentalDecorators": true,
+        "removeComments": true
+    }
+}
