@@ -1,0 +1,46 @@
+import { Inject, Injectable } from "@nestjs/common";
+import { GoogleAuthService } from "./modules/google/google.service";
+import { FirebaseService } from "../firebase/firebase.service";
+import { ValidCustomTokenDto } from "./dtos/valid-custom-token.dto";
+
+@Injectable()
+export class AuthService {
+    constructor(
+        @Inject(FirebaseService) private readonly firebaseService: FirebaseService,
+        @Inject(GoogleAuthService) private readonly googleAuthService: GoogleAuthService,
+    ) {}
+
+    /**
+     * Create a custom token for the user.
+     * @param code The auth code from Google.
+     * @returns The custom token.
+     */
+    async createCustomTokenWithGoogle(code: string): Promise<string> {
+        const { accessToken } = await this.googleAuthService.exchangeAuthCodeForIdToken(code);
+
+        const userInfo = await this.googleAuthService.getUserInfo(accessToken);
+
+        let firebaseUser = await this.firebaseService.getAuthService().getUserByEmail(userInfo.email);
+
+        if (!firebaseUser) {
+            firebaseUser = await this.firebaseService.getAuthService().createUser(userInfo.id, userInfo.email, userInfo.name);
+        }
+
+        return this.firebaseService.getAuthService().createCustomToken(firebaseUser.uid);
+    }
+
+    /**
+     * Verify a custom token.
+     * @param token The custom token to verify.
+     * @returns The decoded token.
+     */
+    async verifyCustomToken(token: string): Promise<ValidCustomTokenDto> {
+        try {
+            await this.firebaseService.getAuthService().verifyIdToken(token);
+            return { valid: true, token };
+        } catch (error) {
+            console.error(error);
+            return { valid: false, token };
+        }
+    }
+}
