@@ -1,3 +1,5 @@
 packages:
     - "apps/relayer"
+    - "apps/contracts"
+    - "packages/auth"
     - "packages/shared/*"
