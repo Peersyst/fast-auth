@@ -8,7 +8,7 @@ import { ExtendedMock, Mock, MockMethods } from "./mock";
 export type MockDataMethods<C extends object> = Pick<
     MockMethods<keyof C>,
     // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-    TypeKeys<C, Function>
+    TypeKeys<C, (...args: any[]) => any>
 >;
 
 /**

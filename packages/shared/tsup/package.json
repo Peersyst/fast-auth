@@ -21,6 +21,7 @@
         "@shared/eslint": "workspace:*",
         "@shared/tsconfig": "workspace:*",
         "@types/node": "latest",
+        "rimraf": "^5.0.0",
         "tsup": "^8.2.4",
         "typescript": "latest"
     }

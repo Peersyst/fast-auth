@@ -3,7 +3,6 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "genesys": "genesys",
         "build": "npx turbo run build && echo '🚀 Build completed'",
         "build:packages": "npx turbo run build --filter=\"./packages/**/*\" && echo '🚀 Build packages completed'",
         "clean": "npx turbo run clean && echo 'root: cleaning' && rimraf node_modules .turbo && echo '\n🧼 Clean completed'",
