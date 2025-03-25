@@ -1,7 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { GoogleAuthService } from "./modules/google/google.service";
 import { FirebaseService } from "../firebase/firebase.service";
-import { ValidCustomTokenDto } from "./dtos/valid-custom-token.dto";
 
 @Injectable()
 export class AuthService {
@@ -27,20 +26,5 @@ export class AuthService {
         }
 
         return this.firebaseService.getAuthService().createCustomToken(firebaseUser.uid);
-    }
-
-    /**
-     * Verify a custom token.
-     * @param token The custom token to verify.
-     * @returns The decoded token.
-     */
-    async verifyCustomToken(token: string): Promise<ValidCustomTokenDto> {
-        try {
-            await this.firebaseService.getAuthService().verifyIdToken(token);
-            return { valid: true, token };
-        } catch (error) {
-            console.error(error);
-            return { valid: false, token };
-        }
     }
 }
