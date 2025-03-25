@@ -1,3 +1,4 @@
 module.exports = {
-  extends: [require.resolve("@shared/eslint/node")],
+  root: true,
+  extends: [require.resolve('@shared/eslint/nest')],
 };
