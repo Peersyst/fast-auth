@@ -1,5 +1,6 @@
 packages:
     - "apps/relayer"
+    - "apps/auth0-poc"
     - "apps/contracts"
     - "packages/auth"
     - "packages/shared/*"
