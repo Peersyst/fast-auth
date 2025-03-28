@@ -36,13 +36,30 @@ container_build_command = [
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-near-sdk = "5.9"
+near-sdk = "5.11"
+serde = { version = "1.0", features = ["derive"] }
+base64 = "0.22"
+simple_asn1 = { version = "0.6", optional = true }
+pem = { version = "3", optional = true }
+serde_json = "1.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+ring = { version = "0.17.4", features = ["std"] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys = "0.3"
+ring = { version = "0.17.4", features = ["std", "wasm32_unknown_unknown_js"] }
 
 [dev-dependencies]
+wasm-bindgen-test = "0.3.1"
 near-sdk = { version = "5.9", features = ["unit-testing"] }
 near-workspaces = { version = "0.18", features = ["unstable"] }
 tokio = { version = "1.12.0", features = ["full"] }
 serde_json = "1"
+
+[features]
+default = ["use_pem"]
+use_pem = ["pem", "simple_asn1"]
 
 [profile.release]
 codegen-units = 1
