@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::STANDARD, Engine};
+use near_sdk::base64::{engine::general_purpose::STANDARD, Engine};
 use serde::de::DeserializeOwned;
 
 use super::algorithms::AlgorithmFamily;
@@ -6,7 +6,7 @@ use super::crypto::verify::verify;
 use super::errors::{new_error, ErrorKind, Result};
 use super::header::Header;
 use super::jwk::{AlgorithmParameters, Jwk};
-#[cfg(feature = "use_pem")]
+// #[cfg(feature = "use_pem")]
 use super::pem::decoder::PemEncodedKey;
 use super::serialization::{b64_decode, DecodedJwtPartClaims};
 use super::validation::{validate, Validation};
@@ -72,7 +72,7 @@ impl DecodingKey {
 
     /// If you are loading a public RSA key in a PEM format, use this.
     /// Only exists if the feature `use_pem` is enabled.
-    #[cfg(feature = "use_pem")]
+    // #[cfg(feature = "use_pem")]
     pub fn from_rsa_pem(key: &[u8]) -> Result<Self> {
         let pem_key = PemEncodedKey::new(key)?;
         let content = pem_key.as_rsa_key()?;
@@ -102,7 +102,7 @@ impl DecodingKey {
 
     /// If you have a ECDSA public key in PEM format, use this.
     /// Only exists if the feature `use_pem` is enabled.
-    #[cfg(feature = "use_pem")]
+    // #[cfg(feature = "use_pem")]
     pub fn from_ec_pem(key: &[u8]) -> Result<Self> {
         let pem_key = PemEncodedKey::new(key)?;
         let content = pem_key.as_ec_public_key()?;
@@ -130,7 +130,7 @@ impl DecodingKey {
 
     /// If you have a EdDSA public key in PEM format, use this.
     /// Only exists if the feature `use_pem` is enabled.
-    #[cfg(feature = "use_pem")]
+    // #[cfg(feature = "use_pem")]
     pub fn from_ed_pem(key: &[u8]) -> Result<Self> {
         let pem_key = PemEncodedKey::new(key)?;
         let content = pem_key.as_ed_public_key()?;

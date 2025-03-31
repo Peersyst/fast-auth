@@ -36,12 +36,25 @@ container_build_command = [
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-near-sdk = "5.11"
+near-sdk = { version = "5.11" }
+
+# pem dependencies
 serde = { version = "1.0", features = ["derive"] }
-base64 = "0.22"
-simple_asn1 = { version = "0.6", optional = true }
-pem = { version = "3", optional = true }
-serde_json = "1.0"
+
+# simple_asn1 dependencies
+# simple_asn1 = { version = "0.6" }
+num-bigint = { default-features = false, version = "0.4" }
+num-traits = { default-features = false, version = "0.2" }
+thiserror  = { default-features = false, version = "2" }
+time       = { default-features = false, version = "0.3", features = ["formatting", "macros", "parsing"] }
+
+# serde_json dependencies
+# serde_json = "1.0"
+# indexmap = { version = "2.2.3", optional = true }
+# itoa = "1.0"
+# memchr = { version = "2", default-features = false }
+# ryu = "1.0"
+
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 ring = { version = "0.17.4", features = ["std"] }
@@ -57,9 +70,9 @@ near-workspaces = { version = "0.18", features = ["unstable"] }
 tokio = { version = "1.12.0", features = ["full"] }
 serde_json = "1"
 
-[features]
-default = ["use_pem"]
-use_pem = ["pem", "simple_asn1"]
+# [features]
+# default = ["use_pem"]
+# use_pem = ["pem", "simple_asn1"]
 
 [profile.release]
 codegen-units = 1

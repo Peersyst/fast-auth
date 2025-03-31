@@ -1,11 +1,11 @@
-use base64::{engine::general_purpose::STANDARD, Engine};
+use near_sdk::base64::{engine::general_purpose::STANDARD, Engine};
 use serde::ser::Serialize;
 
 use super::algorithms::AlgorithmFamily;
 use super::crypto;
 use super::errors::{new_error, ErrorKind, Result};
 use super::header::Header;
-#[cfg(feature = "use_pem")]
+// #[cfg(feature = "use_pem")]
 use super::pem::decoder::PemEncodedKey;
 use super::serialization::b64_encode_part;
 
@@ -38,7 +38,7 @@ impl EncodingKey {
     /// According to the [ring doc](https://docs.rs/ring/latest/ring/signature/struct.RsaKeyPair.html#method.from_pkcs8),
     /// the key should be at least 2047 bits.
     ///
-    #[cfg(feature = "use_pem")]
+    // #[cfg(feature = "use_pem")]
     pub fn from_rsa_pem(key: &[u8]) -> Result<Self> {
         let pem_key = PemEncodedKey::new(key)?;
         let content = pem_key.as_rsa_key()?;
@@ -59,7 +59,7 @@ impl EncodingKey {
     /// openssl ecparam -genkey -noout -name prime256v1 \
     ///     | openssl pkcs8 -topk8 -nocrypt -out ec-private.pem
     /// ```
-    #[cfg(feature = "use_pem")]
+    // #[cfg(feature = "use_pem")]
     pub fn from_ec_pem(key: &[u8]) -> Result<Self> {
         let pem_key = PemEncodedKey::new(key)?;
         let content = pem_key.as_ec_private_key()?;
@@ -69,7 +69,7 @@ impl EncodingKey {
     /// If you are loading a EdDSA key from a .pem file
     /// This errors if the key is not a valid private Ed key
     /// Only exists if the feature `use_pem` is enabled.
-    #[cfg(feature = "use_pem")]
+    // #[cfg(feature = "use_pem")]
     pub fn from_ed_pem(key: &[u8]) -> Result<Self> {
         let pem_key = PemEncodedKey::new(key)?;
         let content = pem_key.as_ed_private_key()?;

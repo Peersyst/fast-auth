@@ -71,9 +71,9 @@ pub enum ErrorKind {
 
     // 3rd party errors
     /// An error happened when decoding some base64 text
-    Base64(base64::DecodeError),
+    Base64(near_sdk::base64::DecodeError),
     /// An error happened while serializing/deserializing JSON
-    Json(Arc<serde_json::Error>),
+    Json(Arc<near_sdk::serde_json::Error>),
     /// Some of the text was invalid UTF-8
     Utf8(::std::string::FromUtf8Error),
     /// Something unspecified went wrong with crypto
@@ -141,14 +141,14 @@ impl PartialEq for ErrorKind {
 // Equality of ErrorKind is an equivalence relation: it is reflexive, symmetric and transitive.
 impl Eq for ErrorKind {}
 
-impl From<base64::DecodeError> for Error {
-    fn from(err: base64::DecodeError) -> Error {
+impl From<near_sdk::base64::DecodeError> for Error {
+    fn from(err: near_sdk::base64::DecodeError) -> Error {
         new_error(ErrorKind::Base64(err))
     }
 }
 
-impl From<serde_json::Error> for Error {
-    fn from(err: serde_json::Error) -> Error {
+impl From<near_sdk::serde_json::Error> for Error {
+    fn from(err: near_sdk::serde_json::Error) -> Error {
         new_error(ErrorKind::Json(Arc::new(err)))
     }
 }

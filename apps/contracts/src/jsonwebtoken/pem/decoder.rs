@@ -1,4 +1,7 @@
 use crate::jsonwebtoken::errors::{ErrorKind, Result};
+use crate::oid;
+use crate::jsonwebtoken::pem::simple_asn1::OID;
+use crate::jsonwebtoken::pem::simple_asn1::BigUint;
 
 /// Supported PEM files for EC and RSA Public and Private Keys
 #[derive(Debug, PartialEq)]
@@ -43,7 +46,7 @@ enum Classification {
 #[derive(Debug)]
 pub(crate) struct PemEncodedKey {
     content: Vec<u8>,
-    asn1: Vec<simple_asn1::ASN1Block>,
+    asn1: Vec<super::simple_asn1::ASN1Block>,
     pem_type: PemType,
     standard: Standard,
 }
@@ -51,9 +54,9 @@ pub(crate) struct PemEncodedKey {
 impl PemEncodedKey {
     /// Read the PEM file for later key use
     pub fn new(input: &[u8]) -> Result<PemEncodedKey> {
-        match pem::parse(input) {
+        match super::pem::parse(input) {
             Ok(content) => {
-                let asn1_content = match simple_asn1::from_der(content.contents()) {
+                let asn1_content = match super::simple_asn1::from_der(content.contents()) {
                     Ok(asn1) => asn1,
                     Err(_) => return Err(ErrorKind::InvalidKeyFormat.into()),
                 };
@@ -186,18 +189,18 @@ impl PemEncodedKey {
 // And the DER contents of an RSA key
 // Though PKCS#11 keys shouldn't have anything else.
 // It will get confusing with certificates.
-fn extract_first_bitstring(asn1: &[simple_asn1::ASN1Block]) -> Result<&[u8]> {
+fn extract_first_bitstring(asn1: &[super::simple_asn1::ASN1Block]) -> Result<&[u8]> {
     for asn1_entry in asn1.iter() {
         match asn1_entry {
-            simple_asn1::ASN1Block::Sequence(_, entries) => {
+            super::simple_asn1::ASN1Block::Sequence(_, entries) => {
                 if let Ok(result) = extract_first_bitstring(entries) {
                     return Ok(result);
                 }
             }
-            simple_asn1::ASN1Block::BitString(_, _, value) => {
+            super::simple_asn1::ASN1Block::BitString(_, _, value) => {
                 return Ok(value.as_ref());
             }
-            simple_asn1::ASN1Block::OctetString(_, value) => {
+            super::simple_asn1::ASN1Block::OctetString(_, value) => {
                 return Ok(value.as_ref());
             }
             _ => (),
@@ -208,21 +211,21 @@ fn extract_first_bitstring(asn1: &[simple_asn1::ASN1Block]) -> Result<&[u8]> {
 }
 
 /// Find whether this is EC, RSA, or Ed
-fn classify_pem(asn1: &[simple_asn1::ASN1Block]) -> Option<Classification> {
+fn classify_pem(asn1: &[super::simple_asn1::ASN1Block]) -> Option<Classification> {
     // These should be constant but the macro requires
     // #![feature(const_vec_new)]
-    let ec_public_key_oid = simple_asn1::oid!(1, 2, 840, 10_045, 2, 1);
-    let rsa_public_key_oid = simple_asn1::oid!(1, 2, 840, 113_549, 1, 1, 1);
-    let ed25519_oid = simple_asn1::oid!(1, 3, 101, 112);
+    let ec_public_key_oid = oid!(1, 2, 840, 10_045, 2, 1);
+    let rsa_public_key_oid = oid!(1, 2, 840, 113_549, 1, 1, 1);
+    let ed25519_oid = oid!(1, 3, 101, 112);
 
     for asn1_entry in asn1.iter() {
         match asn1_entry {
-            simple_asn1::ASN1Block::Sequence(_, entries) => {
+            super::simple_asn1::ASN1Block::Sequence(_, entries) => {
                 if let Some(classification) = classify_pem(entries) {
                     return Some(classification);
                 }
             }
-            simple_asn1::ASN1Block::ObjectIdentifier(_, oid) => {
+            super::simple_asn1::ASN1Block::ObjectIdentifier(_, oid) => {
                 if oid == ec_public_key_oid {
                     return Some(Classification::Ec);
                 }

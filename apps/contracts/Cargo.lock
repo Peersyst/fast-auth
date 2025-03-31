@@ -512,15 +512,16 @@ checksum = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 name = "contracts"
 version = "0.1.0"
 dependencies = [
- "base64 0.22.1",
  "js-sys",
  "near-sdk",
  "near-workspaces",
- "pem",
+ "num-bigint 0.4.6",
+ "num-traits",
  "ring",
  "serde",
  "serde_json",
- "simple_asn1",
+ "thiserror 2.0.12",
+ "time",
  "tokio",
  "wasm-bindgen-test",
 ]
@@ -2524,16 +2525,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pem"
-version = "3.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "38af38e8470ac9dee3ce1bae1af9c1671fffc44ddfd8bd1d0a3445bf349a8ef3"
-dependencies = [
- "base64 0.22.1",
- "serde",
-]
-
-[[package]]
 name = "percent-encoding"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3232,18 +3223,6 @@ name = "signature"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
-
-[[package]]
-name = "simple_asn1"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "297f631f50729c8c99b84667867963997ec0b50f32b2a7dbcab828ef0541e8bb"
-dependencies = [
- "num-bigint 0.4.6",
- "num-traits",
- "thiserror 2.0.12",
- "time",
-]
 
 [[package]]
 name = "siphasher"

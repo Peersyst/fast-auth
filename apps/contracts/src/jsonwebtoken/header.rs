@@ -1,6 +1,6 @@
 use std::result;
 
-use base64::{engine::general_purpose::STANDARD, Engine};
+use near_sdk::base64::{engine::general_purpose::STANDARD, Engine};
 use serde::{Deserialize, Serialize};
 
 use super::algorithms::Algorithm;
@@ -86,7 +86,7 @@ impl Header {
     /// Converts an encoded part into the Header struct if possible
     pub(crate) fn from_encoded<T: AsRef<[u8]>>(encoded_part: T) -> Result<Self> {
         let decoded = b64_decode(encoded_part)?;
-        Ok(serde_json::from_slice(&decoded)?)
+        Ok(near_sdk::serde_json::from_slice(&decoded)?)
     }
 
     /// Decodes the X.509 certificate chain into ASN.1 DER format.

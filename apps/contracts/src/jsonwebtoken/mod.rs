@@ -12,8 +12,8 @@ mod encoding;
 pub mod errors;
 mod header;
 pub mod jwk;
-#[cfg(feature = "use_pem")]
-mod pem;
+// #[cfg(feature = "use_pem")]
+pub(crate) mod pem;
 mod serialization;
 mod validation;
 

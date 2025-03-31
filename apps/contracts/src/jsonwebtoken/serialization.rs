@@ -1,4 +1,4 @@
-use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use near_sdk::base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use serde::{Deserialize, Serialize};
 
 use super::errors::Result;
@@ -13,7 +13,7 @@ pub(crate) fn b64_decode<T: AsRef<[u8]>>(input: T) -> Result<Vec<u8>> {
 
 /// Serializes a struct to JSON and encodes it in base64
 pub(crate) fn b64_encode_part<T: Serialize>(input: &T) -> Result<String> {
-    let json = serde_json::to_vec(input)?;
+    let json = near_sdk::serde_json::to_vec(input)?;
     Ok(b64_encode(json))
 }
 
@@ -30,6 +30,6 @@ impl DecodedJwtPartClaims {
     }
 
     pub fn deserialize<'a, T: Deserialize<'a>>(&'a self) -> Result<T> {
-        Ok(serde_json::from_slice(&self.b64_decoded)?)
+        Ok(near_sdk::serde_json::from_slice(&self.b64_decoded)?)
     }
 }
