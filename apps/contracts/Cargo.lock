@@ -523,6 +523,7 @@ dependencies = [
  "near-workspaces",
  "serde",
  "serde_json",
+ "sha2",
  "tokio",
  "wasm-bindgen-test",
 ]
