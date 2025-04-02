@@ -51,7 +51,7 @@ impl Contract {
         verify(&RsaPublicKey {
             n: NonZero::new(n.clone()).expect("Non-zero value required"),
             e,
-            n_params: BoxedMontyParams::new(Odd::new(n).expect("Odd value required")),
+            n_params: BoxedMontyParams::new_vartime(Odd::new(n).expect("Odd value required")),
         }, &prefix, &hashed, &signature).is_ok()
     }
 }

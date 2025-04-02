@@ -23,6 +23,7 @@ async fn test_basics_on(contract_wasm: &[u8]) -> Result<(), Box<dyn std::error::
 
     let outcome = user_account
         .call(contract.id(), "verify_jwt")
+        .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
             "hashed": hashed,
             "signature_bytes": signature_bytes
@@ -30,8 +31,8 @@ async fn test_basics_on(contract_wasm: &[u8]) -> Result<(), Box<dyn std::error::
         .transact()
         .await?;
 
-    println!("outcome: {:?}", outcome);
-    assert!(outcome.is_success());
+    near_sdk::log!("outcome: {:?}", outcome);
+    assert!(false);
 
     // let user_message_outcome = contract.view("get_greeting").args_json(json!({})).await?;
     // assert_eq!(user_message_outcome.json::<String>()?, "Hello World!");
