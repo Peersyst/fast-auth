@@ -1,13 +1,63 @@
 use crypto_bigint::modular::BoxedMontyParams;
-use crypto_bigint::{NonZero, BoxedUint, Odd};
+use crypto_bigint::{NonZero, BoxedUint, Odd, Limb, Word};
 // Find all our documentation at https://docs.near.org
 use near_sdk::{log, near};
 use serde::{Deserialize, Serialize};
-use crate::rsa::pkcs1v15::verify;
-use crate::rsa::key::RsaPublicKey;
 use near_sdk::base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use crypto_bigint::{
+    modular::{BoxedMontyForm},
+};
+use core::cmp::Ordering;
 
-pub mod rsa;
+struct RsaPublicKey {
+    /// Modulus: product of prime numbers `p` and `q`
+    n: NonZero<BoxedUint>,
+    /// Public exponent: power to which a plaintext message is raised in
+    /// order to encrypt it.
+    ///
+    /// Typically `0x10001` (`65537`)
+    e: BoxedUint,
+
+    n_params: BoxedMontyParams,
+}
+
+trait PublicKeyParts {
+    /// Returns the modulus of the key.
+    fn n(&self) -> &NonZero<BoxedUint>;
+
+    /// Returns the public exponent of the key.
+    fn e(&self) -> &BoxedUint;
+
+    /// Returns the modulus size in bytes. Raw signatures and ciphertexts for
+    /// or by this public key will have the same size.
+    fn size(&self) -> usize {
+        (self.n().bits() as usize).div_ceil(8)
+    }
+
+    /// Returns the parameters for montgomery operations.
+    fn n_params(&self) -> &BoxedMontyParams;
+
+    /// Returns precision (in bits) of `n`.
+    fn n_bits_precision(&self) -> u32 {
+        self.n().bits_precision()
+    }
+}
+
+
+impl PublicKeyParts for RsaPublicKey {
+    fn n(&self) -> &NonZero<BoxedUint> {
+        &self.n
+    }
+
+    fn e(&self) -> &BoxedUint {
+        &self.e
+    }
+
+    fn n_params(&self) -> &BoxedMontyParams {
+        &self.n_params
+    }
+}
+
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
@@ -22,6 +72,7 @@ struct Claims {
 pub struct Contract {
     pub n: Vec<u8>,
     pub e: Vec<u8>,
+    pub p: Vec<u8>,
 }
 
 // Define the default, which automatically initializes the contract
@@ -30,6 +81,7 @@ impl Default for Contract {
         Self {
             n: vec![183, 68, 77, 78, 175, 25, 252, 16, 216, 124, 221, 80, 120, 196, 71, 60, 217, 168, 127, 211, 193, 143, 212, 221, 57, 61, 224, 49, 146, 77, 41, 83, 74, 185, 254, 100, 120, 138, 37, 171, 214, 128, 143, 107, 242, 123, 27, 11, 186, 161, 231, 36, 239, 230, 18, 23, 244, 255, 255, 65, 242, 40, 250, 103, 235, 139, 53, 99, 79, 157, 218, 194, 243, 176, 11, 44, 126, 122, 36, 199, 226, 5, 166, 173, 251, 161, 100, 148, 19, 233, 97, 115, 206, 145, 122, 128, 11, 246, 62, 44, 131, 12, 182, 70, 33, 122, 16, 96, 118, 248, 163, 185, 204, 246, 108, 96, 214, 227, 25, 219, 46, 66, 15, 132, 109, 138, 184, 135, 104, 160, 237, 110, 124, 79, 193, 102, 202, 76, 90, 170, 147, 136, 184, 76, 84, 153, 195, 80, 186, 83, 225, 157, 87, 56, 150, 61, 48, 114, 73, 247, 217, 177, 237, 249, 121, 205, 58, 205, 78, 195, 4, 159, 50, 74, 224, 238, 224, 137, 151, 8, 248, 46, 80, 185, 9, 50, 162, 192, 195, 84, 97, 29, 64, 111, 54, 228, 219, 65, 21, 104, 154, 105, 84, 119, 148, 92, 251, 225, 201, 36, 36, 223, 157, 9, 178, 93, 235, 64, 201, 144, 56, 12, 222, 61, 236, 100, 118, 51, 51, 129, 231, 220, 16, 109, 180, 57, 192, 86, 91, 126, 162, 251, 204, 35, 79, 34, 0, 127, 134, 142, 192, 82, 222, 95, 162, 215],
             e: vec![1, 0, 1],
+            p: vec![0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20]
         }
     }
 }
@@ -39,20 +91,79 @@ impl Default for Contract {
 impl Contract {
     pub fn verify_jwt(&self, hashed: Vec<u8>, signature_bytes: Vec<u8>) -> bool {
         let signature = BoxedUint::from_be_slice(&signature_bytes, 2048).expect("Failed to create signature BoxedUint");
-        let n = BoxedUint::from_be_slice(&self.n, 2048).expect("Failed to create n BoxedUint");
+        let nuint = BoxedUint::from_be_slice(&self.n, 2048).expect("Failed to create n BoxedUint");
         let e = BoxedUint::from_be_slice(&self.e, 2048).expect("Failed to create e BoxedUint");
 
-        
-        // Create prefix (ASN.1 DER encoding for SHA-256)
-        let prefix = vec![
-            0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20
-        ];
+        // Create RSA public key
+        // let pub_key = RsaPublicKey {
+        //     n: NonZero::new(nuint.clone()).expect("Non-zero value required"),
+        //     e,
+        //     n_params: BoxedMontyParams::new(Odd::new(nuint).expect("Odd value required")),
+        // };
 
-        verify(&RsaPublicKey {
-            n: NonZero::new(n.clone()).expect("Non-zero value required"),
-            e,
-            n_params: BoxedMontyParams::new(Odd::new(n).expect("Odd value required")),
-        }, &prefix, &hashed, &signature).is_ok()
+        let n = NonZero::new(nuint.clone()).expect("Non-zero value required");
+        let modulus = Odd::new(nuint).expect("Odd value required");
+        let one = BoxedUint::max(n.bits_precision())
+            .rem(modulus.as_nz_ref())
+            .wrapping_add(&BoxedUint::one());
+        // let (inv_mod_limb, inv_mod_limb_exists) = modulus.inv_mod2k_vartime(Word::BITS);
+
+        // let mod_neg_inv = Limb(Word::MIN.wrapping_sub(inv_mod_limb.limbs()[0].0));
+        // let n_params = BoxedMontyParams::new(Odd::new(nuint).expect("Odd value required"));
+
+        // // Check if signature is valid in terms of size and precision
+        // if signature >= *n.as_ref() || signature.bits_precision() != n.bits_precision() {
+        //     return false;
+        // }
+
+        // // RSA encrypt the signature using Montgomery form arithmetic
+        // let bits_precision = modulus.bits_precision();
+        // let modulus = modulus.as_nz_ref().clone();
+
+        // let ns = match signature.bits_precision().cmp(&bits_precision) {
+        //     Ordering::Less => signature.widen(bits_precision),
+        //     Ordering::Equal => signature.clone(),
+        //     Ordering::Greater => signature.shorten(bits_precision),
+        // };
+        
+        // let n_reduced = ns.rem_vartime(&modulus).widen(bits_precision);
+        // let base = BoxedMontyForm::new(n_reduced, modulus);
+        // let encrypted = base.pow(&e).retrieve();
+        true
+
+        // // Convert to padded bytes
+        // let leading_zeros = encrypted.leading_zeros() as usize / 8;
+        // let input = &encrypted.to_be_bytes()[leading_zeros..];
+        // let padded_len = pub_key.size();
+        
+        // // Left pad the bytes
+        // if input.len() > padded_len {
+        //     return false;
+        // }
+        // let mut padded_bytes = vec![0u8; padded_len];
+        // padded_bytes[padded_len - input.len()..].copy_from_slice(input);
+
+        // // Verify padding
+        // let hash_len = hashed.len();
+        // let t_len = self.p.len() + hashed.len();
+        // let k = pub_key.size();
+        
+        // if k < t_len + 11 {
+        //     return false;
+        // }
+
+        // // EM = 0x00 || 0x01 || PS || 0x00 || T
+        // let mut ok = padded_bytes[0].ct_eq(&0u8);
+        // ok &= padded_bytes[1].ct_eq(&1u8);
+        // ok &= padded_bytes[k - hash_len..k].ct_eq(&hashed);
+        // ok &= padded_bytes[k - t_len..k - hash_len].ct_eq(&self.p);
+        // ok &= padded_bytes[k - t_len - 1].ct_eq(&0u8);
+
+        // for el in padded_bytes.iter().skip(2).take(k - t_len - 3) {
+        //     ok &= el.ct_eq(&0xff)
+        // }
+
+        // ok.unwrap_u8() == 1
     }
 }
 
@@ -62,7 +173,6 @@ impl Contract {
  */
 #[cfg(test)]
 mod tests {
-    #![recursion_limit = "256"]
     use super::*;
 
     // [113, 123, 200, 51, 146, 222, 185, 141, 194, 14, 33, 223, 194, 11, 150, 250, 99, 134, 239, 227, 61, 63, 43, 142, 18, 215, 31, 133, 207, 85, 242, 141]
