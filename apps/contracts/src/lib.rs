@@ -4,8 +4,7 @@ use crypto_bigint::{NonZero, BoxedUint, Odd};
 use near_sdk::near;
 use serde::{Deserialize, Serialize};
 use crate::rsa::key::RsaPublicKey;
-use crypto_bigint::subtle::ConstantTimeEq;
-use crate::rsa::key::PublicKeyParts;
+use crate::rsa::pkcs1v15::verify;
 
 pub mod rsa;
 
@@ -55,60 +54,7 @@ impl Contract {
             n_params: BoxedMontyParams::new_vartime(Odd::new(n.clone()).expect("Odd value required")),
         };
 
-        // Check signature bounds
-        if signature >= *pub_key.n.as_ref() || signature.bits_precision() != pub_key.n.bits_precision() {
-            return false;
-        }
-
-        // Inlined rsa_encrypt function
-        let modulus = pub_key.n_params.modulus().as_nz_ref();
-        let bits_precision = modulus.bits_precision();
-        
-        // Initialize result to 1
-        let mut result = BoxedUint::one_with_precision(bits_precision);
-        let mut base = signature.clone();
-        
-        // Square-and-multiply algorithm
-        for i in 0..pub_key.e.bits() {
-            if pub_key.e.bit(i).into() {
-                result = result.mul(&base).rem_vartime(modulus);
-            }
-            base = base.mul(&base).rem_vartime(modulus);
-        }
-
-        // Inlined uint_to_be_pad function
-        let leading_zeros = result.leading_zeros() as usize / 8;
-        let em = {
-            let input = &result.to_be_bytes()[leading_zeros..];
-            let padded_len = pub_key.size();
-            if input.len() > padded_len {
-                return false;
-            }
-            let mut out = vec![0u8; padded_len];
-            out[padded_len - input.len()..].copy_from_slice(input);
-            out
-        };
-
-        // Inlined pkcs1v15_sign_unpad function
-        let hash_len = hashed.len();
-        let t_len = prefix.len() + hashed.len();
-        let k = pub_key.size();
-        if k < t_len + 11 {
-            return false;
-        }
-
-        // EM = 0x00 || 0x01 || PS || 0x00 || T
-        let mut ok = em[0].ct_eq(&0u8);
-        ok &= em[1].ct_eq(&1u8);
-        ok &= em[k - hash_len..k].ct_eq(&hashed);
-        ok &= em[k - t_len..k - hash_len].ct_eq(&prefix);
-        ok &= em[k - t_len - 1].ct_eq(&0u8);
-
-        for el in em.iter().skip(2).take(k - t_len - 3) {
-            ok &= el.ct_eq(&0xff)
-        }
-
-        ok.unwrap_u8() == 1
+        verify(pub_key, &prefix, &hashed, &signature).is_ok()
     }
 }
 
@@ -119,13 +65,6 @@ impl Contract {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    // [113, 123, 200, 51, 146, 222, 185, 141, 194, 14, 33, 223, 194, 11, 150, 250, 99, 134, 239, 227, 61, 63, 43, 142, 18, 215, 31, 133, 207, 85, 242, 141]
-    // OACGK7hSUuI9e8-9_QLiMNbHW_3KKCjL9XSXunu7et8tHTNAq6QigL7-ejUQjE7qaBmOAqdKb51Wwvq-tAsDGC58HADXALDIBhWndDRvKRFDKEv48AX0mYSDyAAXAItJDOuCZgNRDd2p1oaB4a3yq4KekvH9gs7K7Jw8thVy_eoos1kxNaYliJ2zK4wQ1CeDMIMxaT8oK6uTl00K25d5t2wFxg_Fm91xIejN4CrlwNP0l4L-CWxVggHB0QSgxiHXXW5YHmNzqvlsOZ-RRou8o7cUrLolSZiDvxACXb44LBQ8vFYhxqeYw-EE5HAKveR9udOhu0fd--uNNGEzZFfRPQ
-
-    // n: [183, 68, 77, 78, 175, 25, 252, 16, 216, 124, 221, 80, 120, 196, 71, 60, 217, 168, 127, 211, 193, 143, 212, 221, 57, 61, 224, 49, 146, 77, 41, 83, 74, 185, 254, 100, 120, 138, 37, 171, 214, 128, 143, 107, 242, 123, 27, 11, 186, 161, 231, 36, 239, 230, 18, 23, 244, 255, 255, 65, 242, 40, 250, 103, 235, 139, 53, 99, 79, 157, 218, 194, 243, 176, 11, 44, 126, 122, 36, 199, 226, 5, 166, 173, 251, 161, 100, 148, 19, 233, 97, 115, 206, 145, 122, 128, 11, 246, 62, 44, 131, 12, 182, 70, 33, 122, 16, 96, 118, 248, 163, 185, 204, 246, 108, 96, 214, 227, 25, 219, 46, 66, 15, 132, 109, 138, 184, 135, 104, 160, 237, 110, 124, 79, 193, 102, 202, 76, 90, 170, 147, 136, 184, 76, 84, 153, 195, 80, 186, 83, 225, 157, 87, 56, 150, 61, 48, 114, 73, 247, 217, 177, 237, 249, 121, 205, 58, 205, 78, 195, 4, 159, 50, 74, 224, 238, 224, 137, 151, 8, 248, 46, 80, 185, 9, 50, 162, 192, 195, 84, 97, 29, 64, 111, 54, 228, 219, 65, 21, 104, 154, 105, 84, 119, 148, 92, 251, 225, 201, 36, 36, 223, 157, 9, 178, 93, 235, 64, 201, 144, 56, 12, 222, 61, 236, 100, 118, 51, 51, 129, 231, 220, 16, 109, 180, 57, 192, 86, 91, 126, 162, 251, 204, 35, 79, 34, 0, 127, 134, 142, 192, 82, 222, 95, 162, 215]
-    // e: [1, 0, 1]
-    // signature: [56, 0, 134, 43, 184, 82, 82, 226, 61, 123, 207, 189, 253, 2, 226, 48, 214, 199, 91, 253, 202, 40, 40, 203, 245, 116, 151, 186, 123, 187, 122, 223, 45, 29, 51, 64, 171, 164, 34, 128, 190, 254, 122, 53, 16, 140, 78, 234, 104, 25, 142, 2, 167, 74, 111, 157, 86, 194, 250, 190, 180, 11, 3, 24, 46, 124, 28, 0, 215, 0, 176, 200, 6, 21, 167, 116, 52, 111, 41, 17, 67, 40, 75, 248, 240, 5, 244, 153, 132, 131, 200, 0, 23, 0, 139, 73, 12, 235, 130, 102, 3, 81, 13, 221, 169, 214, 134, 129, 225, 173, 242, 171, 130, 158, 146, 241, 253, 130, 206, 202, 236, 156, 60, 182, 21, 114, 253, 234, 40, 179, 89, 49, 53, 166, 37, 136, 157, 179, 43, 140, 16, 212, 39, 131, 48, 131, 49, 105, 63, 40, 43, 171, 147, 151, 77, 10, 219, 151, 121, 183, 108, 5, 198, 15, 197, 155, 221, 113, 33, 232, 205, 224, 42, 229, 192, 211, 244, 151, 130, 254, 9, 108, 85, 130, 1, 193, 209, 4, 160, 198, 33, 215, 93, 110, 88, 30, 99, 115, 170, 249, 108, 57, 159, 145, 70, 139, 188, 163, 183, 20, 172, 186, 37, 73, 152, 131, 191, 16, 2, 93, 190, 56, 44, 20, 60, 188, 86, 33, 198, 167, 152, 195, 225, 4, 228, 112, 10, 189, 228, 125, 185, 211, 161, 187, 71, 221, 251, 235, 141, 52, 97, 51, 100, 87, 209, 61]
 
     #[test]
     fn verify_jwt() {
