@@ -48,10 +48,10 @@ fn pow_mod_params(base: &BoxedUint, exp: &BoxedUint, n_params: &BoxedMontyParams
     
     // Square-and-multiply algorithm
     for i in 0..exp.bits() {
-        if exp.bit_vartime(i) {
-            result = result.mul(&base).rem_vartime(modulus);
+        if exp.bit(i).into() {
+            result = result.mul(&base).rem(modulus);
         }
-        base = base.mul(&base).rem_vartime(modulus);
+        base = base.mul(&base).rem(modulus);
     }
     
     result
