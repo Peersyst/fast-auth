@@ -25,11 +25,9 @@ pub fn verify(pub_key: &RsaPublicKey, prefix: &[u8], hashed: &[u8], sig: &BoxedU
         return Err(Error::Verification);
     }
 
-    // let enc = rsa_encrypt(pub_key, sig);
-    // let em = uint_to_be_pad(enc?, pub_key.size())?;
-    // pkcs1v15_sign_unpad(prefix, hashed, &em, pub_key.size())
-
-    Result::Ok(())
+    let enc = rsa_encrypt(pub_key, sig);
+    let em = uint_to_be_pad(enc?, pub_key.size())?;
+    pkcs1v15_sign_unpad(prefix, hashed, &em, pub_key.size())
 }
 
 #[inline]
@@ -41,22 +39,22 @@ pub fn rsa_encrypt<K: PublicKeyParts>(key: &K, m: &BoxedUint) -> Result<BoxedUin
 
 /// Computes `base.pow_mod(exp, n)` with precomputed `n_params`.
 fn pow_mod_params(base: &BoxedUint, exp: &BoxedUint, n_params: &BoxedMontyParams) -> BoxedUint {
-    let base = reduce_vartime(base, n_params);
-    base.pow(exp).retrieve()
-}
-
-fn reduce_vartime(n: &BoxedUint, p: &BoxedMontyParams) -> BoxedMontyForm {
-    let bits_precision = p.modulus().bits_precision();
-    let modulus = p.modulus().as_nz_ref().clone();
-
-    let n = match n.bits_precision().cmp(&bits_precision) {
-        Ordering::Less => n.widen(bits_precision),
-        Ordering::Equal => n.clone(),
-        Ordering::Greater => n.shorten(bits_precision),
-    };
-
-    let n_reduced = n.rem_vartime(&modulus).widen(p.bits_precision());
-    BoxedMontyForm::new(n_reduced, p.clone())
+    let modulus = n_params.modulus().as_nz_ref();
+    let bits_precision = modulus.bits_precision();
+    
+    // Initialize result to 1
+    let mut result = BoxedUint::one_with_precision(bits_precision);
+    let mut base = base.clone();
+    
+    // Square-and-multiply algorithm
+    for i in 0..exp.bits() {
+        if exp.bit_vartime(i) {
+            result = result.mul(&base).rem_vartime(modulus);
+        }
+        base = base.mul(&base).rem_vartime(modulus);
+    }
+    
+    result
 }
 
 #[inline]

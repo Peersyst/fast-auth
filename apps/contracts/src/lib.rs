@@ -3,9 +3,10 @@ use crypto_bigint::{NonZero, BoxedUint, Odd};
 // Find all our documentation at https://docs.near.org
 use near_sdk::{log, near};
 use serde::{Deserialize, Serialize};
-use crate::rsa::pkcs1v15::verify;
 use crate::rsa::key::RsaPublicKey;
 use near_sdk::base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+use crypto_bigint::subtle::ConstantTimeEq;
+use crate::rsa::key::PublicKeyParts;
 
 pub mod rsa;
 
@@ -38,21 +39,78 @@ impl Default for Contract {
 #[near]
 impl Contract {
     pub fn verify_jwt(&self, hashed: Vec<u8>, signature_bytes: Vec<u8>) -> bool {
+
+
         let signature = BoxedUint::from_be_slice(&signature_bytes, 2048).expect("Failed to create signature BoxedUint");
         let n = BoxedUint::from_be_slice(&self.n, 2048).expect("Failed to create n BoxedUint");
         let e = BoxedUint::from_be_slice(&self.e, 2048).expect("Failed to create e BoxedUint");
 
-        
         // Create prefix (ASN.1 DER encoding for SHA-256)
         let prefix = vec![
             0x30, 0x31, 0x30, 0x0d, 0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x05, 0x00, 0x04, 0x20
         ];
 
-        verify(&RsaPublicKey {
+        // Create RSA public key
+        let pub_key = &RsaPublicKey {
             n: NonZero::new(n.clone()).expect("Non-zero value required"),
             e,
-            n_params: BoxedMontyParams::new_vartime(Odd::new(n).expect("Odd value required")),
-        }, &prefix, &hashed, &signature).is_ok()
+            n_params: BoxedMontyParams::new_vartime(Odd::new(n.clone()).expect("Odd value required")),
+        };
+
+        // Check signature bounds
+        if signature >= *pub_key.n.as_ref() || signature.bits_precision() != pub_key.n.bits_precision() {
+            return false;
+        }
+
+        // Inlined rsa_encrypt function
+        let modulus = pub_key.n_params.modulus().as_nz_ref();
+        let bits_precision = modulus.bits_precision();
+        
+        // Initialize result to 1
+        let mut result = BoxedUint::one_with_precision(bits_precision);
+        let mut base = signature.clone();
+        
+        // Square-and-multiply algorithm
+        for i in 0..pub_key.e.bits() {
+            if pub_key.e.bit_vartime(i) {
+                result = result.mul(&base).rem_vartime(modulus);
+            }
+            base = base.mul(&base).rem_vartime(modulus);
+        }
+
+        // Inlined uint_to_be_pad function
+        let leading_zeros = result.leading_zeros() as usize / 8;
+        let em = {
+            let input = &result.to_be_bytes()[leading_zeros..];
+            let padded_len = pub_key.size();
+            if input.len() > padded_len {
+                return false;
+            }
+            let mut out = vec![0u8; padded_len];
+            out[padded_len - input.len()..].copy_from_slice(input);
+            out
+        };
+
+        // Inlined pkcs1v15_sign_unpad function
+        let hash_len = hashed.len();
+        let t_len = prefix.len() + hashed.len();
+        let k = pub_key.size();
+        if k < t_len + 11 {
+            return false;
+        }
+
+        // EM = 0x00 || 0x01 || PS || 0x00 || T
+        let mut ok = em[0].ct_eq(&0u8);
+        ok &= em[1].ct_eq(&1u8);
+        ok &= em[k - hash_len..k].ct_eq(&hashed);
+        ok &= em[k - t_len..k - hash_len].ct_eq(&prefix);
+        ok &= em[k - t_len - 1].ct_eq(&0u8);
+
+        for el in em.iter().skip(2).take(k - t_len - 3) {
+            ok &= el.ct_eq(&0xff)
+        }
+
+        ok.unwrap_u8() == 1
     }
 }
 
@@ -62,7 +120,6 @@ impl Contract {
  */
 #[cfg(test)]
 mod tests {
-    #![recursion_limit = "256"]
     use super::*;
 
     // [113, 123, 200, 51, 146, 222, 185, 141, 194, 14, 33, 223, 194, 11, 150, 250, 99, 134, 239, 227, 61, 63, 43, 142, 18, 215, 31, 133, 207, 85, 242, 141]
