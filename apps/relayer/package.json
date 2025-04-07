@@ -1,0 +1,21 @@
+{
+    "name": "relayer",
+    "version": "1.0.0",
+    "description": "",
+    "main": "dist/index.js",
+    "scripts": {
+        "check-types": "npx tsc --noEmit",
+        "lint": "eslint .",
+        "test": "jest"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "devDependencies": {
+        "@shared/eslint": "workspace:*",
+        "@shared/tsconfig": "workspace:*",
+        "@types/jest": "^29.5.12",
+        "jest": "^29.7.0",
+        "typescript": "^5.8.2"
+    }
+}

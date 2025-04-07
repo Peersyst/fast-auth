@@ -1,0 +1,27 @@
+{
+    "name": "@shared/eslint",
+    "version": "0.0.0",
+    "private": true,
+    "license": "UNLICENSED",
+    "devDependencies": {
+        "@typescript-eslint/eslint-plugin": "^8.3.0",
+        "@typescript-eslint/parser": "^8.3.0",
+        "eslint": "^8.57.0",
+        "eslint-config-prettier": "^8.10.0",
+        "eslint-import-resolver-typescript": "^3.6.3",
+        "eslint-plugin-import": "2.29.1",
+        "eslint-plugin-jsdoc": "^50.2.2",
+        "eslint-plugin-prettier": "^5.2.1",
+        "eslint-plugin-react": "^7.34.4",
+        "eslint-plugin-react-hooks": "^4.6.2"
+    },
+    "exports": {
+        "./base": "./.eslintrc.base.js",
+        "./node": "./.eslintrc.node.js",
+        "./nest": "./.eslintrc.nest.js",
+        "./package": "./.eslintrc.package.js",
+        "./react": "./.eslintrc.react.js",
+        "./react-native": "./.eslintrc.react-native.js",
+        "./utils/jsdoc": "./utils/jsdoc.js"
+    }
+}
