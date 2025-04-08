@@ -1,8 +1,11 @@
 // Find all our documentation at https://docs.near.org
-use near_sdk::{env, log, near, Promise, PromiseResult, AccountId, Gas, NearToken};
+use near_sdk::{env, log, near, Promise, PromiseError, AccountId, Gas};
 use std::collections::HashMap;
-use near_sdk::serde_json::json;
 
+// Declare the interfaces module
+pub mod interfaces;
+
+use crate::interfaces::{external_guard};
 // Define the contract structure
 #[near(contract_state)]
 pub struct FaGuard{
@@ -18,7 +21,6 @@ impl Default for FaGuard {
     }
 }
 
-const NO_DEPOSIT: NearToken = NearToken::from_yoctonear(0);
 // TODO: Hardcoded gas for now, should be dynamic
 const GAS_FOR_VERIFY: Gas = Gas::from_gas(5_000_000_000_000);
 
@@ -55,38 +57,28 @@ impl FaGuard {
         self.guards.remove(&guard_id);
     }
 
+    // Verification methods
+
     // Public method - accepts a guard_id and payload, and verifies the guard
     pub fn verify(&self, guard_id: String, payload: String) -> Promise {
         let guard_address = self.get_guard(guard_id);
-        let args = json!({
-            "payload": payload
-        }).to_string().into_bytes().to_vec();
-        Promise::new(guard_address).function_call("verify".to_string(), args, NO_DEPOSIT, GAS_FOR_VERIFY)
-        .then(Promise::new(env::current_account_id())
-            .function_call(
-                "on_verify_callback".to_string(),
-                Vec::new(),
-                NO_DEPOSIT,
-                // TODO: Hardcoded gas for now, should be dynamic
-                Gas::from_gas(2_000_000_000_000),
-            )
+
+        external_guard::ext(guard_address.clone())
+        .with_static_gas(GAS_FOR_VERIFY)
+        .verify(payload)
+        .then(Self::ext(env::current_account_id())
+            .on_verify_callback()
         )
     }
 
     #[private]
-    pub fn on_verify_callback(&self) -> bool {
-        match env::promise_result(0) {
-            PromiseResult::Successful(data) => {
-                if let Ok(result) = near_sdk::serde_json::from_slice::<bool>(&data) {
-                    result
-                } else {
-                    false
-                }
-            },
-            PromiseResult::Failed => {
-                log!("Guard verification failed");
-                false
-            },
+    pub fn on_verify_callback(&mut self, #[callback_result] call_result: Result<bool, PromiseError>) -> bool {
+        if call_result.is_err() {
+            env::log_str("Guard verification failed");
+            false
+        } else {
+            env::log_str("Guard verification successful");
+            true
         }
     }
 }
