@@ -1,5 +1,5 @@
 [package]
-name = "contracts"
+name = "fa-guard"
 description = "cargo-near-new-project-description"
 version = "0.1.0"
 edition = "2021"
@@ -7,6 +7,9 @@ edition = "2021"
 # NEP-0330 is automatically implemented for all contracts built with https://github.com/near/cargo-near.
 # Link to the repository will be available via `contract_source_metadata` view-function.
 repository = "https://github.com/<xxx>/<xxx>"
+
+[workspace]
+members = ["mocks/external-guard"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
