@@ -1,0 +1,33 @@
+# Node modules
+node_modules
+
+# OS
+.DS_Store
+
+# IDE
+.idea
+.vscode
+
+
+# Builds
+dist
+
+# Logs
+logs
+*/**/logs/
+*/**/*.log
+
+# Env
+.env*
+!.env.example
+
+# Tests
+coverage
+
+# Docker
+docker-data
+
+# Caches
+.turbo
+.expo
+.cache

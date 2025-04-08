@@ -1,0 +1,12 @@
+{
+  "name": "contracts",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build": "cargo build",
+    "test": "cargo test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

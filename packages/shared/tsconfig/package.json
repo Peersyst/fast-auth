@@ -1,0 +1,15 @@
+{
+    "name": "@shared/tsconfig",
+    "version": "0.0.0",
+    "license": "UNLICENSED",
+    "exports": {
+        "./base": "./tsconfig.base.json",
+        "./package": "./tsconfig.package.json",
+        "./nest": "./tsconfig.nest.json",
+        "./browser": "./tsconfig.browser.json",
+        "./browser-package": "./tsconfig.browser-package.json",
+        "./react": "./tsconfig.react.json",
+        "./react-package": "./tsconfig.react-package.json",
+        "./react-native": "./tsconfig.react-native.json"
+    }
+}

@@ -1,0 +1,31 @@
+{
+    "name": "@shared/test",
+    "author": "Peersyst",
+    "version": "0.0.0",
+    "license": "UNLICENSED",
+    "scripts": {
+        "dev": "tsup --watch",
+        "build": "tsup",
+        "clean": "rimraf .turbo dist node_modules",
+        "lint": "eslint .",
+        "check-types": "npx tsc --noEmit",
+        "bundle": "genesys bundle"
+    },
+    "exports": {
+        ".": "./src/index.ts"
+    },
+    "peerDependencies": {
+        "jest": "^29.7.0",
+        "ts-jest": "^29.2.5"
+    },
+    "devDependencies": {
+        "@shared/eslint": "workspace:*",
+        "@shared/tsconfig": "workspace:*",
+        "@shared/tsup": "workspace:*",
+        "@swisstype/essential": "^0.1.1",
+        "@types/jest": "^29.5.12",
+        "jest": "^29.7.0",
+        "ts-jest": "^29.2.5",
+        "typescript": "latest"
+    }
+}
