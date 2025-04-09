@@ -13,6 +13,3 @@ jobs:
     build-base:
         uses: ./.github/workflows/build-base.yaml
         secrets: inherit
-    build-contracts:
-        uses: ./.github/workflows/build-contracts.yaml
-        secrets: inherit
