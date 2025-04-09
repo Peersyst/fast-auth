@@ -5,15 +5,23 @@ use crate::interfaces::jwt_algorithm;
 
 pub mod interfaces;
 
-// Define the contract structure
+/// FaJwtGuard is a NEAR smart contract that handles JWT verification using RSA public keys.
+/// It maintains a registry of JWT algorithm implementations and the RSA public key components
+/// used for signature verification.
 #[near(contract_state)]
-pub struct FaJwtGuard{
+pub struct FaJwtGuard {
+    /// Mapping of algorithm names (e.g. "RS256") to their implementation contract accounts
     implementations: HashMap<String, AccountId>,
+    /// The modulus (n) component of the RSA public key as a byte vector
     n: Vec<u8>,
+    /// The exponent (e) component of the RSA public key as a byte vector 
     e: Vec<u8>
 }
 
-// Define the default, which automatically initializes the contract
+/// Provides default initialization for the contract.
+/// Creates an empty contract with:
+/// - No registered algorithm implementations
+/// - Empty RSA public key components
 impl Default for FaJwtGuard {
     fn default() -> Self {
         Self {
@@ -24,34 +32,87 @@ impl Default for FaJwtGuard {
     }
 }
 
-// Implement the contract structure
+/// Implementation of the FaJwtGuard contract methods
 #[near]
 impl FaJwtGuard {
 
+    /// Sets the public key components for RSA verification
+    /// 
+    /// # Arguments
+    /// * `n` - The modulus component of the RSA public key as a byte vector
+    /// * `e` - The exponent component of the RSA public key as a byte vector
     #[private]
     pub fn set_public_key(&mut self, n: Vec<u8>, e: Vec<u8>) {
         self.n = n;
         self.e = e;
     }
 
+    /// Gets the current public key components
+    ///
+    /// # Returns
+    /// A tuple containing:
+    /// * The modulus component as a byte vector
+    /// * The exponent component as a byte vector 
     pub fn get_public_key(&self) -> (Vec<u8>, Vec<u8>) {
         (self.n.clone(), self.e.clone())
     }
 
+    /// Registers a new JWT algorithm implementation contract
+    ///
+    /// # Arguments
+    /// * `name` - The name/type of the algorithm (e.g. "RS256")
+    /// * `implementation` - The account ID of the implementation contract
     #[private]
     pub fn register_implementation(&mut self, name: String, implementation: AccountId) {
         self.implementations.insert(name, implementation);
     }
 
+    /// Removes a JWT algorithm implementation contract
+    ///
+    /// # Arguments
+    /// * `name` - The name/type of the algorithm to remove
     #[private]
     pub fn unregister_implementation(&mut self, name: String) {
         self.implementations.remove(&name);
     }
 
+    /// Callback function that handles the result of signature verification
+    ///
+    /// # Arguments
+    /// * `call_result` - The Result from the verification call
+    ///
+    /// # Returns
+    /// A boolean indicating if verification succeeded
+    #[private]
+    pub fn on_verify_signature_callback(&mut self, #[callback_result] call_result: Result<bool, PromiseError>) -> bool {
+        if call_result.is_err() {
+            env::log_str("Signature verification failed");
+            false
+        } else {
+            env::log_str("Signature verification successful");
+            true
+        }
+    }
+
+    /// Gets all registered JWT algorithm implementations
+    ///
+    /// # Returns
+    /// A reference to the HashMap containing algorithm names and their implementation contract account IDs
     pub fn get_implementations(&self) -> &HashMap<String, AccountId> {
         &self.implementations
     }
 
+    /// Decodes a JWT string into its component parts
+    ///
+    /// # Arguments
+    /// * `payload` - The full JWT string
+    ///
+    /// # Returns
+    /// A Result containing a tuple of:
+    /// * The decoded header as bytes
+    /// * The encoded payload string
+    /// * The signature string
+    /// Or an error message if decoding fails
     fn decode_jwt(payload: &str) -> Result<(Vec<u8>, String, String), &'static str> {
         // Split JWT into parts
         let parts: Vec<&str> = payload.split('.').collect();
@@ -74,6 +135,15 @@ impl FaJwtGuard {
         Ok((header, jwt_payload, signature))
     }
 
+    /// Extracts the algorithm type from a JWT header
+    ///
+    /// # Arguments
+    /// * `header` - The decoded JWT header as bytes
+    ///
+    /// # Returns
+    /// A Result containing:
+    /// * The algorithm name as a String
+    /// * Or an error message if parsing fails
     fn get_jwt_algorithm(header: &[u8]) -> Result<String, &'static str> {
         // Parse header JSON
         let header_json: serde_json::Value = match serde_json::from_slice(header) {
@@ -88,6 +158,13 @@ impl FaJwtGuard {
         }
     }
 
+    /// Verifies a JWT signature using the appropriate algorithm implementation
+    ///
+    /// # Arguments
+    /// * `jwt` - The full JWT string to verify
+    ///
+    /// # Returns
+    /// A Promise that will resolve to a boolean indicating if verification succeeded
     pub fn verify(&self, jwt: String) -> Promise {
         // Decode JWT
         let (header, _, _) = match Self::decode_jwt(&jwt) {
@@ -115,18 +192,6 @@ impl FaJwtGuard {
             .on_verify_signature_callback()
         )
     }
-
-    #[private]
-    pub fn on_verify_signature_callback(&mut self, #[callback_result] call_result: Result<bool, PromiseError>) -> bool {
-        if call_result.is_err() {
-            env::log_str("Signature verification failed");
-            false
-        } else {
-            env::log_str("Signature verification successful");
-            true
-        }
-    }
-    
 }
 
 /*
