@@ -134,6 +134,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "base16ct"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4c7f02d4ea65f2c1853089ffd8d2787bdbc63de2f0d29dedbcf8ccdfa0ccd4cf"
+
+[[package]]
 name = "base64"
 version = "0.21.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -580,6 +586,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43da5946c66ffcc7745f48db692ffbb10a83bfe0afd96235c5c2a4fb23994929"
 
 [[package]]
+name = "crypto-bigint"
+version = "0.7.0-pre.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b039f68d4da3ff0e71a36347d5ea58dc8843c61f8a6f01cafdd1646a9a53311"
+dependencies = [
+ "num-traits",
+ "serdect",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
 name = "crypto-common"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -924,9 +942,11 @@ dependencies = [
 name = "fa-guard-jwt-rs256"
 version = "0.1.0"
 dependencies = [
+ "crypto-bigint",
  "near-sdk",
  "near-workspaces",
  "serde_json",
+ "sha2",
  "tokio",
 ]
 
@@ -3132,6 +3152,16 @@ dependencies = [
  "ryu",
  "serde",
  "unsafe-libyaml",
+]
+
+[[package]]
+name = "serdect"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f42f67da2385b51a5f9652db9c93d78aeaf7610bf5ec366080b6de810604af53"
+dependencies = [
+ "base16ct",
+ "serde",
 ]
 
 [[package]]

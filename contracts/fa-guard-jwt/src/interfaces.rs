@@ -14,5 +14,5 @@ pub trait JwtAlgorithm {
     ///
     /// # Returns
     /// A boolean indicating if the signature is valid (true) or invalid (false)
-    fn verify_signature(&self, n: Vec<u8>, e: Vec<u8>, token: String) -> bool;
+    fn verify_signature(&self, n_arg: Vec<u8>, e_arg: Vec<u8>, token: String) -> bool;
 }
