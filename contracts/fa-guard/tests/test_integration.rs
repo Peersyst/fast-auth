@@ -1,16 +1,11 @@
 use serde_json::json;
 
 #[tokio::test]
-async fn test_contract_is_operational() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_guards_crud() -> Result<(), Box<dyn std::error::Error>> {
     let contract_wasm = near_workspaces::compile_project("./").await?;
-    test_guards_crud(&contract_wasm).await?;
-    test_verify(&contract_wasm).await?;
-    Ok(())
-}
 
-async fn test_guards_crud(contract_wasm: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
     let sandbox = near_workspaces::sandbox().await?;
-    let contract = sandbox.dev_deploy(contract_wasm).await?;
+    let contract = sandbox.dev_deploy(&contract_wasm).await?;
 
     // Test adding a guard
     let outcome = contract
@@ -66,9 +61,12 @@ async fn test_guards_crud(contract_wasm: &[u8]) -> Result<(), Box<dyn std::error
     Ok(())
 }
 
-async fn test_verify(contract_wasm: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::test]
+async fn test_verify() -> Result<(), Box<dyn std::error::Error>> {
+    let contract_wasm = near_workspaces::compile_project("./").await?;
+
     let sandbox = near_workspaces::sandbox().await?;
-    let contract = sandbox.dev_deploy(contract_wasm).await?;
+    let contract = sandbox.dev_deploy(&contract_wasm).await?;
     
     // Deploy a mock guard contract
     let mock_guard = sandbox.dev_deploy(include_bytes!("../target/wasm32-unknown-unknown/release/external_guard.wasm")).await?;
