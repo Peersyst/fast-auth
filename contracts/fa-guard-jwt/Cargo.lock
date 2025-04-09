@@ -921,7 +921,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "fa-jwt"
+name = "fa-guard-jwt"
 version = "0.1.0"
 dependencies = [
  "near-sdk",

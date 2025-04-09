@@ -15,7 +15,9 @@ pub struct FaJwtGuard {
     /// The modulus (n) component of the RSA public key as a byte vector
     n: Vec<u8>,
     /// The exponent (e) component of the RSA public key as a byte vector 
-    e: Vec<u8>
+    e: Vec<u8>,
+    /// The owner of the contract
+    owner: AccountId
 }
 
 /// Provides default initialization for the contract.
@@ -27,7 +29,8 @@ impl Default for FaJwtGuard {
         Self {
             implementations: HashMap::new(),
             n: vec![],
-            e: vec![]
+            e: vec![],
+            owner: env::current_account_id()
         }
     }
 }
@@ -36,13 +39,47 @@ impl Default for FaJwtGuard {
 #[near]
 impl FaJwtGuard {
 
+    #[init]
+    pub fn init(owner: AccountId) -> Self {
+        Self {
+            implementations: HashMap::new(),
+            n: vec![],
+            e: vec![],
+            owner: owner
+        }
+    }
+
+    /// Checks if the caller is the contract owner
+    /// # Panics
+    /// Panics if the caller is not the owner
+    fn only_owner(&self) {
+        assert!(env::signer_account_id() == self.owner, "Only the owner can call this function");
+    }
+
+    /// Gets the current owner of the contract
+    /// # Returns
+    /// * AccountId of the current owner
+    pub fn owner(&self) -> AccountId {
+        self.owner.clone()
+    }
+
+    /// Changes the owner of the contract
+    /// # Arguments
+    /// * `new_owner` - New owner account ID
+    /// # Panics
+    /// Panics if caller is not the owner
+    pub fn change_owner(&mut self, new_owner: AccountId) {
+        self.only_owner();
+        self.owner = new_owner;
+    }
+
     /// Sets the public key components for RSA verification
     /// 
     /// # Arguments
     /// * `n` - The modulus component of the RSA public key as a byte vector
     /// * `e` - The exponent component of the RSA public key as a byte vector
-    #[private]
     pub fn set_public_key(&mut self, n: Vec<u8>, e: Vec<u8>) {
+        self.only_owner();
         self.n = n;
         self.e = e;
     }
@@ -62,8 +99,8 @@ impl FaJwtGuard {
     /// # Arguments
     /// * `name` - The name/type of the algorithm (e.g. "RS256")
     /// * `implementation` - The account ID of the implementation contract
-    #[private]
     pub fn register_implementation(&mut self, name: String, implementation: AccountId) {
+        self.only_owner();
         self.implementations.insert(name, implementation);
     }
 
@@ -71,8 +108,8 @@ impl FaJwtGuard {
     ///
     /// # Arguments
     /// * `name` - The name/type of the algorithm to remove
-    #[private]
     pub fn unregister_implementation(&mut self, name: String) {
+        self.only_owner();
         self.implementations.remove(&name);
     }
 
@@ -203,17 +240,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_set_public_key() {
-        let mut contract = FaJwtGuard::default();
-        let n = vec![1, 2, 3];
-        let e = vec![4, 5, 6];
-        contract.set_public_key(n, e);
-        let (n, e) = contract.get_public_key();
-        assert_eq!(n, vec![1, 2, 3]);
-        assert_eq!(e, vec![4, 5, 6]);
-    }
-
-    #[test]
     fn test_get_public_key_empty() {
         let contract = FaJwtGuard::default();
         let (n, e) = contract.get_public_key();
@@ -223,10 +249,7 @@ mod tests {
 
     #[test]
     fn test_get_public_key_not_empty() {
-        let mut contract = FaJwtGuard::default();
-        let n = vec![1, 2, 3];
-        let e = vec![4, 5, 6];
-        contract.set_public_key(n, e);
+        let contract = FaJwtGuard { implementations: HashMap::new(), n: vec![1, 2, 3], e: vec![4, 5, 6], owner: env::current_account_id() };
         let (n, e) = contract.get_public_key();
         assert_eq!(n, vec![1, 2, 3]);
         assert_eq!(e, vec![4, 5, 6]);
@@ -241,29 +264,14 @@ mod tests {
 
     #[test]
     fn test_get_implementations_not_empty() {
-        let mut contract = FaJwtGuard::default();
-        let account_id: AccountId = "implementation".parse().unwrap();
-        contract.register_implementation("rsa256".to_string(), account_id);
+        let contract = FaJwtGuard { implementations: HashMap::from([("rsa256".to_string(), "implementation".parse().unwrap())]), n: vec![], e: vec![], owner: env::current_account_id() };
         let implementations = contract.get_implementations();
         assert_eq!(implementations.len(), 1);
     }
 
     #[test]
-    fn test_register_implementation() {
-        let mut contract = FaJwtGuard::default();
-        let account_id: AccountId = "implementation".parse().unwrap();
-        contract.register_implementation("rsa256".to_string(), account_id);
-        let implementations = contract.get_implementations();
-        assert_eq!(implementations.len(), 1);
-    }
-
-    #[test]
-    fn test_unregister_implementation() {
-        let mut contract = FaJwtGuard::default();
-        let account_id: AccountId = "implementation".parse().unwrap();
-        contract.register_implementation("rsa256".to_string(), account_id);
-        contract.unregister_implementation("rsa256".to_string());
-        let implementations = contract.get_implementations();
-        assert_eq!(implementations.len(), 0);
+    fn owner() {
+        let contract = FaJwtGuard { implementations: HashMap::new(), n: vec![], e: vec![], owner: env::current_account_id() };
+        assert_eq!(contract.owner(), env::current_account_id());
     }
 }

@@ -5,7 +5,16 @@ async fn test_implementations_crud() -> Result<(), Box<dyn std::error::Error>> {
     let contract_wasm = near_workspaces::compile_project("./").await?;
 
     let sandbox = near_workspaces::sandbox().await?;
+    let owner = sandbox.dev_create_account().await?;
     let contract = sandbox.dev_deploy(&contract_wasm).await?;
+
+    // Initialize contract with owner
+    let _ = contract.call("init")
+        .args_json(json!({
+            "owner": owner.id()
+        }))
+        .transact()
+        .await?;
 
     // Test empty implementations
     let result = contract.call("get_implementations").view().await?;
@@ -14,8 +23,7 @@ async fn test_implementations_crud() -> Result<(), Box<dyn std::error::Error>> {
 
     // Test registering implementation
     let implementation_account = sandbox.dev_create_account().await?;
-    let _ = contract
-        .call("register_implementation")
+    let _ = owner.call(contract.id(), "register_implementation")
         .args_json((
             "RS256".to_string(),
             implementation_account.id()
@@ -30,8 +38,7 @@ async fn test_implementations_crud() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(implementations.get("RS256").unwrap().to_string(), implementation_account.id().to_string());
 
     // Test unregistering implementation
-    let _ = contract
-        .call("unregister_implementation") 
+    let _ = owner.call(contract.id(), "unregister_implementation")
         .args_json(("RS256".to_string(),))
         .transact()
         .await?;
@@ -40,6 +47,76 @@ async fn test_implementations_crud() -> Result<(), Box<dyn std::error::Error>> {
     let result = contract.call("get_implementations").view().await?;
     let implementations: std::collections::HashMap<String, String> = result.json()?;
     assert_eq!(implementations.len(), 0);
+
+    // Test registering implementation by non-owner (should fail)
+    let non_owner = sandbox.dev_create_account().await?;
+    let implementation_account = sandbox.dev_create_account().await?;
+    let register_outcome = non_owner.call(contract.id(), "register_implementation")
+        .args_json((
+            "RS256".to_string(),
+            implementation_account.id()
+        ))
+        .transact()
+        .await?;
+    assert!(!register_outcome.is_success());
+
+    // Test unregistering implementation by non-owner (should fail)
+    let _ = owner.call(contract.id(), "register_implementation")
+        .args_json((
+            "RS256".to_string(), 
+            implementation_account.id()
+        ))
+        .transact()
+        .await?;
+
+    let unregister_outcome = non_owner.call(contract.id(), "unregister_implementation")
+        .args_json(("RS256".to_string(),))
+        .transact()
+        .await?;
+    assert!(!unregister_outcome.is_success());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_owner() -> Result<(), Box<dyn std::error::Error>> {
+    let contract_wasm = near_workspaces::compile_project("./").await?;
+
+    let sandbox = near_workspaces::sandbox().await?;
+    let owner = sandbox.dev_create_account().await?;
+    let contract = sandbox.dev_deploy(&contract_wasm).await?;
+
+    // Initialize contract with owner
+    let _ = contract.call("init")
+        .args_json(json!({
+            "owner": owner.id()
+        }))
+        .transact()
+        .await?;
+
+    // Test getting the owner
+    let owner_outcome = contract
+        .call("owner")
+        .view()
+        .await?;
+    assert_eq!(owner_outcome.json::<String>()?, owner.id().to_string());
+
+    // Test changing the owner
+    let new_owner = sandbox.dev_create_account().await?;
+    let change_owner_outcome = owner.call(contract.id(), "change_owner")
+        .args_json(json!({
+            "new_owner": new_owner.id()
+        }))
+        .transact()
+        .await?;
+    assert!(change_owner_outcome.is_success());
+
+    // Test getting the new owner
+    let new_owner_outcome = contract
+        .call("owner")
+        .view()
+        .await?;
+    assert_eq!(new_owner_outcome.json::<String>()?, new_owner.id().to_string());
 
     Ok(())
 }
