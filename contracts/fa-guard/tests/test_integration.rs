@@ -5,11 +5,20 @@ async fn test_guards_crud() -> Result<(), Box<dyn std::error::Error>> {
     let contract_wasm = near_workspaces::compile_project("./").await?;
 
     let sandbox = near_workspaces::sandbox().await?;
+    let owner = sandbox.dev_create_account().await?;
     let contract = sandbox.dev_deploy(&contract_wasm).await?;
 
+    // Initialize contract with owner
+    let _ = contract.call("init")
+        .args_json(json!({
+            "init_guards": {},
+            "owner": owner.id()
+        }))
+        .transact()
+        .await?;
+
     // Test adding a guard
-    let outcome = contract
-        .call("add_guard")
+    let outcome = owner.call(contract.id(), "add_guard")
         .args_json(json!({
             "guard_id": "jwt",
             "guard_address": "jwt.fast-auth.near"
@@ -39,8 +48,7 @@ async fn test_guards_crud() -> Result<(), Box<dyn std::error::Error>> {
     assert!(non_existent_outcome.is_err());
 
     // Test removing a guard
-    let remove_outcome = contract
-        .call("remove_guard")
+    let remove_outcome = owner.call(contract.id(), "remove_guard")
         .args_json(json!({
             "guard_id": "jwt"
         }))
@@ -57,6 +65,50 @@ async fn test_guards_crud() -> Result<(), Box<dyn std::error::Error>> {
         .view()
         .await;
     assert!(removed_guard_outcome.is_err());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_owner() -> Result<(), Box<dyn std::error::Error>> {
+    let contract_wasm = near_workspaces::compile_project("./").await?;
+
+    let sandbox = near_workspaces::sandbox().await?;
+    let owner = sandbox.dev_create_account().await?;
+    let contract = sandbox.dev_deploy(&contract_wasm).await?;
+
+    // Initialize contract with owner
+    let _ = contract.call("init")
+        .args_json(json!({
+            "init_guards": {},
+            "owner": owner.id()
+        }))
+        .transact()
+        .await?;
+
+    // Test getting the owner
+    let owner_outcome = contract
+        .call("owner")
+        .view()
+        .await?;
+    assert_eq!(owner_outcome.json::<String>()?, owner.id().to_string());
+
+    // Test changing the owner
+    let new_owner = sandbox.dev_create_account().await?;
+    let change_owner_outcome = owner.call(contract.id(), "change_owner")
+        .args_json(json!({
+            "new_owner": new_owner.id()
+        }))
+        .transact()
+        .await?;
+    assert!(change_owner_outcome.is_success());
+
+    // Test getting the new owner
+    let new_owner_outcome = contract
+        .call("owner")
+        .view()
+        .await?;
+    assert_eq!(new_owner_outcome.json::<String>()?, new_owner.id().to_string());
 
     Ok(())
 }
