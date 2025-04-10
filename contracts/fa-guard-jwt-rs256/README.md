@@ -1,16 +1,28 @@
 # fa-guard-jwt-rs256
 
-cargo-near-new-project-description
+A NEAR contract that verifies JWT tokens signed with RS256 algorithm.
 
 ## How to Build Locally?
 
 Install [`cargo-near`](https://github.com/near/cargo-near) and run:
 
 ```bash
-cargo near build
+pnpm build
+```
+
+or
+
+```bash
+cargo near build non-reproducible-wasm
 ```
 
 ## How to Test Locally?
+
+```bash
+pnpm test
+```
+
+or
 
 ```bash
 cargo test

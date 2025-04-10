@@ -1,16 +1,28 @@
-# fa-jwt
+# fa-guard-jwt
 
-cargo-near-new-project-description
+A NEAR contract that acts as a guard proxy for JWT tokens verification.
 
 ## How to Build Locally?
 
 Install [`cargo-near`](https://github.com/near/cargo-near) and run:
 
 ```bash
-cargo near build
+pnpm build
+```
+
+or
+
+```bash
+cargo near build non-reproducible-wasm
 ```
 
 ## How to Test Locally?
+
+```bash
+pnpm test
+```
+
+or
 
 ```bash
 cargo test
