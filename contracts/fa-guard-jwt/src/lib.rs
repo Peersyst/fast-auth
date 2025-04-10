@@ -163,13 +163,13 @@ impl FaJwtGuard {
     /// # Returns
     /// A boolean indicating if verification succeeded
     #[private]
-    pub fn on_verify_signature_callback(&mut self, #[callback_result] call_result: Result<bool, PromiseError>) -> bool {
+    pub fn on_verify_signature_callback(&mut self, user_claim: String, permissions: String, #[callback_result] call_result: Result<bool, PromiseError>) -> (bool, String, String) {
         if call_result.is_err() {
             env::log_str("Signature verification failed");
-            false
+            (false, user_claim, permissions)
         } else {
             env::log_str("Signature verification successful");
-            true
+            (true, user_claim, permissions)
         }
     }
 
