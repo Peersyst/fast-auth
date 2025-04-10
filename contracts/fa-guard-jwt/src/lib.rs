@@ -1,8 +1,11 @@
 // Find all our documentation at https://docs.near.org
 use near_sdk::{near, AccountId, Promise, PromiseError, base64, env, serde_json};
+use near_sdk::base64::Engine;
 use std::collections::HashMap;
 use crate::interfaces::jwt_algorithm;
+use crate::claims::FaJwtCustomClaims;
 
+pub mod claims;
 pub mod interfaces;
 
 /// FaJwtGuard is a NEAR smart contract that handles JWT verification using RSA public keys.
@@ -166,13 +169,13 @@ impl FaJwtGuard {
     /// # Returns
     /// A boolean indicating if verification succeeded
     #[private]
-    pub fn on_verify_signature_callback(&mut self, user_claim: String, permissions: String, #[callback_result] call_result: Result<bool, PromiseError>) -> (bool, String, String) {
+    pub fn on_verify_signature_callback(&mut self, user: String, permissions: String, #[callback_result] call_result: Result<bool, PromiseError>) -> (bool, String, String) {
         if call_result.is_err() {
             env::log_str("Signature verification failed");
-            (false, user_claim, permissions)
+            (false, String::new(), String::new())
         } else {
             env::log_str("Signature verification successful");
-            (true, user_claim, permissions)
+            (true, user, permissions)
         }
     }
 
@@ -240,6 +243,20 @@ impl FaJwtGuard {
         }
     }
 
+    fn retrieve_jwt_claims(payload: &str) -> (String, String) {
+        // Decode base64url payload
+        let decoded_payload = match base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(payload.as_bytes()) {
+            Ok(bytes) => String::from_utf8(bytes).unwrap_or_else(|_| env::panic_str("Invalid JWT payload encoding")),
+            Err(_) => env::panic_str("Invalid JWT payload encoding"),
+        };
+
+        // Parse JSON claims
+        let claims: FaJwtCustomClaims = serde_json::from_str(&decoded_payload)
+            .unwrap_or_else(|_| env::panic_str("Invalid JWT claims format"));
+
+        (claims.fap, claims.fau)
+    }
+
     /// Verifies a JWT signature using the appropriate algorithm implementation
     ///
     /// # Arguments
@@ -249,10 +266,13 @@ impl FaJwtGuard {
     /// A Promise that will resolve to a boolean indicating if verification succeeded
     pub fn verify(&self, jwt: String) -> Promise {
         // Decode JWT
-        let (header, _, _) = match Self::decode_jwt(&jwt) {
+        let (header, payload, _) = match Self::decode_jwt(&jwt) {
             Ok((h, j, s)) => (h, j, s),
             Err(_) => env::panic(b"Invalid JWT format")
         };
+
+        // Get permissions and user from JWT claims
+        let (permissions, user) = Self::retrieve_jwt_claims(&payload);
 
         // Get algorithm
         let alg = match Self::get_jwt_algorithm(&header) {
@@ -266,12 +286,11 @@ impl FaJwtGuard {
             None => env::panic(b"Invalid JWT format")
         };
 
-
         // Verify signature
         jwt_algorithm::ext(implementation.clone())
         .verify_signature(self.n.clone(), self.e.clone(), jwt)
         .then(Self::ext(env::current_account_id())
-            .on_verify_signature_callback()
+            .on_verify_signature_callback(user, permissions)
         )
     }
 }

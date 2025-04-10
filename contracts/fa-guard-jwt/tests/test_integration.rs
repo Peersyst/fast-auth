@@ -180,10 +180,12 @@ async fn test_verify_should_pass_on_valid_jwt() -> Result<(), Box<dyn std::error
     let verify_outcome = contract
         .call("verify")
         .args_json(json!({
-            "jwt": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiYWRtaW4iOnRydWUsImlhdCI6MTUxNjIzOTAyMn0.NHVaYe26MbtOYhSKkoKYdFVomg4i8ZJd8_-RU8VNbftc4TSMb4bXP3l3YlNWACwyXPGffz5aXHc6lty1Y2t4SWRqGteragsVdZufDn5BlnJl9pdR_kdVFUsra2rWKEofkZeIC4yWytE58sMIihvo9H1ScmmVwBcQP6XETqYd0aSHp1gOa9RdUPDvoXQ5oqygTqVtxaDr6wUFKrKItgBMzWIdNZ6y7O9E0DhEPTbE9rfBo6KTFsHAZnMg4k68CDp2woYIaXbmYTWcvbzIuHO7_37GT79XdIwkm95QJ7hYC9RiwrV7mesbY4PAahERJawntho0my942XheVLmGwLMBkQ"
+            "jwt": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJmYXUiOiJ1c2VyaWQiLCJmYXAiOiJwZXJtaXNzaW9ucyIsInN1YiI6IjEyMzQ1Njc4OTAiLCJuYW1lIjoiSm9obiBEb2UiLCJhZG1pbiI6dHJ1ZSwiaWF0IjoxNzQ0MzY5OTIwfQ.a3irVDW8yHrQjC5Oq2WJ83g2wg1bGx_DUVOUzZCI-OWIsVZZgTXBlKD2kov7jNqpioCZr_VfEjZxwrxOX1fy833EvJ-e-m5oTKRmGNZi-cz2VpqN7Ri4RFa_JOqmTz-KbcMvhBOsR1Aw5HsfIVO6fHLF67ZHB-u85Odg5vwvuo2KBCb0BAjIRNvRWuV4Dg-_8AxwbgIAwEPccsj9-N1AmAltklhMvQ-H7HP_Kqmy9PfN5Nn81Lz0ig_tC1MRrFWp5E0S2tk28K61RF0eMPwZ_qDdnHNCkeODxUXL5pWA4uuT_A_0JsbTeaJClIZnJwJqY09Yl5z6dugx6lM_eOZUAw"
         }))
         .transact()
         .await?;
+
+    println!("verify_outcome: {:?}", verify_outcome);
     assert!(verify_outcome.is_success());
 
     Ok(())
