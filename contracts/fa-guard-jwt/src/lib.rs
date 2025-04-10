@@ -21,10 +21,6 @@ pub struct FaJwtGuard {
     e: Vec<u8>,
     /// The owner of the contract
     owner: AccountId,
-    /// The claim that the contract will check for in the JWT
-    permissions_claim: String,
-    /// The claim that the contract will check for in the JWT
-    user_claim: String
 }
 
 /// Provides default initialization for the contract.
@@ -38,8 +34,6 @@ impl Default for FaJwtGuard {
             n: vec![],
             e: vec![],
             owner: env::current_account_id(),
-            permissions_claim: String::new(),
-            user_claim: String::new()
         }
     }
 }
@@ -58,8 +52,6 @@ impl FaJwtGuard {
             n: vec![],
             e: vec![],
             owner: owner,
-            permissions_claim: String::new(),
-            user_claim: String::new()
         }
     }
 
@@ -125,40 +117,6 @@ impl FaJwtGuard {
     pub fn unregister_implementation(&mut self, name: String) {
         self.only_owner();
         self.implementations.remove(&name);
-    }
-
-    /// Gets the claim that the contract will check for in the JWT
-    ///
-    /// # Returns
-    /// * The claim that the contract will check for in the JWT
-    pub fn get_permissions_claim(&self) -> String {
-        self.permissions_claim.clone()
-    }
-
-    /// Sets the claim that the contract will check for in the JWT
-    ///
-    /// # Arguments
-    /// * `claim` - The claim to check for in the JWT
-    pub fn set_permissions_claim(&mut self, claim: String) {
-        self.only_owner();
-        self.permissions_claim = claim;
-    }
-
-    /// Gets the claim that the contract will check for in the JWT
-    ///
-    /// # Returns
-    /// * The claim that the contract will check for in the JWT
-    pub fn get_user_claim(&self) -> String {
-        self.user_claim.clone()
-    }
-
-    /// Sets the claim that the contract will check for in the JWT
-    ///
-    /// # Arguments
-    /// * `claim` - The claim to check for in the JWT
-    pub fn set_user_claim(&mut self, claim: String) {
-        self.only_owner();
-        self.user_claim = claim;
     }
 
     /// Callback function that handles the result of signature verification
@@ -313,7 +271,7 @@ mod tests {
 
     #[test]
     fn test_get_public_key_not_empty() {
-        let contract = FaJwtGuard { implementations: HashMap::new(), n: vec![1, 2, 3], e: vec![4, 5, 6], owner: env::current_account_id(), permissions_claim: String::new(), user_claim: String::new() };
+        let contract = FaJwtGuard { implementations: HashMap::new(), n: vec![1, 2, 3], e: vec![4, 5, 6], owner: env::current_account_id() };
         let (n, e) = contract.get_public_key();
         assert_eq!(n, vec![1, 2, 3]);
         assert_eq!(e, vec![4, 5, 6]);
@@ -328,26 +286,14 @@ mod tests {
 
     #[test]
     fn test_get_implementations_not_empty() {
-        let contract = FaJwtGuard { implementations: HashMap::from([("rsa256".to_string(), "implementation".parse().unwrap())]), n: vec![], e: vec![], owner: env::current_account_id(), permissions_claim: String::new(), user_claim: String::new() };
+        let contract = FaJwtGuard { implementations: HashMap::from([("rsa256".to_string(), "implementation".parse().unwrap())]), n: vec![], e: vec![], owner: env::current_account_id() };
         let implementations = contract.get_implementations();
         assert_eq!(implementations.len(), 1);
     }
 
     #[test]
     fn owner() {
-        let contract = FaJwtGuard { implementations: HashMap::new(), n: vec![], e: vec![], owner: env::current_account_id(), permissions_claim: String::new(), user_claim: String::new() };
+        let contract = FaJwtGuard { implementations: HashMap::new(), n: vec![], e: vec![], owner: env::current_account_id() };
         assert_eq!(contract.owner(), env::current_account_id());
-    }
-
-    #[test]
-    fn get_permissions_claim() {
-        let contract = FaJwtGuard { implementations: HashMap::new(), n: vec![], e: vec![], owner: env::current_account_id(), permissions_claim: "permissions".to_string(), user_claim: String::new() };
-        assert_eq!(contract.get_permissions_claim(), "permissions");
-    }
-
-    #[test]
-    fn get_user_claim() {
-        let contract = FaJwtGuard { implementations: HashMap::new(), n: vec![], e: vec![], owner: env::current_account_id(), permissions_claim: String::new(), user_claim: "user".to_string() };
-        assert_eq!(contract.get_user_claim(), "user");
     }
 }
