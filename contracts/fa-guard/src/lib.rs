@@ -78,19 +78,19 @@ impl FaGuard {
     }
 
     #[private]
-    pub fn on_verify_callback(&mut self, #[callback_result] call_result: Result<bool, PromiseError>) -> bool {
+    pub fn on_verify_callback(&mut self, #[callback_result] call_result: Result<(bool, String, String), PromiseError>) -> (bool, String, String) {
         if call_result.is_err() {
             env::log_str("Guard verification failed");
-            return false;
+            return (false, String::new(), String::new());
         } 
         // Extract the actual boolean result from the Ok value
-        let verification_result = call_result.unwrap();
+        let (verification_result, user, permissions) = call_result.unwrap();
         if verification_result {
             env::log_str("Guard verification successful");
         } else {
             env::log_str("Guard verification rejected");
         }
-        verification_result
+        (verification_result, user, permissions)
     }
 }
 
