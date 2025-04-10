@@ -1,5 +1,5 @@
 // Find all our documentation at https://docs.near.org
-use near_sdk::{env, log, near, Promise, PromiseError, AccountId, Gas};
+use near_sdk::{env, log, near, Promise, PromiseError, AccountId};
 use std::collections::HashMap;
 
 // Declare the interfaces module
@@ -22,9 +22,6 @@ impl Default for FaGuard {
         }
     }
 }
-
-// TODO: Hardcoded gas for now, should be dynamic
-const GAS_FOR_VERIFY: Gas = Gas::from_gas(5_000_000_000_000);
 
 // Implement the contract structure
 #[near]
@@ -60,7 +57,11 @@ impl FaGuard {
     /// # Returns
     /// * New instance of FaGuard contract
     #[init]
+    #[private]
     pub fn init(init_guards: HashMap<String, AccountId>, owner: AccountId) -> Self {
+        if env::state_exists() {
+            env::panic_str("Contract is already initialized");
+        }
         Self {
             guards: init_guards,
             owner: owner,
@@ -77,7 +78,9 @@ impl FaGuard {
     /// # Panics
     /// Panics if guard_id does not exist
     pub fn get_guard(&self, guard_id: String) -> AccountId {
-        self.guards.get(&guard_id).unwrap().clone()
+        self.guards.get(&guard_id).cloned().unwrap_or_else(|| {
+            env::panic_str(&format!("Guard with ID '{}' does not exist", guard_id));
+        })
     }
 
     /// Adds a new guard to the contract
@@ -112,10 +115,14 @@ impl FaGuard {
     /// # Returns
     /// * Promise that resolves to verification result
     pub fn verify(&self, guard_id: String, payload: String) -> Promise {
-        let guard_address = self.get_guard(guard_id);
+        let guard_address = match self.guards.get(&guard_id) {
+            Some(address) => address.clone(),
+            None => {
+                env::panic_str(&format!("Cannot verify: Guard with ID '{}' does not exist", guard_id));
+            }
+        };
 
         external_guard::ext(guard_address.clone())
-        .with_static_gas(GAS_FOR_VERIFY)
         .verify(payload)
         .then(Self::ext(env::current_account_id())
             .on_verify_callback()
@@ -128,14 +135,19 @@ impl FaGuard {
     /// # Returns
     /// * Boolean indicating if verification succeeded
     #[private]
-    pub fn on_verify_callback(&mut self, #[callback_result] call_result: Result<bool, PromiseError>) -> bool {
+    pub fn on_verify_callback(&mut self, #[callback_result] call_result: Result<(bool, String, String), PromiseError>) -> (bool, String, String) {
         if call_result.is_err() {
             env::log_str("Guard verification failed");
-            false
-        } else {
+            return (false, String::new(), String::new());
+        } 
+        // Extract the actual boolean result from the Ok value
+        let (verification_result, user, permissions) = call_result.unwrap();
+        if verification_result {
             env::log_str("Guard verification successful");
-            true
+        } else {
+            env::log_str("Guard verification rejected");
         }
+        (verification_result, user, permissions)
     }
 }
 
