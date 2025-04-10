@@ -11,9 +11,9 @@ impl Default for MockExternalGuard {
 
 #[near]
 impl MockExternalGuard {
-    pub fn verify(&self, payload: String) -> bool {
+    pub fn verify(&self, _payload: String) -> (bool, String, String) {
         // For testing, we'll just return true if the payload is not empty
-        !payload.is_empty()
+        (true, "user".to_string(), "permissions".to_string())
     }
 }
 

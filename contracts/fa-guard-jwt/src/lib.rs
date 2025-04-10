@@ -47,6 +47,9 @@ impl FaJwtGuard {
 
     #[init]
     pub fn init(owner: AccountId) -> Self {
+        if env::state_exists() {
+            env::panic_str("Contract is already initialized");
+        }
         Self {
             implementations: HashMap::new(),
             n: vec![],
