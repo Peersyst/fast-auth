@@ -28,6 +28,9 @@ impl FaGuard {
     #[init]
     #[private]
     pub fn init(init_guards: HashMap<String, AccountId>) -> Self {
+        if env::state_exists() {
+            env::panic_str("Contract is already initialized");
+        }
         Self {
             guards: init_guards,
         }
