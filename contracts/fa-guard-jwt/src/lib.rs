@@ -1,12 +1,13 @@
 // Find all our documentation at https://docs.near.org
-use near_sdk::{near, AccountId, Promise, PromiseError, base64, env, serde_json};
+use near_sdk::{log, near, AccountId, Promise, PromiseError, base64, env, serde_json};
 use near_sdk::base64::Engine;
 use std::collections::HashMap;
 use crate::interfaces::jwt_algorithm;
-use crate::claims::FaJwtCustomClaims;
+use crate::claims::{FaJwtCustomClaims, FaJwtHeaderClaims};
 
 pub mod claims;
 pub mod interfaces;
+pub mod claims;
 
 /// FaJwtGuard is a NEAR smart contract that handles JWT verification using RSA public keys.
 /// It maintains a registry of JWT algorithm implementations and the RSA public key components
@@ -132,8 +133,13 @@ impl FaJwtGuard {
             env::log_str("Signature verification failed");
             (false, String::new(), String::new())
         } else {
-            env::log_str("Signature verification successful");
-            (true, user, permissions)
+            let verification_result = call_result.unwrap();
+            if verification_result {
+                env::log_str("Guard verification successful");
+            } else {
+                env::log_str("Signature verification failed");
+            }
+            (verification_result, user, permissions)
         }
     }
 
@@ -189,16 +195,13 @@ impl FaJwtGuard {
     /// * Or an error message if parsing fails
     fn get_jwt_algorithm(header: &[u8]) -> Result<String, &'static str> {
         // Parse header JSON
-        let header_json: serde_json::Value = match serde_json::from_slice(header) {
+        let header_json: FaJwtHeaderClaims = match serde_json::from_slice(header) {
             Ok(j) => j,
             Err(_) => return Err("Failed to parse header JSON")
         };
 
         // Get algorithm
-        match header_json["alg"].as_str() {
-            Some(a) => Ok(a.to_string()),
-            None => Err("Missing algorithm in header")
-        }
+        Ok(header_json.alg.to_string())
     }
 
     fn retrieve_jwt_claims(payload: &str) -> (String, String) {
