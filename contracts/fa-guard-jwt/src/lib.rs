@@ -212,7 +212,7 @@ impl FaJwtGuard {
         let claims: FaJwtCustomClaims = serde_json::from_str(&decoded_payload)
             .unwrap_or_else(|_| env::panic_str("Invalid JWT claims format"));
 
-        (claims.fap, claims.fau)
+        (claims.fap, claims.sub)
     }
 
     /// Verifies a JWT signature using the appropriate algorithm implementation

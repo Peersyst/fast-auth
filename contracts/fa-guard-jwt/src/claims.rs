@@ -8,5 +8,5 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 pub struct FaJwtCustomClaims {
     pub fap: String,
-    pub fau: String,
+    pub sub: String,
 }
