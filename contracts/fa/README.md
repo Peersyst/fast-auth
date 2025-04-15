@@ -1,6 +1,6 @@
-# contracts/fa-guard
+# contracts/fa
 
-This package contains the FastAuth Guard contract. It is responsible for verifying the authenticity of a user's request.
+This package contains the FastAuth contract. It is responsible for verifying the authenticity of a user's request.
 
 ## How to Build Locally?
 
