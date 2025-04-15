@@ -10,3 +10,14 @@ pub struct FaJwtCustomClaims {
     pub fap: String,
     pub sub: String,
 }
+
+/// Represents the header claims contained in a JWT header
+/// 
+/// # Fields
+/// * `alg` - The algorithm claim that specifies the algorithm used to sign the token
+/// * `typ` - The type claim that specifies the type of the token
+#[derive(Deserialize)]
+pub struct FaJwtHeaderClaims {
+    pub alg: String,
+    // pub typ: String,
+}

@@ -7,7 +7,6 @@ use crate::claims::{FaJwtCustomClaims, FaJwtHeaderClaims};
 
 pub mod claims;
 pub mod interfaces;
-pub mod claims;
 
 /// FaJwtGuard is a NEAR smart contract that handles JWT verification using RSA public keys.
 /// It maintains a registry of JWT algorithm implementations and the RSA public key components
