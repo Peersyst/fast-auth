@@ -1,28 +1,27 @@
-# fa
+# contracts/fa-guard
 
-cargo-near-new-project-description
+This package contains the FastAuth Guard contract. It is responsible for verifying the authenticity of a user's request.
 
 ## How to Build Locally?
 
 Install [`cargo-near`](https://github.com/near/cargo-near) and run:
 
 ```bash
-cargo near build
+pnpm build
 ```
 
 ## How to Test Locally?
 
+First, build the mocks:
+
 ```bash
-cargo test
+pnpm build:mocks
 ```
 
-## How to Deploy?
-
-Deployment is automated with GitHub Actions CI/CD pipeline.
-To deploy manually, install [`cargo-near`](https://github.com/near/cargo-near) and run:
+Then, run the tests:
 
 ```bash
-cargo near deploy build-reproducible-wasm <account-id>
+pnpm test
 ```
 
 ## Useful Links
