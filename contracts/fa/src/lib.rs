@@ -1,14 +1,11 @@
 // Find all our documentation at https://docs.near.org
 use near_sdk::{env, log, near, Promise, PromiseError, AccountId, NearToken, Gas};
 use std::collections::HashMap;
-use near_sdk::serde_json;
-
 // Declare the interfaces module
 pub mod external_contracts;
 pub mod permission;
 
 use crate::external_contracts::{external_guard};
-use crate::permission::{FaPermission};
 
 // Define the contract structure
 #[near(contract_state)]
@@ -146,14 +143,7 @@ impl FastAuth {
     /// * `_payload` - Payload to verify permissions against
     /// # Returns
     /// * Boolean indicating if permissions are valid
-    fn verify_permission(&self, str_permission: String, _payload: String) -> bool {
-        let _permission: FaPermission = match serde_json::from_str(&str_permission) {
-            Ok(p) => p,
-            Err(_) => {
-                env::log_str("Failed to parse permission JSON");
-                return false;
-            }
-        };
+    fn verify_permission(&self, _str_permission: String, _payload: String) -> bool {
         // TODO: Implement permission verification logic (https://www.notion.so/contract-Define-permissions-1d121cedf84a80fcb322d1d23860e7cd?pvs=4)
         true
     }

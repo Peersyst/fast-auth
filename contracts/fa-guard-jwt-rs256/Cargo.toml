@@ -37,6 +37,7 @@ container_build_command = [
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 near-sdk = "5.9"
+serde = { version = "1", features = ["derive"] }
 sha2 = "0.10.8"
 crypto-bigint = { version = "0.7.0-pre", default-features = false, features = ["zeroize", "alloc"] }
 
