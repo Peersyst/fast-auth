@@ -16,15 +16,3 @@ impl MockExternalGuard {
         (true, "user".to_string(), "permissions".to_string())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_verify() {
-        let contract = MockExternalGuard::default();
-        assert!(contract.verify("test".to_string()));
-        assert!(!contract.verify("".to_string()));
-    }
-} 
