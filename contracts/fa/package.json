@@ -1,0 +1,13 @@
+{
+    "name": "@contracts/fa-guard",
+    "version": "1.0.0",
+    "description": "",
+    "scripts": {
+        "build": "cargo near build non-reproducible-wasm",
+        "build:mocks": "cargo build --target wasm32-unknown-unknown --release -p external-guard",
+        "test": "cargo test"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
+}
