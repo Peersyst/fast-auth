@@ -1,5 +1,4 @@
 packages:
-    - "apps/relayer"
-    - "apps/contracts"
+    - "contracts/fa-verification"
     - "packages/auth"
     - "packages/shared/*"
