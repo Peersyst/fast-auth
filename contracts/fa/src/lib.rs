@@ -5,13 +5,17 @@ use std::collections::HashMap;
 pub mod external_contracts;
 pub mod permission;
 
-use crate::external_contracts::{external_guard};
+use crate::external_contracts::{external_guard, mpc_contract, SignRequest, SignResponse};
+
+const MPC_KEY_VERSION: u32 = 0;
 
 // Define the contract structure
 #[near(contract_state)]
 pub struct FastAuth {
     guards: HashMap<String, AccountId>,
     owner: AccountId,
+    mpc_address: AccountId,
+    mpc_key_version: u32,
 }
 
 // Define the default, which automatically initializes the contract
@@ -20,6 +24,8 @@ impl Default for FastAuth {
         Self {
             guards: HashMap::new(),
             owner: env::current_account_id(),
+            mpc_address: env::current_account_id(),
+            mpc_key_version: MPC_KEY_VERSION,
         }
     }
 }
@@ -68,7 +74,19 @@ impl FastAuth {
         Self {
             guards: init_guards,
             owner: owner,
+            mpc_address: env::current_account_id(),
+            mpc_key_version: MPC_KEY_VERSION,
         }
+    }
+
+    // FastAuth MPC methods
+    pub fn set_mpc_address(&mut self, mpc_address: AccountId) {
+        self.only_owner();
+        self.mpc_address = mpc_address;
+    }
+
+    pub fn get_mpc_address(&self) -> AccountId {
+        self.mpc_address.clone()
     }
 
     // FastAuth Guard methods
@@ -204,6 +222,56 @@ impl FastAuth {
         }
         (permission_result, user, permissions)
     }
+
+    // Signing methods
+    #[payable]
+    pub fn sign(&mut self, guard_id: String, payload: Vec<u8>, jwt: String) -> Promise {
+        let attached_deposit = env::attached_deposit();
+        // assert!(env::prepaid_gas() < Gas::from_tgas(MPC_TGAS), "Gas does not cover the cost of the MPC signing");
+        Self::ext(env::current_account_id())
+            .verify(guard_id, jwt)
+            .then(Self::ext(env::current_account_id())
+                .on_verify_sign_callback(payload, attached_deposit)
+        )
+    }
+
+    #[private]
+    pub fn on_verify_sign_callback(&mut self, payload: Vec<u8>, attached_deposit: NearToken, #[callback_result] call_result: Result<(bool, String, String), PromiseError>) -> Promise {
+        if call_result.is_err() {
+            env::log_str("Guard verification failed");
+            return Promise::new(env::current_account_id());
+        } 
+        let (verification_result, user, _permissions) = call_result.unwrap();
+        if !verification_result {
+            env::log_str("Guard verification rejected");
+            return Promise::new(env::current_account_id());
+        }
+
+        let request = SignRequest {
+            payload,
+            path: user,
+            key_version: self.mpc_key_version,
+        };
+
+        mpc_contract::ext(self.mpc_address.clone())
+            .with_attached_deposit(attached_deposit)
+            .sign(request)
+            .then(Self::ext(env::current_account_id())
+                .on_sign_callback()
+        )
+    }
+
+    #[private]
+    pub fn on_sign_callback(&mut self, #[callback_result] call_result: Result<SignResponse, PromiseError>) -> Option<SignResponse> {
+        if call_result.is_err() {
+            env::log_str("MPC signing failed");
+            return None;
+        } 
+
+        let sign_response = call_result.unwrap();
+        env::log_str(&format!("MPC signing successful: {:?}", sign_response));
+        Some(sign_response)
+    }
 }
 
 /*
@@ -217,20 +285,26 @@ mod tests {
     #[test]
     fn get_existing_guard() {
         let addr: AccountId = "jwt.fast-auth.near".parse().unwrap();
-        let contract = FastAuth { guards: HashMap::from([("jwt".to_string(), addr.clone())]), owner: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::from([("jwt".to_string(), addr.clone())]), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: MPC_KEY_VERSION };
         assert_eq!(contract.get_guard("jwt".to_string()), addr);
     }
 
     #[test]
     #[should_panic]
     fn get_non_existing_guard() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: MPC_KEY_VERSION };
         contract.get_guard("jwt".to_string());
     }
 
     #[test]
     fn owner() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: MPC_KEY_VERSION };
         assert_eq!(contract.owner(), env::current_account_id());
+    }
+
+    #[test]
+    fn get_mpc_address() {
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: MPC_KEY_VERSION };
+        assert_eq!(contract.get_mpc_address(), env::current_account_id());
     }
 }
