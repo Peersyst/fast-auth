@@ -6,7 +6,7 @@ pub mod external_contracts;
 pub mod permission;
 
 use crate::external_contracts::{external_guard, mpc_contract, SignRequest, SignResponse};
-
+use crate::permission::{FaPermissionType, FaEVMPermissions, FaBTCPermissions, FaNearPermissions};
 const DEFAULT_MPC_KEY_VERSION: u32 = 0;
 
 // Define the contract structure
@@ -191,9 +191,26 @@ impl FastAuth {
     /// * Boolean indicating if permissions are valid
     fn verify_permission(&self, _str_permission: String, _payload: String) -> bool {
         // TODO: Implement permission verification logic (https://www.notion.so/contract-Define-permissions-1d121cedf84a80fcb322d1d23860e7cd?pvs=4)
-        true
+        let permission_type = permission::decode_permission_type(_str_permission);
+        match permission_type {
+            FaPermissionType::EVMPermission => {
+                env::log_str("EVMPermission");
+                true
+            }
+            FaPermissionType::BTCPermission => {
+                env::log_str("BTCPermission");
+                true
+            }
+            FaPermissionType::NearPermission => {
+                env::log_str("NearPermission");
+                true
+            }
+            _ => {
+                env::log_str("Unknown permission type");
+                false
+            }
+        }
     }
-
     /// Executes a function call on a specified contract
     /// 
     /// # Arguments
