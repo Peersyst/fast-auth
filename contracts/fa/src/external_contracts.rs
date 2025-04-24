@@ -1,4 +1,4 @@
-use near_sdk::{ext_contract, AccountId, Promise, PromiseOrValue};
+use near_sdk::{ext_contract, PromiseOrValue};
 use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
 use near_sdk::serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
