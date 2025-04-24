@@ -1,4 +1,7 @@
 packages:
-    - "contracts/fa-verification"
+    - "apps/relayer"
+    - "apps/auth0-poc"
+    - "contracts/fa-guard-jwt-rs256"
+    - "contracts/fa"
     - "packages/auth"
     - "packages/shared/*"
