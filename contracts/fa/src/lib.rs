@@ -87,6 +87,7 @@ impl FastAuth {
     /// Panics if caller is not the owner
     pub fn set_mpc_address(&mut self, mpc_address: AccountId) {
         self.only_owner();
+        env::log_str(&format!("Setting MPC address to {}", mpc_address));
         self.mpc_address = mpc_address;
     }
 
@@ -104,6 +105,7 @@ impl FastAuth {
     /// Panics if caller is not the owner
     pub fn set_mpc_key_version(&mut self, mpc_key_version: u32) {
         self.only_owner();
+        env::log_str(&format!("Setting MPC key version to {}", mpc_key_version));
         self.mpc_key_version = mpc_key_version;
     }
 
