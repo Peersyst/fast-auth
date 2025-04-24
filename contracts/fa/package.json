@@ -4,7 +4,9 @@
     "description": "",
     "scripts": {
         "build": "cargo near build non-reproducible-wasm",
-        "build:mocks": "cargo build --target wasm32-unknown-unknown --release -p external-guard",
+        "build:mocks:external-guard": "cargo build --target wasm32-unknown-unknown --release -p external-guard",
+        "build:mocks:mpc": "cargo build --target wasm32-unknown-unknown --release -p mpc",
+        "build:mocks": "pnpm run build:mocks:external-guard && pnpm run build:mocks:mpc",
         "test": "cargo test"
     },
     "keywords": [],
