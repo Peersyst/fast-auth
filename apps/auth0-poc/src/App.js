@@ -77,7 +77,6 @@ const App = () => {
                     preSendTest11: true,
                     preReadTest11: true,
                 }),
-                scope: "transaction:send-transaction transaction:read-transaction test:send-test",
             },
         })
             .then((token) => {
@@ -86,7 +85,7 @@ const App = () => {
             .catch((err) => {
                 console.error(err);
             });
-    }, [isAuthenticated]);
+    }, [isAuthenticated, getAccessTokenWithPopup]);
 
     if (error) {
         return <div>Oops... {error.message}</div>;

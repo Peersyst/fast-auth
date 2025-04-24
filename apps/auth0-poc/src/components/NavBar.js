@@ -116,7 +116,6 @@ const NavBar = () => {
                                                         preSendTest11: true,
                                                         preReadTest11: true,
                                                     }),
-                                                    scope: "transaction:send-transaction transaction:read-transaction test:send-test",
                                                 },
                                             })
                                         }
