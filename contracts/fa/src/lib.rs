@@ -1,18 +1,21 @@
 // Find all our documentation at https://docs.near.org
-use near_sdk::{env, log, near, Promise, PromiseError, AccountId, NearToken, Gas};
+use near_sdk::{env, log, near, require, Promise, PromiseError, AccountId, NearToken, Gas};
 use std::collections::HashMap;
+use near_sdk::serde_json;
 // Declare the interfaces module
 pub mod external_contracts;
 pub mod permission;
 
 use crate::external_contracts::{external_guard, mpc_contract, SignRequest, SignResponse};
-use crate::permission::{FaPermissionType, FaEVMPermissions, FaBTCPermissions, FaNearPermissions};
+use crate::permission::{PermissionSchema, FieldType};
+
 const DEFAULT_MPC_KEY_VERSION: u32 = 0;
 
 // Define the contract structure
 #[near(contract_state)]
 pub struct FastAuth {
     guards: HashMap<String, AccountId>,
+    permissions: HashMap<String, PermissionSchema>,
     owner: AccountId,
     mpc_address: AccountId,
     mpc_key_version: u32,
@@ -23,6 +26,7 @@ impl Default for FastAuth {
     fn default() -> Self {
         Self {
             guards: HashMap::new(),
+            permissions: HashMap::new(),
             owner: env::current_account_id(),
             mpc_address: env::current_account_id(),
             mpc_key_version: DEFAULT_MPC_KEY_VERSION,
@@ -72,6 +76,7 @@ impl FastAuth {
             env::panic_str("Contract is already initialized");
         }
         Self {
+            permissions: HashMap::new(),
             guards: init_guards,
             owner: owner,
             mpc_address: env::current_account_id(),
@@ -183,34 +188,6 @@ impl FastAuth {
         )
     }
 
-    /// Verifies permissions against a payload
-    /// # Arguments
-    /// * `str_permission` - Permission string in JSON format
-    /// * `_payload` - Payload to verify permissions against
-    /// # Returns
-    /// * Boolean indicating if permissions are valid
-    fn verify_permission(&self, _str_permission: String, _payload: String) -> bool {
-        // TODO: Implement permission verification logic (https://www.notion.so/contract-Define-permissions-1d121cedf84a80fcb322d1d23860e7cd?pvs=4)
-        let permission_type = permission::decode_permission_type(_str_permission);
-        match permission_type {
-            FaPermissionType::EVMPermission => {
-                env::log_str("EVMPermission");
-                true
-            }
-            FaPermissionType::BTCPermission => {
-                env::log_str("BTCPermission");
-                true
-            }
-            FaPermissionType::NearPermission => {
-                env::log_str("NearPermission");
-                true
-            }
-            _ => {
-                env::log_str("Unknown permission type");
-                false
-            }
-        }
-    }
     /// Executes a function call on a specified contract
     /// 
     /// # Arguments
@@ -260,7 +237,7 @@ impl FastAuth {
             return (false, user, permissions);
         }
         // TODO: Implement permission verification logic (https://www.notion.so/contract-Define-permissions-1d121cedf84a80fcb322d1d23860e7cd?pvs=4)
-        let permission_result = self.verify_permission(permissions.clone(), "mocked_permissions".to_string());
+        let permission_result = self.verify_permission(permissions.clone());
         if !permission_result {
             env::log_str("Permission verification rejected");
             return (false, user, permissions);
@@ -339,6 +316,154 @@ impl FastAuth {
         env::log_str(&format!("MPC signing successful: {:?}", sign_response));
         Some(sign_response)
     }
+
+    // Permission schema methods
+
+    /// Adds a new permission schema to the contract
+    /// # Arguments
+    /// * `permission_type` - The type of permission
+    /// * `schema` - The schema definition for the permission
+    /// # Panics
+    /// Panics if the caller is not the owner
+    #[payable]
+    pub fn add_permission_schema(&mut self, permission_type: String, schema: PermissionSchema) {
+        self.only_owner();
+        // Log before moving the permission_type
+        env::log_str(&format!("Adding schema for permission type: {:?}", permission_type));
+        // TODO: Add validation for the schema itself (e.g., check for reserved field names like "permission_type")
+        self.permissions.insert(permission_type, schema);
+    }
+
+    /// Updates an existing permission schema in the contract
+    /// # Arguments
+    /// * `permission_type` - The type of permission
+    /// * `schema` - The updated schema definition for the permission
+    /// # Panics
+    /// Panics if the caller is not the owner
+    #[payable]
+    pub fn update_permission_schema(&mut self, permission_type: String, schema: PermissionSchema) {
+        self.only_owner();
+        // Ensure schema exists before updating (optional, insert acts as upsert)
+        require!(self.permissions.contains_key(&permission_type), "Schema for this type does not exist");
+         // Log before moving the permission_type
+         env::log_str(&format!("Updating schema for permission type: {:?}", permission_type));
+         // TODO: Add validation for the schema itself
+        self.permissions.insert(permission_type, schema);
+    }
+
+    /// Removes a permission schema from the contract
+    /// # Arguments
+    /// * `permission_type` - The type of permission
+    /// # Panics
+    /// Panics if the caller is not the owner
+    pub fn remove_permission_schema(&mut self, permission_type: String) {
+        self.only_owner();
+        self.permissions.remove(&permission_type);
+         env::log_str(&format!("Removed schema for permission type: {:?}", permission_type));
+    }
+
+    /// Gets a permission schema from the contract
+    /// # Arguments
+    /// * `permission_type` - The type of permission
+    /// # Returns
+    /// * Option containing the permission schema if it exists, None if it does not
+    pub fn get_permission_schema(&self, permission_type: String) -> Option<PermissionSchema> {
+        self.permissions.get(&permission_type).cloned()
+    }
+
+    // Helper function to validate a JSON value against a schema
+    // This function doesn't need access to contract state 'self'
+    fn validate_json_against_schema(json_value: &serde_json::Value, schema: &PermissionSchema) -> bool {
+        let permission_object = match json_value.as_object() {
+            Some(obj) => obj,
+            None => {
+                env::log_str("Permission data is not a JSON object.");
+                return false;
+            }
+        };
+
+        for field_def in &schema.fields {
+            match permission_object.get(&field_def.name) {
+                Some(value) => {
+                    // Validate type
+                    let type_matches = match field_def.field_type {
+                        FieldType::String => value.is_string(),
+                        FieldType::ArrayString => {
+                            value.is_array() && value.as_array().map_or(false, |arr| arr.iter().all(|item| item.is_string()))
+                        }
+                        // Add validation for other FieldTypes
+                    };
+                    if !type_matches {
+                        env::log_str(&format!("Type mismatch for field '{}'. Expected {:?}, found different type.", field_def.name, field_def.field_type));
+                        return false;
+                    }
+                }
+                None => {
+                    // Check if the field was required but is missing
+                    if field_def.required {
+                        env::log_str(&format!("Required field '{}' is missing.", field_def.name));
+                        return false;
+                    }
+                    // Optional field is missing, which is okay.
+                }
+            }
+        }
+
+        // Optional: Check for extra fields not defined in the schema, if desired
+        // for key in permission_object.keys() {
+        //     if !schema.fields.iter().any(|fd| fd.name == *key) && key != "permission_type" {
+        //         env::log_str(&format!("Unexpected field '{}' found in permission.", key));
+        //         // return false; // Uncomment if extra fields should cause failure
+        //     }
+        // }
+
+        true // All checks passed
+    }
+
+    // This function needs access to `self` to get the schema from storage
+    // Place it within `impl Contract { ... }` in lib.rs
+    // It replaces the old `verify_from_json` logic
+    pub fn verify_permission(&self, permission_json: String) -> bool {
+        // 1. Parse the incoming JSON string
+        let permission_value: serde_json::Value = match serde_json::from_str(&permission_json) {
+            Ok(val) => val,
+            Err(e) => {
+                env::log_str(&format!("Failed to parse permission JSON: {}", e));
+                return false;
+            }
+        };
+
+        // 2. Extract the permission_type (essential for finding the schema)
+        let permission_type_str = match permission_value.get("permission_type").and_then(|v| v.as_str()) {
+            Some(pt_str) => pt_str,
+            None => {
+                env::log_str("Permission JSON missing 'permission_type' field or it's not a string.");
+                return false;
+            }
+        };
+
+        // 3. Fetch the schema for this permission type from contract storage
+        // Pass &str directly, as String implements Borrow<str>
+        match self.permissions.get(permission_type_str) {
+            Some(schema) => {
+                // 4. Validate the *entire* JSON value against the fetched schema
+                // Call as associated function: FastAuth::...
+                if FastAuth::validate_json_against_schema(&permission_value, &schema) {
+                    env::log_str(&format!("Permission validation successful for type: {:?}", permission_type_str));
+                    true
+                } else {
+                    env::log_str(&format!("Permission JSON does not match schema for type: {:?}", permission_type_str));
+                    false
+                }
+            }
+            None => {
+                // Decide how to handle permissions for which no schema is defined
+                env::log_str(&format!("No schema found for permission type: {:?}. Denying permission.", permission_type_str));
+                false // Default to false if no schema exists? Or allow? Needs definition.
+            }
+        }
+    }
+
 }
 
 /*
@@ -352,32 +477,32 @@ mod tests {
     #[test]
     fn get_existing_guard() {
         let addr: AccountId = "jwt.fast-auth.near".parse().unwrap();
-        let contract = FastAuth { guards: HashMap::from([("jwt".to_string(), addr.clone())]), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION };
+        let contract = FastAuth { guards: HashMap::from([("jwt".to_string(), addr.clone())]), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, permissions: HashMap::new() };
         assert_eq!(contract.get_guard("jwt".to_string()), addr);
     }
 
     #[test]
     #[should_panic]
     fn get_non_existing_guard() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, permissions: HashMap::new() };
         contract.get_guard("jwt".to_string());
     }
 
     #[test]
     fn owner() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, permissions: HashMap::new() };
         assert_eq!(contract.owner(), env::current_account_id());
     }
 
     #[test]
     fn mpc_address() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, permissions: HashMap::new() };
         assert_eq!(contract.mpc_address(), env::current_account_id());
     }
 
     #[test]
     fn mpc_key_version() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, permissions: HashMap::new() };
         assert_eq!(contract.mpc_key_version(), DEFAULT_MPC_KEY_VERSION);
     }
 }

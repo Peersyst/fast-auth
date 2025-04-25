@@ -1,4 +1,5 @@
 use serde_json::json;
+use fa::permission::{PermissionSchema, FieldType};
 
 #[tokio::test]
 async fn test_guards_crud() -> Result<(), Box<dyn std::error::Error>> {
@@ -260,6 +261,81 @@ async fn test_mpc() -> Result<(), Box<dyn std::error::Error>> {
         .await?
         .json::<u32>()?;
     assert_eq!(new_key_version, 1);
+
+    Ok(())
+}
+
+
+#[tokio::test]
+async fn test_permission_schema() -> Result<(), Box<dyn std::error::Error>> {
+    let contract_wasm = near_workspaces::compile_project("./").await?;
+
+    let sandbox = near_workspaces::sandbox().await?;
+    let contract = sandbox.dev_deploy(&contract_wasm).await?;
+
+    // Test adding a new permission schema
+    let add_schema_outcome = contract
+        .call("add_permission_schema")
+        .args_json(json!({
+            "permission_type": "basic_access",
+            "schema": {
+                "fields": [
+                    {
+                        "name": "resource",
+                        "field_type": "String",
+                        "required": true
+                    },
+                    {
+                        "name": "actions",
+                        "field_type": "ArrayString", 
+                        "required": true
+                    }
+                ]
+            }
+        }))
+        .transact()
+        .await?;
+    assert!(add_schema_outcome.is_success());
+
+    // Test getting the schema
+    let schema = contract
+        .call("get_permission_schema")
+        .args_json(json!({
+            "permission_type": "basic_access"
+        }))
+        .view()
+        .await?
+        .json::<PermissionSchema>()?;
+    
+    assert_eq!(schema.fields.len(), 2);
+    assert_eq!(schema.fields[0].name, "resource");
+    assert_eq!(schema.fields[0].field_type, FieldType::String);
+    assert!(schema.fields[0].required);
+    assert_eq!(schema.fields[1].name, "actions");
+    assert_eq!(schema.fields[1].field_type, FieldType::ArrayString);
+    assert!(schema.fields[1].required);
+
+    // Test validating permissions against schema
+    let validate_result = contract
+        .call("verify_permission")
+        .args_json(json!({
+            "permission_json": "{\"permission_type\":\"basic_access\",\"resource\":\"file1\",\"actions\":[\"read\",\"write\"]}"
+        }))
+        .view()
+        .await?
+        .json::<bool>()?;
+    assert!(validate_result);
+
+    // Test validation failure with invalid permission
+    let invalid_result = contract
+        .call("verify_permission")
+        .args_json(json!({
+            "permission_json": "{\"permission_type\":\"basic_access\",\"resource\":\"file1\"}"
+        }))
+        .view()
+        .await?
+        .json::<bool>()?;
+    assert!(!invalid_result);
 
     Ok(())
 }

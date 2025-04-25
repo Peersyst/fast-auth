@@ -1,75 +1,29 @@
 use serde::{Deserialize, Serialize};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize, BorshSchema};
 use schemars::JsonSchema;
-use near_sdk::serde_json;
 
+
+// Define the types of fields we expect in permissions
+#[derive(BorshSerialize, BorshDeserialize, BorshSchema, Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq, Eq)]
+pub enum FieldType {
+    String,
+    ArrayString,
+    // Add other necessary types like Number, Boolean, Object etc. as needed
+}
+
+// Defines a single field within a permission schema
 #[derive(BorshSerialize, BorshDeserialize, BorshSchema, Serialize, Deserialize, JsonSchema, Clone, Debug)]
-pub enum FaPermissionType {
-    // TODO: TA-4436: Define permissions (https://www.notion.so/contract-Define-permissions-1d121cedf84a80fcb322d1d23860e7cd?pvs=4)
-    #[serde(rename = "permission:evm")]
-    EVMPermission,
-    #[serde(rename = "permission:btc")]
-    BTCPermission,
-    #[serde(rename = "permission:near")]
-    NearPermission,
+pub struct FieldDefinition {
+    pub name: String,
+    pub field_type: FieldType,
+    // Add 'required: bool' if you need to distinguish mandatory/optional fields
+    pub required: bool,
 }
 
-#[derive(BorshSerialize, BorshDeserialize, BorshSchema, Serialize, Deserialize, JsonSchema, Clone, Debug)]
-pub struct FaPermission {
-    pub permission_type: FaPermissionType,
-    // TODO: TA-4436: Define permissions (https://www.notion.so/contract-Define-permissions-1d121cedf84a80fcb322d1d23860e7cd?pvs=4)
-}
-
-impl FaPermission {
-    pub fn new(permission_type: FaPermissionType) -> Self {
-        Self { permission_type }
-    }
-}
-
-#[derive(BorshSerialize, BorshDeserialize, BorshSchema, Serialize, Deserialize, JsonSchema, Clone, Debug)]
-pub struct FaEVMPermissions {
-    pub permission_type: FaPermissionType,
-    // TODO: TA-4436: Define permissions (https://www.notion.so/contract-Define-permissions-1d121cedf84a80fcb322d1d23860e7cd?pvs=4)
-}
-
-impl FaEVMPermissions {
-    pub fn new(permission_type: FaPermissionType) -> Self {
-        Self { permission_type }
-    }
-}
-
-#[derive(BorshSerialize, BorshDeserialize, BorshSchema, Serialize, Deserialize, JsonSchema, Clone, Debug)]
-pub struct FaBTCPermissions {
-    pub permission_type: FaPermissionType,
-    // TODO: TA-4436: Define permissions (https://www.notion.so/contract-Define-permissions-1d121cedf84a80fcb322d1d23860e7cd?pvs=4)
-}
-
-impl FaBTCPermissions {
-    pub fn new(permission_type: FaPermissionType) -> Self {
-        Self { permission_type }
-    }
-}
-
-#[derive(BorshSerialize, BorshDeserialize, BorshSchema, Serialize, Deserialize, JsonSchema, Clone, Debug)]
-pub struct FaNearPermissions {
-    pub permission_type: FaPermissionType,
-    // TODO: TA-4436: Define permissions (https://www.notion.so/contract-Define-permissions-1d121cedf84a80fcb322d1d23860e7cd?pvs=4)
-}
-
-impl FaNearPermissions {
-    pub fn new(permission_type: FaPermissionType) -> Self {
-        Self { permission_type }
-    }
-}
-
-pub fn decode_permission_type(permission: String) -> FaPermissionType {
-    let permission_json: serde_json::Value = serde_json::from_str(&permission)
-        .expect("Failed to parse permission JSON");
-    
-    let permission_type = permission_json["permission_type"]
-        .as_str()
-        .expect("permission_type field missing or invalid");
-
-    serde_json::from_str::<FaPermissionType>(&format!("\"{}\"", permission_type))
-        .expect("Failed to deserialize permission type")
+// Represents the schema for a specific FaPermissionType
+#[derive(BorshSerialize, BorshDeserialize, BorshSchema, Serialize, Deserialize, JsonSchema, Clone, Debug, Default)]
+pub struct PermissionSchema {
+    // Using a Vec allows ordered fields, but HashMap ensures unique names.
+    // Choose based on your needs. Vec is simpler for iteration.
+    pub fields: Vec<FieldDefinition>,
 }
