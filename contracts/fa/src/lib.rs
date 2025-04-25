@@ -371,8 +371,19 @@ impl FastAuth {
         self.permissions.get(&permission_type).cloned()
     }
 
-    // Helper function to validate a JSON value against a schema
-    // This function doesn't need access to contract state 'self'
+    /// Helper function to validate a JSON value against a schema
+    /// # Arguments
+    /// * `json_value` - The JSON value to validate, as a serde_json::Value
+    /// * `schema` - The PermissionSchema to validate against
+    /// # Returns
+    /// * `bool` - True if the JSON matches the schema, false otherwise
+    /// # Details
+    /// Validates that:
+    /// - The JSON is a valid object
+    /// - All required fields from the schema are present
+    /// - Field types match the schema (String or ArrayString)
+    /// - For ArrayString fields, all array elements are strings
+    /// Logs validation failures to help with debugging
     fn validate_json_against_schema(json_value: &serde_json::Value, schema: &PermissionSchema) -> bool {
         let permission_object = match json_value.as_object() {
             Some(obj) => obj,
@@ -420,9 +431,15 @@ impl FastAuth {
         true // All checks passed
     }
 
-    // This function needs access to `self` to get the schema from storage
-    // Place it within `impl Contract { ... }` in lib.rs
-    // It replaces the old `verify_from_json` logic
+    /// Verifies that a permission JSON string matches its corresponding schema
+    /// # Arguments
+    /// * `permission_json` - A JSON string containing the permission to validate
+    /// # Returns
+    /// * `bool` - True if the permission is valid according to its schema, false otherwise
+    /// # Details
+    /// The permission JSON must contain a "permission_type" field that maps to an existing schema.
+    /// The rest of the JSON must match the field requirements defined in that schema.
+    /// Validation failures are logged to help with debugging.
     pub fn verify_permission(&self, permission_json: String) -> bool {
         // 1. Parse the incoming JSON string
         let permission_value: serde_json::Value = match serde_json::from_str(&permission_json) {
