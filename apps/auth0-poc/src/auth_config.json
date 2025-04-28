@@ -1,6 +1,0 @@
-{
-    "domain": "dev-gb1h5yrepb85jstz.us.auth0.com",
-    "clientId": "7DmhWuugUVJDNSJ4edNOTFm0c98xs9hp",
-    "audience": "https://fast-auth-poc.com",
-    "appOrigin": "http://localhost:3000"
-}

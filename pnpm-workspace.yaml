@@ -1,5 +1,6 @@
 packages:
     - "apps/relayer"
+    - "examples/wallet"
     - "apps/auth0-poc"
     - "contracts/fa-guard-jwt-rs256"
     - "contracts/fa"
