@@ -8,7 +8,9 @@ use schemars::JsonSchema;
 pub enum FieldType {
     String,
     ArrayString,
-    // TODO: Add other necessary types like Number, Boolean, Object etc. as needed
+    Number,
+    Boolean,
+    Object,
 }
 
 // Defines a single field within a permission schema

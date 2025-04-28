@@ -273,11 +273,11 @@ async fn test_permission_schema() -> Result<(), Box<dyn std::error::Error>> {
     let sandbox = near_workspaces::sandbox().await?;
     let contract = sandbox.dev_deploy(&contract_wasm).await?;
 
-    // Test adding a new permission schema
+    // Test adding a new permission schema with all field types
     let add_schema_outcome = contract
         .call("add_permission_schema")
         .args_json(json!({
-            "permission_type": "basic_access",
+            "permission_type": "complex_access",
             "schema": {
                 "fields": [
                     {
@@ -287,8 +287,23 @@ async fn test_permission_schema() -> Result<(), Box<dyn std::error::Error>> {
                     },
                     {
                         "name": "actions",
-                        "field_type": "ArrayString", 
+                        "field_type": "ArrayString",
                         "required": true
+                    },
+                    {
+                        "name": "priority",
+                        "field_type": "Number",
+                        "required": true
+                    },
+                    {
+                        "name": "enabled",
+                        "field_type": "Boolean",
+                        "required": true
+                    },
+                    {
+                        "name": "metadata",
+                        "field_type": "Object",
+                        "required": false
                     }
                 ]
             }
@@ -301,41 +316,61 @@ async fn test_permission_schema() -> Result<(), Box<dyn std::error::Error>> {
     let schema = contract
         .call("get_permission_schema")
         .args_json(json!({
-            "permission_type": "basic_access"
+            "permission_type": "complex_access"
         }))
         .view()
         .await?
         .json::<PermissionSchema>()?;
     
-    assert_eq!(schema.fields.len(), 2);
+    assert_eq!(schema.fields.len(), 5);
     assert_eq!(schema.fields[0].name, "resource");
     assert_eq!(schema.fields[0].field_type, FieldType::String);
     assert!(schema.fields[0].required);
     assert_eq!(schema.fields[1].name, "actions");
     assert_eq!(schema.fields[1].field_type, FieldType::ArrayString);
     assert!(schema.fields[1].required);
+    assert_eq!(schema.fields[2].name, "priority");
+    assert_eq!(schema.fields[2].field_type, FieldType::Number);
+    assert!(schema.fields[2].required);
+    assert_eq!(schema.fields[3].name, "enabled");
+    assert_eq!(schema.fields[3].field_type, FieldType::Boolean);
+    assert!(schema.fields[3].required);
+    assert_eq!(schema.fields[4].name, "metadata");
+    assert_eq!(schema.fields[4].field_type, FieldType::Object);
+    assert!(!schema.fields[4].required);
 
-    // Test validating permissions against schema
+    // Test validating permissions against schema with all field types
     let validate_result = contract
         .call("verify_permission")
         .args_json(json!({
-            "permission_json": "{\"permission_type\":\"basic_access\",\"resource\":\"file1\",\"actions\":[\"read\",\"write\"]}"
+            "permission_json": "{\"permission_type\":\"complex_access\",\"resource\":\"file1\",\"actions\":[\"read\",\"write\"],\"priority\":1,\"enabled\":true,\"metadata\":{\"owner\":\"alice\",\"created\":\"2024-01-01\"}}"
         }))
         .view()
         .await?
         .json::<bool>()?;
     assert!(validate_result);
 
-    // Test validation failure with invalid permission
+    // Test validation failure with missing required fields
     let invalid_result = contract
         .call("verify_permission")
         .args_json(json!({
-            "permission_json": "{\"permission_type\":\"basic_access\",\"resource\":\"file1\"}"
+            "permission_json": "{\"permission_type\":\"complex_access\",\"resource\":\"file1\",\"actions\":[\"read\"],\"priority\":1}"
         }))
         .view()
         .await?
         .json::<bool>()?;
     assert!(!invalid_result);
+
+    // Test validation failure with wrong field types
+    let invalid_types_result = contract
+        .call("verify_permission")
+        .args_json(json!({
+            "permission_json": "{\"permission_type\":\"complex_access\",\"resource\":\"file1\",\"actions\":\"read\",\"priority\":\"high\",\"enabled\":1,\"metadata\":\"not an object\"}"
+        }))
+        .view()
+        .await?
+        .json::<bool>()?;
+    assert!(!invalid_types_result);
 
     Ok(())
 }

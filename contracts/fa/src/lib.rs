@@ -402,6 +402,9 @@ impl FastAuth {
                         FieldType::ArrayString => {
                             value.is_array() && value.as_array().map_or(false, |arr| arr.iter().all(|item| item.is_string()))
                         }
+                        FieldType::Number => value.is_number(),
+                        FieldType::Boolean => value.as_bool().map_or(false, |b| b),
+                        FieldType::Object => value.is_object(),
                         // Add validation for other FieldTypes
                     };
                     if !type_matches {
@@ -441,7 +444,7 @@ impl FastAuth {
     /// The rest of the JSON must match the field requirements defined in that schema.
     /// Validation failures are logged to help with debugging.
     pub fn verify_permission(&self, permission_json: String) -> bool {
-        // 1. Parse the incoming JSON string
+        // Parse the incoming JSON string
         let permission_value: serde_json::Value = match serde_json::from_str(&permission_json) {
             Ok(val) => val,
             Err(e) => {
@@ -450,7 +453,7 @@ impl FastAuth {
             }
         };
 
-        // 2. Extract the permission_type (essential for finding the schema)
+        // Extract the permission_type from the JSON
         let permission_type_str = match permission_value.get("permission_type").and_then(|v| v.as_str()) {
             Some(pt_str) => pt_str,
             None => {
@@ -459,12 +462,9 @@ impl FastAuth {
             }
         };
 
-        // 3. Fetch the schema for this permission type from contract storage
-        // Pass &str directly, as String implements Borrow<str>
+        // Fetch the schema for this permission type from contract storage
         match self.permissions.get(permission_type_str) {
             Some(schema) => {
-                // 4. Validate the *entire* JSON value against the fetched schema
-                // Call as associated function: FastAuth::...
                 if FastAuth::validate_json_against_schema(&permission_value, &schema) {
                     env::log_str(&format!("Permission validation successful for type: {:?}", permission_type_str));
                     true
@@ -474,9 +474,8 @@ impl FastAuth {
                 }
             }
             None => {
-                // Decide how to handle permissions for which no schema is defined
                 env::log_str(&format!("No schema found for permission type: {:?}. Denying permission.", permission_type_str));
-                false // Default to false if no schema exists? Or allow? Needs definition.
+                false
             }
         }
     }
