@@ -2,16 +2,27 @@ use serde::{Deserialize, Serialize};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize, BorshSchema};
 use schemars::JsonSchema;
 
+
+// Define the types of fields we expect in permissions
+#[derive(BorshSerialize, BorshDeserialize, BorshSchema, Serialize, Deserialize, JsonSchema, Clone, Debug, PartialEq, Eq)]
+pub enum FieldType {
+    String,
+    ArrayString,
+    Number,
+    Boolean,
+    Object,
+}
+
+// Defines a single field within a permission schema
 #[derive(BorshSerialize, BorshDeserialize, BorshSchema, Serialize, Deserialize, JsonSchema, Clone, Debug)]
-pub struct FaPermission {
+pub struct FieldDefinition {
     pub name: String,
-    // TODO: TA-4436: Define permissions (https://www.notion.so/contract-Define-permissions-1d121cedf84a80fcb322d1d23860e7cd?pvs=4)
+    pub field_type: FieldType,
+    pub required: bool,
 }
 
-impl FaPermission {
-    pub fn new(name: String) -> Self {
-        Self { name }
-    }
+// Represents the schema for a specific FaPermissionType
+#[derive(BorshSerialize, BorshDeserialize, BorshSchema, Serialize, Deserialize, JsonSchema, Clone, Debug, Default)]
+pub struct PermissionSchema {
+    pub fields: Vec<FieldDefinition>,
 }
-
-
