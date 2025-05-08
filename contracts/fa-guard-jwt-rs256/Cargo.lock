@@ -942,12 +942,15 @@ dependencies = [
 name = "fa-guard-jwt-rs256"
 version = "0.1.0"
 dependencies = [
+ "borsh",
  "crypto-bigint",
  "near-sdk",
  "near-workspaces",
  "serde",
  "serde_json",
+ "serde_with",
  "sha2",
+ "thiserror 2.0.12",
  "tokio",
 ]
 

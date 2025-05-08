@@ -142,11 +142,12 @@ impl FaJwtGuardRs256 {
     ///    - Applies modular exponentiation to recover padded hash
     ///    - Verifies PKCS#1 v1.5 padding structure
     ///    - Compares recovered hash with computed hash
-    pub fn verify(&self, jwt: String) -> (bool, String, String) {
+    pub fn verify(&self, jwt: String) -> (bool, String, Vec<u8>) {
+        env::log_str(&format!("predecessor: {}", env::predecessor_account_id()));
         // Split the JWT token into its parts
         let parts: Vec<&str> = jwt.split('.').collect();
         if parts.len() != 3 {
-            return (false, String::new(), String::new());
+            return (false, String::new(), vec![]);
         }
 
         // Get the header and payload
@@ -157,7 +158,7 @@ impl FaJwtGuardRs256 {
         // Decode the signature from base64url
         let signature_bytes = match base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(signature_b64.as_bytes()) {
             Ok(bytes) => bytes,
-            Err(_) => return (false, String::new(), String::new()),
+            Err(_) => return (false, String::new(), vec![]),
         };
 
         // Create the data to be verified (header.payload)
@@ -182,7 +183,7 @@ impl FaJwtGuardRs256 {
 
         // Check signature bounds
         if signature >= *pub_key.n.as_ref() || signature.bits_precision() != pub_key.n.bits_precision() {
-            return (false, String::new(), String::new());
+            return (false, String::new(), vec![]);
         }
 
         // Perform RSA encryption (signature verification)
@@ -207,7 +208,7 @@ impl FaJwtGuardRs256 {
             let input = &result.to_be_bytes()[leading_zeros..];
             let padded_len = pub_key.size();
             if input.len() > padded_len {
-                return (false, String::new(), String::new());
+                return (false, String::new(), vec![]);
             }
             let mut out = vec![0u8; padded_len];
             out[padded_len - input.len()..].copy_from_slice(input);
@@ -219,7 +220,7 @@ impl FaJwtGuardRs256 {
         let t_len = PREFIX.len() + hashed.len();
         let k = pub_key.size();
         if k < t_len + 11 {
-            return (false, String::new(), String::new());
+            return (false, String::new(), vec![]);
         }
 
         // Check padding structure: EM = 0x00 || 0x01 || PS || 0x00 || T
@@ -238,19 +239,19 @@ impl FaJwtGuardRs256 {
             // Decode the payload from base64url
             let payload_bytes = match base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(payload.as_bytes()) {
                 Ok(bytes) => bytes,
-                Err(_) => return (false, String::new(), String::new()),
+                Err(_) => return (false, String::new(), vec![]),
             };
 
             // Parse the payload into FaJwtCustomClaims
             let claims: FaJwtCustomClaims = match serde_json::from_slice(&payload_bytes) {
                 Ok(claims) => claims,
-                Err(_) => return (false, String::new(), String::new()),
+                Err(error) => return (false, error.to_string(), vec![]),
             };
 
-            // Return the sub and fap fields
-            (true, claims.sub, claims.fap)
+            // Return the sub and fatxn fields
+            (true, claims.sub, claims.fatxn)
         } else {
-            (false, String::new(), String::new())
+            (false, String::new(), vec![])
         }
     }
 }
@@ -270,8 +271,8 @@ mod tests {
             e_component: vec![1, 0, 1],
             owner: env::current_account_id(),
         };
-        let result = contract.verify("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.eyJmYXAiOiJwZXJtaXNzaW9ucyIsImlzcyI6Imh0dHBzOi8vZGV2LWdiMWg1eXJlcGI4NWpzdHoudXMuYXV0aDAuY29tLyIsInN1YiI6Imdvb2dsZS1vYXV0aDJ8MTE1MjMxMDAyNzE0MDY3ODQ3MDI3IiwiYXVkIjpbImh0dHBzOi8vZmFzdC1hdXRoLXBvYy5jb20iLCJodHRwczovL2Rldi1nYjFoNXlyZXBiODVqc3R6LnVzLmF1dGgwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3NDQzNjU2NzAsImV4cCI6MTc0NDQ1MjA3MCwic2NvcGUiOiJvcGVuaWQgdHJhbnNhY3Rpb246c2VuZC10cmFuc2FjdGlvbiIsImF6cCI6IjdEbWhXdXVnVVZKRE5TSjRlZE5PVEZtMGM5OHhzOWhwIn0.bUbBnZxqfugUNv64wYt6kVmKuySbFrVO_Xlj8YrjsZk_N9fZw0-wCXfFkxVKmQUfbqqbgczqhHwPZVrC8_9COq21qwBtZCxMQOjLSRZhM0Y8CmDpugY8f5bFExoHeeXgvXWh0DCKmtU90PNKr4OxEqD25V71s8X2uiAqwClcxwIPYiIYTukK_MR7tuf9WR4ixc6eV-av5ui2XenQn_fIWITFfJfc5m_0WO3X5jWGD4JtO9dYFSJGMnYH3r5A6myHkj9vPNusTU92KXmMwhDi6U-CxYzWpY_pAfnV1Aj9BQE1Oo15ymrpaKMkqhzjMOehKS3MTomJin6pX1ujmis9TA".to_string());
-        assert_eq!(result, (true, "google-oauth2|115231002714067847027".to_string(), "permissions".to_string()));
+        let result = contract.verify("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.eyJmYXR4biI6WzE4LDAsMCwwLDEwMiw5Nyw0NSwxMDMsMTE3LDEwNSwxMDgsMTA4LDEwMSwxMDksNDYsMTE2LDEwMSwxMTUsMTE2LDExMCwxMDEsMTE2LDEsMzksMTIwLDIsNTAsNDIsMjQ3LDI0MywyMjMsMTUyLDk3LDI1MSwyOCwxNTMsMzgsMTU0LDEzMiwxODQsMTIzLDE1MiwxNTAsMjQ3LDIxNiw4Nyw1Myw3Niw0MiwxMjcsMTksMTI4LDgsMTgyLDIwOSwyNTEsMjcsMTgwLDIwLDM3LDE4NSwyNDcsMzUsNiw3MSwzMSw5NiwxMTAsNjYsMTIxLDEwNSwyMjgsMjUsMjUwLDIwNiwxODMsMTkxLDM2LDEwOSw3NSwxMDUsOTcsMjksNDAsMTQyLDgsMjQ0LDkyLDQxLDE4NiwxMjYsODYsMTExLDAsMCwyMCwwLDAsMCw5OCwxMTEsMTE1LDEwNSwxMTUsMTE2LDEwNCwxMDEsMTEwLDEwMSw5NywxMTQsNDYsMTE2LDEwMSwxMTUsMTE2LDExMCwxMDEsMTE2LDUyLDIxLDgzLDc1LDIyMCwxNzAsMTA0LDE3OSwxMzYsMjQ0LDE2OCwxMTgsMjUsOTIsMjI0LDY4LDEzMSwxNTIsMTUyLDQxLDI0NSwxOTMsMjI5LDE4Miw4LDEzNiw4NiwyMzcsMTQxLDIxNywxNTcsMTU1LDEsMCwwLDAsMywxMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMF0sImlzcyI6Imh0dHBzOi8vZGV2LWdiMWg1eXJlcGI4NWpzdHoudXMuYXV0aDAuY29tLyIsInN1YiI6Imdvb2dsZS1vYXV0aDJ8MTA1NDQ2OTI1MjM1NjMyNzc3Mzk3IiwiYXVkIjpbImh0dHBzOi8vZmFzdC1hdXRoLXBvYy5jb20iLCJodHRwczovL2Rldi1nYjFoNXlyZXBiODVqc3R6LnVzLmF1dGgwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3NDY2OTczODYsImV4cCI6MTc0Njc4Mzc4Niwic2NvcGUiOiJvcGVuaWQgdHJhbnNhY3Rpb246c2VuZC10cmFuc2FjdGlvbiIsImF6cCI6IjdEbWhXdXVnVVZKRE5TSjRlZE5PVEZtMGM5OHhzOWhwIn0.XChULVjx06hAGdBND54qFWr9KVdP95GXLc4Y8KzC9Fpj4Ky6E76ijbjE9ATVpSylKKMHrpVxjQHMoszyPbkHA759mf9x3gr5mOEkUy2WR8N35SYTZkbB77l8pA5o_zxOS9SKewBrGyZWpij0OyiM-Eqom3nwer3Aw3UPFyVB2ucpQkW-eJVrlNpKB80xhr1lCRBiHvPEnNH2Mk5Ok3x-uRzPTRq__hMjuY3F_udF4cEbeJGoWA2QGr1gTeUMKJyGvSThEk2xxq5xagXDA6FPq5DHi1Q9GxUlA3pPeb7zhNseUoGm1AdCTlqqGwgakUkuWj7I5miBjNu6qd-fQfkGXQ".to_string());
+        assert_eq!(result, (true, "google-oauth2|105446925235632777397".to_string(), vec![18, 0, 0, 0, 102, 97, 45, 103, 117, 105, 108, 108, 101, 109, 46, 116, 101, 115, 116, 110, 101, 116, 1, 39, 120, 2, 50, 42, 247, 243, 223, 152, 97, 251, 28, 153, 38, 154, 132, 184, 123, 152, 150, 247, 216, 87, 53, 76, 42, 127, 19, 128, 8, 182, 209, 251, 27, 180, 20, 37, 185, 247, 35, 6, 71, 31, 96, 110, 66, 121, 105, 228, 25, 250, 206, 183, 191, 36, 109, 75, 105, 97, 29, 40, 142, 8, 244, 92, 41, 186, 126, 86, 111, 0, 0, 20, 0, 0, 0, 98, 111, 115, 105, 115, 116, 104, 101, 110, 101, 97, 114, 46, 116, 101, 115, 116, 110, 101, 116, 52, 21, 83, 75, 220, 170, 104, 179, 136, 244, 168, 118, 25, 92, 224, 68, 131, 152, 152, 41, 245, 193, 229, 182, 8, 136, 86, 237, 141, 217, 157, 155, 1, 0, 0, 0, 3, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
     }
 
     #[test]
@@ -282,7 +283,7 @@ mod tests {
             owner: env::current_account_id(),
         };
         let result = contract.verify("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.eyJwZXBlIjoicGVybWlzc2lvbnMiLCJpc3MiOiJodHRwczovL2Rldi1nYjFoNXlyZXBiODVqc3R6LnVzLmF1dGgwLmNvbS8iLCJzdWIiOiJnb29nbGUtb2F1dGgyfDExNTIzMTAwMjcxNDA2Nzg0NzAyNyIsImF1ZCI6WyJodHRwczovL2Zhc3QtYXV0aC1wb2MuY29tIiwiaHR0cHM6Ly9kZXYtZ2IxaDV5cmVwYjg1anN0ei51cy5hdXRoMC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNzQ0MTkwMDI5LCJleHAiOjE3NDQyNzY0MjksInNjb3BlIjoib3BlbmlkIHRyYW5zYWN0aW9uOnNlbmQtdHJhbnNhY3Rpb24iLCJhenAiOiI3RG1oV3V1Z1VWSkROU0o0ZWROT1RGbTBjOTh4czlocCJ9.oG403pM7mp_nrnzfr7KpYOm2f7DtoKgUQO3F83-UEH1OdI2oaQNa4fGsB_wePjkOBTXeL_H7-2mx7fDUhhvVvCb1sAyJsfL7y6tqTfBXY3u3l-qZdDPzFmDnzj-se5UU5N9qFM9sUQo8ZpvGbi0hF6APgO_0HQox1sverUvtnpnoJK1JxkrVd0q2njDV5ImB8XzUC9r0xh2GlRTXPOnKJYmX5H-n0i921cTUFRRB0IFSv_9dRyJUZpkfkCgmfMiTd_NVa-JWNwsTNzl-1ZTFynE8LJ4zEnTfaPRDCaucGYO5hIvfhpOg2zQf3BgXcnF3BGy3a8_iPypCpUb3f87oAQ".to_string());
-        assert_eq!(result, (false, String::new(), String::new()));
+        assert_eq!(result, (false, String::new(), vec![]));
     }
 
     #[test]
@@ -293,6 +294,6 @@ mod tests {
             owner: env::current_account_id(),
         };
         let result = contract.verify("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.eyJwZXBlIjoicGVybWlzc2lvbnMiLCJpc3MiOiJodHRwczovL2Rldi1nYjFoNXlyZXBiODVqc3R6LnVzLmF1dGgwLmNvbS8iLCJzdWIiOiJnb29nbGUtb2F1dGgyfDExNTIzMTAwMjcxNDA2Nzg0NzAyNyIsImF1ZCI6WyJodHRwczovL2Zhc3QtYXV0aC1wb2MuY29tIiwiaHR0cHM6Ly9kZXYtZ2IxaDV5cmVwYjg1anN0ei51cy5hdXRoMC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNzQ0MTkwMDI5LCJleHAiOjE3NDQyNzY0MjksInNjb3BlIjoib3BlbmlkIHRyYW5zYWN0aW9uOnNlbmQtdHJhbnNhY3Rpb24iLCJhenAiOiI3RG1oV3V1Z1VWSkROU0o0ZWROT1RGbTBjOTh4czlocCJ9.oG403pM7mp_nrnzfr7KpYOm2f7DtoKgUQO3F83-UEH1OdI2oaQNa4fGsB_wePjkOBTXeL_H7-2mx7fDUhhvVvCb1sAyJsfL7y6tqTfBXY3u3l-qZdDPzFmDnzj-se5UU5N9qFM9sUQo8ZpvGbi0hF6APgO_0HQox1sverUvtnpnoJK1JxkrVd0q2njDV5ImB8XzUC9r0xh2GlRTXPOnKJYmX5H-n0i921cTUFRRB0IFSv_9dRyJUZpkfkCgmfMiTd_NVa-JWNwsTNzl-1ZTFynE8LJ4zEnTfaPRDCaucGYO5hIvfhpOg2zQf3BgXcnF3BGy3a8_iPypCpUb3f87oAY".to_string());
-        assert_eq!(result, (false, String::new(), String::new()));
+        assert_eq!(result, (false, String::new(), vec![]));
     }
 }
