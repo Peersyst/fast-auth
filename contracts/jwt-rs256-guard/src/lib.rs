@@ -139,11 +139,12 @@ impl FaJwtGuardRs256 {
 
         // Create the data to be verified (header.payload)
         let data_to_verify = format!("{}.{}", header, payload);
+        
         let signature_bytes = decode_base64_bytes(signature);
 
         // Verify the signature
         let is_valid = verify_signature_from_components(
-            data_to_verify.as_bytes().to_vec(),
+            data_to_verify,
             signature_bytes,
             self.n_component.clone(),
             self.e_component.clone(),
@@ -191,7 +192,7 @@ impl FaJwtGuardRs256 {
     ///   * String containing either the subject claim or error message
     pub fn verify(&self, jwt: String, sign_payload: Vec<u8>) -> (bool, String) {
         let valid = self.verify_token(jwt.clone());
-        
+
         if !valid {
             (false, "".to_string())
         } else {

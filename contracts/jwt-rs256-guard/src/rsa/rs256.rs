@@ -30,14 +30,21 @@ const PRECISION: u32 = 2048;
 /// This function implements RSA signature verification using PKCS#1 v1.5 padding scheme.
 /// It first hashes the payload using SHA-256, then verifies the signature using the 
 /// provided RSA public key components through modular exponentiation.
-pub fn verify_signature_from_components(payload: Vec<u8>, signature: Vec<u8>, n: Vec<u8>, e: Vec<u8>) -> bool {
+pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8>, n: Vec<u8>, e: Vec<u8>) -> bool {
     // Hash the data using SHA256
     let mut hasher = Sha256::new();
-    hasher.update(&payload);
+    hasher.update(payload.as_bytes());
     let hashed = hasher.finalize().to_vec();
 
+    // Log input parameters
+    println!("Payload: {}", payload);
+    println!("Signature (hex): {}", signature_bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>());
+    println!("Modulus n (hex): {}", n.iter().map(|b| format!("{:02x}", b)).collect::<String>());
+    println!("Exponent e (hex): {}", e.iter().map(|b| format!("{:02x}", b)).collect::<String>());
+    println!("SHA-256 hash (hex): {}", hashed.iter().map(|b| format!("{:02x}", b)).collect::<String>());
+
     // Convert signature and key components to big integers
-    let signature = BoxedUint::from_be_slice(&signature, PRECISION).expect("Failed to create signature BoxedUint");
+    let signature = BoxedUint::from_be_slice(&signature_bytes, PRECISION).expect("Failed to create signature BoxedUint");
     let n = BoxedUint::from_be_slice(&n, PRECISION).expect("Failed to create n BoxedUint");
     let e = BoxedUint::from_be_slice(&e, PRECISION).expect("Failed to create e BoxedUint");
 
@@ -83,8 +90,8 @@ pub fn verify_signature_from_components(payload: Vec<u8>, signature: Vec<u8>, n:
     };
 
     // Verify PKCS#1 v1.5 padding
-    let hash_len = payload.len();
-    let t_len = PREFIX.len() + payload.len();
+    let hash_len = hashed.len();
+    let t_len = PREFIX.len() + hashed.len();
     let k = pub_key.size();
     if k < t_len + 11 {
         return false;
@@ -93,7 +100,7 @@ pub fn verify_signature_from_components(payload: Vec<u8>, signature: Vec<u8>, n:
     // Check padding structure: EM = 0x00 || 0x01 || PS || 0x00 || T
     let mut ok = em[0].ct_eq(&0u8);
     ok &= em[1].ct_eq(&1u8);
-    ok &= em[k - hash_len..k].ct_eq(&payload);
+    ok &= em[k - hash_len..k].ct_eq(&hashed);
     ok &= em[k - t_len..k - hash_len].ct_eq(&PREFIX);
     ok &= em[k - t_len - 1].ct_eq(&0u8);
 
