@@ -36,13 +36,6 @@ pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8
     hasher.update(payload.as_bytes());
     let hashed = hasher.finalize().to_vec();
 
-    // Log input parameters
-    println!("Payload: {}", payload);
-    println!("Signature (hex): {}", signature_bytes.iter().map(|b| format!("{:02x}", b)).collect::<String>());
-    println!("Modulus n (hex): {}", n.iter().map(|b| format!("{:02x}", b)).collect::<String>());
-    println!("Exponent e (hex): {}", e.iter().map(|b| format!("{:02x}", b)).collect::<String>());
-    println!("SHA-256 hash (hex): {}", hashed.iter().map(|b| format!("{:02x}", b)).collect::<String>());
-
     // Convert signature and key components to big integers
     let signature = BoxedUint::from_be_slice(&signature_bytes, PRECISION).expect("Failed to create signature BoxedUint");
     let n = BoxedUint::from_be_slice(&n, PRECISION).expect("Failed to create n BoxedUint");
@@ -57,7 +50,7 @@ pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8
 
     // Check signature bounds
     if signature >= *pub_key.n.as_ref() || signature.bits_precision() != pub_key.n.bits_precision() {
-        return false;
+        false
     }
 
     // Perform RSA encryption (signature verification)
@@ -82,7 +75,7 @@ pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8
         let input = &result.to_be_bytes()[leading_zeros..];
         let padded_len = pub_key.size();
         if input.len() > padded_len {
-            return false;
+            false
         }
         let mut out = vec![0u8; padded_len];
         out[padded_len - input.len()..].copy_from_slice(input);
@@ -94,7 +87,7 @@ pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8
     let t_len = PREFIX.len() + hashed.len();
     let k = pub_key.size();
     if k < t_len + 11 {
-        return false;
+        false
     }
 
     // Check padding structure: EM = 0x00 || 0x01 || PS || 0x00 || T
@@ -109,5 +102,5 @@ pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8
         ok &= el.ct_eq(&0xff)
     }
 
-    ok.unwrap_u8() == 1
+    ok.unwrap_u8() == 1 
 }
