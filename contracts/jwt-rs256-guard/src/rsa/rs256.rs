@@ -50,7 +50,7 @@ pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8
 
     // Check signature bounds
     if signature >= *pub_key.n.as_ref() || signature.bits_precision() != pub_key.n.bits_precision() {
-        false
+        return false;
     }
 
     // Perform RSA encryption (signature verification)
@@ -75,7 +75,7 @@ pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8
         let input = &result.to_be_bytes()[leading_zeros..];
         let padded_len = pub_key.size();
         if input.len() > padded_len {
-            false
+            return false;
         }
         let mut out = vec![0u8; padded_len];
         out[padded_len - input.len()..].copy_from_slice(input);
@@ -87,7 +87,7 @@ pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8
     let t_len = PREFIX.len() + hashed.len();
     let k = pub_key.size();
     if k < t_len + 11 {
-        false
+        return false;
     }
 
     // Check padding structure: EM = 0x00 || 0x01 || PS || 0x00 || T
