@@ -1,5 +1,5 @@
 [package]
-name = "fa-guard-jwt-rs256"
+name = "jwt-rs256-guard"
 description = "cargo-near-new-project-description"
 version = "0.1.0"
 edition = "2021"

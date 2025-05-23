@@ -939,21 +939,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fa-guard-jwt-rs256"
-version = "0.1.0"
-dependencies = [
- "borsh",
- "crypto-bigint",
- "near-sdk",
- "near-workspaces",
- "serde",
- "serde_json",
- "serde_with",
- "sha2",
- "tokio",
-]
-
-[[package]]
 name = "fallible-iterator"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1663,6 +1648,21 @@ dependencies = [
  "fluent-uri",
  "serde",
  "serde_json",
+]
+
+[[package]]
+name = "jwt-rs256-guard"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "crypto-bigint",
+ "near-sdk",
+ "near-workspaces",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sha2",
+ "tokio",
 ]
 
 [[package]]
