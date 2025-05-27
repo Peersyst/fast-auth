@@ -155,7 +155,7 @@ impl JwtRS256Guard {
     /// Verifies custom claims in the JWT payload
     /// # Arguments
     /// * `jwt_payload` - Decoded JWT payload as bytes
-    /// * `sign_payload` - Payload to verify against the JWT fatxn claim
+    /// * `sign_payload` - Payload to be signed by the MPC
     /// # Returns
     /// * Tuple containing:
     ///   * Boolean indicating if verification succeeded
@@ -169,7 +169,7 @@ impl JwtRS256Guard {
 
         // NOTE: Verify your custom claim here
 
-        // Return the sub and fatxn fields
+        // Return the sub field
         (true, claims.sub)
     }
 
@@ -177,7 +177,7 @@ impl JwtRS256Guard {
     /// 
     /// # Arguments
     /// * `jwt` - The JWT token to verify as a string
-    /// * `sign_payload` - The payload to verify against the JWT fatxn claim
+    /// * `sign_payload` - The payload to be signed by the MPC
     /// 
     /// # Returns
     /// * Tuple containing:
