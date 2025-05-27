@@ -1,7 +1,11 @@
 // Find all our documentation at https://docs.near.org
 use near_sdk::{near, AccountId, env, Promise, NearToken};
 use near_sdk::store::LookupMap;
-use std::collections::HashMap;
+
+const GUARD_NAME_MAX_BYTES_LENGTH: u128 = 2048;
+const MAX_ACCOUNT_BYTES_LENGTH: u128 = 64;
+
+const MAP_KEY: &[u8] = b"g";
 
 /// Contract that manages JWT guard accounts
 /// 
@@ -21,14 +25,11 @@ pub struct JwtGuardRouter {
 impl Default for JwtGuardRouter {
     fn default() -> Self {
         Self {
-            guards: LookupMap::new(b"g"),
+            guards: LookupMap::new(MAP_KEY),
             owner: env::current_account_id(),
         }
     }
 }
-
-/// Contingency deposit to cover storage costs (prevent small deposit attacks)
-const CONTINGENCY_DEPOSIT: u128 = 1_000_000_000_000_000_000_000;
 
 #[near]
 impl JwtGuardRouter {
@@ -39,18 +40,11 @@ impl JwtGuardRouter {
     /// * `guards` - Initial mapping of guard names to account IDs
     #[init]
     #[private] 
-    pub fn init(owner: AccountId, guards: HashMap<String, AccountId>) -> Self {
-        let mut contract = Self {
-            guards: LookupMap::new(b"g"),
+    pub fn init(owner: AccountId) -> Self {
+        Self {
+            guards: LookupMap::new(MAP_KEY),
             owner,
-        };
-        
-        // Insert all guards from the HashMap into the LookupMap
-        for (name, account) in guards {
-            contract.guards.insert(name, account);
         }
-        
-        contract
     }
 
     /// Checks if caller is contract owner, panics if not
@@ -85,6 +79,15 @@ impl JwtGuardRouter {
     /// Requires attached deposit to cover storage costs
     #[payable]
     pub fn add_guard(&mut self, guard_name: String, guard_account: AccountId) {
+        assert!(guard_name.len() as u128 <= GUARD_NAME_MAX_BYTES_LENGTH, "Guard name is too long");
+        assert!(guard_account.as_str().len() as u128 <= MAX_ACCOUNT_BYTES_LENGTH, "Guard account is too long");
+        let required_deposit = env::storage_byte_cost().checked_mul(GUARD_NAME_MAX_BYTES_LENGTH + MAX_ACCOUNT_BYTES_LENGTH).unwrap();
+        assert!(
+            env::attached_deposit() >= required_deposit,
+            "Insufficient deposit. Required: {}",
+            required_deposit
+        );
+
         assert!(
             !self.guards.contains_key(&guard_name),
             "Guard with name {} already exists",
@@ -92,16 +95,6 @@ impl JwtGuardRouter {
         );
 
         self.guards.insert(guard_name.clone(), guard_account.clone());
-
-        let used_bytes = guard_name.len() + guard_account.as_str().len();
-
-        let required_deposit = env::storage_byte_cost().checked_mul(used_bytes as u128).unwrap().checked_add(NearToken::from_yoctonear(CONTINGENCY_DEPOSIT)).unwrap();
-        assert!(
-            env::attached_deposit() >= required_deposit,
-            "Insufficient deposit. Required: {}, Attached: {}",
-            required_deposit,
-            env::attached_deposit()
-        )
     }
 
     /// Retrieves guard account ID by name
@@ -136,9 +129,7 @@ impl JwtGuardRouter {
 
         let guard_account = self.guards.remove(&guard_name).unwrap();
 
-        let freed_bytes = guard_name.len() + guard_account.as_str().len();
-       
-        let return_deposit = env::storage_byte_cost().checked_mul(freed_bytes as u128).unwrap().checked_add(NearToken::from_yoctonear(CONTINGENCY_DEPOSIT)).unwrap();
+        let return_deposit = env::storage_byte_cost().checked_mul(GUARD_NAME_MAX_BYTES_LENGTH + MAX_ACCOUNT_BYTES_LENGTH).unwrap();
         if !return_deposit.is_zero() {
             Promise::new(guard_account).transfer(return_deposit);
         }
@@ -171,7 +162,7 @@ mod tests {
         testing_env!(context.build());
         
         let contract = JwtGuardRouter {
-            guards: LookupMap::new(b"a"),
+            guards: LookupMap::new(MAP_KEY),
             owner: owner.clone(),
         };
         
@@ -191,7 +182,7 @@ mod tests {
         let guard_account: AccountId = "jwt.fast-auth.near".parse().unwrap();
 
         let mut contract = JwtGuardRouter {
-            guards: LookupMap::new(b"a"),
+            guards: LookupMap::new(MAP_KEY),
             owner: owner.clone(),
         };
 
@@ -209,7 +200,7 @@ mod tests {
         testing_env!(context.build());
 
         let contract = JwtGuardRouter {
-            guards: LookupMap::new(b"a"),
+            guards: LookupMap::new(MAP_KEY),
             owner: owner.clone(),
         };
 

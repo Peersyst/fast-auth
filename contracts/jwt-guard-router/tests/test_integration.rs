@@ -92,12 +92,22 @@ async fn test_remove_guard() -> Result<(), Box<dyn std::error::Error>> {
     let _ = contract.call("init")
         .args_json(json!({
             "owner": owner.id(),
-            "guards": {
-                "jwt": "jwt.fast-auth.near"
-            }
         }))
         .transact()
         .await?;
+
+
+    // Add a guard without no deposit
+    let mut outcome = not_owner.call(contract.id(), "add_guard")
+        .args_json(json!({
+            "guard_name": "jwt",
+            "guard_account": "jwt.fast-auth.near"
+        }))
+        .deposit(NearToken::from_yoctonear(1_000_000_000_000_000_000_000_000))
+        .transact()
+        .await?;
+
+    assert!(outcome.is_success());
 
     // Try to remove the guard as not owner (should fail)
     let outcome = not_owner.call(contract.id(), "remove_guard")
