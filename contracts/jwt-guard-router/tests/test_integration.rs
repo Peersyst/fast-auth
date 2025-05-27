@@ -1,5 +1,9 @@
 use serde_json::json;
 use near_sdk::NearToken;
+use jwt_guard_router::CONTINGENCY_DEPOSIT;
+
+// NOTE: 1.5 NEAR for testing purposes
+const REQUIRED_DEPOSIT: u128 = 1_500_000_000_000_000_000_000_000;
 
 #[tokio::test]
 async fn test_add_guard() -> Result<(), Box<dyn std::error::Error>> {
@@ -48,7 +52,7 @@ async fn test_add_guard() -> Result<(), Box<dyn std::error::Error>> {
             "guard_name": "jwt",
             "guard_account": "jwt.fast-auth.near"
         }))
-        .deposit(NearToken::from_yoctonear(1_000_000_000_000_000_000_000_000))
+        .deposit(NearToken::from_yoctonear(REQUIRED_DEPOSIT))
         .transact()
         .await?;
 
@@ -103,7 +107,7 @@ async fn test_remove_guard() -> Result<(), Box<dyn std::error::Error>> {
             "guard_name": "jwt",
             "guard_account": "jwt.fast-auth.near"
         }))
-        .deposit(NearToken::from_yoctonear(1_000_000_000_000_000_000_000_000))
+        .deposit(NearToken::from_yoctonear(REQUIRED_DEPOSIT))
         .transact()
         .await?;
 

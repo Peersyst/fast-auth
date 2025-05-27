@@ -1,9 +1,11 @@
 // Find all our documentation at https://docs.near.org
-use near_sdk::{near, AccountId, env, Promise, NearToken};
+use near_sdk::{near, AccountId, env, NearToken};
 use near_sdk::store::LookupMap;
 
-const GUARD_NAME_MAX_BYTES_LENGTH: u128 = 2048;
-const MAX_ACCOUNT_BYTES_LENGTH: u128 = 64;
+pub const GUARD_NAME_MAX_BYTES_LENGTH: u128 = 2048;
+pub const MAX_ACCOUNT_BYTES_LENGTH: u128 = 64;
+// NOTE: 1 NEAR
+pub const CONTINGENCY_DEPOSIT: u128 = 1_000_000_000_000_000_000_000_000;
 
 const MAP_KEY: &[u8] = b"g";
 
@@ -81,7 +83,7 @@ impl JwtGuardRouter {
     pub fn add_guard(&mut self, guard_name: String, guard_account: AccountId) {
         assert!(guard_name.len() as u128 <= GUARD_NAME_MAX_BYTES_LENGTH, "Guard name is too long");
         assert!(guard_account.as_str().len() as u128 <= MAX_ACCOUNT_BYTES_LENGTH, "Guard account is too long");
-        let required_deposit = env::storage_byte_cost().checked_mul(GUARD_NAME_MAX_BYTES_LENGTH + MAX_ACCOUNT_BYTES_LENGTH).unwrap();
+        let required_deposit = env::storage_byte_cost().checked_mul(GUARD_NAME_MAX_BYTES_LENGTH + MAX_ACCOUNT_BYTES_LENGTH).unwrap().checked_add(NearToken::from_yoctonear(CONTINGENCY_DEPOSIT)).unwrap();
         assert!(
             env::attached_deposit() >= required_deposit,
             "Insufficient deposit. Required: {}",
@@ -127,12 +129,7 @@ impl JwtGuardRouter {
             guard_name
         );
 
-        let guard_account = self.guards.remove(&guard_name).unwrap();
-
-        let return_deposit = env::storage_byte_cost().checked_mul(GUARD_NAME_MAX_BYTES_LENGTH + MAX_ACCOUNT_BYTES_LENGTH).unwrap();
-        if !return_deposit.is_zero() {
-            Promise::new(guard_account).transfer(return_deposit);
-        }
+        self.guards.remove(&guard_name).unwrap();
     }
 }
 
