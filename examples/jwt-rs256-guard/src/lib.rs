@@ -19,8 +19,6 @@ pub mod jwt;
 pub struct CustomClaims {
     /// The subject identifier claim that uniquely identifies the user
     pub sub: String,
-    /// The FastAuth permissions claim that specifies what actions are allowed
-    pub fatxn: Vec<u8>,
 }
 
 /// A NEAR contract that verifies JWT tokens signed with RS256 algorithm
