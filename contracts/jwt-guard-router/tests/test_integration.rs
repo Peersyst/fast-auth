@@ -1,6 +1,5 @@
 use serde_json::json;
 use near_sdk::NearToken;
-use jwt_guard_router::CONTINGENCY_DEPOSIT;
 
 // NOTE: 1.5 NEAR for testing purposes
 const REQUIRED_DEPOSIT: u128 = 1_500_000_000_000_000_000_000_000;
@@ -135,3 +134,61 @@ async fn test_remove_guard() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+// #[tokio::test]
+// async fn test_verify() -> Result<(), Box<dyn std::error::Error>> {
+//     let contract_wasm = near_workspaces::compile_project("./").await?;
+
+    
+//     let sandbox = near_workspaces::sandbox().await?;
+//     let mock_guard = sandbox.dev_deploy(include_bytes!("../target/wasm32-unknown-unknown/release/external_guard.wasm")).await?;
+//     let owner = sandbox.dev_create_account().await?;
+//     let contract = sandbox.dev_deploy(&contract_wasm).await?;
+
+//     // Initialize contract with owner
+//     let _ = contract.call("init")
+//         .args_json(json!({
+//             "owner": owner.id(),
+//         }))
+//         .transact()
+//         .await?;
+
+//     // Add a guard
+//     let outcome = contract.call("add_guard")
+//         .args_json(json!({
+//             "guard_name": "test-guard",
+//             "guard_account": mock_guard.id()
+//         }))
+//         .deposit(NearToken::from_yoctonear(REQUIRED_DEPOSIT))
+//         .transact()
+//         .await?;
+
+//     assert!(outcome.is_success());
+
+//     // Call verify with invalid type
+//     let outcome = contract.call("verify")
+//         .args_json(json!({
+//             "ty": "test-guard",
+//             "jwt": "test.jwt.token",
+//             "sign_payload": vec![1, 2, 3]
+//         }))
+//         .transact()
+//         .await?;
+
+//     assert!(!outcome.is_success());
+
+//     // Call verify
+//     let outcome = contract.call("verify")
+//         .args_json(json!({
+//             "ty": "jwt/test-guard",
+//             "jwt": "test.jwt.token",
+//             "sign_payload": vec![1, 2, 3]
+//         }))
+//         .transact()
+//         .await?;
+
+//     println!("outcome: {:?}", outcome);
+//     assert!(outcome.is_success());
+
+//     Ok(())
+// }
