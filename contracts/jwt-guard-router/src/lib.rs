@@ -1,9 +1,14 @@
 // Find all our documentation at https://docs.near.org
-use near_sdk::{near, AccountId, env, Promise, NearToken};
+use near_sdk::{near, AccountId, env, NearToken, Promise, PromiseError};
 use near_sdk::store::LookupMap;
+use external_contract::jwt_guard;
 
-const GUARD_NAME_MAX_BYTES_LENGTH: u128 = 2048;
-const MAX_ACCOUNT_BYTES_LENGTH: u128 = 64;
+pub mod external_contract;
+
+pub const GUARD_NAME_MAX_BYTES_LENGTH: u128 = 2048;
+pub const MAX_ACCOUNT_BYTES_LENGTH: u128 = 64;
+// NOTE: 1 NEAR
+pub const CONTINGENCY_DEPOSIT: u128 = 1_000_000_000_000_000_000_000_000;
 
 const MAP_KEY: &[u8] = b"g";
 
@@ -81,7 +86,7 @@ impl JwtGuardRouter {
     pub fn add_guard(&mut self, guard_name: String, guard_account: AccountId) {
         assert!(guard_name.len() as u128 <= GUARD_NAME_MAX_BYTES_LENGTH, "Guard name is too long");
         assert!(guard_account.as_str().len() as u128 <= MAX_ACCOUNT_BYTES_LENGTH, "Guard account is too long");
-        let required_deposit = env::storage_byte_cost().checked_mul(GUARD_NAME_MAX_BYTES_LENGTH + MAX_ACCOUNT_BYTES_LENGTH).unwrap();
+        let required_deposit = env::storage_byte_cost().checked_mul(GUARD_NAME_MAX_BYTES_LENGTH + MAX_ACCOUNT_BYTES_LENGTH).unwrap().checked_add(NearToken::from_yoctonear(CONTINGENCY_DEPOSIT)).unwrap();
         assert!(
             env::attached_deposit() >= required_deposit,
             "Insufficient deposit. Required: {}",
@@ -127,11 +132,50 @@ impl JwtGuardRouter {
             guard_name
         );
 
-        let guard_account = self.guards.remove(&guard_name).unwrap();
+        self.guards.remove(&guard_name).unwrap();
+    }
 
-        let return_deposit = env::storage_byte_cost().checked_mul(GUARD_NAME_MAX_BYTES_LENGTH + MAX_ACCOUNT_BYTES_LENGTH).unwrap();
-        if !return_deposit.is_zero() {
-            Promise::new(guard_account).transfer(return_deposit);
+    /// Verifies a JWT token using the specified guard
+    /// 
+    /// # Arguments
+    /// * `ty` - Type of the guard to use for verification
+    /// * `jwt` - The JWT token to verify as a string
+    /// * `sign_payload` - The payload to be signed by the MPC
+    /// # Returns
+    pub fn verify(&self, ty: String, jwt: String, sign_payload: Vec<u8>) -> Promise {
+        let parts: Vec<&str> = ty.split('/').collect();
+        
+        assert!(
+            parts.len() == 2 && parts[0] == "jwt",
+            "Invalid guard type format. Expected 'jwt/GUARD_NAME'"
+        );
+
+        let guard_name = parts[1].to_string();
+        let guard_account = self.get_guard(guard_name.clone());
+
+        jwt_guard::ext(guard_account)
+            .verify(jwt, sign_payload)
+            .then(Self::ext(env::current_account_id()).on_verify_callback(guard_name))
+    }
+
+    /// Callback that processes the verification result
+    /// # Arguments
+    /// * `guard_name` - Name of the guard that was used for verification
+    /// * `call_result` - Result from the guard verification containing:
+    ///   * Boolean indicating verification success
+    ///   * String containing the user identifier
+    /// # Returns
+    pub fn on_verify_callback(&mut self, guard_name: String, #[callback_result] call_result: Result<(bool, String), PromiseError>) -> (bool, String) {
+        if call_result.is_err() {
+            env::panic_str(&format!("Error verifying JWT: {:?}", call_result.err().unwrap()));
+        }
+
+        let (valid, sub) = call_result.unwrap();
+        if valid {
+            let result = format!("{}/{}", guard_name, sub);
+            (true, result)
+        } else {
+            (false, "".to_string())
         }
     }
 }
@@ -205,5 +249,29 @@ mod tests {
         };
 
         contract.get_guard("non_existent".to_string());
+    }
+
+    #[test]
+    fn test_verify() {
+        let owner = accounts(1);
+        let mut context = get_context(owner.clone());
+        testing_env!(context.build());
+
+        let guard_name = "my-guard.com".to_string();
+        let guard_account: AccountId = "jwt.fast-auth.near".parse().unwrap();
+
+        let mut contract = JwtGuardRouter {
+            guards: LookupMap::new(MAP_KEY),
+            owner: owner.clone(),
+        };
+
+        // Add the guard that will be used for verification
+        contract.guards.insert(guard_name.clone(), guard_account.clone());
+
+        let jwt = "test.jwt.token".to_string();
+        let sign_payload = vec![1, 2, 3];
+
+        // Call verify which should make cross-contract call to the guard
+        contract.verify("jwt/my-guard.com".to_string(), jwt, sign_payload);        
     }
 }
