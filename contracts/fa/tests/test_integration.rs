@@ -127,19 +127,32 @@ async fn test_verify() -> Result<(), Box<dyn std::error::Error>> {
     let add_outcome = contract
         .call("add_guard")
         .args_json(json!({
-            "guard_id": "mock",
+            "guard_id": "jwt",
             "guard_address": mock_guard.id()
         }))
         .transact()
         .await?;
     assert!(add_outcome.is_success());
 
+    // Call verify with an invalid guard_id
+    let verify_outcome = contract
+        .call("verify")
+        .args_json(json!({
+            "guard_id": "test",
+            "verify_payload": "test_payload",
+            "sign_payload": vec![1, 2, 3]
+        }))
+        .transact()
+        .await?;
+    assert!(!verify_outcome.is_success());
+
     // Call verify with a test payload
     let verify_outcome = contract
         .call("verify")
         .args_json(json!({
-            "guard_id": "mock",
-            "payload": "test_payload"
+            "guard_id": "jwt/mock",
+            "verify_payload": "test_payload",
+            "sign_payload": vec![1, 2, 3]
         }))
         .transact()
         .await?;
@@ -169,7 +182,7 @@ async fn test_sign() -> Result<(), Box<dyn std::error::Error>> {
     let add_outcome = contract
         .call("add_guard")
         .args_json(json!({
-            "guard_id": "mock",
+            "guard_id": "jwt",
             "guard_address": mock_guard.id()
         }))
         .transact()
@@ -190,8 +203,9 @@ async fn test_sign() -> Result<(), Box<dyn std::error::Error>> {
     let sign_outcome = contract
         .call("sign")
         .args_json(json!({
-            "guard_id": "mock",
-            "jwt": "test_jwt"
+            "guard_id": "jwt/mock",
+            "verify_payload": "test_payload",
+            "sign_payload": vec![1, 2, 3]
         }))
         .transact()
         .await?;
