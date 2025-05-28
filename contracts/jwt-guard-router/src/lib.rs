@@ -1,7 +1,7 @@
 // Find all our documentation at https://docs.near.org
 use near_sdk::{near, AccountId, env, NearToken, Promise, PromiseError};
 use near_sdk::store::LookupMap;
-use external_contract::jwt_guard;
+use crate::external_contract::jwt_guard;
 
 pub mod external_contract;
 
@@ -158,6 +158,16 @@ impl JwtGuardRouter {
             .then(Self::ext(env::current_account_id()).on_verify_callback(guard_name))
     }
 
+    /// Formats a path for a guard
+    /// # Arguments
+    /// * `guard_name` - Name of the guard
+    /// * `sub` - Substring to append to the guard name
+    /// # Returns
+    /// * The formatted path
+    fn format_path(&self, guard_name: String, sub: String) -> String {
+        format!("jwt/{}/{}", guard_name, sub)
+    }
+
     /// Callback that processes the verification result
     /// # Arguments
     /// * `guard_name` - Name of the guard that was used for verification
@@ -172,7 +182,7 @@ impl JwtGuardRouter {
 
         let (valid, sub) = call_result.unwrap();
         if valid {
-            let result = format!("{}/{}", guard_name, sub);
+            let result = self.format_path(guard_name, sub);
             (true, result)
         } else {
             (false, "".to_string())
@@ -272,6 +282,6 @@ mod tests {
         let sign_payload = vec![1, 2, 3];
 
         // Call verify which should make cross-contract call to the guard
-        contract.verify("jwt/my-guard.com".to_string(), jwt, sign_payload);        
+        contract.verify("jwt/my-guard.com".to_string(), jwt, sign_payload);
     }
 }

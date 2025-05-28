@@ -1,0 +1,15 @@
+{
+  "name": "jwt-guard-router",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:mocks:external-guard": "cargo build --target wasm32-unknown-unknown --release -p external-guard",
+    "build:mocks": "pnpm run build:mocks:external-guard",
+    "build": "cargo near build non-reproducible-wasm",
+    "test": "pnpm build:mocks && cargo test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
