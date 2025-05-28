@@ -15,6 +15,7 @@ pub struct FastAuth {
     owner: AccountId,
     mpc_address: AccountId,
     mpc_key_version: u32,
+    version: String,
 }
 
 // Define the default, which automatically initializes the contract
@@ -25,6 +26,7 @@ impl Default for FastAuth {
             owner: env::current_account_id(),
             mpc_address: env::current_account_id(),
             mpc_key_version: DEFAULT_MPC_KEY_VERSION,
+            version: "0.1.0".to_string(),
         }
     }
 }
@@ -66,7 +68,7 @@ impl FastAuth {
     /// Panics if contract is already initialized
     #[init]
     #[private]
-    pub fn init(init_guards: HashMap<String, AccountId>, owner: AccountId) -> Self {
+    pub fn init(init_guards: HashMap<String, AccountId>, owner: AccountId, version: String) -> Self {
         if env::state_exists() {
             env::panic_str("Contract is already initialized");
         }
@@ -154,6 +156,14 @@ impl FastAuth {
         self.guards.remove(&guard_id);
     }
 
+    fn get_guard_prefix(&self, guard_id: String) -> String {
+        let parts: Vec<&str> = guard_id.split('/').collect();
+        if parts.len() != 2 {
+            env::panic_str("Guard ID must be in format 'prefix/suffix'");
+        }
+        parts[0].to_string()
+    }
+
     // Verification methods
 
     /// Verifies a payload using the specified guard
@@ -167,7 +177,8 @@ impl FastAuth {
     /// # Panics
     /// Panics if specified guard does not exist
     pub fn verify(&self, guard_id: String, payload: String) -> Promise {
-        let guard_address = match self.guards.get(&guard_id) {
+        let guard_prefix = self.get_guard_prefix(guard_id.clone());
+        let guard_address = match self.guards.get(&guard_prefix) {
             Some(address) => address.clone(),
             None => {
                 env::panic_str(&format!("Cannot verify: Guard with ID '{}' does not exist", guard_id));

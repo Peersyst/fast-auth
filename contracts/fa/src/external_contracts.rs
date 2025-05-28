@@ -6,7 +6,7 @@ use schemars::JsonSchema;
 // Guard interface, for cross-contract calls
 #[ext_contract(external_guard)]
 pub trait ExternalGuard {
-    fn verify(&self, jwt: String) -> (bool, String, String);
+    fn verify(&self, jwt: String, sign_payload: String) -> (bool, String);
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, BorshDeserialize, BorshSerialize, Debug, Clone)]
