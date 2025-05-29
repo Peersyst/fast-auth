@@ -145,7 +145,7 @@ impl FastAuth {
     /// * If the caller is not the owner
     pub fn add_guard(&mut self, guard_id: String, guard_address: AccountId) {
         self.only_owner();
-        log!("Saving guard: {guard_id}");
+        assert!(!guard_id.contains('#'), "Guard ID cannot contain '#'");
         self.guards.insert(guard_id, guard_address);
     }
 
@@ -167,15 +167,15 @@ impl FastAuth {
     /// * The prefix portion of the guard ID
     /// # Panics
     /// * If guard_id is empty
-    /// * If guard_id is not in format 'guard' or 'prefix/suffix'
+    /// * If guard_id is not in format 'guard' or 'prefix#suffix'
     fn get_guard_prefix(&self, guard_id: String) -> String {
         if guard_id.is_empty() {
             env::panic_str("Guard ID cannot be empty");
         }
 
-        match guard_id.split('/').next() {
+        match guard_id.split('#').next() {
             Some(prefix) if !prefix.is_empty() => prefix.to_string(),
-            _ => env::panic_str("Guard ID must be in format 'guard' or 'prefix/suffix'")
+            _ => env::panic_str("Guard ID must be in format 'guard' or 'prefix#suffix'")
         }
     }
 
@@ -267,10 +267,19 @@ impl FastAuth {
     #[payable]
     pub fn sign(&mut self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>) -> Promise {
         let attached_deposit = env::attached_deposit();
-        Self::ext(env::current_account_id())
-            .verify(guard_id, verify_payload, sign_payload.clone())
-            .then(Self::ext(env::current_account_id())
-                .on_verify_sign_callback(sign_payload, attached_deposit)
+
+        let guard_prefix = self.get_guard_prefix(guard_id.clone());
+        let guard_address = match self.guards.get(&guard_prefix) {
+            Some(address) => address.clone(),
+            None => {
+                env::panic_str(&format!("Cannot verify: Guard with ID '{}' does not exist", guard_id));
+            }
+        };
+
+        external_guard::ext(guard_address.clone())
+        .verify(guard_id, verify_payload, sign_payload.clone())
+        .then(Self::ext(env::current_account_id())
+            .on_verify_sign_callback(sign_payload, attached_deposit)
         )
     }
 
@@ -370,19 +379,19 @@ mod tests {
         let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string() };
         assert_eq!(contract.get_guard_prefix("jwt".to_string()), "jwt");
 
-        assert_eq!(contract.get_guard_prefix("jwt/".to_string()), "jwt");
+        assert_eq!(contract.get_guard_prefix("jwt#".to_string()), "jwt");
     }
 
     #[test]
     fn get_guard_prefix_with_prefix_and_single_suffix() {
         let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string() };
-        assert_eq!(contract.get_guard_prefix("jwt/sub".to_string()), "jwt");
+        assert_eq!(contract.get_guard_prefix("jwt#sub".to_string()), "jwt");
     }
 
     #[test]
     fn get_guard_prefix_with_prefix_and_multiple_suffixes() {
         let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string() };
-        assert_eq!(contract.get_guard_prefix("jwt/sub/suffix".to_string()), "jwt");
+        assert_eq!(contract.get_guard_prefix("jwt#sub#suffix".to_string()), "jwt");
     }
 
     #[test]

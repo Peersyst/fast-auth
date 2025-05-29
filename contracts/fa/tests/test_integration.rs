@@ -17,6 +17,15 @@ async fn test_guards_crud() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await?;
 
+    // Test adding a guard with a forbidden character
+    let outcome = owner.call(contract.id(), "add_guard")
+        .args_json(json!({
+            "guard_id": "jwt#test",
+            "guard_address": "jwt.fast-auth.near"
+        }))
+        .transact()
+        .await?;
+
     // Test adding a guard
     let outcome = owner.call(contract.id(), "add_guard")
         .args_json(json!({
@@ -150,7 +159,7 @@ async fn test_verify() -> Result<(), Box<dyn std::error::Error>> {
     let verify_outcome = contract
         .call("verify")
         .args_json(json!({
-            "guard_id": "jwt/mock",
+            "guard_id": "jwt#mock",
             "verify_payload": "test_payload",
             "sign_payload": vec![1, 2, 3]
         }))
@@ -203,7 +212,7 @@ async fn test_sign() -> Result<(), Box<dyn std::error::Error>> {
     let sign_outcome = contract
         .call("sign")
         .args_json(json!({
-            "guard_id": "jwt/mock",
+            "guard_id": "jwt#mock",
             "verify_payload": "test_payload",
             "sign_payload": vec![1, 2, 3]
         }))

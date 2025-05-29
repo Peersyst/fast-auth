@@ -84,6 +84,7 @@ impl JwtGuardRouter {
     /// Requires attached deposit to cover storage costs
     #[payable]
     pub fn add_guard(&mut self, guard_name: String, guard_account: AccountId) {
+        assert!(!guard_name.contains('#'), "Guard name cannot contain '#' character");
         assert!(guard_name.len() as u128 <= GUARD_NAME_MAX_BYTES_LENGTH, "Guard name is too long");
         assert!(guard_account.as_str().len() as u128 <= MAX_ACCOUNT_BYTES_LENGTH, "Guard account is too long");
         let required_deposit = env::storage_byte_cost().checked_mul(GUARD_NAME_MAX_BYTES_LENGTH + MAX_ACCOUNT_BYTES_LENGTH).unwrap().checked_add(NearToken::from_yoctonear(CONTINGENCY_DEPOSIT)).unwrap();
@@ -135,6 +136,28 @@ impl JwtGuardRouter {
         self.guards.remove(&guard_name).unwrap();
     }
 
+    /// Validates that a guard name follows the expected format of "jwt#GUARD_NAME"
+    /// 
+    /// # Arguments
+    /// * `guard_name` - The guard name to validate
+    /// 
+    /// # Returns
+    /// * `(String, String)` - A tuple containing:
+    ///   * The "jwt" prefix
+    ///   * The actual guard name portion
+    /// 
+    /// # Panics
+    /// * If the guard name does not follow the "jwt#GUARD_NAME" format
+    fn assert_guard_name_format(&self, guard_name: String) -> (String, String) {
+        let parts: Vec<&str> = guard_name.split('#').collect();
+        assert!(
+            parts.len() == 2 && parts[0] == "jwt",
+            "Invalid guard name format. Expected 'jwt#GUARD_NAME'"
+        );
+
+        (parts[0].to_string(), parts[1].to_string())
+    }
+
     /// Verifies a JWT token using the specified guard
     /// 
     /// # Arguments
@@ -142,19 +165,12 @@ impl JwtGuardRouter {
     /// * `jwt` - The JWT token to verify as a string
     /// * `sign_payload` - The payload to be signed by the MPC
     /// # Returns
-    pub fn verify(&self, ty: String, jwt: String, sign_payload: Vec<u8>) -> Promise {
-        let parts: Vec<&str> = ty.split('/').collect();
-        
-        assert!(
-            parts.len() == 2 && parts[0] == "jwt",
-            "Invalid guard type format. Expected 'jwt/GUARD_NAME'"
-        );
-
-        let guard_name = parts[1].to_string();
+    pub fn verify(&self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>) -> Promise {
+        let (_, guard_name) = self.assert_guard_name_format(guard_id);
         let guard_account = self.get_guard(guard_name.clone());
 
         jwt_guard::ext(guard_account)
-            .verify(jwt, sign_payload)
+            .verify(verify_payload, sign_payload)
             .then(Self::ext(env::current_account_id()).on_verify_callback(guard_name))
     }
 
@@ -165,7 +181,7 @@ impl JwtGuardRouter {
     /// # Returns
     /// * The formatted path
     fn format_path(&self, guard_name: String, sub: String) -> String {
-        format!("jwt/{}/{}", guard_name, sub)
+        format!("jwt#{}#{}", guard_name, sub)
     }
 
     /// Callback that processes the verification result
@@ -264,13 +280,13 @@ mod tests {
     #[test]
     fn test_verify() {
         let owner = accounts(1);
-        let mut context = get_context(owner.clone());
+        let context = get_context(owner.clone());
         testing_env!(context.build());
 
         let guard_name = "my-guard.com".to_string();
         let guard_account: AccountId = "jwt.fast-auth.near".parse().unwrap();
 
-        let mut contract = JwtGuardRouter {
+        let contract = JwtGuardRouter {
             guards: LookupMap::new(MAP_KEY),
             owner: owner.clone(),
         };
@@ -282,6 +298,6 @@ mod tests {
         let sign_payload = vec![1, 2, 3];
 
         // Call verify which should make cross-contract call to the guard
-        contract.verify("jwt/my-guard.com".to_string(), jwt, sign_payload);
+        contract.verify("jwt#my-guard.com".to_string(), jwt, sign_payload);
     }
 }
