@@ -139,18 +139,16 @@ impl Auth0Guard {
 
         // Create the data to be verified (header.payload)
         let data_to_verify = format!("{}.{}", header, payload);
-        
+
         let signature_bytes = decode_base64_bytes(signature);
 
         // Verify the signature
-        let is_valid = verify_signature_from_components(
+        verify_signature_from_components(
             data_to_verify,
             signature_bytes,
             self.n_component.clone(),
             self.e_component.clone(),
-        );
-
-        is_valid
+        )
     }
 
 

@@ -1,4 +1,5 @@
 // Find all our documentation at https://docs.near.org
+#[allow(unused_imports)]
 use near_sdk::{near, AccountId, env, Promise, NearToken};
 use near_sdk::store::LookupMap;
 
@@ -160,12 +161,12 @@ mod tests {
         let owner = accounts(1);
         let context = get_context(owner.clone());
         testing_env!(context.build());
-        
+
         let contract = JwtGuardRouter {
             guards: LookupMap::new(MAP_KEY),
             owner: owner.clone(),
         };
-        
+
         assert_eq!(contract.owner(), owner);
     }
 

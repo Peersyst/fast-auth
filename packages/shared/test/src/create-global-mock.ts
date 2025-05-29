@@ -5,11 +5,7 @@ import { ExtendedMock, Mock, MockMethods } from "./mock";
 // TODO: Replace with MethodData to support properties
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-export type MockDataMethods<C extends object> = Pick<
-    MockMethods<keyof C>,
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-    TypeKeys<C, (...args: any[]) => any>
->;
+export type MockDataMethods<C extends object> = Pick<MockMethods<keyof C>, TypeKeys<C, Function>>;
 
 /**
  * Creates a global mock.
@@ -20,9 +16,7 @@ export type MockDataMethods<C extends object> = Pick<
 export function createGlobalMock<C extends object>(
     obj: C,
     data: MockDataMethods<C>,
-): {
-    new (customData?: Partial<MockDataMethods<C>>): ExtendedMock<C, jest.SpyInstance>;
-} {
+): { new (customData?: Partial<MockDataMethods<C>>): ExtendedMock<C, jest.SpyInstance> } {
     const mock = class extends Mock {
         constructor(customData: Partial<MockDataMethods<C>> = {}) {
             super();
@@ -37,7 +31,5 @@ export function createGlobalMock<C extends object>(
         }
     };
 
-    return mock as {
-        new (customData?: Partial<MockDataMethods<C>>): ExtendedMock<C, jest.SpyInstance>;
-    };
+    return mock as { new (customData?: Partial<MockDataMethods<C>>): ExtendedMock<C, jest.SpyInstance> };
 }

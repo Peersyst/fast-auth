@@ -56,11 +56,11 @@ pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8
     // Perform RSA encryption (signature verification)
     let modulus = pub_key.n_params.modulus().as_nz_ref();
     let bits_precision = modulus.bits_precision();
-    
+
     // Initialize result to 1
     let mut result = BoxedUint::one_with_precision(bits_precision);
     let mut base = signature.clone();
-    
+
     // Square-and-multiply algorithm for modular exponentiation
     for i in 0..pub_key.e.bits() {
         if pub_key.e.bit(i).into() {
@@ -94,7 +94,7 @@ pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8
     let mut ok = em[0].ct_eq(&0u8);
     ok &= em[1].ct_eq(&1u8);
     ok &= em[k - hash_len..k].ct_eq(&hashed);
-    ok &= em[k - t_len..k - hash_len].ct_eq(&PREFIX);
+    ok &= em[k - t_len..k - hash_len].ct_eq(PREFIX);
     ok &= em[k - t_len - 1].ct_eq(&0u8);
 
     // Verify PS (padding string) contains all 0xFF bytes

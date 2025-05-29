@@ -1,5 +1,4 @@
 packages:
-    - "examples/wallet"
     - "contracts/auth0-guard"
     - "contracts/fa"
     - "contracts/jwt-guard-router"

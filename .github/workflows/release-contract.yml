@@ -1,0 +1,62 @@
+name: Release Contract
+on:
+  workflow_dispatch:
+    inputs:
+      contract:
+        description: The contract to release
+        type: choice
+        required: true
+        options:
+          - auth0-guard
+          - fa
+          - jwt-guard-router
+      commit_branch:
+        description: The branch or the commit sha to push tag to
+        required: true
+      tag:
+        description: The tag of the release
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.commit_branch }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: docker/setup-qemu-action@v2
+      - uses: docker/setup-buildx-action@v2
+
+      - name: Check version
+        run: |
+          CONTRACT_PATH="contracts/${{ github.event.inputs.contract }}/Cargo.toml"
+          if [ ! -f "$CONTRACT_PATH" ]; then
+            echo "Error: Cargo.toml not found for contract ${{ github.event.inputs.contract }}"
+            exit 1
+          fi
+
+          # Extract version from Cargo.toml
+          VERSION=$(grep -m 1 '^version = ' "$CONTRACT_PATH" | sed 's/version = "\(.*\)"/\1/')
+
+          if [ "$VERSION" != "${{ github.event.inputs.tag }}" ]; then
+            echo "Error: Version mismatch!"
+            echo "Version in Cargo.toml: $VERSION"
+            echo "Tag: ${{ github.event.inputs.tag }}"
+            exit 1
+          fi
+
+          echo "Version check passed: $VERSION matches the tag ${{ github.event.inputs.tag }}"
+
+      - name: Publish the Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.event.inputs.contract }}/${{ github.event.inputs.tag }}
+          target_commitish: ${{ github.event.inputs.commit_branch }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

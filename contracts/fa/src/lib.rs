@@ -72,7 +72,7 @@ impl FastAuth {
         }
         Self {
             guards: init_guards,
-            owner: owner,
+            owner,
             mpc_address: env::current_account_id(),
             mpc_key_version: DEFAULT_MPC_KEY_VERSION,
         }
@@ -195,7 +195,7 @@ impl FastAuth {
     /// Panics if the caller is not the contract owner
     pub fn execute(&self, contract_address: AccountId, method_name: String, args: String, gas: u64) -> Promise {
         self.only_owner();
-        
+
         // Create a promise to call the specified contract
         Promise::new(contract_address)
             .function_call(
@@ -231,7 +231,7 @@ impl FastAuth {
     }
 
     // Signing methods
-    
+
     /// Initiates the signing process by first verifying the JWT with a guard and then signing the payload
     /// # Arguments
     /// * `guard_id` - ID of the guard to use for JWT verification
