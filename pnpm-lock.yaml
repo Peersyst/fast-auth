@@ -26,8 +26,6 @@ importers:
 
   contracts/fa: {}
 
-  contracts/fa-guard-jwt-rs256: {}
-
   examples/wallet:
     dependencies:
       '@auth0/auth0-react':
