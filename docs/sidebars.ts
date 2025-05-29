@@ -13,7 +13,7 @@ import type { SidebarsConfig } from "@docusaurus/plugin-content-docs";
  Create as many sidebars as you want.
  */
 const sidebars: SidebarsConfig = {
-    conceptsSidebar: ["concepts/overview", "concepts/architecture", "concepts/auth0", "concepts/custom-backend"],
+    conceptsSidebar: ["concepts/getting-started", "concepts/architecture", "concepts/auth0", "concepts/custom-backend"],
     integrationsSidebar: ["integrations/getting-started", "integrations/auth0", "integrations/custom-backend", "integrations/dapp"],
     sdkSidebar: ["sdk/browser"],
 };

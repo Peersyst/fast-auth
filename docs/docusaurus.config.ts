@@ -118,8 +118,8 @@ const config: Config = {
                     title: "Concepts",
                     items: [
                         {
-                            label: "Overview",
-                            to: "/docs/concepts/overview",
+                            label: "Getting Started",
+                            to: "/docs/concepts/getting-started",
                         },
                         {
                             label: "Architecture",
