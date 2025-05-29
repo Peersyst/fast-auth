@@ -1,6 +1,7 @@
 packages:
     - "examples/wallet"
-    - "contracts/fa-guard-jwt-rs256"
+    - "contracts/auth0-guard"
     - "contracts/fa"
+    - "contracts/jwt-guard-router"
     - "packages/auth"
     - "packages/shared/*"

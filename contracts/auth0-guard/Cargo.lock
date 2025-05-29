@@ -113,6 +113,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
+name = "auth0-guard"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "crypto-bigint",
+ "near-sdk",
+ "near-workspaces",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sha2",
+ "tokio",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -936,21 +951,6 @@ checksum = "7cd915d99f24784cdc19fd37ef22b97e3ff0ae756c7e492e9fbfe897d61e2aec"
 dependencies = [
  "indenter",
  "once_cell",
-]
-
-[[package]]
-name = "fa-guard-jwt-rs256"
-version = "0.1.0"
-dependencies = [
- "borsh",
- "crypto-bigint",
- "near-sdk",
- "near-workspaces",
- "serde",
- "serde_json",
- "serde_with",
- "sha2",
- "tokio",
 ]
 
 [[package]]

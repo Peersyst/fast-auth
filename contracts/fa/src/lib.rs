@@ -300,7 +300,7 @@ impl FastAuth {
         } 
 
         let sign_response = call_result.unwrap();
-        env::log_str(&format!("MPC signing successful: {:?}", sign_response))
+        env::log_str(&format!("MPC signing successful: {:?}", sign_response));
         Some(sign_response)
     }
 }

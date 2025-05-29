@@ -1,0 +1,12 @@
+{
+    "name": "@contracts/jwt-guard-router",
+    "version": "1.0.0",
+    "description": "",
+    "scripts": {
+        "build": "cargo near build non-reproducible-wasm",
+        "test": "cargo test"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
+}
