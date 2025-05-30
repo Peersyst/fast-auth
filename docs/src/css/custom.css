@@ -35,3 +35,12 @@
 .dropdown-section-header + a {
     padding-left: 24px;
 }
+
+.sidebar-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #666;
+    font-weight: bold;
+    padding: 0.5rem 0rem;
+    letter-spacing: 0.5px;
+}
