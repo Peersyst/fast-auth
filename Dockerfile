@@ -23,6 +23,8 @@ RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | b
 # Add NVM binaries to PATH
 ENV PATH="/root/.nvm/versions/node/v20.9.0/bin:${PATH}"
 
+RUN npm i -g pnpm@9.7.0
+
 
 FROM base as integration
 
