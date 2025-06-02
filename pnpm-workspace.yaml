@@ -1,4 +1,6 @@
 packages:
-    - "contracts/fa-verification"
+    - "examples/wallet"
+    - "contracts/fa-guard-jwt-rs256"
+    - "contracts/fa"
     - "packages/auth"
     - "packages/shared/*"
