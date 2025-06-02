@@ -14,15 +14,13 @@ RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/near/cargo-near/rel
 # Node and pnpm
 ENV NVM_DIR=/root/.nvm
 RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash \
-    && . "$NVM_DIR/nvm.sh" \
-    && nvm install 20 \
-    && nvm use 20 \
-    && npm install -g pnpm@latest \
-    && echo 'export PATH="$NVM_DIR/versions/node/$(nvm current)/bin:$PATH"' >> /root/.bashrc
 
-# Add NVM binaries to PATH
-ENV PATH="/root/.nvm/versions/node/v20.9.0/bin:${PATH}"
+RUN export NVM_DIR="$HOME/.nvm" \
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm \
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
+RUN nvm install 22
+RUN nvm use 22
 RUN npm i -g pnpm@9.7.0
 
 
