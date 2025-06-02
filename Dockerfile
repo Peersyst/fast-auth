@@ -9,6 +9,10 @@ RUN apt-get update && apt-get install -y \
 
 # Rust and cargo near
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN rustup default stable
+RUN rustup component add rustfmt clippy
+RUN rustup target add wasm32-unknown-unknown
 RUN curl --proto '=https' --tlsv1.2 -LsSf https://github.com/near/cargo-near/releases/download/cargo-near-v0.14.0/cargo-near-installer.sh | sh
 
 RUN npm i -g pnpm@9.7.0
@@ -18,11 +22,9 @@ FROM base as integration
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY . .
 
 RUN pnpm install
-
-COPY . .
 
 RUN pnpm run lint
 RUN pnpm run test
