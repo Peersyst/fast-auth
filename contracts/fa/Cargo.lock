@@ -1807,6 +1807,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "mpc"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "near-sdk",
+ "near-workspaces",
+ "schemars",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "native-tls"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
