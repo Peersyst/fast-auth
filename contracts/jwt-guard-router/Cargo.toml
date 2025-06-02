@@ -8,6 +8,9 @@ edition = "2021"
 # Link to the repository will be available via `contract_source_metadata` view-function.
 repository = "https://github.com/<xxx>/<xxx>"
 
+[workspace]
+members = [".", "mocks/external-guard"]
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 
