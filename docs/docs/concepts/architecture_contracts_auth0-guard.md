@@ -1,6 +1,6 @@
 # Auth0Guard
 
-The `Auth0Guard` contract verifies that a JWT forged through Auth0 is valid. This contract is used by the `FastAuth` contract to verify the JWT token before performing the MPC signature.
+The `Auth0Guard` contract verifies that a JWT forged through Auth0 is valid. This contract is used by the [`FastAuth`](./architecture_contracts_fa.md) contract to verify the JWT token before performing the MPC signature.
 
 ## Features
 
@@ -32,7 +32,7 @@ pub fn set_public_key(&mut self, n: Vec<u8>, e: Vec<u8>) {
 
 ## Verification logic
 
-The JWT verification is implemented in the `verify` function. This function is called by the `FastAuth` contract to verify the JWT token before performing the MPC signature.
+The JWT verification is implemented in the `verify` function. This function is called by the [`FastAuth`](./architecture_contracts_fa.md) contract to verify the JWT token before performing the MPC signature.
 
 ```rust
  pub fn verify(&self, jwt: String, sign_payload: Vec<u8>) -> (bool, String)
