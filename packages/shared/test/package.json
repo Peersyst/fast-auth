@@ -16,16 +16,16 @@
     },
     "peerDependencies": {
         "jest": "^29.7.0",
-        "ts-jest": "^29.2.5"
+        "ts-jest": "^29.3.4"
     },
     "devDependencies": {
         "@shared/eslint": "workspace:*",
         "@shared/tsconfig": "workspace:*",
         "@shared/tsup": "workspace:*",
-        "@swisstype/essential": "^0.1.1",
+        "@swisstype/essential": "^0.1.2",
         "@types/jest": "^29.5.12",
         "jest": "^29.7.0",
-        "ts-jest": "^29.2.5",
+        "ts-jest": "^29.3.4",
         "typescript": "latest"
     }
 }

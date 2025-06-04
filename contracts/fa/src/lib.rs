@@ -3,7 +3,6 @@ use near_sdk::{env, log, near, Promise, PromiseError, AccountId, NearToken, Gas}
 use std::collections::HashMap;
 // Declare the interfaces module
 pub mod external_contracts;
-pub mod permission;
 
 use crate::external_contracts::{external_guard, mpc_contract, SignRequest, SignResponse};
 
@@ -73,7 +72,7 @@ impl FastAuth {
         }
         Self {
             guards: init_guards,
-            owner: owner,
+            owner,
             mpc_address: env::current_account_id(),
             mpc_key_version: DEFAULT_MPC_KEY_VERSION,
         }
@@ -165,7 +164,6 @@ impl FastAuth {
     /// * Promise that resolves to a tuple containing:
     ///   * Boolean indicating if verification succeeded
     ///   * String containing the user identifier
-    ///   * String containing the permissions
     /// # Panics
     /// Panics if specified guard does not exist
     pub fn verify(&self, guard_id: String, payload: String) -> Promise {
@@ -183,17 +181,6 @@ impl FastAuth {
         )
     }
 
-    /// Verifies permissions against a payload
-    /// # Arguments
-    /// * `str_permission` - Permission string in JSON format
-    /// * `_payload` - Payload to verify permissions against
-    /// # Returns
-    /// * Boolean indicating if permissions are valid
-    fn verify_permission(&self, _str_permission: String, _payload: String) -> bool {
-        // TODO: Implement permission verification logic (https://www.notion.so/contract-Define-permissions-1d121cedf84a80fcb322d1d23860e7cd?pvs=4)
-        true
-    }
-
     /// Executes a function call on a specified contract
     /// 
     /// # Arguments
@@ -208,7 +195,7 @@ impl FastAuth {
     /// Panics if the caller is not the contract owner
     pub fn execute(&self, contract_address: AccountId, method_name: String, args: String, gas: u64) -> Promise {
         self.only_owner();
-        
+
         // Create a promise to call the specified contract
         Promise::new(contract_address)
             .function_call(
@@ -224,35 +211,27 @@ impl FastAuth {
     /// * `call_result` - Result from the guard verification containing:
     ///   * Boolean indicating verification success
     ///   * String containing user identifier
-    ///   * String containing permissions
     /// # Returns
     /// * Tuple containing:
     ///   * Boolean indicating overall verification success
     ///   * String containing the user identifier
-    ///   * String containing the permissions
     #[private]
-    pub fn on_verify_callback(&mut self, #[callback_result] call_result: Result<(bool, String, String), PromiseError>) -> (bool, String, String) {
+    pub fn on_verify_callback(&mut self, #[callback_result] call_result: Result<(bool, String, Vec<u8>), PromiseError>) -> (bool, String, Vec<u8>) {
         if call_result.is_err() {
             env::log_str("Guard verification failed");
-            return (false, String::new(), String::new());
+            return (false, String::new(), vec![]);
         } 
         // Extract the actual boolean result from the Ok value
-        let (verification_result, user, permissions) = call_result.unwrap();
+        let (verification_result, user, tx) = call_result.unwrap();
         if !verification_result {
             env::log_str("Guard verification rejected");
-            return (false, user, permissions);
+            return (false, user, tx);
         }
-        // TODO: Implement permission verification logic (https://www.notion.so/contract-Define-permissions-1d121cedf84a80fcb322d1d23860e7cd?pvs=4)
-        let permission_result = self.verify_permission(permissions.clone(), "mocked_permissions".to_string());
-        if !permission_result {
-            env::log_str("Permission verification rejected");
-            return (false, user, permissions);
-        }
-        (permission_result, user, permissions)
+        (verification_result, user, tx)
     }
 
     // Signing methods
-    
+
     /// Initiates the signing process by first verifying the JWT with a guard and then signing the payload
     /// # Arguments
     /// * `guard_id` - ID of the guard to use for JWT verification
@@ -263,37 +242,39 @@ impl FastAuth {
     /// # Notes
     /// * This is a payable method - requires attached deposit to cover MPC signing costs
     #[payable]
-    pub fn sign(&mut self, guard_id: String, payload: Vec<u8>, jwt: String) -> Promise {
+    pub fn sign(&mut self, guard_id: String, jwt: String) -> Promise {
         let attached_deposit = env::attached_deposit();
         // assert!(env::prepaid_gas() < Gas::from_tgas(MPC_TGAS), "Gas does not cover the cost of the MPC signing");
         Self::ext(env::current_account_id())
             .verify(guard_id, jwt)
             .then(Self::ext(env::current_account_id())
-                .on_verify_sign_callback(payload, attached_deposit)
+                .on_verify_sign_callback(attached_deposit)
         )
     }
 
     /// Callback that processes the JWT verification result and initiates MPC signing if verification succeeded
     /// # Arguments
-    /// * `payload` - Data to be signed
     /// * `attached_deposit` - Deposit amount from original call to forward to MPC contract
-    /// * `call_result` - Result from the guard verification containing success status, user ID and permissions
+    /// * `call_result` - Result from the guard verification containing success status, user ID and payload
     /// # Returns
     /// * Promise to perform MPC signing if verification succeeded, or empty promise if verification failed
     #[private]
-    pub fn on_verify_sign_callback(&mut self, payload: Vec<u8>, attached_deposit: NearToken, #[callback_result] call_result: Result<(bool, String, String), PromiseError>) -> Promise {
+    pub fn on_verify_sign_callback(&mut self, attached_deposit: NearToken, #[callback_result] call_result: Result<(bool, String, Vec<u8>), PromiseError>) -> Promise {
         if call_result.is_err() {
             env::log_str("Guard verification failed");
             return Promise::new(env::current_account_id());
         } 
-        let (verification_result, user, _permissions) = call_result.unwrap();
+        let (verification_result, user, payload) = call_result.unwrap();
         if !verification_result {
             env::log_str("Guard verification rejected");
             return Promise::new(env::current_account_id());
         }
 
+        // Hash the payload string using SHA-256
+        let payload_hash = env::sha256(&payload);
+
         let request = SignRequest {
-            payload,
+            payload: payload_hash,
             path: user,
             key_version: self.mpc_key_version,
         };

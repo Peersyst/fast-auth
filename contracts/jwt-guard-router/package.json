@@ -1,0 +1,16 @@
+{
+    "name": "@contracts/jwt-guard-router",
+    "version": "1.0.0",
+    "description": "",
+    "scripts": {
+        "build": "cargo near build non-reproducible-wasm",
+        "test": "cargo test",
+        "lint": "cargo clippy -- -D warnings",
+        "lint:fix": "cargo clippy --fix -- -D warnings",
+        "format": "cargo fmt --all",
+        "format:check": "cargo fmt --all -- --check"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
+}
