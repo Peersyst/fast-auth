@@ -5,11 +5,14 @@
     "scripts": {
         "build": "npx turbo run build && echo '🚀 Build completed'",
         "build:packages": "npx turbo run build --filter=\"./packages/**/*\" && echo '🚀 Build packages completed'",
+        "build:contracts": "npx turbo run build --filter=\"./contracts/**/*\" && echo '🚀 Build contracts completed'",
         "clean": "npx turbo run clean && echo 'root: cleaning' && rimraf node_modules .turbo && echo '\n🧼 Clean completed'",
         "test": "npx turbo run test && echo '🧪 Test completed'",
         "test:packages": "npx turbo run test --filter=\"./packages/**/*\" && echo '🧪 Test packages completed'",
+        "test:contracts": "npx turbo run test --filter=\"./contracts/**/*\" && echo '🧪 Test contracts completed'",
         "lint": "npx turbo run lint && echo '🧹 Lint completed'",
         "lint:packages": "npx turbo run lint --filter=\"./packages/**/*\" && echo '🧹 Lint packages completed'",
+        "lint:contracts": "npx turbo run lint --filter=\"./contracts/**/*\" && echo '🧹 Lint contracts completed'",
         "check-types": "npx turbo run check-types && echo '🔎 Check types completed'",
         "check-types:packages": "npx turbo run check-types --filter=\"./packages/**/*\" && echo '🔎 Check types packages completed'",
         "bundle": "npx turbo run bundle && echo '📦 Bundle completed'"

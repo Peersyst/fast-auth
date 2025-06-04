@@ -14,12 +14,6 @@ jobs:
       matrix:
         platform: [ubuntu-latest]
         toolchain: [1.86]
-        contract:
-          [
-            auth0-guard,
-            fa,
-            jwt-guard-router,
-          ]
     steps:
       - uses: actions/checkout@v4
       - name: "${{ matrix.toolchain }} with rustfmt, and wasm32"
@@ -32,7 +26,7 @@ jobs:
         run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/near/cargo-near/releases/download/cargo-near-v0.16.0/cargo-near-installer.sh | sh
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: "./contracts/${{ matrix.contract }} -> target"
+          workspaces: "./contracts -> target"
       - name: Deps
         run: rustup component add rustfmt clippy
       - uses: actions/setup-node@v4
@@ -40,13 +34,10 @@ jobs:
           node-version: 20
       - uses: pnpm/action-setup@v4
         with:
-          version: 9.7.0
+          version: 9.14.2
       - name: Lint
-        working-directory: ./contracts/${{ matrix.contract }}
-        run: pnpm run lint
+        run: pnpm run lint:contracts
       - name: Test
-        working-directory: ./contracts/${{ matrix.contract }}
-        run: pnpm run test
+        run: pnpm run test:contracts
       - name: Build
-        working-directory: ./contracts/${{ matrix.contract }}
-        run: pnpm run build
+        run: pnpm run build:contracts
