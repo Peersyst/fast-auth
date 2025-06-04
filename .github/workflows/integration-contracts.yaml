@@ -8,13 +8,13 @@ env:
 jobs:
   test:
     runs-on: ${{ matrix.platform }}
-    name: "${{ matrix.example }} - ${{ matrix.platform }}"
+    name: "${{ matrix.contract }} - ${{ matrix.platform }}"
     strategy:
       fail-fast: false
       matrix:
         platform: [ubuntu-latest]
         toolchain: [1.86]
-        example:
+        contract:
           [
             auth0-guard,
             fa,
@@ -32,10 +32,18 @@ jobs:
         run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/near/cargo-near/releases/download/cargo-near-v0.14.0/cargo-near-installer.sh | sh
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: "./contracts/${{ matrix.example }} -> target"
+          workspaces: "./contracts/${{ matrix.contract }} -> target"
+      - name: Deps
+        run: rustup component add rustfmt clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
       - name: Lint
-        run: cargo +${{ matrix.toolchain }} clippy -- -D warnings --manifest-path="./contracts/${{ matrix.example }}/Cargo.toml" --workspace
+        working-directory: ./contracts/${{ matrix.contract }}
+        run: pnpm run lint
       - name: Test
-        run: cargo +${{ matrix.toolchain }} test --manifest-path="./contracts/${{ matrix.example }}/Cargo.toml" --workspace
+        working-directory: ./contracts/${{ matrix.contract }}
+        run: pnpm run test
       - name: Build
-        run: near +${{ matrix.toolchain }} build non-reproducible-wasm --manifest-path="./contracts/${{ matrix.example }}/Cargo.toml" --workspace
+        working-directory: ./contracts/${{ matrix.contract }}
+        run: pnpm run build

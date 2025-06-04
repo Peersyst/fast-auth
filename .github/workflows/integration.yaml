@@ -12,9 +12,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-base:
+  integration-packages:
     uses: ./.github/workflows/integration-packages.yaml
     secrets: inherit
-  build-mobile:
+  integration-contracts:
     uses: ./.github/workflows/integration-contracts.yaml
     secrets: inherit
