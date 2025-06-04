@@ -76,7 +76,7 @@ impl FastAuth {
         }
         Self {
             guards: init_guards,
-            owner: owner,
+            owner,
             mpc_address: env::current_account_id(),
             mpc_key_version: DEFAULT_MPC_KEY_VERSION,
             version: CONTRACT_VERSION.to_string(),

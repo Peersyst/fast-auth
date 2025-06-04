@@ -1,5 +1,5 @@
 {
-    "name": "@contracts/fa-guard-jwt-rs256",
+    "name": "@contracts/auth0-guard",
     "version": "1.0.0",
     "description": "",
     "scripts": {

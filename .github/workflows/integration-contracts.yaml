@@ -6,21 +6,15 @@ on:
 env:
   RUSTFLAGS: -D warnings
 jobs:
-  test:
-    runs-on: ${{ matrix.platform }}
-    name: " ${{ matrix.platform }}"
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [ubuntu-latest]
-        toolchain: [1.86]
+  integration:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: "${{ matrix.toolchain }} with rustfmt, and wasm32"
+      - name: "1.86 with rustfmt, and wasm32"
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: ${{ matrix.toolchain }}
+          toolchain: 1.86
           target: wasm32-unknown-unknown
       - name: Install cargo-near CLI (dependency for build with near-workspaces)
         run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/near/cargo-near/releases/download/cargo-near-v0.16.0/cargo-near-installer.sh | sh

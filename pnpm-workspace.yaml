@@ -2,5 +2,5 @@ packages:
     - "examples/wallet"
     - "contracts/auth0-guard"
     - "contracts/fa"
-    - "packages/jwt-guard-router"
+    - "contracts/jwt-guard-router"
     - "packages/shared/*"

@@ -3,11 +3,6 @@ name: "Integration - Packages"
 on:
   workflow_call:
 
-concurrency:
-  # Cancel old runs if there is a new commit in the same branch
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   build:
     name: Build

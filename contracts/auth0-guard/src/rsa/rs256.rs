@@ -30,6 +30,7 @@ const PRECISION: u32 = 2048;
 /// This function implements RSA signature verification using PKCS#1 v1.5 padding scheme.
 /// It first hashes the payload using SHA-256, then verifies the signature using the 
 /// provided RSA public key components through modular exponentiation.
+#[allow(clippy::needless_borrow)]
 pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8>, n: Vec<u8>, e: Vec<u8>) -> bool {
     // Hash the data using SHA256
     let mut hasher = Sha256::new();
