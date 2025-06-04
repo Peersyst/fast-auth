@@ -1,13 +1,8 @@
-use near_sdk::{ext_contract, PromiseOrValue};
+use near_sdk::{near};
 use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
 use near_sdk::serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
 
-// Guard interface, for cross-contract calls
-#[ext_contract(external_guard)]
-pub trait ExternalGuard {
-    fn verify(&self, jwt: String) -> (bool, String, String);
-}
 
 #[derive(Serialize, Deserialize, JsonSchema, BorshDeserialize, BorshSerialize, Debug, Clone)]
 #[serde(crate = "near_sdk::serde")]
@@ -38,7 +33,27 @@ pub struct SignRequest {
     pub key_version: u32,
 }
 
-#[ext_contract(mpc_contract)]
-pub trait MPCContract {
-    fn sign(&self, request: SignRequest) -> PromiseOrValue<SignResponse>;
+
+#[near(contract_state)]
+pub struct MockMPC {
+    pub key_version: u32,
+}
+
+impl Default for MockMPC {
+    fn default() -> Self {
+        Self { key_version: 0 }
+    }
+}
+
+#[near]
+impl MockMPC {
+    pub fn sign(&self, _request: SignRequest) -> SignResponse {
+        // For testing, we'll just return true if the payload is not empty
+        SignResponse {
+            scheme: "ecdsa".to_string(),
+            big_r: AffinePoint { affine_point: "0x1234567890abcdef".to_string() },
+            s: Scalar { scalar: "0x1234567890abcdef".to_string() },
+            recovery_id: 0,
+        }
+    }
 }
