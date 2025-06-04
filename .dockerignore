@@ -43,3 +43,5 @@ fast-auth-.json
 
 .env
 **/dist
+
+Dockerfile
