@@ -38,12 +38,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.7.0
       - name: Lint
         working-directory: ./contracts/${{ matrix.contract }}
-        run: npm run lint
+        run: pnpm run lint
       - name: Test
         working-directory: ./contracts/${{ matrix.contract }}
-        run: npm run test
+        run: pnpm run test
       - name: Build
         working-directory: ./contracts/${{ matrix.contract }}
-        run: npm run build
+        run: pnpm run build
