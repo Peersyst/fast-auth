@@ -1,0 +1,41 @@
+name: "Integration - Contracts"
+
+on:
+  workflow_call:
+
+env:
+  RUSTFLAGS: -D warnings
+jobs:
+  test:
+    runs-on: ${{ matrix.platform }}
+    name: "${{ matrix.example }} - ${{ matrix.platform }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest]
+        toolchain: [1.86]
+        example:
+          [
+            auth0-guard,
+            fa,
+            jwt-guard-router,
+          ]
+    steps:
+      - uses: actions/checkout@v4
+      - name: "${{ matrix.toolchain }} with rustfmt, and wasm32"
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          target: wasm32-unknown-unknown
+      - name: Install cargo-near CLI (dependency for build with near-workspaces)
+        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/near/cargo-near/releases/download/cargo-near-v0.14.0/cargo-near-installer.sh | sh
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./contracts/${{ matrix.example }} -> target"
+      - name: Lint
+        run: cargo +${{ matrix.toolchain }} clippy -- -D warnings --manifest-path="./contracts/${{ matrix.example }}/Cargo.toml" --workspace
+      - name: Test
+        run: cargo +${{ matrix.toolchain }} test --manifest-path="./contracts/${{ matrix.example }}/Cargo.toml" --workspace
+      - name: Build
+        run: near +${{ matrix.toolchain }} build non-reproducible-wasm --manifest-path="./contracts/${{ matrix.example }}/Cargo.toml" --workspace
