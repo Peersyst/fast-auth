@@ -8,7 +8,7 @@ env:
 jobs:
   test:
     runs-on: ${{ matrix.platform }}
-    name: "${{ matrix.contract }} - ${{ matrix.platform }}"
+    name: " ${{ matrix.platform }}"
     strategy:
       fail-fast: false
       matrix:
