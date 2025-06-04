@@ -1,11 +1,15 @@
 const TRANSACTION_KEY = "transaction";
 const IMAGE_URL_KEY = "imageUrl";
 const NAME_KEY = "name";
-const RECEIVER_ID_KEY = "receiverId";
-const ACTIONS_KEY = "actions";
+
+const { Transaction } = require("@near-js/transactions");
 
 function hasKeys(query, keys) {
     return keys.every((k) => k in query);
+}
+
+function parseTransaction(txString) {
+    return Transaction.decode(Uint8Array.from(txString.split(",").map((value) => Number(value))));
 }
 
 /**
@@ -17,27 +21,32 @@ function hasKeys(query, keys) {
 exports.onExecutePostLogin = async (event, api) => {
     const query = event.request.query;
 
-    if (hasKeys(query, [TRANSACTION_KEY, IMAGE_URL_KEY, NAME_KEY, RECEIVER_ID_KEY, ACTIONS_KEY])) {
-        api.prompt.render(event.secrets.transaction_modal, {
+    if (hasKeys(query, [TRANSACTION_KEY, IMAGE_URL_KEY, NAME_KEY])) {
+        const transaction = parseTransaction(event.request.query.transaction);
+        console.log(transaction.publicKey, transaction.actions);
+        api.prompt.render(event.secrets.authorize_app_modal, {
             fields: {
                 imageUrl: event.request.query.imageUrl,
                 name: event.request.query.name,
-                transaction: event.request.query.transaction,
-                receiverId: event.request.query.receiverId,
-                actions: event.request.query.actions,
+                receiverId: transaction.receiverId,
+                signerId: transaction.signerId,
+                publicKey: transaction.publicKey.toString(),
+                actions: JSON.stringify(
+                    transaction.actions,
+                    (_, value) => {
+                        if (typeof value == "bigint") {
+                            return value.toString();
+                        }
+                        return value;
+                    },
+                    2,
+                ),
             },
         });
         api.accessToken.setCustomClaim(
             "fatxn",
             event.request.query.transaction.split(",").map((value) => Number(value)),
         );
-    } else {
-        api.prompt.render(event.secrets.login_modal, {
-            fields: {
-                imageUrl: event.request.query.imageUrl || "",
-                name: event.request.query.name || "",
-            },
-        });
     }
 };
 

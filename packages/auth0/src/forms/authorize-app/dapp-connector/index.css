@@ -1,23 +1,14 @@
-.main {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-}
-
 .avatar {
     width: 4.5rem;
     border-radius: 12px;
 }
 
 .layout {
-    position: relative; /* Make .circle position relative to this */
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     display: flex;
     flex-direction: row;
     gap: 1.5rem;
     align-items: center;
+    justify-content: center;
 }
 
 .circle {
