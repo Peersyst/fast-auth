@@ -7,6 +7,7 @@
         "build:mocks:external-guard": "cargo build --target wasm32-unknown-unknown --release -p external-guard",
         "build:mocks:mpc": "cargo build --target wasm32-unknown-unknown --release -p mpc",
         "build:mocks": "pnpm run build:mocks:external-guard && pnpm run build:mocks:mpc",
-        "test": "pnpm build:mocks && cargo test"
+        "test": "pnpm build:mocks && cargo test",
+        "lint": "cargo clippy -- -D warnings"
     }
 }

@@ -112,7 +112,7 @@ async fn test_remove_guard() -> Result<(), Box<dyn std::error::Error>> {
 
 
     // Add a guard without no deposit
-    let mut outcome = not_owner.call(contract.id(), "add_guard")
+    let outcome = not_owner.call(contract.id(), "add_guard")
         .args_json(json!({
             "guard_name": "jwt",
             "guard_account": "jwt.fast-auth.near"

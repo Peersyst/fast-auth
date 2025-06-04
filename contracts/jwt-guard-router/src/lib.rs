@@ -286,7 +286,7 @@ mod tests {
         let guard_name = "my-guard.com".to_string();
         let guard_account: AccountId = "jwt.fast-auth.near".parse().unwrap();
 
-        let contract = JwtGuardRouter {
+        let mut contract = JwtGuardRouter {
             guards: LookupMap::new(MAP_KEY),
             owner: owner.clone(),
         };

@@ -1,0 +1,52 @@
+name: "Integration - Contracts"
+
+on:
+  workflow_call:
+
+env:
+  RUSTFLAGS: -D warnings
+jobs:
+  test:
+    runs-on: ${{ matrix.platform }}
+    name: "${{ matrix.contract }} - ${{ matrix.platform }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest]
+        toolchain: [1.86]
+        contract:
+          [
+            auth0-guard,
+            fa,
+            jwt-guard-router,
+          ]
+    steps:
+      - uses: actions/checkout@v4
+      - name: "${{ matrix.toolchain }} with rustfmt, and wasm32"
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.toolchain }}
+          target: wasm32-unknown-unknown
+      - name: Install cargo-near CLI (dependency for build with near-workspaces)
+        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/near/cargo-near/releases/download/cargo-near-v0.16.0/cargo-near-installer.sh | sh
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./contracts/${{ matrix.contract }} -> target"
+      - name: Deps
+        run: rustup component add rustfmt clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.7.0
+      - name: Lint
+        working-directory: ./contracts/${{ matrix.contract }}
+        run: pnpm run lint
+      - name: Test
+        working-directory: ./contracts/${{ matrix.contract }}
+        run: pnpm run test
+      - name: Build
+        working-directory: ./contracts/${{ matrix.contract }}
+        run: pnpm run build
