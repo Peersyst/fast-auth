@@ -52,16 +52,14 @@ function AuthorizeAppTransactionDetails(context) {
             box.classList.add("box");
 
             const config = context.custom.getParams();
-            const { signerId, publicKey, receiverId, actions } = config;
+            const { signerId, receiverId, actions } = config;
 
             const sender = createTextContent("Signer ID", signerId);
             const receiver = createTextContent("Receiver ID", receiverId);
-            const publicKeyContent = createTextContent("Public Key", publicKey);
             const actionsContent = createJsonContent("Actions", actions);
 
             box.appendChild(sender);
             box.appendChild(receiver);
-            box.appendChild(publicKeyContent);
             box.appendChild(actionsContent);
             return box;
         },

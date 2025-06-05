@@ -30,7 +30,6 @@ exports.onExecutePostLogin = async (event, api) => {
                 name: event.request.query.name,
                 receiverId: transaction.receiverId,
                 signerId: transaction.signerId,
-                publicKey: transaction.publicKey.toString(),
                 actions: JSON.stringify(
                     transaction.actions,
                     (_, value) => {
