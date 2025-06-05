@@ -1,6 +1,6 @@
 {
-    "domain": "dev-gb1h5yrepb85jstz.us.auth0.com",
-    "clientId": "7DmhWuugUVJDNSJ4edNOTFm0c98xs9hp",
-    "audience": "https://fast-auth-poc.com",
+    "domain": "auth0.aws.peersyst.tech",
+    "clientId": "qOfA3FaWedmD9LjFS9uRvQVJ0U3XhsgA",
+    "audience": "fast-auth-api-test-0.com",
     "appOrigin": "http://localhost:3000"
 }

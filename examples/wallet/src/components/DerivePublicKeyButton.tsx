@@ -32,8 +32,6 @@ export default function DerivePublicKeyButton({ sub }: { sub: string }) {
         const receiverId = formData.get("receiverid") as string;
         const amount = formData.get("amount") as string;
         const tx = await relayer?.createTransfer(accountId, PublicKey.fromString(publicKey), receiverId, amount);
-        console.log("tx", tx);
-        console.log("encodedTransaction", encodeTransaction(tx).toString());
         const messageBytes: number[] = [];
         encodeTransaction(tx).forEach((b) => {
             messageBytes.push(b);
@@ -45,8 +43,6 @@ export default function DerivePublicKeyButton({ sub }: { sub: string }) {
                     "https://media.licdn.com/dms/image/v2/D4D0BAQH5KL-Ge_0iug/company-logo_200_200/company-logo_200_200/0/1696280807541/peersyst_technology_logo?e=2147483647&v=beta&t=uFYvQ5g6HDoIprYhNNV_zC7tzlBkvmPRkWzuLuDpHtc",
                 name: "Peersyst Technology",
                 transaction: messageBytes,
-                receiverId: tx.receiverId,
-                actions: tx.actions,
             },
         });
     };
