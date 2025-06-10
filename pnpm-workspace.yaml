@@ -2,5 +2,7 @@ packages:
     - "contracts/auth0-guard"
     - "contracts/fa"
     - "contracts/jwt-guard-router"
+    - "examples/wallet"
+    - "examples/spa"
     - "packages/sdks/*"
     - "packages/shared/*"

@@ -12,12 +12,18 @@
         "lint:packages": "npx turbo run lint --filter=\"./packages/**/*\" && echo '🧹 Lint packages completed'",
         "check-types": "npx turbo run check-types && echo '🔎 Check types completed'",
         "check-types:packages": "npx turbo run check-types --filter=\"./packages/**/*\" && echo '🔎 Check types packages completed'",
-        "bundle": "npx turbo run bundle && echo '📦 Bundle completed'"
+        "bundle": "npx turbo run bundle && echo '📦 Bundle completed'",
+        "dev": "turbo run dev",
+        "format": "prettier --write \"**/*.{ts,tsx,md}\""
     },
     "devDependencies": {
         "@antfu/ni": "^0.23.0",
+        "@rollup/plugin-commonjs": "^25.0.7",
+        "@rollup/plugin-node-resolve": "^15.2.3",
+        "@rollup/plugin-typescript": "^11.1.6",
         "prettier": "^3.3.3",
         "rimraf": "^6.0.1",
+        "rollup": "^4.9.1",
         "turbo": "^2.1.0",
         "tsup": "^8.2.4"
     },

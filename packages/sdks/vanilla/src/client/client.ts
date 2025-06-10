@@ -1,15 +1,11 @@
 import { FastAuthSigner } from "../signers/signer";
-import { SignatureRequest } from "../signers/signer.types";
 import { IFastAuthProvider } from "./providers/fast-auth.provider";
-import { INearApiProvider } from "./providers/near-api.provider";
 
-export class FastAuthClient<O = any> {
-    private provider: IFastAuthProvider<O>;
-    private nearApiProvider: INearApiProvider;
+export class FastAuthClient {
+    private provider: IFastAuthProvider;
 
-    constructor(provider: IFastAuthProvider<O>, nearApiProvider: INearApiProvider) {
+    constructor(provider: IFastAuthProvider) {
         this.provider = provider;
-        this.nearApiProvider = nearApiProvider;
     }
 
     /**
@@ -17,9 +13,16 @@ export class FastAuthClient<O = any> {
      * @param opts The options for the login.
      * @returns The signature request.
      */
-    login(opts?: O) {
+    login(opts?: any) {
         // Call the fast auth provider to sign in.
         return this.provider.login(opts);
+    }
+
+    /**
+     * Log out of the client.
+     */
+    logout() {
+        return this.provider.logout();
     }
 
     /**
@@ -27,7 +30,13 @@ export class FastAuthClient<O = any> {
      * @param path The path to the signer.
      * @returns The signer.
      */
-    getSigner(path: string): FastAuthSigner<O, SignatureRequest> {
-        return new FastAuthSigner(this.nearApiProvider, this.provider, path);
+    async getSigner(): Promise<FastAuthSigner> {
+        const isLoggedIn = await this.provider.isLoggedIn();
+        if (!isLoggedIn) {
+            throw new Error("User is not logged in");
+        }
+        const signer = new FastAuthSigner(this.provider);
+        await signer.init();
+        return signer;
     }
 }

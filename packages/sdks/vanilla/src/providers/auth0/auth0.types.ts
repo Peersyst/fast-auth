@@ -1,11 +1,18 @@
+import { Transaction } from "near-api-js/lib/transaction";
+
 export type Auth0ProviderOptions = {
     domain: string;
     clientId: string;
     redirectUri: string;
+    audience: string;
 };
 
-export type Auth0RequestSignatureOptions = {
+export type Auth0BaseRequestSignatureOptions = {
     imageUrl: string;
     name: string;
     redirectUri?: string;
+};
+
+export type Auth0RequestTransactionSignatureOptions = Auth0BaseRequestSignatureOptions & {
+    transaction: Transaction;
 };

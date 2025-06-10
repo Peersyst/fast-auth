@@ -1,14 +1,13 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import { useAuth0 } from "@auth0/auth0-react";
-import { useFastAuthRelayer } from "../hooks/use-fast-auth-relayer";
+import { useFastAuth } from "../hooks/use-fast-auth-relayer";
 import { useState } from "react";
 import { Transaction } from "near-api-js/lib/transaction";
 import * as jose from "jose";
 import { ec as EC } from "elliptic";
 
 export default function SignButton() {
-    const { relayer } = useFastAuthRelayer();
-    const { getAccessTokenSilently } = useAuth0();
+    const { relayer } = useFastAuth();
+    const { client } = useFastAuth();
 
     const [signature, setSignature] = useState("");
     const [tx, setTx] = useState<Transaction | null>(null);
@@ -17,11 +16,15 @@ export default function SignButton() {
         if (!relayer) {
             throw new Error("Relayer not initialized");
         }
-        const jwt = await getAccessTokenSilently();
-        const claims = jose.decodeJwt(jwt);
+        const signer = await client?.getSigner();
+        if (!signer) {
+            throw new Error("Signer not initialized");
+        }
+        const signatureRequest = await signer.getSignatureRequest();
+        const claims = jose.decodeJwt(signatureRequest.verifyPayload);
         const tx = Transaction.decode(claims["fatxn"] as Uint8Array<ArrayBufferLike>);
         setTx(tx);
-        const result = await relayer?.sign(jwt);
+        const result = await relayer?.sign(signatureRequest.verifyPayload);
 
         setSignature(JSON.parse(Buffer.from(result.status.SuccessValue, "base64").toString()));
     };

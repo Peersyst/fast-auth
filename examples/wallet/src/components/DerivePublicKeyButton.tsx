@@ -1,22 +1,27 @@
 import { useState } from "react";
-import { useFastAuthRelayer } from "../hooks/use-fast-auth-relayer";
+import { useFastAuth } from "../hooks/use-fast-auth-relayer";
 import { encodeTransaction } from "near-api-js/lib/transaction";
-import { useAuth0 } from "@auth0/auth0-react";
 import { PublicKey } from "near-api-js/lib/utils";
 import SignButton from "./SignButton";
 import CreateAccount from "./CreateAccount";
+import { FastAuthSigner } from "@fast-auth/sdk";
 
 export default function DerivePublicKeyButton({ sub }: { sub: string }) {
-    const { loginWithRedirect } = useAuth0();
-    const { relayer } = useFastAuthRelayer();
+    const { client, relayer } = useFastAuth();
+    const [signer, setSigner] = useState<FastAuthSigner | null>(null);
     const [publicKey, setPublicKey] = useState<string | null>(null);
 
     const handleClick = async () => {
-        if (!relayer) {
-            throw new Error("Relayer not initialized");
+        if (!client) {
+            throw new Error("Client not initialized");
         }
-        const publicKey = await relayer?.derivePublicKey(sub);
-        setPublicKey(publicKey);
+        const signer = await client?.getSigner();
+        if (signer) {
+            setSigner(signer);
+            signer.getPublicKey(relayer?.getConnection()).then((publicKey) => {
+                setPublicKey(publicKey.toString());
+            });
+        }
     };
 
     const handleTransfer = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -37,7 +42,7 @@ export default function DerivePublicKeyButton({ sub }: { sub: string }) {
             messageBytes.push(b);
         });
 
-        await loginWithRedirect({
+        await signer?.requestSignature({
             authorizationParams: {
                 imageUrl:
                     "https://media.licdn.com/dms/image/v2/D4D0BAQH5KL-Ge_0iug/company-logo_200_200/company-logo_200_200/0/1696280807541/peersyst_technology_logo?e=2147483647&v=beta&t=uFYvQ5g6HDoIprYhNNV_zC7tzlBkvmPRkWzuLuDpHtc",

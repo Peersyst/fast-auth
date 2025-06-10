@@ -2,8 +2,9 @@
     "name": "@fast-auth/sdk",
     "version": "1.0.0",
     "description": "",
-    "main": "index.js",
+    "main": "./dist/index.js",
     "scripts": {
+        "build": "tsc",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [],
@@ -20,6 +21,10 @@
     "dependencies": {
         "@auth0/auth0-spa-js": "^2.2.0",
         "@near-js/accounts": "^2.0.2",
+        "jose": "^6.0.11",
         "near-api-js": "^6.0.2"
+    },
+    "exports": {
+        ".": "./src/index.ts"
     }
 }

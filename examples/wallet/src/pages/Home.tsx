@@ -1,13 +1,33 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import "./Home.css";
-import { useAuth0 } from "@auth0/auth0-react";
-import { useFastAuthRelayer } from "../hooks/use-fast-auth-relayer";
+import { useFastAuth } from "../hooks/use-fast-auth-relayer";
 import LoginButton from "../components/LoginButton";
-import DerivePublicKeyButton from "../components/DerivePublicKeyButton";
+import { LogoutButton } from "../components/LogoutButton";
 
 const Home: React.FC = () => {
-    const { isAuthenticated, user, getAccessTokenSilently, logout } = useAuth0();
-    const { isInitialized, error } = useFastAuthRelayer();
+    const { isClientInitialized, error, client, relayer } = useFastAuth();
+
+    const [loggedIn, setLoggedIn] = useState(false);
+
+    useEffect(() => {
+        if (isClientInitialized) {
+            client?.getSigner().then((signer) => {
+                console.log("signer", signer);
+                if (signer) {
+                    signer
+                        .getPublicKey(relayer?.getConnection().connection)
+                        .then((publicKey) => {
+                            console.log(publicKey.toString());
+                            setLoggedIn(true);
+                        })
+                        .catch((error) => {
+                            setLoggedIn(false);
+                            console.error(error);
+                        });
+                }
+            });
+        }
+    }, [isClientInitialized]);
 
     return (
         <Fragment>
@@ -16,18 +36,8 @@ const Home: React.FC = () => {
                 This is a sample application that demonstrates how to interact with the FastAuth contract to sign transactions through the
                 MPC.
             </p>
-            <button onClick={() => getAccessTokenSilently().then(console.log)}>Get JWT</button>
-            {isAuthenticated && user && (
-                <div>
-                    <p>You are logged in as {user.sub}</p>
-                    {user.sub && <DerivePublicKeyButton sub={user.sub} />}
-                </div>
-            )}
-
-            {!isAuthenticated && <LoginButton />}
-            {isInitialized && <p>Relayer initialized</p>}
+            {loggedIn ? <LogoutButton /> : <LoginButton />}
             {error && <p>Error: {error.message}</p>}
-            <button onClick={() => logout()}>Logout</button>
         </Fragment>
     );
 };

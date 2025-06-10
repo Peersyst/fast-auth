@@ -1,17 +1,58 @@
 import { Action, functionCall } from "near-api-js/lib/transaction";
-import { INearApiProvider } from "./providers/near-api.provider";
 import { CreateAccountOptions, SignatureRequest } from "./signer.types";
 import { IFastAuthProvider } from "./providers/fast-auth.provider";
 import { Connection } from "near-api-js";
 import { FAST_AUTH_CONTRACT_ID } from "./signer.constants";
-import { viewFunction } from "@near-js/accounts/lib/utils";
+import { CodeResult } from "near-api-js/lib/providers/provider";
+import { bytesJsonStringify } from "./utils";
+import { ViewFunctionCallOptions } from "@near-js/accounts";
 
-export class FastAuthSigner<O = Record<string, never>, SR extends SignatureRequest = SignatureRequest> {
-    constructor(
-        private readonly nearProvider: INearApiProvider,
-        private readonly fastAuthProvider: IFastAuthProvider<O, SR>,
-        private readonly path: string,
-    ) {}
+export class FastAuthSigner<SR extends SignatureRequest = SignatureRequest> {
+    private path: string;
+    constructor(private readonly fastAuthProvider: IFastAuthProvider) {}
+
+    /**
+     * Validate the arguments.
+     * @param args The arguments to validate.
+     */
+    private validateArgs(args: any) {
+        const isUint8Array = args.byteLength !== undefined && args.byteLength === args.length;
+        if (isUint8Array) {
+            return;
+        }
+
+        if (Array.isArray(args) || typeof args !== "object") {
+            throw new Error("Invalid arguments");
+        }
+    }
+
+    /**
+     * View a function.
+     * @param connection The connection to the network.
+     * @param options The options for the view function.
+     * @returns The result of the view function.
+     */
+    private async viewFunction(connection: Connection, { contractId, methodName, args, blockQuery }: ViewFunctionCallOptions) {
+        this.validateArgs(args);
+
+        const encodedArgs = bytesJsonStringify(args);
+
+        const result = await connection.provider.query<CodeResult>({
+            request_type: "call_function",
+            ...blockQuery,
+            account_id: contractId,
+            method_name: methodName,
+            args_base64: encodedArgs.toString("base64"),
+            sync_checkpoint: "earliest_available",
+        });
+
+        return Buffer.from(result.result);
+    }
+
+    async init() {
+        this.path = await this.fastAuthProvider.getPath();
+        console.log("path", this.path);
+    }
 
     /**
      * Create a new account.
@@ -36,16 +77,16 @@ export class FastAuthSigner<O = Record<string, never>, SR extends SignatureReque
      * @param options The options for the request signature.
      * @returns The signed transaction.
      */
-    async requestSignature(options: O) {
+    async requestSignature(options: any) {
         // Call the fast auth provider to request a signature.
-        return await this.fastAuthProvider.requestSignature(options);
+        return await this.fastAuthProvider.requestTransactionSignature(options);
     }
 
     /**
      * Get a signature request.
      * @returns The signature request.
      */
-    getSignatureRequest(): SR {
+    getSignatureRequest(): Promise<SignatureRequest> {
         // Retrieve the signature request from the fast auth provider.
         return this.fastAuthProvider.getSignatureRequest();
     }
@@ -81,7 +122,7 @@ export class FastAuthSigner<O = Record<string, never>, SR extends SignatureReque
      */
     async getPublicKey(connection: Connection) {
         // Call the fast auth contract with the path
-        const publicKey = await viewFunction({
+        const publicKey = await this.viewFunction(connection, {
             contractId: "v1.signer-prod.testnet",
             methodName: "derived_public_key",
             args: { path: this.path, predecessor: FAST_AUTH_CONTRACT_ID },

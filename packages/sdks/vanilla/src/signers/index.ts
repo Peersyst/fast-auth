@@ -1,7 +1,4 @@
-export interface FastAuthSigner {
-    createAccount(): void;
-    requestSignature(): void;
-    sign(): void;
-    signAndSend(): void;
-    getPublicKey(): string;
-}
+export * from "./signer";
+export * from "./signer.types";
+export * from "./signer.constants";
+export * from "./utils";

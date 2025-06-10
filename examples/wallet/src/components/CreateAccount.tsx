@@ -1,7 +1,7 @@
-import { useFastAuthRelayer } from "../hooks/use-fast-auth-relayer";
+import { useFastAuth } from "../hooks/use-fast-auth-relayer";
 
 export default function CreateAccount({ publicKey }: { publicKey: string }) {
-    const { relayer } = useFastAuthRelayer();
+    const { relayer } = useFastAuth();
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
