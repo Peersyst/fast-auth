@@ -47,6 +47,9 @@ importers:
       '@fast-auth/sdk':
         specifier: workspace:*
         version: link:../../packages/sdks/vanilla
+      '@near-js/transactions':
+        specifier: ^2.0.2
+        version: 2.0.2(@near-js/crypto@2.0.2(@near-js/types@2.0.2)(@near-js/utils@2.0.2(@near-js/types@2.0.2)))(@near-js/types@2.0.2)(@near-js/utils@2.0.2(@near-js/types@2.0.2))
       bignumber.js:
         specifier: ^9.2.1
         version: 9.3.0
@@ -123,6 +126,9 @@ importers:
       '@near-js/accounts':
         specifier: ^2.0.2
         version: 2.0.2(r3ydvubib3zwjpvdm7i24sajt4)
+      '@near-js/transactions':
+        specifier: ^2.0.2
+        version: 2.0.2(@near-js/crypto@2.0.2(@near-js/types@2.0.2)(@near-js/utils@2.0.2(@near-js/types@2.0.2)))(@near-js/types@2.0.2)(@near-js/utils@2.0.2(@near-js/types@2.0.2))
       jose:
         specifier: ^6.0.11
         version: 6.0.11

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Account, connect, KeyPair, keyStores } from "near-api-js";
 import { AccessKeyView } from "near-api-js/lib/providers/provider";
-import { functionCall, Signature, SignedTransaction, Transaction, transfer } from "near-api-js/lib/transaction";
+import { Action, Signature, SignedTransaction, Transaction, transfer } from "near-api-js/lib/transaction";
 import { createTransaction } from "near-api-js/lib/transaction";
 import { parseNearAmount } from "near-api-js/lib/utils/format";
 import { KeyType, PublicKey } from "near-api-js/lib/utils/key_pair";
@@ -93,7 +93,7 @@ class FastAuthRelayer {
         return publicKey;
     }
 
-    async createAccount(accountId: string, publicKey: string) {
+    async createAccount(action: Action) {
         try {
             const signerPublicKey = this.keyPair.getPublicKey();
             const { accessKey } = await this.account.findAccessKey(this.accountId, signerPublicKey);
@@ -102,21 +102,7 @@ class FastAuthRelayer {
             console.log("accessKey", accessKey);
             console.log("nonce", nonce);
 
-            const tx = createTransaction(
-                this.accountId,
-                signerPublicKey,
-                "testnet",
-                nonce,
-                [
-                    functionCall(
-                        "create_account",
-                        { new_public_key: publicKey, new_account_id: accountId },
-                        300000000000000n,
-                        BigInt(parseNearAmount("0")!),
-                    ),
-                ],
-                base_decode(accessKey.block_hash),
-            );
+            const tx = createTransaction(this.accountId, signerPublicKey, "testnet", nonce, [action], base_decode(accessKey.block_hash));
 
             console.log("tx", tx);
 

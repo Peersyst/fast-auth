@@ -3,6 +3,7 @@ import { Auth0ProviderOptions, Auth0RequestTransactionSignatureOptions } from ".
 import { encodeTransaction } from "./utils";
 import { decodeJwt } from "jose";
 import { SignatureRequest } from "../../signers";
+// import { encodeDelegateAction } from "@near-js/transactions";
 
 export class Auth0Provider {
     private readonly options: Auth0ProviderOptions;
@@ -85,6 +86,8 @@ export class Auth0Provider {
     async requestTransactionSignature(requestSignatureOptions: Auth0RequestTransactionSignatureOptions): Promise<void> {
         const { redirectUri, imageUrl, name, transaction } = requestSignatureOptions;
 
+        localStorage.setItem("auth0-transaction", JSON.stringify(transaction));
+
         await this.client.loginWithRedirect({
             authorizationParams: {
                 imageUrl,
@@ -95,6 +98,24 @@ export class Auth0Provider {
         });
     }
 
+    // /**
+    //  * Request a delegate action signature from the client.
+    //  * @param options The options for the request delegate action signature.
+    //  * @returns The void.
+    //  */
+    // async requestDelegateActionSignature(options: Auth0RequestDelegateActionSignatureOptions): Promise<void> {
+    //     const { redirectUri, imageUrl, name, delegateAction } = options;
+
+    //     await this.client.loginWithRedirect({
+    //         authorizationParams: {
+    //             imageUrl,
+    //             name,
+    //             redirect_uri: redirectUri ?? this.options.redirectUri,
+    //             delegateAction: encodeDelegateAction(delegateAction),
+    //         },
+    //     });
+    // }
+
     /**
      * Get the signature request.
      * @returns The signature request.
@@ -102,9 +123,8 @@ export class Auth0Provider {
     async getSignatureRequest(): Promise<SignatureRequest> {
         const token = await this.client.getTokenSilently();
         const decoded = decodeJwt(token);
-        console.log(decoded);
         return {
-            guardId: "",
+            guardId: "jwt#https://auth0.aws.peersyst.tech/#RS256",
             verifyPayload: token,
             signPayload: decoded["fatxn"] as string,
         };

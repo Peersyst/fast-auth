@@ -2,7 +2,8 @@ import { SignatureRequest } from "../signer.types";
 
 export interface IFastAuthProvider {
     isLoggedIn(): Promise<boolean>;
-    requestTransactionSignature(requestSignatureOptions: any): Promise<void>;
+    requestTransactionSignature(options: any): Promise<void>;
+    requestDelegateActionSignature(options: any): Promise<void>;
     getSignatureRequest(): Promise<SignatureRequest>;
     getPath(): Promise<string>;
 }

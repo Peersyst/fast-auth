@@ -1,4 +1,9 @@
-import { encodeTransaction as encodeTransactionNear, Transaction } from "near-api-js/lib/transaction";
+import { DelegateAction } from "@near-js/transactions";
+import {
+    encodeTransaction as encodeTransactionNear,
+    Transaction,
+    encodeDelegateAction as encodeDelegateActionNear,
+} from "near-api-js/lib/transaction";
 
 /**
  * Encode a transaction to a number array.
@@ -12,6 +17,14 @@ export function encodeTransaction(transaction: Transaction): number[] {
     }, [] as number[]);
 }
 
-export function formatPath(sub: string): string {
-    return sub.split(".")[0];
+/**
+ * Encode a delegate action to a number array.
+ * @param delegateAction The delegate action to encode.
+ * @returns The encoded delegate action.
+ */
+export function encodeDelegateAction(delegateAction: DelegateAction): number[] {
+    return encodeDelegateActionNear(delegateAction).reduce((acc, curr) => {
+        acc.push(curr);
+        return acc;
+    }, [] as number[]);
 }

@@ -6,6 +6,7 @@ import { FAST_AUTH_CONTRACT_ID } from "./signer.constants";
 import { CodeResult } from "near-api-js/lib/providers/provider";
 import { bytesJsonStringify } from "./utils";
 import { ViewFunctionCallOptions } from "@near-js/accounts";
+import { PublicKey } from "near-api-js/lib/utils";
 
 export class FastAuthSigner<SR extends SignatureRequest = SignatureRequest> {
     private path: string;
@@ -46,7 +47,7 @@ export class FastAuthSigner<SR extends SignatureRequest = SignatureRequest> {
             sync_checkpoint: "earliest_available",
         });
 
-        return Buffer.from(result.result);
+        return JSON.parse(Buffer.from(result.result).toString());
     }
 
     async init() {
@@ -60,15 +61,17 @@ export class FastAuthSigner<SR extends SignatureRequest = SignatureRequest> {
      * @param options The options for the account creation.
      * @returns The action to create the account.
      */
-    createAccount(accountId: string, { gas, deposit }: CreateAccountOptions): Action {
+    async createAccount(connection: Connection, accountId: string, options?: CreateAccountOptions): Promise<Action> {
+        const { gas = 300000000000000n, deposit = 0n } = options ?? {};
+        const publicKey = await this.getPublicKey(connection);
         return functionCall(
             "create_account",
             {
-                new_public_key: "",
+                new_public_key: publicKey.toString(),
                 new_account_id: accountId,
             },
-            gas ?? 300000000000000n,
-            deposit ?? 0n,
+            gas,
+            deposit,
         );
     }
 
@@ -77,10 +80,20 @@ export class FastAuthSigner<SR extends SignatureRequest = SignatureRequest> {
      * @param options The options for the request signature.
      * @returns The signed transaction.
      */
-    async requestSignature(options: any) {
+    async requestTransactionSignature(options: any) {
         // Call the fast auth provider to request a signature.
         return await this.fastAuthProvider.requestTransactionSignature(options);
     }
+
+    // /**
+    //  * Request a delegate action signature from the user.
+    //  * @param options The options for the request delegate action signature.
+    //  * @returns The signed delegate action.
+    //  */
+    // async requestDelegateActionSignature(options: any) {
+    //     // Call the fast auth provider to request a delegate action signature.
+    //     return await this.fastAuthProvider.requestDelegateActionSignature(options);
+    // }
 
     /**
      * Get a signature request.
@@ -120,13 +133,14 @@ export class FastAuthSigner<SR extends SignatureRequest = SignatureRequest> {
      * @param connection The connection to the network.
      * @returns The public key.
      */
-    async getPublicKey(connection: Connection) {
+    async getPublicKey(connection: Connection): Promise<PublicKey> {
         // Call the fast auth contract with the path
         const publicKey = await this.viewFunction(connection, {
             contractId: "v1.signer-prod.testnet",
             methodName: "derived_public_key",
             args: { path: this.path, predecessor: FAST_AUTH_CONTRACT_ID },
         });
+
         return publicKey;
     }
 }

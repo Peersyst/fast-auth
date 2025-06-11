@@ -16,3 +16,7 @@ export type Auth0BaseRequestSignatureOptions = {
 export type Auth0RequestTransactionSignatureOptions = Auth0BaseRequestSignatureOptions & {
     transaction: Transaction;
 };
+
+// export type Auth0RequestDelegateActionSignatureOptions = Auth0BaseRequestSignatureOptions & {
+//     delegateAction: DelegateAction;
+// };
