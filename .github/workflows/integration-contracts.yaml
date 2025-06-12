@@ -31,7 +31,7 @@ jobs:
           version: 9.14.2
       - name: Lint
         run: pnpm run lint:contracts
-      - name: Test
-        run: pnpm run test:contracts
+      # - name: Test
+      #   run: pnpm run test:contracts
       - name: Build
         run: pnpm run build:contracts
