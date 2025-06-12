@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { sha256 } from "@noble/hashes/sha256";
+import { base58 } from "@scure/base";
 import { Account, connect, KeyPair, keyStores } from "near-api-js";
 import { AccessKeyView } from "near-api-js/lib/providers/provider";
-import { Action, Signature, SignedTransaction, Transaction, transfer } from "near-api-js/lib/transaction";
+import { Action, encodeTransaction, Signature, SignedTransaction, Transaction, transfer } from "near-api-js/lib/transaction";
 import { createTransaction } from "near-api-js/lib/transaction";
 import { parseNearAmount } from "near-api-js/lib/utils/format";
 import { KeyType, PublicKey } from "near-api-js/lib/utils/key_pair";
@@ -96,7 +98,10 @@ class FastAuthRelayer {
     async createAccount(action: Action) {
         try {
             const signerPublicKey = this.keyPair.getPublicKey();
-            const { accessKey } = await this.account.findAccessKey(this.accountId, signerPublicKey);
+            const accessKey = (await this.getConnection().connection.provider.query(
+                `access_key/${this.accountId}/${signerPublicKey}`,
+                "",
+            )) as AccessKeyView;
             const nonce = ++accessKey.nonce;
 
             console.log("accessKey", accessKey);
@@ -133,6 +138,46 @@ class FastAuthRelayer {
         );
 
         return tx;
+    }
+
+    async relaySignAction(action: Action) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
+        const accessKey = await this.getConnection().connection.provider.query<AccessKeyView>(
+            `access_key/${this.accountId}/${this.keyPair.getPublicKey()}`,
+            "",
+        );
+        const nonce = ++accessKey.nonce;
+
+        const tx = createTransaction(
+            this.accountId,
+            this.keyPair.getPublicKey(),
+            "test-fa.testnet",
+            nonce,
+            [action],
+            base_decode(accessKey.block_hash),
+        );
+
+        console.log("tx", tx);
+
+        const message = encodeTransaction(tx);
+        const hash = sha256(message);
+
+        const signature = this.keyPair.sign(hash).signature;
+        const signedTransaction = {
+            signedTransaction: new SignedTransaction({
+                transaction: tx,
+                signature: new Signature({
+                    keyType: KeyType.ED25519,
+                    data: signature,
+                }),
+            }),
+            hash: base58.encode(hash),
+        };
+
+        const result = await this.getConnection().connection.provider.sendTransaction(signedTransaction.signedTransaction);
+        console.log("result", result);
+        return result;
     }
 
     async send(signature: Uint8Array<ArrayBufferLike>, tx: Transaction) {

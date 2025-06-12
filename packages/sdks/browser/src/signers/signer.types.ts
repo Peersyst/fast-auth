@@ -6,11 +6,16 @@ export type CreateAccountOptions = {
 export type SignatureRequest = {
     guardId: string;
     verifyPayload: string;
-    signPayload: string;
+    signPayload: Uint8Array;
 };
 
 export type RequestSignatureOptions = {
     redirectUri: string;
     imageUrl: string;
     name: string;
+};
+
+export type FastAuthSignerOptions = {
+    mpcContractId: string;
+    fastAuthContractId: string;
 };

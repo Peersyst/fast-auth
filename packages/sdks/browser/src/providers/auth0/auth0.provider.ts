@@ -1,11 +1,13 @@
 import { Auth0Client } from "@auth0/auth0-spa-js";
-import { Auth0ProviderOptions, Auth0RequestTransactionSignatureOptions } from "./auth0.types";
-import { encodeTransaction } from "./utils";
+import { Auth0ProviderOptions, Auth0RequestDelegateActionSignatureOptions, Auth0RequestTransactionSignatureOptions } from "./auth0.types";
+import { encodeDelegateAction, encodeTransaction } from "./utils";
 import { decodeJwt } from "jose";
 import { SignatureRequest } from "../../signers";
-// import { encodeDelegateAction } from "@near-js/transactions";
+import { Auth0ProviderError } from "./auth0.errors";
+import { Auth0ProviderErrorCodes } from "./auth0.error-codes";
+import { IFastAuthProvider } from "../../client/providers/fast-auth.provider";
 
-export class Auth0Provider {
+export class Auth0Provider implements IFastAuthProvider {
     private readonly options: Auth0ProviderOptions;
     private client: Auth0Client;
 
@@ -39,7 +41,6 @@ export class Auth0Provider {
             }
             return false;
         } catch (error) {
-            console.error("Error checking if user is logged in:", error);
             return false;
         }
     }
@@ -70,12 +71,11 @@ export class Auth0Provider {
      */
     async getPath(): Promise<string> {
         const token = await this.client.getTokenSilently();
-        console.log("token", token);
         const { sub } = decodeJwt(token);
         if (!sub) {
-            throw new Error("User is not logged in");
+            throw new Auth0ProviderError(Auth0ProviderErrorCodes.USER_NOT_LOGGED_IN);
         }
-        return `jwt/${this.options.domain}/${sub}`;
+        return `jwt#https://${this.options.domain}/#${sub}`;
     }
 
     /**
@@ -85,8 +85,6 @@ export class Auth0Provider {
      */
     async requestTransactionSignature(requestSignatureOptions: Auth0RequestTransactionSignatureOptions): Promise<void> {
         const { redirectUri, imageUrl, name, transaction } = requestSignatureOptions;
-
-        localStorage.setItem("auth0-transaction", JSON.stringify(transaction));
 
         await this.client.loginWithRedirect({
             authorizationParams: {
@@ -98,23 +96,23 @@ export class Auth0Provider {
         });
     }
 
-    // /**
-    //  * Request a delegate action signature from the client.
-    //  * @param options The options for the request delegate action signature.
-    //  * @returns The void.
-    //  */
-    // async requestDelegateActionSignature(options: Auth0RequestDelegateActionSignatureOptions): Promise<void> {
-    //     const { redirectUri, imageUrl, name, delegateAction } = options;
+    /**
+     * Request a delegate action signature from the client.
+     * @param options The options for the request delegate action signature.
+     * @returns The void.
+     */
+    async requestDelegateActionSignature(options: Auth0RequestDelegateActionSignatureOptions): Promise<void> {
+        const { redirectUri, imageUrl, name, delegateAction } = options;
 
-    //     await this.client.loginWithRedirect({
-    //         authorizationParams: {
-    //             imageUrl,
-    //             name,
-    //             redirect_uri: redirectUri ?? this.options.redirectUri,
-    //             delegateAction: encodeDelegateAction(delegateAction),
-    //         },
-    //     });
-    // }
+        await this.client.loginWithRedirect({
+            authorizationParams: {
+                imageUrl,
+                name,
+                redirect_uri: redirectUri ?? this.options.redirectUri,
+                delegateAction: encodeDelegateAction(delegateAction),
+            },
+        });
+    }
 
     /**
      * Get the signature request.
@@ -124,9 +122,9 @@ export class Auth0Provider {
         const token = await this.client.getTokenSilently();
         const decoded = decodeJwt(token);
         return {
-            guardId: "jwt#https://auth0.aws.peersyst.tech/#RS256",
+            guardId: `jwt#https://${this.options.domain}/`,
             verifyPayload: token,
-            signPayload: decoded["fatxn"] as string,
+            signPayload: decoded["fatxn"] as Uint8Array,
         };
     }
 }

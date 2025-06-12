@@ -1,4 +1,5 @@
 import { Transaction } from "near-api-js/lib/transaction";
+import { DelegateAction } from "@near-js/transactions";
 
 export type Auth0ProviderOptions = {
     domain: string;
@@ -17,6 +18,6 @@ export type Auth0RequestTransactionSignatureOptions = Auth0BaseRequestSignatureO
     transaction: Transaction;
 };
 
-// export type Auth0RequestDelegateActionSignatureOptions = Auth0BaseRequestSignatureOptions & {
-//     delegateAction: DelegateAction;
-// };
+export type Auth0RequestDelegateActionSignatureOptions = Auth0BaseRequestSignatureOptions & {
+    delegateAction: DelegateAction;
+};
