@@ -181,7 +181,7 @@ impl JwtGuardRouter {
     /// # Returns
     /// * The formatted path
     fn format_path(&self, guard_name: String, sub: String) -> String {
-        format!("jwt#{}#{}", guard_name, sub)
+        format!("{}#{}", guard_name, sub)
     }
 
     /// Callback that processes the verification result

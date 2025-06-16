@@ -244,7 +244,7 @@ impl FastAuth {
         if call_result.is_err() {
             env::log_str("Guard verification failed");
             return (false, String::new());
-        } 
+        }
         let (verification_result, user) = call_result.unwrap();
         if !verification_result {
             env::log_str("Guard verification rejected");
@@ -263,7 +263,7 @@ impl FastAuth {
     /// # Returns
     /// * Promise chain for verification then signing
     /// # Notes
-    /// * Requires attached deposit for MPC costs
+    /// * Requires an attached deposit for MPC costs
     #[payable]
     pub fn sign(&mut self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>) -> Promise {
         let attached_deposit = env::attached_deposit();
@@ -277,9 +277,9 @@ impl FastAuth {
         };
 
         external_guard::ext(guard_address.clone())
-        .verify(guard_id, verify_payload, sign_payload.clone())
+        .verify(guard_id.clone(), verify_payload, sign_payload.clone())
         .then(Self::ext(env::current_account_id())
-            .on_verify_sign_callback(sign_payload, attached_deposit)
+            .on_verify_sign_callback(guard_id.clone(), sign_payload, attached_deposit)
         )
     }
 
@@ -291,7 +291,7 @@ impl FastAuth {
     /// # Returns
     /// * Promise for MPC signing or empty promise if verification failed
     #[private]
-    pub fn on_verify_sign_callback(&mut self, sign_payload: Vec<u8>, attached_deposit: NearToken, #[callback_result] call_result: Result<(bool, String), PromiseError>) -> Promise {
+    pub fn on_verify_sign_callback(&mut self, guard_id: String, sign_payload: Vec<u8>, attached_deposit: NearToken, #[callback_result] call_result: Result<(bool, String), PromiseError>) -> Promise {
         if call_result.is_err() {
             env::log_str("Guard verification failed");
             return Promise::new(env::current_account_id());
@@ -306,7 +306,7 @@ impl FastAuth {
 
         let request = SignRequest {
             payload: payload_hash,
-            path: user,
+            path: format!("{}#{}", guard_id.clone(), user),
             key_version: self.mpc_key_version,
         };
 

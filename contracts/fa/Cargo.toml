@@ -1,12 +1,9 @@
 [package]
 name = "fa"
-description = "cargo-near-new-project-description"
+description = "fa"
 version = "0.1.0"
 edition = "2021"
-# TODO: Fill out the repository field to help NEAR ecosystem tools to discover your project.
-# NEP-0330 is automatically implemented for all contracts built with https://github.com/near/cargo-near.
-# Link to the repository will be available via `contract_source_metadata` view-function.
-repository = "https://github.com/<xxx>/<xxx>"
+repository = "https://github.com/Peersyst/fast-auth"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

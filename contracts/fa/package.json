@@ -1,6 +1,6 @@
 {
     "name": "@contracts/fa",
-    "version": "1.0.0",
+    "version": "0.0.0",
     "description": "",
     "scripts": {
         "build": "cargo near build non-reproducible-wasm",

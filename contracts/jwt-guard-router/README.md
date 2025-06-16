@@ -1,6 +1,6 @@
-# jwt-guard-router
+# contracts/jwt-guard-router
 
-cargo-near-new-project-description
+This contract is responsible for routing JWT payloads across different issuers
 
 ## How to Build Locally?
 
