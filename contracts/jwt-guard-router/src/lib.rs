@@ -230,12 +230,12 @@ mod tests {
         let owner = accounts(1);
         let context = get_context(owner.clone());
         testing_env!(context.build());
-
+        
         let contract = JwtGuardRouter {
             guards: LookupMap::new(MAP_KEY),
             owner: owner.clone(),
         };
-
+        
         assert_eq!(contract.owner(), owner);
     }
 
