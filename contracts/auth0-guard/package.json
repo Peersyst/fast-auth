@@ -1,14 +1,11 @@
 {
-    "name": "@contracts/fa-guard-jwt-rs256",
-    "version": "1.0.0",
+    "name": "@contracts/auth0-guard",
+    "version": "0.0.0",
     "description": "",
     "scripts": {
         "build": "cargo near build non-reproducible-wasm",
         "test": "cargo test",
-        "lint": "cargo clippy -- -D warnings",
-        "lint:fix": "cargo clippy --fix -- -D warnings",
-        "format": "cargo fmt --all",
-        "format:check": "cargo fmt --all -- --check"
+        "lint": "cargo clippy -- -D warnings"
     },
     "keywords": [],
     "author": "",

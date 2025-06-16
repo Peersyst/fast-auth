@@ -1,0 +1,37 @@
+name: "Integration - Contracts"
+
+on:
+  workflow_call:
+
+env:
+  RUSTFLAGS: -D warnings
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: "1.86 with rustfmt, and wasm32"
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: 1.86
+          target: wasm32-unknown-unknown
+      - name: Install cargo-near CLI (dependency for build with near-workspaces)
+        run: curl --proto '=https' --tlsv1.2 -LsSf https://github.com/near/cargo-near/releases/download/cargo-near-v0.16.0/cargo-near-installer.sh | sh
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./contracts -> target"
+      - name: Deps
+        run: rustup component add rustfmt clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.14.2
+      - name: Lint
+        run: pnpm run lint:contracts
+      # - name: Test
+      #   run: pnpm run test:contracts
+      - name: Build
+        run: pnpm run build:contracts

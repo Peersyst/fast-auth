@@ -45,6 +45,17 @@ async fn test_add_guard() -> Result<(), Box<dyn std::error::Error>> {
 
     assert!(!outcome.is_success());
 
+    // Add a guard with a forbidden character
+    outcome = adder.call(contract.id(), "add_guard")
+        .args_json(json!({
+            "guard_name": "jwt#test",
+            "guard_account": "jwt.fast-auth.near"
+        }))
+        .transact()
+        .await?;
+    
+    assert!(!outcome.is_success());
+
     // Add a guard with enough deposit
     outcome = adder.call(contract.id(), "add_guard")
         .args_json(json!({
@@ -101,7 +112,7 @@ async fn test_remove_guard() -> Result<(), Box<dyn std::error::Error>> {
 
 
     // Add a guard without no deposit
-    let mut outcome = not_owner.call(contract.id(), "add_guard")
+    let outcome = not_owner.call(contract.id(), "add_guard")
         .args_json(json!({
             "guard_name": "jwt",
             "guard_account": "jwt.fast-auth.near"
@@ -134,61 +145,3 @@ async fn test_remove_guard() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-
-// #[tokio::test]
-// async fn test_verify() -> Result<(), Box<dyn std::error::Error>> {
-//     let contract_wasm = near_workspaces::compile_project("./").await?;
-
-    
-//     let sandbox = near_workspaces::sandbox().await?;
-//     let mock_guard = sandbox.dev_deploy(include_bytes!("../target/wasm32-unknown-unknown/release/external_guard.wasm")).await?;
-//     let owner = sandbox.dev_create_account().await?;
-//     let contract = sandbox.dev_deploy(&contract_wasm).await?;
-
-//     // Initialize contract with owner
-//     let _ = contract.call("init")
-//         .args_json(json!({
-//             "owner": owner.id(),
-//         }))
-//         .transact()
-//         .await?;
-
-//     // Add a guard
-//     let outcome = contract.call("add_guard")
-//         .args_json(json!({
-//             "guard_name": "test-guard",
-//             "guard_account": mock_guard.id()
-//         }))
-//         .deposit(NearToken::from_yoctonear(REQUIRED_DEPOSIT))
-//         .transact()
-//         .await?;
-
-//     assert!(outcome.is_success());
-
-//     // Call verify with invalid type
-//     let outcome = contract.call("verify")
-//         .args_json(json!({
-//             "ty": "test-guard",
-//             "jwt": "test.jwt.token",
-//             "sign_payload": vec![1, 2, 3]
-//         }))
-//         .transact()
-//         .await?;
-
-//     assert!(!outcome.is_success());
-
-//     // Call verify
-//     let outcome = contract.call("verify")
-//         .args_json(json!({
-//             "ty": "jwt/test-guard",
-//             "jwt": "test.jwt.token",
-//             "sign_payload": vec![1, 2, 3]
-//         }))
-//         .transact()
-//         .await?;
-
-//     println!("outcome: {:?}", outcome);
-//     assert!(outcome.is_success());
-
-//     Ok(())
-// }
