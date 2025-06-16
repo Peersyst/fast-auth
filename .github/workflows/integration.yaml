@@ -1,0 +1,20 @@
+name: "Integration"
+
+on:
+  pull_request:
+    types: [ opened, synchronize ]
+  push:
+    branches: [ 'main' ]
+
+concurrency:
+  # Cancel old runs if there is a new commit in the same branch
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration-packages:
+    uses: ./.github/workflows/integration-packages.yaml
+    secrets: inherit
+  integration-contracts:
+    uses: ./.github/workflows/integration-contracts.yaml
+    secrets: inherit

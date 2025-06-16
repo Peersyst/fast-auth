@@ -17,6 +17,15 @@ async fn test_guards_crud() -> Result<(), Box<dyn std::error::Error>> {
         .transact()
         .await?;
 
+    // Test adding a guard with a forbidden character
+    let outcome = owner.call(contract.id(), "add_guard")
+        .args_json(json!({
+            "guard_id": "jwt#test",
+            "guard_address": "jwt.fast-auth.near"
+        }))
+        .transact()
+        .await?;
+
     // Test adding a guard
     let outcome = owner.call(contract.id(), "add_guard")
         .args_json(json!({
@@ -121,25 +130,38 @@ async fn test_verify() -> Result<(), Box<dyn std::error::Error>> {
     let contract = sandbox.dev_deploy(&contract_wasm).await?;
     
     // Deploy a mock guard contract
-    let mock_guard = sandbox.dev_deploy(include_bytes!("../target/wasm32-unknown-unknown/release/external_guard.wasm")).await?;
+    let mock_guard = sandbox.dev_deploy(include_bytes!("../../target/wasm32-unknown-unknown/release/external_guard.wasm")).await?;
     
     // Add the mock guard to the contract
     let add_outcome = contract
         .call("add_guard")
         .args_json(json!({
-            "guard_id": "mock",
+            "guard_id": "jwt",
             "guard_address": mock_guard.id()
         }))
         .transact()
         .await?;
     assert!(add_outcome.is_success());
 
+    // Call verify with an invalid guard_id
+    let verify_outcome = contract
+        .call("verify")
+        .args_json(json!({
+            "guard_id": "test",
+            "verify_payload": "test_payload",
+            "sign_payload": vec![1, 2, 3]
+        }))
+        .transact()
+        .await?;
+    assert!(!verify_outcome.is_success());
+
     // Call verify with a test payload
     let verify_outcome = contract
         .call("verify")
         .args_json(json!({
-            "guard_id": "mock",
-            "payload": "test_payload"
+            "guard_id": "jwt#mock",
+            "verify_payload": "test_payload",
+            "sign_payload": vec![1, 2, 3]
         }))
         .transact()
         .await?;
@@ -160,16 +182,16 @@ async fn test_sign() -> Result<(), Box<dyn std::error::Error>> {
     let contract = sandbox.dev_deploy(&contract_wasm).await?;
 
     // Deploy a mock guard contract
-    let mock_guard = sandbox.dev_deploy(include_bytes!("../target/wasm32-unknown-unknown/release/external_guard.wasm")).await?;
+    let mock_guard = sandbox.dev_deploy(include_bytes!("../../target/wasm32-unknown-unknown/release/external_guard.wasm")).await?;
     
     // Deploy a mock mpc contract
-    let mock_mpc = sandbox.dev_deploy(include_bytes!("../target/wasm32-unknown-unknown/release/mpc.wasm")).await?;
+    let mock_mpc = sandbox.dev_deploy(include_bytes!("../../target/wasm32-unknown-unknown/release/mpc.wasm")).await?;
     
     // Add the mock mpc to the contract
     let add_outcome = contract
         .call("add_guard")
         .args_json(json!({
-            "guard_id": "mock",
+            "guard_id": "jwt",
             "guard_address": mock_guard.id()
         }))
         .transact()
@@ -190,9 +212,9 @@ async fn test_sign() -> Result<(), Box<dyn std::error::Error>> {
     let sign_outcome = contract
         .call("sign")
         .args_json(json!({
-            "guard_id": "mock",
-            "payload": [1, 2, 3],
-            "jwt": "test_jwt"
+            "guard_id": "jwt#mock",
+            "verify_payload": "test_payload",
+            "sign_payload": vec![1, 2, 3]
         }))
         .transact()
         .await?;
@@ -263,3 +285,4 @@ async fn test_mpc() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
