@@ -1,5 +1,5 @@
 {
-    "name": "web",
+    "name": "spa",
     "private": true,
     "version": "0.0.0",
     "type": "module",
@@ -10,7 +10,7 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "@fast-auth/sdk": "workspace:*",
+        "@fast-auth/browser": "workspace:*",
         "@noble/hashes": "^1.8.0",
         "@scure/base": "^1.2.6",
         "bignumber.js": "^9.2.1",

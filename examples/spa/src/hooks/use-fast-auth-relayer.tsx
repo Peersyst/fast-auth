@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import FastAuthRelayer from "../services/fast-auth-relayer";
-import { FastAuthClient, Auth0Provider } from "@fast-auth/sdk";
+import { FastAuthClient, Auth0Provider } from "@fast-auth/browser";
 import config from "../auth_config.json";
 import { Connection } from "near-api-js";
 
@@ -33,7 +33,6 @@ export function FastAuthProvider({ children }: { children: ReactNode }) {
                 mpcContractId: config.mpcContractId,
                 fastAuthContractId: config.fastAuthContractId,
             });
-            client.login();
             setClient(client);
             setIsClientInitialized(true);
         };
