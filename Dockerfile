@@ -26,6 +26,6 @@ COPY . .
 
 RUN pnpm install
 
-RUN pnpm run build
-RUN pnpm run lint
-RUN pnpm run test
+RUN pnpm run build:packages
+RUN pnpm run lint:packages
+RUN pnpm run test:packages
