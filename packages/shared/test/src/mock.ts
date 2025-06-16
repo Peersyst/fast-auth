@@ -8,9 +8,7 @@ export interface IMock {
     restoreMocks(): void;
 }
 
-export type ExtendedMock<I extends object, T> = {
-    [Key in keyof I]: I[Key] extends Function ? T : I[Key];
-} & IMock;
+export type ExtendedMock<I extends object, T> = { [Key in keyof I]: I[Key] extends Function ? T : I[Key] } & IMock;
 export type MockMethods<K extends string | number | symbol> = Record<K, MethodMock>;
 export type MockData<I extends object = any> = Pick<MockMethods<keyof I>, TypeKeys<I, Function>> & OmitType<I, Function>;
 

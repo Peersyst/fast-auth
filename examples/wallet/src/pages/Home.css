@@ -1,0 +1,83 @@
+.home-page {
+    max-width: 1100px; /* Adjust this value as needed */
+    margin-left: auto; /* Center the container if needed */
+    margin-right: auto; /* Center the container if needed */
+}
+
+.home-page section {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+.home-page h2 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+    color: #333;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px dashed #eee;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-weight: 500;
+    color: #555;
+}
+
+.info-value {
+    font-family: monospace;
+    color: #000;
+}
+
+.dapps-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.dapp-item {
+    margin-bottom: 0.5rem;
+}
+
+.dapp-link {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: #fff;
+    text-decoration: none;
+    color: #333;
+    transition:
+        background-color 0.2s,
+        box-shadow 0.2s;
+}
+
+.dapp-link:hover {
+    background-color: #f0f0f0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.dapp-logo {
+    width: 40px;
+    height: 40px;
+    margin-right: 1rem;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.dapp-name {
+    font-weight: 500;
+}
