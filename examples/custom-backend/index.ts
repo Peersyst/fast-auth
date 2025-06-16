@@ -13,7 +13,7 @@ const SIGNING_PAYLOAD = Buffer.from("Hello world").toString("hex");
 
 app.get("/jwt", (_: Request, response: Response) => {
     const token = jwt.sign(
-        { payload: SIGNING_PAYLOAD },
+        { fatxn: SIGNING_PAYLOAD },
         { key: fs.readFileSync("./jwtRS256.key") },
         { expiresIn: "1h", algorithm: "RS256", issuer: JWT_ISSUER, subject: JWT_SUBJECT }
     );
