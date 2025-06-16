@@ -1,4 +1,4 @@
-# fa-guard-jwt-rs256
+# contracts/auth0-guard
 
 A NEAR contract that verifies JWT tokens signed with RS256 algorithm.
 

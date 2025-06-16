@@ -1,19 +1,13 @@
 {
-    "name": "@contracts/fa-guard",
-    "version": "1.0.0",
+    "name": "@contracts/fa",
+    "version": "0.0.0",
     "description": "",
     "scripts": {
         "build": "cargo near build non-reproducible-wasm",
         "build:mocks:external-guard": "cargo build --target wasm32-unknown-unknown --release -p external-guard",
         "build:mocks:mpc": "cargo build --target wasm32-unknown-unknown --release -p mpc",
         "build:mocks": "pnpm run build:mocks:external-guard && pnpm run build:mocks:mpc",
-        "test": "pnpm run build:mocks && cargo test",
-        "lint": "cargo clippy -- -D warnings",
-        "lint:fix": "cargo clippy --fix -- -D warnings",
-        "format": "cargo fmt --all",
-        "format:check": "cargo fmt --all -- --check"
-    },
-    "keywords": [],
-    "author": "",
-    "license": "ISC"
+        "test": "pnpm build:mocks && cargo test",
+        "lint": "cargo clippy -- -D warnings"
+    }
 }
