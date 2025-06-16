@@ -22,6 +22,9 @@ const config: Config = {
     onBrokenLinks: "throw",
     onBrokenMarkdownLinks: "warn",
 
+    deploymentBranch: "gh-pages",
+    trailingSlash: false,
+
     // Even if you don't use internationalization, you can use this field to set
     // useful metadata like html lang. For example, if your site is Chinese, you
     // may want to replace "en" with "zh-Hans".
@@ -123,7 +126,7 @@ const config: Config = {
                         },
                         {
                             label: "Architecture",
-                            to: "/docs/concepts/architecture",
+                            to: "/docs/concepts/architecture_overview",
                         },
                         {
                             label: "Auth0",
@@ -131,7 +134,7 @@ const config: Config = {
                         },
                         {
                             label: "Custom Backend",
-                            to: "/docs/concepts/custom-backend",
+                            to: "/docs/concepts/architecture_custom_backend",
                         },
                     ],
                 },
