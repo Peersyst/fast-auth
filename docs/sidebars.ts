@@ -32,7 +32,6 @@ const sidebars: SidebarsConfig = {
                 "concepts/architecture_contracts_auth0-guard",
             ],
         },
-        // "concepts/architecture_mpc",
         {
             type: "html",
             value: "Authentication",
