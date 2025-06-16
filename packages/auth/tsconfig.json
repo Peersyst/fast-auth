@@ -1,7 +1,0 @@
-{
-    "extends": "@shared/tsconfig/package",
-    "compilerOptions": {
-        "outDir": "./dist"
-    },
-    "exclude": ["dist"]
-}
