@@ -114,7 +114,7 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 
 [[package]]
 name = "auth0-guard"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 dependencies = [
  "borsh",
  "crypto-bigint",
@@ -962,7 +962,7 @@ dependencies = [
 
 [[package]]
 name = "fa"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 dependencies = [
  "borsh",
  "near-sdk",
@@ -1670,7 +1670,7 @@ dependencies = [
 
 [[package]]
 name = "jwt-guard-router"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 dependencies = [
  "near-sdk",
  "near-workspaces",

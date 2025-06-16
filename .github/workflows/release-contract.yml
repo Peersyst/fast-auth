@@ -43,8 +43,9 @@ jobs:
 
           # Extract version from Cargo.toml
           VERSION=$(grep -m 1 '^version = ' "$CONTRACT_PATH" | sed 's/version = "\(.*\)"/\1/')
+          GH_VERSION=$(echo "${{ github.event.inputs.tag }}" | sed 's/v\(.*\)/\1/')
 
-          if [ "$VERSION" != "${{ github.event.inputs.tag }}" ]; then
+          if [ "$VERSION" != "$GH_VERSION" ]; then
             echo "Error: Version mismatch!"
             echo "Version in Cargo.toml: $VERSION"
             echo "Tag: ${{ github.event.inputs.tag }}"
