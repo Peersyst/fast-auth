@@ -26,7 +26,5 @@ export function createMock<I extends object = any>(
         }
     };
 
-    return mock as {
-        new (customData?: Partial<MockData<I>>): ExtendedMock<I, jest.Mock>;
-    };
+    return mock as { new (customData?: Partial<MockData<I>>): ExtendedMock<I, jest.Mock> };
 }

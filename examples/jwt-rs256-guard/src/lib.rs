@@ -19,8 +19,10 @@ pub mod jwt;
 pub struct CustomClaims {
     /// The subject identifier claim that uniquely identifies the user
     pub sub: String,
-    /// The FastAuth permissions claim that specifies what actions are allowed
+    /// The FastAuth claim that specifies the signed payload
     pub fatxn: Vec<u8>,
+
+    // NOTE: Add here your custom claims (if needed)
 }
 
 /// A NEAR contract that verifies JWT tokens signed with RS256 algorithm
@@ -169,7 +171,14 @@ impl JwtRS256Guard {
             Err(error) => return (false, error.to_string()),
         };
 
-        // NOTE: Verify your custom claim here
+        // Verify your custom claim here
+
+        // Compare fatxn with sign_payload
+        if claims.fatxn != sign_payload {
+            return (false, "Transaction payload mismatch".to_string());
+        }
+
+        // NOTE: Extend here your verification logic (if needed)
 
         // Return the sub and fatxn fields
         (true, claims.sub)
