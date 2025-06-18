@@ -1,0 +1,8 @@
+{
+    "domain": "auth0.aws.peersyst.tech",
+    "clientId": "qOfA3FaWedmD9LjFS9uRvQVJ0U3XhsgA",
+    "audience": "fast-auth-api-test-0.com",
+    "appOrigin": "http://localhost:3000",
+    "mpcContractId": "v1.signer-prod.testnet",
+    "fastAuthContractId": "test-fa.testnet"
+}
