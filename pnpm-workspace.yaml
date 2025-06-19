@@ -3,5 +3,7 @@ packages:
     - "contracts/fa"
     - "contracts/jwt-guard-router"
     - "packages/auth"
+    - "packages/sdks/*"
     - "packages/shared/*"
     - "examples/custom-backend"
+    - "examples/spa"
