@@ -11,7 +11,7 @@ import {
  * @returns The encoded transaction.
  */
 export function encodeTransaction(transaction: Transaction): number[] {
-    return encodeTransactionNear(transaction).reduce((acc, curr) => {
+    return encodeTransactionNear(transaction).reduce((acc: number[], curr: number) => {
         acc.push(curr);
         return acc;
     }, [] as number[]);
@@ -23,7 +23,7 @@ export function encodeTransaction(transaction: Transaction): number[] {
  * @returns The encoded delegate action.
  */
 export function encodeDelegateAction(delegateAction: DelegateAction): number[] {
-    return encodeDelegateActionNear(delegateAction).reduce((acc, curr) => {
+    return encodeDelegateActionNear(delegateAction).reduce((acc: number[], curr: number) => {
         acc.push(curr);
         return acc;
     }, [] as number[]);
