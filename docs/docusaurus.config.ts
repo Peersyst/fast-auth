@@ -171,7 +171,7 @@ const config: Config = {
                     items: [
                         {
                             label: "Browser",
-                            to: "/docs/sdk/browser",
+                            to: "/docs/sdk/browser/getting-started",
                         },
                     ],
                 },
