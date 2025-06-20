@@ -18,7 +18,7 @@ export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider> {
 
     /**
      * Sign in to the client.
-     * @param opts The options for the login.
+     * @param args The arguments for the login.
      * @returns The signature request.
      */
     login(...args: Parameters<P["login"]>) {
@@ -28,6 +28,7 @@ export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider> {
 
     /**
      * Log out of the client.
+     * @returns The signature request.
      */
     logout() {
         return this.provider.logout();
@@ -35,7 +36,6 @@ export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider> {
 
     /**
      * Get a signer.
-     * @param path The path to the signer.
      * @returns The signer.
      */
     async getSigner(): Promise<FastAuthSigner<P>> {
