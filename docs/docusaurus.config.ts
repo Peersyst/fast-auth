@@ -33,6 +33,10 @@ const config: Config = {
         locales: ["en"],
     },
 
+    markdown: {
+        mermaid: true,
+    },
+
     plugins: [
         [
             "@easyops-cn/docusaurus-search-local",
@@ -42,6 +46,8 @@ const config: Config = {
             },
         ],
     ],
+
+    themes: ["@docusaurus/theme-mermaid"],
 
     presets: [
         [
@@ -103,7 +109,8 @@ const config: Config = {
                     items: [
                         {
                             label: "Browser",
-                            to: "/docs/sdk/browser",
+                            to: "/docs/sdk/browser/getting-started",
+                            sidebarId: "browserSdkSidebar",
                         },
                     ],
                 },
@@ -164,7 +171,7 @@ const config: Config = {
                     items: [
                         {
                             label: "Browser",
-                            to: "/docs/sdk/browser",
+                            to: "/docs/sdk/browser/getting-started",
                         },
                     ],
                 },

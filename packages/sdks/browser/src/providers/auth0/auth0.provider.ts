@@ -40,14 +40,13 @@ export class Auth0Provider implements IFastAuthProvider {
                 return await this.client.isAuthenticated();
             }
             return false;
-        } catch (error) {
+        } catch (_: unknown) {
             return false;
         }
     }
 
     /**
      * Sign in to the client.
-     * @param redirectUri The redirect URI to use.
      * @returns The void.
      */
     async login(): Promise<void> {
