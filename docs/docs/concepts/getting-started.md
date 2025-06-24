@@ -2,14 +2,6 @@
 
 FastAuth is a NEAR Protocol authentication system that enables secure transaction signing through Multi-Party Computation (MPC) and JWT-based verification.
 
-## Key Components
-
-**FastAuth Contract** - Main entry point that manages guards and coordinates MPC signing
-
-**JwtGuardRouter** - Routes JWT verification to appropriate guard contracts
-
-**Auth0Guard** - Verifies Auth0-issued JWT tokens using RS256
-
 ## Quick Start
 
 1. Review the [Architecture Overview](./architecture_overview.md)

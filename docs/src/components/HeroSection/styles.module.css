@@ -1,0 +1,86 @@
+:root {
+    --hero-logo-size: 300px;
+    --hero-title-size: 3rem;
+    --hero-description-size: 1.5rem;
+    --hero-padding-top: 0rem;
+    --hero-padding-sides: 2rem;
+}
+
+.heroSection {
+    --ifm-hero-background-color: var(--ifm-background-color);
+    --ifm-hero-text-color: var(--ifm-font-color-base);
+    min-height: 100vh;
+    padding-top: var(--hero-padding-top);
+    padding-bottom: 2rem;
+}
+
+.heroHeaderRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.heroLogo {
+    max-width: 56px;
+    width: 56px;
+    height: 56px;
+    margin-bottom: 0;
+    border-radius: 0;
+}
+
+.heroTitle {
+    font-size: var(--hero-title-size);
+    font-weight: 800;
+    margin-bottom: 0;
+    text-align: left;
+}
+
+.heroDescription {
+    font-size: var(--hero-description-size);
+    max-width: 800px;
+    margin: 0 auto 2rem;
+    line-height: 1.6;
+}
+
+.heroActions {
+    margin-top: 1.5rem;
+}
+
+@media screen and (max-width: 992px) {
+    :root {
+        --hero-logo-size: 240px;
+        --hero-title-size: 2.5rem;
+        --hero-description-size: 1.3rem;
+        --hero-padding-top: 4rem;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    :root {
+        --hero-logo-size: 200px;
+        --hero-title-size: 2rem;
+        --hero-description-size: 1.2rem;
+        --hero-padding-top: 3rem;
+        --hero-padding-sides: 1.5rem;
+    }
+}
+
+@media screen and (max-width: 576px) {
+    :root {
+        --hero-logo-size: 160px;
+        --hero-title-size: 1.75rem;
+        --hero-description-size: 1.1rem;
+        --hero-padding-top: 2rem;
+        --hero-padding-sides: 1rem;
+    }
+
+    .heroSection {
+        min-height: calc(100vh - 60px);
+    }
+
+    .heroDescription {
+        margin-bottom: 1.5rem;
+    }
+}

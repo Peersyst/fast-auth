@@ -1,5 +1,11 @@
 # Installation
 
+:::caution
+
+This page is under construction.
+
+:::
+
 To start using the FastAuth Browser SDK, you need to install it first. You can install the latest version or a specific version.
 
 ## Latest version

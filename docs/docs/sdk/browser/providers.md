@@ -1,6 +1,6 @@
 # Providers
 
-Providers are the core components that handle authentication and transaction signing in the Fast Auth Browser SDK. They implement the `IFastAuthProvider` interface and manage the communication between your application and the authentication backend.
+Providers are the core components that handle authentication and transaction signing in the FastAuth Browser SDK. They implement the `IFastAuthProvider` interface and manage the communication between your application and the authentication backend.
 
 ## FastAuthProvider Interface
 
@@ -227,9 +227,9 @@ export class CustomProvider implements IFastAuthProvider {
 4. **Security**: Ensure secure token transmission and storage
 5. **Guard Contract**: Your backend must work with a compatible guard contract
 
-### Integration with Fast Auth Client
+### Integration with FastAuth Client
 
-Once you've implemented your custom provider, you can use it with the Fast Auth client:
+Once you've implemented your custom provider, you can use it with the FastAuth client:
 
 ```typescript
 import { FastAuthClient } from "@near/fast-auth-sdk/browser";
@@ -247,4 +247,4 @@ const client = new FastAuthClient({
 });
 ```
 
-This flexibility allows you to integrate Fast Auth with any authentication system while maintaining a consistent interface for your application.
+This flexibility allows you to integrate FastAuth with any authentication system while maintaining a consistent interface for your application.

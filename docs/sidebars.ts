@@ -32,13 +32,13 @@ const sidebars: SidebarsConfig = {
                 "concepts/architecture_contracts_auth0-guard",
             ],
         },
-        // {
-        //     type: "html",
-        //     value: "Authentication",
-        //     className: "sidebar-label",
-        // },
-        // "concepts/auth0",
-        // "concepts/architecture_custom_backend",
+        {
+            type: "html",
+            value: "Authentication",
+            className: "sidebar-label",
+        },
+        "concepts/auth0",
+        "concepts/architecture_custom_backend",
     ],
     browserSdkSidebar: [
         {
@@ -58,7 +58,23 @@ const sidebars: SidebarsConfig = {
         "sdk/browser/providers",
         "sdk/browser/signer",
     ],
-    // integrationsSidebar: ["integrations/getting-started", "integrations/auth0", "integrations/custom-backend", "integrations/dapp"],
+    integrationsSidebar: [
+        "integrations/overview",
+        {
+            type: "html",
+            value: "Guides",
+            className: "sidebar-label",
+        },
+        "integrations/auth0",
+        "integrations/custom-backend",
+        {
+            type: "html",
+            value: "Examples",
+            className: "sidebar-label",
+        },
+        "integrations/custom-backend-express",
+        "integrations/jwt-rs256-guard",
+    ],
 };
 
 export default sidebars;
