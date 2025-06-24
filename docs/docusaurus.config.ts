@@ -96,12 +96,12 @@ const config: Config = {
                     position: "left",
                     label: "Concepts",
                 },
-                {
-                    type: "docSidebar",
-                    sidebarId: "integrationsSidebar",
-                    position: "left",
-                    label: "Integrations",
-                },
+                // {
+                //     type: "docSidebar",
+                //     sidebarId: "integrationsSidebar",
+                //     position: "left",
+                //     label: "Integrations",
+                // },
                 {
                     type: "dropdown",
                     label: "SDKs",
@@ -135,37 +135,37 @@ const config: Config = {
                             label: "Architecture",
                             to: "/docs/concepts/architecture_overview",
                         },
-                        {
-                            label: "Auth0",
-                            to: "/docs/concepts/auth0",
-                        },
-                        {
-                            label: "Custom Backend",
-                            to: "/docs/concepts/architecture_custom_backend",
-                        },
+                        // {
+                        //     label: "Auth0",
+                        //     to: "/docs/concepts/auth0",
+                        // },
+                        // {
+                        //     label: "Custom Backend",
+                        //     to: "/docs/concepts/architecture_custom_backend",
+                        // },
                     ],
                 },
-                {
-                    title: "Guides",
-                    items: [
-                        {
-                            label: "Getting Started",
-                            to: "/docs/integrations/getting-started",
-                        },
-                        {
-                            label: "Auth0",
-                            to: "/docs/integrations/auth0",
-                        },
-                        {
-                            label: "Custom Backend",
-                            to: "/docs/integrations/custom-backend",
-                        },
-                        {
-                            label: "DApp",
-                            to: "/docs/integrations/dapp",
-                        },
-                    ],
-                },
+                // {
+                //     title: "Guides",
+                //     items: [
+                //         {
+                //             label: "Getting Started",
+                //             to: "/docs/integrations/getting-started",
+                //         },
+                //         {
+                //             label: "Auth0",
+                //             to: "/docs/integrations/auth0",
+                //         },
+                //         {
+                //             label: "Custom Backend",
+                //             to: "/docs/integrations/custom-backend",
+                //         },
+                //         {
+                //             label: "DApp",
+                //             to: "/docs/integrations/dapp",
+                //         },
+                //     ],
+                // },
                 {
                     title: "SDKs",
                     items: [

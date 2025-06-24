@@ -32,15 +32,14 @@ const sidebars: SidebarsConfig = {
                 "concepts/architecture_contracts_auth0-guard",
             ],
         },
-        {
-            type: "html",
-            value: "Authentication",
-            className: "sidebar-label",
-        },
-        "concepts/auth0",
-        "concepts/architecture_custom_backend",
+        // {
+        //     type: "html",
+        //     value: "Authentication",
+        //     className: "sidebar-label",
+        // },
+        // "concepts/auth0",
+        // "concepts/architecture_custom_backend",
     ],
-    integrationsSidebar: ["integrations/getting-started", "integrations/auth0", "integrations/custom-backend", "integrations/dapp"],
     browserSdkSidebar: [
         {
             type: "html",
@@ -59,6 +58,7 @@ const sidebars: SidebarsConfig = {
         "sdk/browser/providers",
         "sdk/browser/signer",
     ],
+    // integrationsSidebar: ["integrations/getting-started", "integrations/auth0", "integrations/custom-backend", "integrations/dapp"],
 };
 
 export default sidebars;
