@@ -1,0 +1,115 @@
+:root {
+    --card-columns: 3;
+    --card-gap: 1rem;
+    --card-min-height: auto;
+    --card-image-height: 150px;
+
+    --card-link-color: #0d6efd;
+    --card-link-hover-color: #0a58ca;
+}
+
+html[data-theme="dark"] {
+    --card-link-color: #6ea8fe;
+    --card-link-hover-color: #9ec5fe;
+}
+:global(.card).customCard {
+    background-color: var(--ifm-background-surface-color) !important;
+}
+
+html[data-theme="dark"] :global(.card).customCard {
+    background-color: var(--ifm-background-surface-color) !important;
+}
+
+.customCard {
+    border-radius: 1rem;
+    background-color: var(--ifm-background-color);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+
+    flex: 1 1 calc((100% / var(--card-columns)) - var(--card-gap));
+    max-width: calc((100% / var(--card-columns)) - var(--card-gap));
+    min-height: var(--card-min-height);
+
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+
+    margin: 0;
+    padding: 0;
+}
+
+@media screen and (max-width: 992px) {
+    :root {
+        --card-columns: 2;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    :root {
+        --card-columns: 1;
+    }
+
+    .customCard {
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-bottom: 1.5rem;
+    }
+}
+
+.customCard:hover {
+    transform: translateY(-0.25rem);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.cardHeaderImage {
+    width: 100%;
+    height: var(--card-image-height);
+    object-fit: cover;
+    object-position: center;
+    margin: 0;
+    border-radius: 0;
+}
+
+.cardContent {
+    padding: 0;
+}
+
+.cardTitle {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 1rem 0 0.5rem 1rem;
+    padding-right: 1rem;
+    text-align: left;
+}
+
+.cardDescription {
+    font-size: 1rem;
+    margin: 0 1rem 1rem 1rem;
+    text-align: left;
+    padding-right: 1rem;
+}
+
+.linkList {
+    list-style: none;
+    padding: 0 1rem 1rem 1rem;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: left;
+}
+
+.cardLink {
+    color: var(--ifm-color-primary);
+    text-decoration: none;
+    font-size: 1.2rem;
+    transition: color 0.2s ease;
+}
+
+.cardLink:hover,
+.cardLink:focus {
+    color: var(--ifm-color-primary-dark);
+    text-decoration: none;
+}
