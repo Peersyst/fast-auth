@@ -54,16 +54,6 @@ The **FastAuthClient** is the main orchestrator and entry point for the SDK. It 
 - Abstracts provider-specific implementations
 - Enforces authentication requirements before transaction operations
 
-**Design Pattern:**
-
-```typescript
-export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider>
-```
-
-- Uses a generic type parameter `P` for type-safe provider integration
-- Implements the provider pattern for flexible authentication backends
-- Supports multiple authentication mechanisms (Auth0, custom backends, etc.)
-
 ### FastAuthProvider
 
 The **FastAuthProvider** interface defines the contract for authentication providers. This abstraction allows the SDK to support multiple authentication backends.
