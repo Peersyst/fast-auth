@@ -1,45 +1,21 @@
-# fast-auth
+# FastAuth
 
-## Features
+## Overview
 
-### Login
+- **[Contracts](./contracts/)** - NEAR smart contracts handling JWT verification and transaction signing
 
-- Login through Auth0 to generate a plain JWT token.
+    - [auth0-guard](./contracts/auth0-guard/) - Auth0 JWT verification contract
+    - [fa](./contracts/fa/) - FastAuth main contract
+    - [jwt-guard-router](./contracts/jwt-guard-router/) - JWT routing contract
 
-### Sign and send transaction
+- **[Browser SDK](./packages/sdks/browser/)** - Client-side library for integrating FastAuth into web applications
 
-- Generate a JWT with the transaction to sign.
-- The sender should have a login JWT.
-- The transaction actions must match NEAR actions.
-- The JWT is sent to the contract to verify the transaction.
-- The contract should autofill the transaction, sign it and send it to the network.
+- **[Auth0 Components](./packages/auth0/)** - Auth0 specific integration components
 
-### Implementation
+- **[Examples](./examples/)** - Reference implementations for different integration patterns
 
-#### Auth0
+    - [SPA Example](./examples/spa/) - Single Page Application integration
+    - [Custom Backend](./examples/custom-backend/) - Express.js backend example
+    - [Wallet Integration](./examples/wallet/) - Wallet integration example
 
-##### Login
-
-- Set up modal displaying
-    - [ ] DApp name
-    - [ ] DApp logo
-- Return the JWT to the frontend
-
-##### Sign and send transaction
-
-- Inject tx custom claim with the transaction to sign.
-- Set up modal displaying
-    - [ ] Actions
-        - [ ] Transfer
-        - [ ] Function call
-        - [ ] DeployContract
-        - [ ] AddKey
-        - [ ] DeleteKey
-    - [ ] ReceiverID
-- Return the signed transaction to the frontend.
-
-#### Contract
-
-- [ ] `add_guard` method permissionless
-- [ ] sign the transaction on-chain.
-- [ ] Return the signed transaction to the frontend.
+- **[Documentation](./docs/)** - Comprehensive guides and API references
