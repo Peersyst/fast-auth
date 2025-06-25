@@ -203,45 +203,70 @@ function AuthorizeAppTransactionDetails(context) {
         let actionData = {};
         let showWarning = false;
 
-        if (action.createAccount !== undefined) {
-            actionType = "CreateAccount";
-            actionData = createAccountContent();
-        } else if (action.deployContract !== undefined) {
-            actionType = "DeployContract";
-            actionData = deployContractContent(action);
-            showWarning = true; // Contract deployment is potentially dangerous
-        } else if (action.functionCall !== undefined) {
-            actionType = "FunctionCall";
-            actionData = functionCallContent(action);
-        } else if (action.transfer !== undefined) {
-            actionType = "Transfer";
-            actionData = transferContent(action);
-        } else if (action.stake !== undefined) {
-            actionType = "Stake";
-            actionData = stakeContent(action);
-        } else if (action.addKey !== undefined) {
-            actionType = "AddKey";
-            actionData = addKeyContent(action);
-            // Show warning if it's a full access key
-            showWarning = action.addKey.accessKey?.permission?.fullAccess !== undefined;
-        } else if (action.deleteKey !== undefined) {
-            actionType = "DeleteKey";
-            actionData = deleteKeyContent(action);
-            showWarning = true; // Deleting keys can lock you out
-        } else if (action.deleteAccount !== undefined) {
-            actionType = "DeleteAccount";
-            actionData = deleteAccountContent(action);
-            showWarning = true; // Account deletion is irreversible
-        } else if (action.signedDelegate !== undefined) {
-            actionType = "SignedDelegate";
-            actionData = signedDelegateContent(action);
-        } else if (action.deployGlobalContract !== undefined) {
-            actionType = "DeployGlobalContract";
-            actionData = deployGlobalContractContent(action);
-            showWarning = true; // Global contract deployment is potentially dangerous
-        } else if (action.useGlobalContract !== undefined) {
-            actionType = "UseGlobalContract";
-            actionData = useGlobalContractContent(action);
+        // Find first defined action to determine type
+        const actionKey = Object.keys(action).find((key) => action[key] !== undefined);
+
+        switch (actionKey) {
+            case "createAccount":
+                actionType = "CreateAccount";
+                actionData = createAccountContent();
+                break;
+
+            case "deployContract":
+                actionType = "DeployContract";
+                actionData = deployContractContent(action);
+                showWarning = true; // Contract deployment is potentially dangerous
+                break;
+
+            case "functionCall":
+                actionType = "FunctionCall";
+                actionData = functionCallContent(action);
+                break;
+
+            case "transfer":
+                actionType = "Transfer";
+                actionData = transferContent(action);
+                break;
+
+            case "stake":
+                actionType = "Stake";
+                actionData = stakeContent(action);
+                break;
+
+            case "addKey":
+                actionType = "AddKey";
+                actionData = addKeyContent(action);
+                // Show warning if it's a full access key
+                showWarning = action.addKey.accessKey?.permission?.fullAccess !== undefined;
+                break;
+
+            case "deleteKey":
+                actionType = "DeleteKey";
+                actionData = deleteKeyContent(action);
+                showWarning = true; // Deleting keys can lock you out
+                break;
+
+            case "deleteAccount":
+                actionType = "DeleteAccount";
+                actionData = deleteAccountContent(action);
+                showWarning = true; // Account deletion is irreversible
+                break;
+
+            case "signedDelegate":
+                actionType = "SignedDelegate";
+                actionData = signedDelegateContent(action);
+                break;
+
+            case "deployGlobalContract":
+                actionType = "DeployGlobalContract";
+                actionData = deployGlobalContractContent(action);
+                showWarning = true; // Global contract deployment is potentially dangerous
+                break;
+
+            case "useGlobalContract":
+                actionType = "UseGlobalContract";
+                actionData = useGlobalContractContent(action);
+                break;
         }
 
         return createAccordion(actionType, actionData, showWarning);
