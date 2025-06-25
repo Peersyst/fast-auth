@@ -33,6 +33,10 @@ const config: Config = {
         locales: ["en"],
     },
 
+    markdown: {
+        mermaid: true,
+    },
+
     plugins: [
         [
             "@easyops-cn/docusaurus-search-local",
@@ -42,6 +46,8 @@ const config: Config = {
             },
         ],
     ],
+
+    themes: ["@docusaurus/theme-mermaid"],
 
     presets: [
         [
@@ -78,7 +84,7 @@ const config: Config = {
         // Replace with your project's social card
         image: "img/docusaurus-social-card.jpg",
         navbar: {
-            title: "Fast Auth",
+            title: "FastAuth",
             logo: {
                 alt: "FastAuth Logo",
                 src: "img/near-logo.webp",
@@ -103,7 +109,8 @@ const config: Config = {
                     items: [
                         {
                             label: "Browser",
-                            to: "/docs/sdk/browser",
+                            to: "/docs/sdk/browser/getting-started",
+                            sidebarId: "browserSdkSidebar",
                         },
                     ],
                 },
@@ -142,8 +149,8 @@ const config: Config = {
                     title: "Guides",
                     items: [
                         {
-                            label: "Getting Started",
-                            to: "/docs/integrations/getting-started",
+                            label: "Overview",
+                            to: "/docs/integrations/overview",
                         },
                         {
                             label: "Auth0",
@@ -153,10 +160,6 @@ const config: Config = {
                             label: "Custom Backend",
                             to: "/docs/integrations/custom-backend",
                         },
-                        {
-                            label: "DApp",
-                            to: "/docs/integrations/dapp",
-                        },
                     ],
                 },
                 {
@@ -164,7 +167,7 @@ const config: Config = {
                     items: [
                         {
                             label: "Browser",
-                            to: "/docs/sdk/browser",
+                            to: "/docs/sdk/browser/getting-started",
                         },
                     ],
                 },
