@@ -1,0 +1,47 @@
+.box {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    width: 100%;
+
+    border-radius: 1rem;
+    border: 1px solid #e5e5e5;
+}
+
+.text-content {
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+    justify-content: left;
+    width: 100%;
+}
+
+.label {
+    font-size: 0.75rem;
+    color: #999999;
+    font-weight: 500;
+}
+
+.value {
+    color: #3f4246;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.json-content {
+    display: flex;
+    padding: 0.5rem;
+    flex-direction: column;
+    align-items: left;
+    justify-content: left;
+    width: 100%;
+    border-radius: 12px;
+    background-color: #fafafa;
+
+    color: #3f4246;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
