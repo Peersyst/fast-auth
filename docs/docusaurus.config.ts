@@ -33,21 +33,11 @@ const config: Config = {
         locales: ["en"],
     },
 
+    themes: ["@docusaurus/theme-mermaid"],
+
     markdown: {
         mermaid: true,
     },
-
-    plugins: [
-        [
-            "@easyops-cn/docusaurus-search-local",
-            {
-                hashed: true,
-                docsRouteBasePath: "/docs",
-            },
-        ],
-    ],
-
-    themes: ["@docusaurus/theme-mermaid"],
 
     presets: [
         [
@@ -59,20 +49,7 @@ const config: Config = {
                     // Remove this to remove the "edit this page" links.
                     editUrl: "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/",
                 },
-                blog: {
-                    showReadingTime: true,
-                    feedOptions: {
-                        type: ["rss", "atom"],
-                        xslt: true,
-                    },
-                    // Please change this to your repo.
-                    // Remove this to remove the "edit this page" links.
-                    editUrl: "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/",
-                    // Useful options to enforce blogging best practices
-                    onInlineTags: "warn",
-                    onInlineAuthors: "warn",
-                    onUntruncatedBlogPosts: "warn",
-                },
+                blog: false,
                 theme: {
                     customCss: "./src/css/custom.css",
                 },
@@ -83,6 +60,17 @@ const config: Config = {
     themeConfig: {
         // Replace with your project's social card
         image: "img/docusaurus-social-card.jpg",
+        colorMode: {
+            defaultMode: 'light',
+            disableSwitch: false,
+            respectPrefersColorScheme: true,
+        },
+        mermaid: {
+            theme: {
+                light: 'base',
+                dark: 'dark',
+            },
+        },
         navbar: {
             title: "FastAuth",
             logo: {
