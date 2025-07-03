@@ -6,7 +6,7 @@ FastAuth is a NEAR Protocol authentication system that enables secure transactio
 
 1. Review the [Architecture Overview](./architecture_overview.md)
 2. Explore the [Contracts](./architecture_contracts_overview.md)
-3. Choose your authentication method
+3. Choose your [Authentication method](./auth0.md)
 
 ## Learn More
 
