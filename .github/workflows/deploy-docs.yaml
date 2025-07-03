@@ -37,10 +37,16 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-pnpm-store-
 
-            - name: Install dependencies
-              run: cd docs && pnpm install --frozen-lockfile
+            - name: Install root dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Install docs dependencies
+              working-directory: docs
+              run: pnpm install --frozen-lockfile
+
             - name: Build website
-              run: cd docs && pnpm build
+              working-directory: docs
+              run: pnpm build
 
             - name: Upload Build Artifact
               uses: actions/upload-pages-artifact@v3

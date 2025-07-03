@@ -37,9 +37,13 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-pnpm-store-
 
-            - name: Install dependencies
+            - name: Install root dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Install docs dependencies
               working-directory: docs
               run: pnpm install --frozen-lockfile
+
             - name: Test build website
               working-directory: docs
               run: pnpm build
