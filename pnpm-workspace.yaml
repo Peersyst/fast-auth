@@ -2,6 +2,7 @@ packages:
     - "contracts/auth0-guard"
     - "contracts/fa"
     - "contracts/jwt-guard-router"
+    - "docs"
     - "packages/auth"
     - "packages/shared/*"
     - "examples/custom-backend"
