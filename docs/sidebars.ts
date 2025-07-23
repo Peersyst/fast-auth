@@ -40,8 +40,41 @@ const sidebars: SidebarsConfig = {
         "concepts/auth0",
         "concepts/architecture_custom_backend",
     ],
-    integrationsSidebar: ["integrations/getting-started", "integrations/auth0", "integrations/custom-backend", "integrations/dapp"],
-    sdkSidebar: ["sdk/browser"],
+    browserSdkSidebar: [
+        {
+            type: "html",
+            value: "Introduction",
+            className: "sidebar-label",
+        },
+        "sdk/browser/getting-started",
+        "sdk/browser/installation",
+        "sdk/browser/concepts",
+        {
+            type: "html",
+            value: "Reference",
+            className: "sidebar-label",
+        },
+        "sdk/browser/client",
+        "sdk/browser/providers",
+        "sdk/browser/signer",
+    ],
+    integrationsSidebar: [
+        "integrations/overview",
+        {
+            type: "html",
+            value: "Guides",
+            className: "sidebar-label",
+        },
+        "integrations/auth0",
+        "integrations/custom-backend",
+        {
+            type: "html",
+            value: "Examples",
+            className: "sidebar-label",
+        },
+        "integrations/custom-backend-express",
+        "integrations/jwt-rs256-guard",
+    ],
 };
 
 export default sidebars;
