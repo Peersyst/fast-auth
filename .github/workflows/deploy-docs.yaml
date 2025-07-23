@@ -19,10 +19,31 @@ jobs:
               with:
                   node-version: 18
 
-            - name: Install dependencies
-              run: cd docs && yarn install --frozen-lockfile
+            - uses: pnpm/action-setup@v2
+              with:
+                  version: 8
+                  run_install: false
+
+            - name: Get pnpm store directory
+              shell: bash
+              run: |
+                  echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+            - uses: actions/cache@v3
+              name: Setup pnpm cache
+              with:
+                  path: ${{ env.STORE_PATH }}
+                  key: ${{ runner.os }}-pnpm-store-${{ hashFiles('docs/package.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-pnpm-store-
+
+            - name: Install docs dependencies
+              working-directory: docs
+              run: pnpm install --no-frozen-lockfile
+
             - name: Build website
-              run: cd docs && yarn build
+              working-directory: docs
+              run: pnpm build
 
             - name: Upload Build Artifact
               uses: actions/upload-pages-artifact@v3
