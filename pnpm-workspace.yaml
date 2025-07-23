@@ -4,5 +4,7 @@ packages:
     - "contracts/jwt-guard-router"
     - "docs"
     - "packages/auth"
+    - "packages/sdks/*"
     - "packages/shared/*"
     - "examples/custom-backend"
+    - "examples/spa"
