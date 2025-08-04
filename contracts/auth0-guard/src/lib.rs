@@ -138,7 +138,7 @@ impl Auth0Guard {
         let (header, payload, signature) = decode_jwt(jwt);
 
         // Create the data to be verified (header.payload)
-        let data_to_verify = format!("{}.{}", header, payload);
+        let data_to_verify = format!("{header}.{payload}");
 
         let signature_bytes = decode_base64_bytes(signature);
 

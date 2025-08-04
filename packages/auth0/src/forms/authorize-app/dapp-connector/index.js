@@ -34,7 +34,7 @@ function AuthorizeAppImage(context) {
             );
             leftAvatar.setAttribute(
                 "src",
-                "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/7304e509-8efd-4897-a19f-14e6828f9245.png",
+                "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/db9f38ff-53ea-4f76-a1c0-33c728386e5b.png",
             );
             rightAvatar.setAttribute("src", imageUrl);
 
