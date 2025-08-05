@@ -2,7 +2,6 @@
     "name": "fast-auth",
     "private": true,
     "type": "module",
-    "packageManager": "pnpm@9.14.2",
     "scripts": {
         "build": "npx turbo run build && echo '🚀 Build completed'",
         "build:packages": "npx turbo run build --filter=\"./packages/**/*\" && echo '🚀 Build packages completed'",
