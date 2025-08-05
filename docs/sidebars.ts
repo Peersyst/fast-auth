@@ -49,6 +49,12 @@ const sidebars: SidebarsConfig = {
         "sdk/browser/getting-started",
         "sdk/browser/installation",
         "sdk/browser/concepts",
+        // {
+        //     type: "html",
+        //     value: "Guides",
+        //     className: "sidebar-label",
+        // },
+        // "sdk/browser/integration",
         {
             type: "html",
             value: "Reference",
@@ -73,7 +79,6 @@ const sidebars: SidebarsConfig = {
             className: "sidebar-label",
         },
         "integrations/custom-backend-express",
-        "integrations/jwt-rs256-guard",
     ],
 };
 
