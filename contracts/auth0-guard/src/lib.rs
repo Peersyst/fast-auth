@@ -2,12 +2,15 @@
 use near_sdk::{near, AccountId, env};
 use near_sdk::serde_json;
 use serde::{Deserialize, Serialize};
+use crypto_bigint::{BoxedUint, Odd};
 
 use crate::jwt::codec::{decode_jwt, decode_base64_bytes};
 use crate::rsa::rs256::verify_signature_from_components;
 
 pub mod rsa;
 pub mod jwt;
+
+const PRECISION: u32 = 2048;
 
 /// Custom claims structure for FastAuth JWT tokens
 /// 
@@ -111,6 +114,14 @@ impl Auth0Guard {
     /// Panics if the caller is not the contract owner
     pub fn set_public_key(&mut self, n: Vec<u8>, e: Vec<u8>) {
         self.only_owner();
+
+        assert_eq!(n.len(), 256, "modulus must be 2048 bits");
+        let n_int = BoxedUint::from_be_slice(&n, PRECISION).unwrap();
+        assert!(Odd::new(n_int).is_some().unwrap_u8() == 1, "modulus must be odd");
+
+        let allowed_e: &[&[u8]] = &[&[0x01, 0x00, 0x01]];
+        assert!(allowed_e.iter().any(|v| *v == e.as_slice()), "invalid exponent");
+        
         self.n_component = n;
         self.e_component = e;
     }
