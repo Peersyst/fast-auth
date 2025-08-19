@@ -54,7 +54,7 @@ impl JwtGuardRouter {
 
     /// Checks if caller is contract owner, panics if not
     fn only_owner(&self) {
-        assert_eq!(env::signer_account_id(), self.owner, "Only the owner can call this function");
+        assert_eq!(env::predecessor_account_id(), self.owner, "Only the owner can call this function");
     }
 
     /// Returns the account ID of contract owner

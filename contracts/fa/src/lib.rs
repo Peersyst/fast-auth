@@ -40,7 +40,7 @@ impl FastAuth {
     /// # Panics
     /// * If the caller is not the owner
     fn only_owner(&self) {
-        assert!(env::signer_account_id() == self.owner, "Only the owner can call this function");
+        assert!(env::predecessor_account_id() == self.owner, "Only the owner can call this function");
     }
 
     /// Gets the current owner of the contract
