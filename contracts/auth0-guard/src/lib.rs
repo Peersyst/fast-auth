@@ -21,10 +21,8 @@ pub struct CustomClaims {
     pub sub: String,
     pub fatxn: Vec<u8>,
     pub iss: String,
-    pub aud: Vec<String>,
     pub exp: u64,
     pub nbf: Option<u64>,
-    pub iat: Option<u64>,
 }
 
 /// A NEAR contract that verifies JWT tokens signed with RS256 algorithm
