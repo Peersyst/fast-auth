@@ -120,7 +120,7 @@ impl Auth0Guard {
         assert!(Odd::new(n_int).is_some().unwrap_u8() == 1, "modulus must be odd");
 
         let allowed_e: &[&[u8]] = &[&[0x01, 0x00, 0x01]];
-        assert!(allowed_e.iter().any(|v| *v == e.as_slice()), "invalid exponent");
+        assert!(allowed_e.contains(&e.as_slice()), "invalid exponent");
         
         self.n_component = n;
         self.e_component = e;
