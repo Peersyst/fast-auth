@@ -21,6 +21,7 @@ async fn test_verify_signature_should_pass() -> Result<(), Box<dyn std::error::E
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": user_account.id(),
+            "issuer": "https://dev-gb1h5yrp85jsty.us.auth0.com/",
             "n_component": n,
             "e_component": e
         }))
@@ -66,6 +67,7 @@ async fn test_verify_signature_should_fail_invalid_pk() -> Result<(), Box<dyn st
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": user_account.id(),
+            "issuer": "https://dev-gb1h5yrp85jsty.us.auth0.com/",
             "n_component": n,
             "e_component": e
         }))
@@ -111,6 +113,7 @@ async fn test_verify_signature_should_fail_invalid_token() -> Result<(), Box<dyn
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": user_account.id(),
+            "issuer": "https://dev-gb1h5yrp85jsty.us.auth0.com/",
             "n_component": n,
             "e_component": e
         }))
@@ -131,6 +134,133 @@ async fn test_verify_signature_should_fail_invalid_token() -> Result<(), Box<dyn
 
     near_sdk::log!("outcome: {:?}", outcome);
     assert!(outcome.is_success());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_set_issuer_should_succeed() -> Result<(), Box<dyn std::error::Error>> {
+    let contract_wasm = near_workspaces::compile_project("./").await?;
+    let sandbox = near_workspaces::sandbox().await?;
+    let contract = sandbox.dev_deploy(&contract_wasm).await?;
+
+    let user_account = sandbox.dev_create_account().await?;
+
+    // Initialize contract
+    let outcome = user_account
+        .call(contract.id(), "init")
+        .args_json(json!({
+            "owner": user_account.id(),
+            "issuer": "https://old-issuer.com/",
+            "n_component": vec![1, 2, 3],
+            "e_component": vec![1, 0, 1]
+        }))
+        .transact()
+        .await?;
+
+    assert!(outcome.is_success());
+
+    // Set new issuer
+    let outcome = user_account
+        .call(contract.id(), "set_issuer")
+        .args_json(json!({
+            "issuer": "https://new-issuer.com/"
+        }))
+        .transact()
+        .await?;
+
+    assert!(outcome.is_success());
+
+    // Verify the issuer was updated
+    let result = user_account
+        .view(contract.id(), "get_issuer")
+        .args_json(json!({}))
+        .await?;
+
+    let issuer: String = result.json()?;
+    assert_eq!(issuer, "https://new-issuer.com/");
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_set_issuer_should_fail_non_owner() -> Result<(), Box<dyn std::error::Error>> {
+    let contract_wasm = near_workspaces::compile_project("./").await?;
+    let sandbox = near_workspaces::sandbox().await?;
+    let contract = sandbox.dev_deploy(&contract_wasm).await?;
+
+    let owner_account = sandbox.dev_create_account().await?;
+    let non_owner_account = sandbox.dev_create_account().await?;
+
+    // Initialize contract with owner
+    let outcome = owner_account
+        .call(contract.id(), "init")
+        .args_json(json!({
+            "owner": owner_account.id(),
+            "issuer": "https://old-issuer.com/",
+            "n_component": vec![1, 2, 3],
+            "e_component": vec![1, 0, 1]
+        }))
+        .transact()
+        .await?;
+
+    assert!(outcome.is_success());
+
+    // Try to set issuer with non-owner account
+    let outcome = non_owner_account
+        .call(contract.id(), "set_issuer")
+        .args_json(json!({
+            "issuer": "https://new-issuer.com/"
+        }))
+        .transact()
+        .await?;
+
+    // Should fail because non-owner cannot call set_issuer
+    assert!(!outcome.is_success());
+
+    // Verify the issuer was not changed
+    let result = owner_account
+        .view(contract.id(), "get_issuer")
+        .args_json(json!({}))
+        .await?;
+
+    let issuer: String = result.json()?;
+    assert_eq!(issuer, "https://old-issuer.com/");
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_get_issuer_should_return_current_issuer() -> Result<(), Box<dyn std::error::Error>> {
+    let contract_wasm = near_workspaces::compile_project("./").await?;
+    let sandbox = near_workspaces::sandbox().await?;
+    let contract = sandbox.dev_deploy(&contract_wasm).await?;
+
+    let user_account = sandbox.dev_create_account().await?;
+    let expected_issuer = "https://test-issuer.com/";
+
+    // Initialize contract
+    let outcome = user_account
+        .call(contract.id(), "init")
+        .args_json(json!({
+            "owner": user_account.id(),
+            "issuer": expected_issuer,
+            "n_component": vec![1, 2, 3],
+            "e_component": vec![1, 0, 1]
+        }))
+        .transact()
+        .await?;
+
+    assert!(outcome.is_success());
+
+    // Get the issuer
+    let result = user_account
+        .view(contract.id(), "get_issuer")
+        .args_json(json!({}))
+        .await?;
+
+    let issuer: String = result.json()?;
+    assert_eq!(issuer, expected_issuer);
 
     Ok(())
 }
