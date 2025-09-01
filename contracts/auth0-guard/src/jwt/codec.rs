@@ -3,7 +3,7 @@ use base64::Engine;
 
 pub fn decode_jwt(jwt: String) -> (String, String, String) {
     // Split the JWT token into its parts
-    let parts: Vec<&str> = jwt.split('.').collect();
+    let parts: Vec<&str> = jwt.splitn(3, '.').collect();
     if parts.len() != 3 {
         return ("".to_string(), "".to_string(), "".to_string());
     }
