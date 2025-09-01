@@ -84,6 +84,7 @@ impl JwtGuardRouter {
     /// Requires attached deposit to cover storage costs
     #[payable]
     pub fn add_guard(&mut self, guard_name: String, guard_account: AccountId) {
+        self.only_owner();
         assert!(!guard_name.contains('#'), "Guard name cannot contain '#' character");
         assert!(guard_name.len() as u128 <= GUARD_NAME_MAX_BYTES_LENGTH, "Guard name is too long");
         assert!(guard_account.as_str().len() as u128 <= MAX_ACCOUNT_BYTES_LENGTH, "Guard account is too long");
