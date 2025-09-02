@@ -199,9 +199,15 @@ impl Auth0Guard {
             return (false, "Transaction payload mismatch".to_string());
         }
         let now = env::block_timestamp_ms() / 1000;
-        assert!(claims.exp > now, "Token expired");
-        assert!(claims.nbf.unwrap_or(0) <= now, "Token not yet valid");
-        assert!(claims.iss == self.issuer, "Invalid issuer");
+        if claims.exp <= now {
+            return (false, "Token expired".to_string());
+        }
+        if claims.nbf.unwrap_or(0) > now {
+            return (false, "Token not yet valid".to_string());
+        }
+        if claims.iss != self.issuer {
+            return (false, "Invalid issuer".to_string());
+        }
 
         // Return the sub and fatxn fields
         (true, claims.sub)

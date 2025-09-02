@@ -203,6 +203,16 @@ impl JwtRS256Guard {
         if claims.fatxn != sign_payload {
             return (false, "Transaction payload mismatch".to_string());
         }
+        let now = env::block_timestamp_ms() / 1000;
+        if claims.exp <= now {
+            return (false, "Token expired".to_string());
+        }
+        if claims.nbf.unwrap_or(0) > now {
+            return (false, "Token not yet valid".to_string());
+        }
+        if claims.iss != self.issuer {
+            return (false, "Invalid issuer".to_string());
+        }
 
         // NOTE: Extend here your verification logic (if needed)
 
