@@ -44,7 +44,7 @@ impl FastAuth {
     /// # Panics
     /// * If the caller is not the owner
     fn only_owner(&self) {
-        assert!(env::signer_account_id() == self.owner, "Only the owner can call this function");
+        assert!(env::predecessor_account_id() == self.owner, "Only the owner can call this function");
     }
 
     /// Gets the current owner of the contract
@@ -348,6 +348,15 @@ impl FastAuth {
         )
     }
 
+    /// Verifies if a sub is valid
+    /// # Arguments
+    /// * `sub` - The sub to verify
+    /// # Returns
+    /// * Boolean indicating if the sub is valid
+    fn verify_sub(&self, sub: String) -> bool {
+        !sub.contains('#') && sub.len() <= 256
+    }
+
     /// Processes verification and initiates MPC signing
     /// # Arguments
     /// * `sign_payload` - The data to sign
@@ -366,6 +375,8 @@ impl FastAuth {
             env::log_str("Guard verification rejected");
             return Promise::new(env::current_account_id());
         }
+
+        assert!(self.verify_sub(user.clone()), "Invalid sub");
 
         let payload_hash = env::sha256(&sign_payload);
 

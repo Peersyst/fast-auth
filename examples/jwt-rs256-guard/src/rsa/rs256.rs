@@ -30,6 +30,7 @@ const PRECISION: u32 = 2048;
 /// This function implements RSA signature verification using PKCS#1 v1.5 padding scheme.
 /// It first hashes the payload using SHA-256, then verifies the signature using the 
 /// provided RSA public key components through modular exponentiation.
+#[allow(clippy::needless_borrow)]
 pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8>, n: Vec<u8>, e: Vec<u8>) -> bool {
     // Hash the data using SHA256
     let mut hasher = Sha256::new();
@@ -48,10 +49,12 @@ pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8
         n_params: BoxedMontyParams::new_vartime(Odd::new(n.clone()).expect("Odd value required")),
     };
 
+    // Initialize verification flags - all checks must pass
+    let mut verification_passed = true;
+
     // Check signature bounds
-    if signature >= *pub_key.n.as_ref() || signature.bits_precision() != pub_key.n.bits_precision() {
-        return false;
-    }
+    let signature_bounds_valid = signature < *pub_key.n.as_ref() && signature.bits_precision() == pub_key.n.bits_precision();
+    verification_passed &= signature_bounds_valid;
 
     // Perform RSA encryption (signature verification)
     let modulus = pub_key.n_params.modulus().as_nz_ref();
@@ -74,33 +77,44 @@ pub fn verify_signature_from_components(payload: String, signature_bytes: Vec<u8
     let em = {
         let input = &result.to_be_bytes()[leading_zeros..];
         let padded_len = pub_key.size();
-        if input.len() > padded_len {
-            return false;
+        
+        // Check input length - don't fail fast, just track the result
+        let input_length_valid = input.len() <= padded_len;
+        verification_passed &= input_length_valid;
+        
+        if input_length_valid {
+            let mut out = vec![0u8; padded_len];
+            out[padded_len - input.len()..].copy_from_slice(input);
+            out
+        } else {
+            // Create dummy padding for consistent verification flow
+            vec![0u8; padded_len]
         }
-        let mut out = vec![0u8; padded_len];
-        out[padded_len - input.len()..].copy_from_slice(input);
-        out
     };
 
     // Verify PKCS#1 v1.5 padding
     let hash_len = hashed.len();
     let t_len = PREFIX.len() + hashed.len();
     let k = pub_key.size();
-    if k < t_len + 11 {
-        return false;
-    }
+    
+    // Check padding length requirement
+    let padding_length_valid = k >= t_len + 11;
+    verification_passed &= padding_length_valid;
 
     // Check padding structure: EM = 0x00 || 0x01 || PS || 0x00 || T
-    let mut ok = em[0].ct_eq(&0u8);
-    ok &= em[1].ct_eq(&1u8);
-    ok &= em[k - hash_len..k].ct_eq(&hashed);
-    ok &= em[k - t_len..k - hash_len].ct_eq(&PREFIX);
-    ok &= em[k - t_len - 1].ct_eq(&0u8);
+    let mut padding_structure_valid = em[0].ct_eq(&0u8);
+    padding_structure_valid &= em[1].ct_eq(&1u8);
+    padding_structure_valid &= em[k - hash_len..k].ct_eq(&hashed);
+    padding_structure_valid &= em[k - t_len..k - hash_len].ct_eq(&PREFIX);
+    padding_structure_valid &= em[k - t_len - 1].ct_eq(&0u8);
 
     // Verify PS (padding string) contains all 0xFF bytes
     for el in em.iter().skip(2).take(k - t_len - 3) {
-        ok &= el.ct_eq(&0xff)
+        padding_structure_valid &= el.ct_eq(&0xff)
     }
 
-    ok.unwrap_u8() == 1 
+    // Combine all verification results
+    verification_passed &= padding_structure_valid.unwrap_u8() == 1;
+
+    verification_passed 
 }

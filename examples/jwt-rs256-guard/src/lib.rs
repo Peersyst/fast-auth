@@ -21,6 +21,12 @@ pub struct CustomClaims {
     pub sub: String,
     /// The FastAuth claim that specifies the signed payload
     pub fatxn: Vec<u8>,
+    /// The issuer claim that identifies the token issuer
+    pub iss: String,
+    /// The expiration time claim that specifies the token's validity period
+    pub exp: u64,
+    /// The not before time claim that specifies the token's earliest valid time
+    pub nbf: Option<u64>,
 
     // NOTE: Add here your custom claims (if needed)
 }
@@ -35,6 +41,7 @@ pub struct JwtRS256Guard {
     n_component: Vec<u8>,
     e_component: Vec<u8>,
     owner: AccountId,
+    issuer: String,
 }
 
 // Define the default, which automatically initializes the contract
@@ -44,6 +51,7 @@ impl Default for JwtRS256Guard{
             n_component: vec![],
             e_component: vec![],
             owner: env::current_account_id(),
+            issuer: "".to_string(),
         }
     }
 }
@@ -62,7 +70,7 @@ impl JwtRS256Guard {
     /// Panics if the contract is already initialized
     #[private]
     #[init]
-    pub fn init(owner: AccountId, n_component: Vec<u8>, e_component: Vec<u8>) -> Self {
+    pub fn init(owner: AccountId, issuer: String, n_component: Vec<u8>, e_component: Vec<u8>) -> Self {
         if env::state_exists() {
             env::panic_str("Contract is already initialized");
         }
@@ -70,6 +78,7 @@ impl JwtRS256Guard {
             n_component,
             e_component,
             owner,
+            issuer,
         }
     }
 
@@ -80,7 +89,7 @@ impl JwtRS256Guard {
    /// # Panics
    /// Panics if the caller's account ID does not match the stored owner account ID
     fn only_owner(&self) {
-        assert!(env::signer_account_id() == self.owner, "Only the owner can call this function");
+        assert!(env::predecessor_account_id() == self.owner, "Only the owner can call this function");
     }
 
     /// Gets the current owner of the contract
@@ -89,6 +98,23 @@ impl JwtRS256Guard {
     /// * `AccountId` - The account ID of the current contract owner
     pub fn owner(&self) -> AccountId {
         self.owner.clone()
+    }
+
+    /// Gets the current issuer of the contract
+    /// 
+    /// # Returns
+    /// * `String` - The issuer of the contract
+    pub fn get_issuer(&self) -> String {
+        self.issuer.clone()
+    }
+
+    /// Sets the issuer of the contract
+    /// 
+    /// # Arguments
+    /// * `issuer` - The issuer of the contract
+    pub fn set_issuer(&mut self, issuer: String) {
+        self.only_owner();
+        self.issuer = issuer;
     }
 
     /// Changes the owner of the contract to a new account
@@ -177,6 +203,16 @@ impl JwtRS256Guard {
         if claims.fatxn != sign_payload {
             return (false, "Transaction payload mismatch".to_string());
         }
+        let now = env::block_timestamp_ms() / 1000;
+        if claims.exp <= now {
+            return (false, "Token expired".to_string());
+        }
+        if claims.nbf.unwrap_or(0) > now {
+            return (false, "Token not yet valid".to_string());
+        }
+        if claims.iss != self.issuer {
+            return (false, "Invalid issuer".to_string());
+        }
 
         // NOTE: Extend here your verification logic (if needed)
 
@@ -222,6 +258,7 @@ mod tests {
             n_component: vec![],
             e_component: vec![],
             owner: env::current_account_id(),
+            issuer: "".to_string(),
         };
         let result = contract.verify("".to_string(), vec![]);
         assert_eq!(result, (true, "".to_string()));
@@ -233,6 +270,7 @@ mod tests {
             n_component: vec![],
             e_component: vec![],
             owner: env::current_account_id(),
+            issuer: "".to_string(),
         };
         let result = contract.verify("".to_string(), vec![]);
         assert_eq!(result, (false, "".to_string()));
@@ -244,6 +282,7 @@ mod tests {
             n_component: vec![],
             e_component: vec![],
             owner: env::current_account_id(),
+            issuer: "".to_string(),
         };
         let result = contract.verify("".to_string(), vec![]);
         assert_eq!(result, (false, "".to_string()));

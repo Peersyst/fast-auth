@@ -23,7 +23,7 @@ async fn test_add_guard() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     // Add a guard without no deposit
-    let mut outcome = adder.call(contract.id(), "add_guard")
+    let mut outcome = owner.call(contract.id(), "add_guard")
         .args_json(json!({
             "guard_name": "jwt",
             "guard_account": "jwt.fast-auth.near"
@@ -33,8 +33,19 @@ async fn test_add_guard() -> Result<(), Box<dyn std::error::Error>> {
 
     assert!(!outcome.is_success());
 
-    // Add a guard with not enough deposit
     outcome = adder.call(contract.id(), "add_guard")
+        .args_json(json!({
+            "guard_name": "jwt",
+            "guard_account": "jwt.fast-auth.near"
+        }))
+        .transact()
+        .await?;
+
+
+    assert!(!outcome.is_success());
+
+    // Add a guard with not enough deposit
+    outcome = owner.call(contract.id(), "add_guard")
         .args_json(json!({
             "guard_name": "jwt",
             "guard_account": "jwt.fast-auth.near"
@@ -46,7 +57,7 @@ async fn test_add_guard() -> Result<(), Box<dyn std::error::Error>> {
     assert!(!outcome.is_success());
 
     // Add a guard with a forbidden character
-    outcome = adder.call(contract.id(), "add_guard")
+    outcome = owner.call(contract.id(), "add_guard")
         .args_json(json!({
             "guard_name": "jwt#test",
             "guard_account": "jwt.fast-auth.near"
@@ -57,7 +68,7 @@ async fn test_add_guard() -> Result<(), Box<dyn std::error::Error>> {
     assert!(!outcome.is_success());
 
     // Add a guard with enough deposit
-    outcome = adder.call(contract.id(), "add_guard")
+    outcome = owner.call(contract.id(), "add_guard")
         .args_json(json!({
             "guard_name": "jwt",
             "guard_account": "jwt.fast-auth.near"
@@ -80,7 +91,7 @@ async fn test_add_guard() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(guard_outcome.json::<String>()?, "jwt.fast-auth.near");
 
     // Try to add the same guard again (should fail)
-    outcome = adder.call(contract.id(), "add_guard")
+    outcome = owner.call(contract.id(), "add_guard")
         .args_json(json!({
             "guard_name": "jwt",
             "guard_account": "jwt.fast-auth.near"
@@ -112,7 +123,7 @@ async fn test_remove_guard() -> Result<(), Box<dyn std::error::Error>> {
 
 
     // Add a guard without no deposit
-    let outcome = not_owner.call(contract.id(), "add_guard")
+    let outcome = owner.call(contract.id(), "add_guard")
         .args_json(json!({
             "guard_name": "jwt",
             "guard_account": "jwt.fast-auth.near"

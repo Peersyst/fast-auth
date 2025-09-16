@@ -18,11 +18,14 @@ async fn test_verify_signature_should_pass() -> Result<(), Box<dyn std::error::E
     let token = "".to_string();
     // NOTE: Replace with actual sign payload
     let sign_payload = vec![];
+    // NOTE: Replace with actual issuer
+    let issuer = "".to_string();
 
     let outcome = user_account
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": user_account.id(),
+            "issuer": issuer,
             "n_component": n,
             "e_component": e
         }))
@@ -61,6 +64,8 @@ async fn test_verify_signature_should_fail_invalid_pk() -> Result<(), Box<dyn st
     // NOTE: Replace with actual public key components
     let n = vec![];
     let e = vec![];
+    // NOTE: Replace with actual issuer
+    let issuer = "".to_string();
     // NOTE: Replace with actual JWT token
     let token = "".to_string();
     // NOTE: Replace with actual sign payload
@@ -70,6 +75,7 @@ async fn test_verify_signature_should_fail_invalid_pk() -> Result<(), Box<dyn st
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": user_account.id(),
+            "issuer": issuer,
             "n_component": n,
             "e_component": e
         }))
@@ -108,6 +114,8 @@ async fn test_verify_signature_should_fail_invalid_token() -> Result<(), Box<dyn
     // NOTE: Replace with actual public key components
     let n = vec![];
     let e = vec![];
+    // NOTE: Replace with actual issuer
+    let issuer = "".to_string();
     // NOTE: Replace with actual JWT token
     let token = "".to_string();
     // NOTE: Replace with actual sign payload
@@ -117,6 +125,7 @@ async fn test_verify_signature_should_fail_invalid_token() -> Result<(), Box<dyn
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": user_account.id(),
+            "issuer": issuer,
             "n_component": n,
             "e_component": e
         }))
@@ -141,7 +150,7 @@ async fn test_verify_signature_should_fail_invalid_token() -> Result<(), Box<dyn
     Ok(())
 }
 
-
+#[tokio::test]
 async fn test_verify_signature_should_fail_invalid_sign_payload() -> Result<(), Box<dyn std::error::Error>> {
     let contract_wasm = near_workspaces::compile_project("./").await?;
     let sandbox = near_workspaces::sandbox().await?;
@@ -155,6 +164,8 @@ async fn test_verify_signature_should_fail_invalid_sign_payload() -> Result<(), 
     // NOTE: Replace with actual public key components
     let n = vec![];
     let e = vec![];
+    // NOTE: Replace with actual issuer
+    let issuer = "".to_string();
     // NOTE: Replace with actual JWT token
     let token = "".to_string();
     // NOTE: Replace with actual sign payload
@@ -164,6 +175,7 @@ async fn test_verify_signature_should_fail_invalid_sign_payload() -> Result<(), 
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": user_account.id(),
+            "issuer": issuer,
             "n_component": n,
             "e_component": e
         }))
