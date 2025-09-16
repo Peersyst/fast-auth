@@ -123,7 +123,7 @@ impl FastAuth {
     /// * If the contract has already been initialized
     #[init]
     #[private]
-    pub fn init(init_guards: HashMap<String, AccountId>, owner: AccountId) -> Self {
+    pub fn init(init_guards: HashMap<String, AccountId>, owner: AccountId, pauser: AccountId) -> Self {
         if env::state_exists() {
             env::panic_str("Contract is already initialized");
         }
@@ -133,7 +133,7 @@ impl FastAuth {
             mpc_address: env::current_account_id(),
             mpc_key_version: DEFAULT_MPC_KEY_VERSION,
             version: CONTRACT_VERSION.to_string(),
-            pauser: env::current_account_id(),
+            pauser,
             paused: false,
         }
     }

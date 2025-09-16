@@ -12,7 +12,8 @@ async fn test_guards_crud() -> Result<(), Box<dyn std::error::Error>> {
     let _ = contract.call("init")
         .args_json(json!({
             "init_guards": {},
-            "owner": owner.id()
+            "owner": owner.id(),
+            "pauser": owner.id()
         }))
         .transact()
         .await?;
@@ -90,7 +91,8 @@ async fn test_owner() -> Result<(), Box<dyn std::error::Error>> {
     let _ = contract.call("init")
         .args_json(json!({
             "init_guards": {},
-            "owner": owner.id()
+            "owner": owner.id(),
+            "pauser": owner.id()
         }))
         .transact()
         .await?;
@@ -297,7 +299,8 @@ async fn test_pause() -> Result<(), Box<dyn std::error::Error>> {
     let _ = contract.call("init")
         .args_json(json!({
             "init_guards": {},
-            "owner": owner.id()
+            "owner": owner.id(),
+            "pauser": owner.id()
         }))
         .transact()
         .await?;
@@ -310,11 +313,11 @@ async fn test_pause() -> Result<(), Box<dyn std::error::Error>> {
         .json::<bool>()?;
     assert_eq!(paused_state, false);
 
-    // Test pausing the contract (should fail - only pauser can pause, not owner)
+    // Test pausing the contract (should work - owner is set as pauser)
     let pause_outcome = owner.call(contract.id(), "pause")
         .transact()
         .await?;
-    assert!(!pause_outcome.is_success());
+    assert!(pause_outcome.is_success());
 
     // Test unpausing the contract (should work - owner can unpause)
     let unpause_outcome = owner.call(contract.id(), "unpause")
@@ -337,7 +340,8 @@ async fn test_pauser_functionality() -> Result<(), Box<dyn std::error::Error>> {
     let _ = contract.call("init")
         .args_json(json!({
             "init_guards": {},
-            "owner": owner.id()
+            "owner": owner.id(),
+            "pauser": owner.id()
         }))
         .transact()
         .await?;
@@ -393,14 +397,14 @@ async fn test_paused_operations_blocked() -> Result<(), Box<dyn std::error::Erro
     let _ = contract.call("init")
         .args_json(json!({
             "init_guards": {},
-            "owner": owner.id()
+            "owner": owner.id(),
+            "pauser": owner.id()
         }))
         .transact()
         .await?;
 
-    // Pause the contract
-    let pause_outcome = contract
-        .call("pause")
+    // Pause the contract (owner is set as pauser)
+    let pause_outcome = owner.call(contract.id(), "pause")
         .transact()
         .await?;
     assert!(pause_outcome.is_success());
@@ -483,7 +487,8 @@ async fn test_pause_unpause_authorization() -> Result<(), Box<dyn std::error::Er
     let _ = contract.call("init")
         .args_json(json!({
             "init_guards": {},
-            "owner": owner.id()
+            "owner": owner.id(),
+            "pauser": owner.id()
         }))
         .transact()
         .await?;
@@ -563,7 +568,8 @@ async fn test_paused_state_management() -> Result<(), Box<dyn std::error::Error>
     let _ = contract.call("init")
         .args_json(json!({
             "init_guards": {},
-            "owner": owner.id()
+            "owner": owner.id(),
+            "pauser": owner.id()
         }))
         .transact()
         .await?;
@@ -576,9 +582,8 @@ async fn test_paused_state_management() -> Result<(), Box<dyn std::error::Error>
         .json::<bool>()?;
     assert_eq!(initial_paused_state, false);
 
-    // Pause the contract
-    let pause_outcome = contract
-        .call("pause")
+    // Pause the contract (owner is set as pauser)
+    let pause_outcome = owner.call(contract.id(), "pause")
         .transact()
         .await?;
     assert!(pause_outcome.is_success());
@@ -619,7 +624,8 @@ async fn test_verify_and_sign_blocked_when_paused() -> Result<(), Box<dyn std::e
     let _ = contract.call("init")
         .args_json(json!({
             "init_guards": {},
-            "owner": owner.id()
+            "owner": owner.id(),
+            "pauser": owner.id()
         }))
         .transact()
         .await?;
@@ -637,9 +643,8 @@ async fn test_verify_and_sign_blocked_when_paused() -> Result<(), Box<dyn std::e
         .await?;
     assert!(add_outcome.is_success());
 
-    // Pause the contract
-    let pause_outcome = contract
-        .call("pause")
+    // Pause the contract (owner is set as pauser)
+    let pause_outcome = owner.call(contract.id(), "pause")
         .transact()
         .await?;
     assert!(pause_outcome.is_success());
