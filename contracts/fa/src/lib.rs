@@ -18,6 +18,8 @@ pub struct FastAuth {
     mpc_address: AccountId,
     mpc_key_version: u32,
     version: String,
+    pauser: AccountId,
+    paused: bool,
 }
 
 // Define the default, which automatically initializes the contract
@@ -29,6 +31,8 @@ impl Default for FastAuth {
             mpc_address: env::current_account_id(),
             mpc_key_version: DEFAULT_MPC_KEY_VERSION,
             version: CONTRACT_VERSION.to_string(),
+            pauser: env::current_account_id(),
+            paused: false,
         }
     }
 }
@@ -47,6 +51,7 @@ impl FastAuth {
     /// # Returns
     /// * The AccountId of the current owner
     pub fn owner(&self) -> AccountId {
+        self.non_paused_only();
         self.owner.clone()
     }
 
@@ -56,8 +61,56 @@ impl FastAuth {
     /// # Panics
     /// * If the caller is not the current owner
     pub fn change_owner(&mut self, new_owner: AccountId) {
+        self.non_paused_only();
         self.only_owner();
         self.owner = new_owner;
+    }
+
+    /// Pauses the contract
+    /// # Panics
+    /// * If the caller is not the owner
+    pub fn pause(&mut self) {
+        self.only_pauser();
+        self.paused = true;
+    }
+
+    /// Unpauses the contract
+    /// # Panics
+    /// * If the caller is not the owner
+    pub fn unpause(&mut self) {
+        self.only_owner();
+        self.paused = false;
+    }
+
+    /// Sets the pauser of the contract
+    /// # Arguments
+    /// * `pauser` - The AccountId of the new pauser
+    /// # Panics
+    /// * If the caller is not the owner
+    pub fn set_pauser(&mut self, pauser: AccountId) {
+        self.only_owner();
+        self.pauser = pauser;
+    }
+
+    /// Checks if the caller is the pauser
+    /// # Panics
+    /// * If the caller is not the pauser
+    pub fn only_pauser(&self) {
+        assert!(env::signer_account_id() == self.pauser, "Only the pauser can call this function");
+    }
+
+    /// Checks if the contract is paused
+    /// # Panics
+    /// * If the contract is paused
+    fn non_paused_only(&self) {
+        assert!(!self.paused, "Contract is paused");
+    }
+
+    /// Gets the current paused state of the contract
+    /// # Returns
+    /// * The current paused state of the contract
+    pub fn paused(&self) -> bool {
+        self.paused
     }
 
     /// Initializes the contract with initial guards and owner
@@ -80,6 +133,8 @@ impl FastAuth {
             mpc_address: env::current_account_id(),
             mpc_key_version: DEFAULT_MPC_KEY_VERSION,
             version: CONTRACT_VERSION.to_string(),
+            pauser: env::current_account_id(),
+            paused: false,
         }
     }
 
@@ -91,6 +146,7 @@ impl FastAuth {
     /// # Panics
     /// * If the caller is not the owner
     pub fn set_mpc_address(&mut self, mpc_address: AccountId) {
+        self.non_paused_only();
         self.only_owner();
         env::log_str(&format!("Setting MPC address to {}", mpc_address));
         self.mpc_address = mpc_address;
@@ -100,6 +156,7 @@ impl FastAuth {
     /// # Returns
     /// * The AccountId of the current MPC contract
     pub fn mpc_address(&self) -> AccountId {
+        self.non_paused_only();
         self.mpc_address.clone()
     }
 
@@ -109,6 +166,7 @@ impl FastAuth {
     /// # Panics
     /// * If the caller is not the owner
     pub fn set_mpc_key_version(&mut self, mpc_key_version: u32) {
+        self.non_paused_only();
         self.only_owner();
         env::log_str(&format!("Setting MPC key version to {}", mpc_key_version));
         self.mpc_key_version = mpc_key_version;
@@ -118,6 +176,7 @@ impl FastAuth {
     /// # Returns
     /// * The current MPC key version number
     pub fn mpc_key_version(&self) -> u32 {
+        self.non_paused_only();
         self.mpc_key_version
     }
 
@@ -132,6 +191,7 @@ impl FastAuth {
     /// # Panics
     /// * If the guard_id does not exist
     pub fn get_guard(&self, guard_id: String) -> AccountId {
+        self.non_paused_only();
         self.guards.get(&guard_id).cloned().unwrap_or_else(|| {
             env::panic_str(&format!("Guard with ID '{}' does not exist", guard_id));
         })
@@ -144,6 +204,7 @@ impl FastAuth {
     /// # Panics
     /// * If the caller is not the owner
     pub fn add_guard(&mut self, guard_id: String, guard_address: AccountId) {
+        self.non_paused_only();
         self.only_owner();
         assert!(!guard_id.contains('#'), "Guard ID cannot contain '#'");
         self.guards.insert(guard_id, guard_address);
@@ -155,6 +216,7 @@ impl FastAuth {
     /// # Panics
     /// * If the caller is not the owner
     pub fn remove_guard(&mut self, guard_id: String) {
+        self.non_paused_only();
         self.only_owner();
         log!("Removing guard: {guard_id}");
         self.guards.remove(&guard_id);
@@ -193,6 +255,7 @@ impl FastAuth {
     /// # Panics
     /// * If the specified guard does not exist
     pub fn verify(&self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>) -> Promise {
+        self.non_paused_only();
         let guard_prefix = self.get_guard_prefix(guard_id.clone());
         let guard_address = match self.guards.get(&guard_prefix) {
             Some(address) => address.clone(),
@@ -219,6 +282,7 @@ impl FastAuth {
     /// # Panics
     /// * If the caller is not the contract owner
     pub fn execute(&self, contract_address: AccountId, method_name: String, args: String, gas: u64) -> Promise {
+        self.non_paused_only();
         self.only_owner();
         
         Promise::new(contract_address)
@@ -266,6 +330,7 @@ impl FastAuth {
     /// * Requires an attached deposit for MPC costs
     #[payable]
     pub fn sign(&mut self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>) -> Promise {
+        self.non_paused_only();
         let attached_deposit = env::attached_deposit();
 
         let guard_prefix = self.get_guard_prefix(guard_id.clone());
@@ -341,6 +406,7 @@ impl FastAuth {
     /// # Returns
     /// * The current version string
     pub fn version(&self) -> String {
+        self.non_paused_only();
         self.version.clone()
     }
 }
@@ -356,27 +422,27 @@ mod tests {
     #[test]
     fn get_existing_guard() {
         let addr: AccountId = "jwt.fast-auth.near".parse().unwrap();
-        let contract = FastAuth { guards: HashMap::from([("jwt".to_string(), addr.clone())]), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string() };
+        let contract = FastAuth { guards: HashMap::from([("jwt".to_string(), addr.clone())]), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.get_guard("jwt".to_string()), addr);
     }
 
     #[test]
     #[should_panic]
     fn get_non_existing_guard() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         contract.get_guard("jwt".to_string());
     }
 
     #[test]
     #[should_panic]
     fn get_guard_prefix_with_empty_guard_id() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         contract.get_guard_prefix("".to_string());
     }
 
     #[test]
     fn get_guard_prefix_without_prefix() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.get_guard_prefix("jwt".to_string()), "jwt");
 
         assert_eq!(contract.get_guard_prefix("jwt#".to_string()), "jwt");
@@ -384,38 +450,44 @@ mod tests {
 
     #[test]
     fn get_guard_prefix_with_prefix_and_single_suffix() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.get_guard_prefix("jwt#sub".to_string()), "jwt");
     }
 
     #[test]
     fn get_guard_prefix_with_prefix_and_multiple_suffixes() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.get_guard_prefix("jwt#sub#suffix".to_string()), "jwt");
     }
 
     #[test]
     fn owner() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.owner(), env::current_account_id());
     }
 
     #[test]
+    fn paused() {
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        assert_eq!(contract.paused(), false);
+    }
+    
+    #[test]
     fn mpc_address() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.mpc_address(), env::current_account_id());
     }
 
     #[test]
     fn mpc_key_version() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.mpc_key_version(), DEFAULT_MPC_KEY_VERSION);
     }
     
     #[test]
     fn version() {
         let version = "0.1.0".to_string();
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: version.clone() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: version.clone(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.version(), version);
     }
 }
