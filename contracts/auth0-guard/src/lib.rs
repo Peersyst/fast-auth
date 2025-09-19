@@ -10,6 +10,7 @@ use crate::rsa::rs256::verify_signature_from_components;
 pub mod rsa;
 pub mod jwt;
 
+const MAX_JWT_SIZE: u128 = 7168;
 const PRECISION: u32 = 2048;
 
 /// Custom claims structure for FastAuth JWT tokens
@@ -235,6 +236,10 @@ impl Auth0Guard {
     ///   * Boolean indicating if verification succeeded
     ///   * String containing either the subject claim or error message
     pub fn verify(&self, jwt: String, sign_payload: Vec<u8>) -> (bool, String) {
+        // Check JWT size limit (7KB = 7168 bytes)
+        if jwt.len() > MAX_JWT_SIZE as usize {
+            return (false, "JWT token exceeds maximum size limit".to_string());
+        }
         let valid = self.verify_token(jwt.clone());
 
         if !valid {
