@@ -282,6 +282,7 @@ async fn test_set_public_key_should_pass() -> Result<(), Box<dyn std::error::Err
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": owner_account.id(),
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "n_component": n.clone(),
             "e_component": e.clone()
         }))
@@ -336,6 +337,7 @@ async fn test_set_public_key_should_fail_non_owner() -> Result<(), Box<dyn std::
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": owner_account.id(),
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "n_component": n.clone(),
             "e_component": e.clone()
         }))
@@ -379,6 +381,7 @@ async fn test_set_public_key_should_fail_invalid_modulus_length() -> Result<(), 
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": owner_account.id(),
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "n_component": n.clone(),
             "e_component": e.clone()
         }))
@@ -422,6 +425,7 @@ async fn test_set_public_key_should_fail_even_modulus() -> Result<(), Box<dyn st
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": owner_account.id(),
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "n_component": n.clone(),
             "e_component": e.clone()
         }))
@@ -466,6 +470,7 @@ async fn test_set_public_key_should_fail_invalid_exponent() -> Result<(), Box<dy
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": owner_account.id(),
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "n_component": n.clone(),
             "e_component": e.clone()
         }))
@@ -509,6 +514,7 @@ async fn test_set_public_key_should_pass_with_exponent_1_0_1() -> Result<(), Box
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": owner_account.id(),
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "n_component": n.clone(),
             "e_component": e.clone()
         }))
@@ -541,6 +547,64 @@ async fn test_set_public_key_should_pass_with_exponent_1_0_1() -> Result<(), Box
     let result: (Vec<u8>, Vec<u8>) = outcome.json()?;
     assert_eq!(result.0, new_n);
     assert_eq!(result.1, e_3);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_verify_signature_should_fail_jwt_too_large() -> Result<(), Box<dyn std::error::Error>> {
+    let contract_wasm = near_workspaces::compile_project("./").await?;
+    let sandbox = near_workspaces::sandbox().await?;
+    let contract = sandbox.dev_deploy(&contract_wasm).await?;
+
+    println!("contract: {:?}", contract);
+
+    let user_account = sandbox.dev_create_account().await?;
+    println!("user_account: {:?}", user_account);
+
+    // Create the arrays separately to avoid JSON macro recursion issues
+    let n = vec![183, 68, 77, 78, 175, 25, 252, 16, 216, 124, 221, 80, 120, 196, 71, 60, 217, 168, 127, 211, 193, 143, 212, 221, 57, 61, 224, 49, 146, 77, 41, 83, 74, 185, 254, 100, 120, 138, 37, 171, 214, 128, 143, 107, 242, 123, 27, 11, 186, 161, 231, 36, 239, 230, 18, 23, 244, 255, 255, 65, 242, 40, 250, 103, 235, 139, 53, 99, 79, 157, 218, 194, 243, 176, 11, 44, 126, 122, 36, 199, 226, 5, 166, 173, 251, 161, 100, 148, 19, 233, 97, 115, 206, 145, 122, 128, 11, 246, 62, 44, 131, 12, 182, 70, 33, 122, 16, 96, 118, 248, 163, 185, 204, 246, 108, 96, 214, 227, 25, 219, 46, 66, 15, 132, 109, 138, 184, 135, 104, 160, 237, 110, 124, 79, 193, 102, 202, 76, 90, 170, 147, 136, 184, 76, 84, 153, 195, 80, 186, 83, 225, 157, 87, 56, 150, 61, 48, 114, 73, 247, 217, 177, 237, 249, 121, 205, 58, 205, 78, 195, 4, 159, 50, 74, 224, 238, 224, 137, 151, 8, 248, 46, 80, 185, 9, 50, 162, 192, 195, 84, 97, 29, 64, 111, 54, 228, 219, 65, 21, 104, 154, 105, 84, 119, 148, 92, 251, 225, 201, 36, 36, 223, 157, 9, 178, 93, 235, 64, 201, 144, 56, 12, 222, 61, 236, 100, 118, 51, 51, 129, 231, 220, 16, 109, 180, 57, 192, 86, 91, 126, 162, 251, 204, 35, 79, 34, 0, 127, 134, 142, 192, 82, 222, 95, 162, 215];
+    let e = vec![1, 0, 1];
+    
+    // Create a JWT token that exceeds 7KB (7168 bytes)
+    // We'll create a very large payload to make the JWT exceed the limit
+    let large_payload = "a".repeat(8000); // This will make the JWT much larger than 7KB
+    let large_token = format!("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.{}.signature", large_payload);
+    
+    let sign_payload = vec![18,0,0,0,102,97,45,103,117,105,108,108,101,109,46,116,101,115,116,110,101,116,1,39,120,2,50,42,247,243,223,152,97,251,28,153,38,154,132,184,123,152,150,247,216,87,53,76,42,127,19,128,8,182,209,251,27,180,20,37,185,247,35,6,71,31,96,110,66,121,105,228,25,250,206,183,191,36,109,75,105,97,29,40,142,8,244,92,41,186,126,86,111,0,0,20,0,0,0,98,111,115,105,115,116,104,101,110,101,97,114,46,116,101,115,116,110,101,116,52,21,83,75,220,170,104,179,136,244,168,118,25,92,224,68,131,152,152,41,245,193,229,182,8,136,86,237,141,217,157,155,1,0,0,0,3,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0];
+
+    let outcome = user_account
+        .call(contract.id(), "init")
+        .args_json(json!({
+            "owner": user_account.id(),
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
+            "n_component": n,
+            "e_component": e
+        }))
+        .transact()
+        .await?;
+
+    assert!(outcome.is_success());
+
+    let outcome = user_account
+        .call(contract.id(), "verify")
+        .gas(near_sdk::Gas::from_tgas(300))
+        .args_json(json!({
+            "jwt": large_token,
+            "sign_payload": sign_payload
+        }))
+        .transact()
+        .await?;
+
+    near_sdk::log!("outcome: {:?}", outcome);
+    
+    // The call should succeed but return false with error message about size limit
+    assert!(outcome.is_success());
+    
+    // Parse the result to check the error message
+    let result: (bool, String) = outcome.json()?;
+    assert_eq!(result.0, false);
+    assert!(result.1.contains("JWT token exceeds maximum size limit"));
 
     Ok(())
 }
