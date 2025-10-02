@@ -22,8 +22,7 @@ pub enum SignatureAlgorithm {
 
 impl SignatureAlgorithm {
     /// Parse algorithm from string
-    #[allow(clippy::should_implement_trait)]
-    pub fn from_str(algorithm: &str) -> Result<Self, String> {
+    pub fn parse_str(algorithm: &str) -> Result<Self, String> {
         match algorithm.to_lowercase().as_str() {
             "secp256k1" => Ok(SignatureAlgorithm::Secp256k1),
             "ecdsa" => Ok(SignatureAlgorithm::Ecdsa),
@@ -380,7 +379,7 @@ impl FastAuth {
         let attached_deposit = env::attached_deposit();
 
         // Validate algorithm
-        let signature_algorithm = match SignatureAlgorithm::from_str(&algorithm) {
+        let signature_algorithm = match SignatureAlgorithm::parse_str(&algorithm) {
             Ok(alg) => alg,
             Err(err) => env::panic_str(&err),
         };
@@ -666,19 +665,19 @@ mod tests {
     #[test]
     fn signature_algorithm_from_str() {
         // Test valid algorithms
-        assert_eq!(SignatureAlgorithm::from_str("secp256k1").unwrap(), SignatureAlgorithm::Secp256k1);
-        assert_eq!(SignatureAlgorithm::from_str("ecdsa").unwrap(), SignatureAlgorithm::Ecdsa);
-        assert_eq!(SignatureAlgorithm::from_str("eddsa").unwrap(), SignatureAlgorithm::Eddsa);
+        assert_eq!(SignatureAlgorithm::parse_str("secp256k1").unwrap(), SignatureAlgorithm::Secp256k1);
+        assert_eq!(SignatureAlgorithm::parse_str("ecdsa").unwrap(), SignatureAlgorithm::Ecdsa);
+        assert_eq!(SignatureAlgorithm::parse_str("eddsa").unwrap(), SignatureAlgorithm::Eddsa);
         
         // Test case insensitive
-        assert_eq!(SignatureAlgorithm::from_str("SECP256K1").unwrap(), SignatureAlgorithm::Secp256k1);
-        assert_eq!(SignatureAlgorithm::from_str("ECDSA").unwrap(), SignatureAlgorithm::Ecdsa);
-        assert_eq!(SignatureAlgorithm::from_str("EDDSA").unwrap(), SignatureAlgorithm::Eddsa);
-        assert_eq!(SignatureAlgorithm::from_str("EcDsA").unwrap(), SignatureAlgorithm::Ecdsa);
+        assert_eq!(SignatureAlgorithm::parse_str("SECP256K1").unwrap(), SignatureAlgorithm::Secp256k1);
+        assert_eq!(SignatureAlgorithm::parse_str("ECDSA").unwrap(), SignatureAlgorithm::Ecdsa);
+        assert_eq!(SignatureAlgorithm::parse_str("EDDSA").unwrap(), SignatureAlgorithm::Eddsa);
+        assert_eq!(SignatureAlgorithm::parse_str("EcDsA").unwrap(), SignatureAlgorithm::Ecdsa);
         
         // Test invalid algorithm
-        assert!(SignatureAlgorithm::from_str("invalid").is_err());
-        assert!(SignatureAlgorithm::from_str("").is_err());
-        assert!(SignatureAlgorithm::from_str("rsa").is_err());
+        assert!(SignatureAlgorithm::parse_str("invalid").is_err());
+        assert!(SignatureAlgorithm::parse_str("").is_err());
+        assert!(SignatureAlgorithm::parse_str("rsa").is_err());
     }
 }
