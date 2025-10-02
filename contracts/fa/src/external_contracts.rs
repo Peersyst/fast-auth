@@ -41,10 +41,17 @@ pub struct SignRequest {
 
 #[derive(Serialize, Deserialize, JsonSchema, BorshDeserialize, BorshSerialize)]
 #[serde(crate = "near_sdk::serde")]
+pub enum PayloadType {
+    Ecdsa(String),
+    Eddsa(String),
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, BorshDeserialize, BorshSerialize)]
+#[serde(crate = "near_sdk::serde")]
 pub struct SignRequestV2 {
     pub path: String,
     // Either one of the following two must be present.
-    pub payload_v2: Vec<u8>,
+    pub payload_v2: PayloadType,
     // Either one of the following two must be present.
     pub domain_id: u64,
 }

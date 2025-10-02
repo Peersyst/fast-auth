@@ -210,14 +210,14 @@ async fn test_sign() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     assert!(set_mpc_outcome.is_success());
 
-    // Call sign with a test payload (using new version by default)
+    // Call sign with a test payload (using ecdsa algorithm by default)
     let sign_outcome = contract
         .call("sign")
         .args_json(json!({
             "guard_id": "jwt#mock",
             "verify_payload": "test_payload",
             "sign_payload": vec![1, 2, 3],
-            "is_legacy": false
+            "algorithm": "ecdsa"
         }))
         .transact()
         .await?;
@@ -695,31 +695,44 @@ async fn test_verify_and_sign_blocked_when_paused() -> Result<(), Box<dyn std::e
         .await?;
     assert!(!verify_outcome.is_success());
 
-    // Test that sign is blocked when paused (new version)
+    // Test that sign is blocked when paused (ecdsa)
     let sign_outcome = contract
         .call("sign")
         .args_json(json!({
             "guard_id": "jwt#mock",
             "verify_payload": "test_payload",
             "sign_payload": vec![1, 2, 3],
-            "is_legacy": false
+            "algorithm": "ecdsa"
         }))
         .transact()
         .await?;
     assert!(!sign_outcome.is_success());
 
-    // Test that sign is blocked when paused (legacy version)
+    // Test that sign is blocked when paused (secp256k1)
     let sign_legacy_outcome = contract
         .call("sign")
         .args_json(json!({
             "guard_id": "jwt#mock",
             "verify_payload": "test_payload",
             "sign_payload": vec![1, 2, 3],
-            "is_legacy": true
+            "algorithm": "secp256k1"
         }))
         .transact()
         .await?;
     assert!(!sign_legacy_outcome.is_success());
+
+    // Test that sign is blocked when paused (eddsa)
+    let sign_eddsa_outcome = contract
+        .call("sign")
+        .args_json(json!({
+            "guard_id": "jwt#mock",
+            "verify_payload": "test_payload",
+            "sign_payload": vec![1, 2, 3],
+            "algorithm": "eddsa"
+        }))
+        .transact()
+        .await?;
+    assert!(!sign_eddsa_outcome.is_success());
 
     Ok(())
 }
@@ -958,14 +971,14 @@ async fn test_sign_legacy() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     assert!(set_version_outcome.is_success());
 
-    // Call sign with legacy version (is_legacy: true)
+    // Call sign with secp256k1 algorithm (legacy)
     let sign_outcome = contract
         .call("sign")
         .args_json(json!({
             "guard_id": "jwt#mock",
             "verify_payload": "test_payload",
             "sign_payload": vec![1, 2, 3],
-            "is_legacy": true
+            "algorithm": "secp256k1"
         }))
         .transact()
         .await?;
@@ -1030,14 +1043,14 @@ async fn test_sign_v2() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     assert!(set_domain_outcome.is_success());
 
-    // Call sign with new version (is_legacy: false)
+    // Call sign with ecdsa algorithm (new version)
     let sign_outcome = contract
         .call("sign")
         .args_json(json!({
             "guard_id": "jwt#mock",
             "verify_payload": "test_payload",
             "sign_payload": vec![1, 2, 3],
-            "is_legacy": false
+            "algorithm": "ecdsa"
         }))
         .transact()
         .await?;
@@ -1173,6 +1186,139 @@ async fn test_mpc_configuration_complete() -> Result<(), Box<dyn std::error::Err
         .await?
         .json::<u64>()?;
     assert_eq!(domain_id, new_domain_id);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_sign_eddsa_algorithm() -> Result<(), Box<dyn std::error::Error>> {
+    let contract_wasm = near_workspaces::compile_project("./").await?;
+    let sandbox = near_workspaces::sandbox().await?;
+    let owner = sandbox.dev_create_account().await?;
+    let contract = sandbox.dev_deploy(&contract_wasm).await?;
+
+    // Initialize contract with owner
+    let _ = contract.call("init")
+        .args_json(json!({
+            "init_guards": {},
+            "owner": owner.id(),
+            "pauser": owner.id()
+        }))
+        .transact()
+        .await?;
+
+    // Deploy a mock guard contract
+    let mock_guard = sandbox.dev_deploy(include_bytes!("../../target/wasm32-unknown-unknown/release/external_guard.wasm")).await?;
+    
+    // Deploy a mock mpc contract
+    let mock_mpc = sandbox.dev_deploy(include_bytes!("../../target/wasm32-unknown-unknown/release/mpc.wasm")).await?;
+    
+    // Add the mock guard to the contract
+    let add_outcome = owner.call(contract.id(), "add_guard")
+        .args_json(json!({
+            "guard_id": "jwt",
+            "guard_address": mock_guard.id()
+        }))
+        .transact()
+        .await?;
+    assert!(add_outcome.is_success());
+
+    // Set the MPC address
+    let set_mpc_outcome = owner.call(contract.id(), "set_mpc_address")
+        .args_json(json!({
+            "mpc_address": mock_mpc.id()
+        }))
+        .transact()
+        .await?;
+    assert!(set_mpc_outcome.is_success());
+
+    // Set MPC domain ID for new version
+    let set_domain_outcome = owner.call(contract.id(), "set_mpc_domain_id")
+        .args_json(json!({
+            "mpc_domain_id": 42u64
+        }))
+        .transact()
+        .await?;
+    assert!(set_domain_outcome.is_success());
+
+    // Call sign with eddsa algorithm
+    let sign_outcome = contract
+        .call("sign")
+        .args_json(json!({
+            "guard_id": "jwt#mock",
+            "verify_payload": "test_payload",
+            "sign_payload": vec![1, 2, 3],
+            "algorithm": "eddsa"
+        }))
+        .transact()
+        .await?;
+
+    assert!(sign_outcome.is_success());
+
+    // Wait for the promise to complete and check the callback result
+    let result = sign_outcome.outcome();
+    assert!(result.is_success());
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_sign_invalid_algorithm() -> Result<(), Box<dyn std::error::Error>> {
+    let contract_wasm = near_workspaces::compile_project("./").await?;
+    let sandbox = near_workspaces::sandbox().await?;
+    let owner = sandbox.dev_create_account().await?;
+    let contract = sandbox.dev_deploy(&contract_wasm).await?;
+
+    // Initialize contract with owner
+    let _ = contract.call("init")
+        .args_json(json!({
+            "init_guards": {},
+            "owner": owner.id(),
+            "pauser": owner.id()
+        }))
+        .transact()
+        .await?;
+
+    // Deploy a mock guard contract
+    let mock_guard = sandbox.dev_deploy(include_bytes!("../../target/wasm32-unknown-unknown/release/external_guard.wasm")).await?;
+    
+    // Add the mock guard to the contract
+    let add_outcome = owner.call(contract.id(), "add_guard")
+        .args_json(json!({
+            "guard_id": "jwt",
+            "guard_address": mock_guard.id()
+        }))
+        .transact()
+        .await?;
+    assert!(add_outcome.is_success());
+
+    // Test invalid algorithm - should fail
+    let sign_outcome = contract
+        .call("sign")
+        .args_json(json!({
+            "guard_id": "jwt#mock",
+            "verify_payload": "test_payload",
+            "sign_payload": vec![1, 2, 3],
+            "algorithm": "invalid_algorithm"
+        }))
+        .transact()
+        .await?;
+
+    assert!(!sign_outcome.is_success());
+
+    // Test case-insensitive algorithms - should work
+    let sign_outcome_upper = contract
+        .call("sign")
+        .args_json(json!({
+            "guard_id": "jwt#mock",
+            "verify_payload": "test_payload",
+            "sign_payload": vec![1, 2, 3],
+            "algorithm": "ECDSA"
+        }))
+        .transact()
+        .await?;
+
+    assert!(sign_outcome_upper.is_success());
 
     Ok(())
 }

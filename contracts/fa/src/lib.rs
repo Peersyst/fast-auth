@@ -4,12 +4,34 @@ use std::collections::HashMap;
 // Declare the interfaces module
 pub mod external_contracts;
 
-use crate::external_contracts::{external_guard, mpc_contract, mpc_contract_legacy, SignRequest, SignRequestV2, SignResponse};
+use crate::external_contracts::{external_guard, mpc_contract, mpc_contract_legacy, SignRequest, SignRequestV2, SignResponse, PayloadType};
 
 const DEFAULT_MPC_KEY_VERSION: u32 = 0;
 const DEFAULT_DOMAIN_ID: u64 = 0;
 
 const CONTRACT_VERSION: &str = "0.1.0";
+
+/// Supported signature algorithms
+#[derive(Debug, Clone, PartialEq)]
+#[near(serializers=[borsh, json])]
+pub enum SignatureAlgorithm {
+    Secp256k1,
+    Ecdsa,
+    Eddsa,
+}
+
+impl SignatureAlgorithm {
+    /// Parse algorithm from string
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str(algorithm: &str) -> Result<Self, String> {
+        match algorithm.to_lowercase().as_str() {
+            "secp256k1" => Ok(SignatureAlgorithm::Secp256k1),
+            "ecdsa" => Ok(SignatureAlgorithm::Ecdsa),
+            "eddsa" => Ok(SignatureAlgorithm::Eddsa),
+            _ => Err(format!("Unsupported algorithm: {}. Supported algorithms are: secp256k1, ecdsa, eddsa", algorithm)),
+        }
+    }
+}
 
 // Define the contract structure
 #[near(contract_state)]
@@ -342,19 +364,26 @@ impl FastAuth {
 
     // Signing methods
     
-    /// Initiates signing by verifying JWT then signing payload
+    /// Initiates signing with ECDSA algorithm by verifying JWT then signing payload
     /// # Arguments
     /// * `guard_id` - The guard ID for JWT verification
     /// * `verify_payload` - The JWT to verify
     /// * `sign_payload` - The data to sign
+    /// * `algorithm` - The signature algorithm to use ("secp256k1", "ecdsa", or "eddsa")
     /// # Returns
     /// * Promise chain for verification then signing
     /// # Notes
     /// * Requires an attached deposit for MPC costs
     #[payable]
-    pub fn sign(&mut self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>, is_legacy: bool) -> Promise {
+    pub fn sign(&mut self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>, algorithm: String) -> Promise {
         self.non_paused_only();
         let attached_deposit = env::attached_deposit();
+
+        // Validate algorithm
+        let signature_algorithm = match SignatureAlgorithm::from_str(&algorithm) {
+            Ok(alg) => alg,
+            Err(err) => env::panic_str(&err),
+        };
 
         let guard_prefix = self.get_guard_prefix(guard_id.clone());
         let guard_address = match self.guards.get(&guard_prefix) {
@@ -367,7 +396,7 @@ impl FastAuth {
         external_guard::ext(guard_address.clone())
         .verify(guard_id.clone(), verify_payload, sign_payload.clone())
         .then(Self::ext(env::current_account_id())
-            .on_verify_sign_callback(guard_id.clone(), sign_payload, attached_deposit, is_legacy)
+            .on_verify_sign_callback(guard_id.clone(), sign_payload, attached_deposit, signature_algorithm)
         )
     }
 
@@ -377,10 +406,10 @@ impl FastAuth {
     /// # Returns
     /// * Boolean indicating if the sub is valid
     fn verify_sub(&self, sub: String) -> bool {
-        !sub.contains('#') && sub.len() <= 256
+        sub.contains('#') && sub.len() <= 256
     }
 
-    /// Initiates signing by verifying JWT then signing payload
+    /// Initiates signing with legacy algorithm by verifying JWT then signing payload
     /// # Arguments
     /// * `guard_id` - The guard ID for JWT verification
     /// * `verify_payload` - The JWT to verify
@@ -389,7 +418,7 @@ impl FastAuth {
     /// * Promise chain for verification then signing
     /// # Notes
     /// * Requires an attached deposit for MPC costs
-    fn sign_request_legacy(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken) -> Promise {
+    fn sign_request_secp256k1(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken) -> Promise {
         let payload_hash = env::sha256(&sign_payload);
 
         let request: SignRequest = SignRequest {
@@ -406,11 +435,53 @@ impl FastAuth {
         )
     }
 
-    fn sign_request(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken) -> Promise {
+    /// Converts bytes to hex string
+    fn bytes_to_hex(&self, bytes: &[u8]) -> String {
+        bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    }
+
+    /// Initiates signing with ECDSA algorithm by verifying JWT then signing payload
+    /// # Arguments
+    /// * `guard_id` - The guard ID for JWT verification
+    /// * `verify_payload` - The JWT to verify
+    /// * `sign_payload` - The data to sign
+    /// # Returns
+    /// * Promise chain for verification then signing
+    /// # Notes
+    /// * Requires an attached deposit for MPC costs
+    fn sign_request_ecdsa(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken) -> Promise {
         let payload_hash = env::sha256(&sign_payload);
+        let hex_payload = self.bytes_to_hex(&payload_hash);
 
         let request: SignRequestV2 = SignRequestV2 {
-            payload_v2: payload_hash,
+            payload_v2: PayloadType::Ecdsa(hex_payload),
+            path: format!("{}#{}", guard_id.clone(), user),
+            domain_id: self.mpc_domain_id,
+        };
+
+        mpc_contract::ext(self.mpc_address.clone())
+            .with_attached_deposit(attached_deposit)
+            .sign(request)
+            .then(Self::ext(env::current_account_id())
+                .on_sign_callback()
+        )
+    }
+
+    /// Initiates signing by verifying JWT then signing payload
+    /// # Arguments
+    /// * `guard_id` - The guard ID for JWT verification
+    /// * `verify_payload` - The JWT to verify
+    /// * `sign_payload` - The data to sign
+    /// # Returns
+    /// * Promise chain for verification then signing
+    /// # Notes
+    /// * Requires an attached deposit for MPC costs
+    fn sign_request_eddsa(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken) -> Promise {
+        let payload_hash = env::sha256(&sign_payload);
+        let hex_payload = self.bytes_to_hex(&payload_hash);
+
+        let request: SignRequestV2 = SignRequestV2 {
+            payload_v2: PayloadType::Eddsa(hex_payload),
             path: format!("{}#{}", guard_id.clone(), user),
             domain_id: self.mpc_domain_id,
         };
@@ -427,11 +498,12 @@ impl FastAuth {
     /// # Arguments
     /// * `sign_payload` - The data to sign
     /// * `attached_deposit` - Deposit to forward to MPC
+    /// * `algorithm` - The signature algorithm to use
     /// * `call_result` - Verification result containing success and user ID
     /// # Returns
     /// * Promise for MPC signing or empty promise if verification failed
     #[private]
-    pub fn on_verify_sign_callback(&mut self, guard_id: String, sign_payload: Vec<u8>, attached_deposit: NearToken, is_legacy: bool, #[callback_result] call_result: Result<(bool, String), PromiseError>) -> Promise {
+    pub fn on_verify_sign_callback(&mut self, guard_id: String, sign_payload: Vec<u8>, attached_deposit: NearToken, algorithm: SignatureAlgorithm, #[callback_result] call_result: Result<(bool, String), PromiseError>) -> Promise {
         if call_result.is_err() {
             env::log_str("Guard verification failed");
             return Promise::new(env::current_account_id());
@@ -444,10 +516,16 @@ impl FastAuth {
 
         assert!(self.verify_sub(user.clone()), "Invalid sub");
 
-        if is_legacy {
-            self.sign_request_legacy(guard_id, user, sign_payload, attached_deposit)
-        } else {
-            self.sign_request(guard_id, user, sign_payload, attached_deposit)
+        match algorithm {
+            SignatureAlgorithm::Secp256k1 => {
+                self.sign_request_secp256k1(guard_id, user, sign_payload, attached_deposit)
+            },
+            SignatureAlgorithm::Ecdsa => {
+                self.sign_request_ecdsa(guard_id, user, sign_payload, attached_deposit)
+            },
+            SignatureAlgorithm::Eddsa => {
+                self.sign_request_eddsa(guard_id, user, sign_payload, attached_deposit)
+            }
         }
     }
 
@@ -563,5 +641,44 @@ mod tests {
         let version = "0.1.0".to_string();
         let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: version.clone(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.version(), version);
+    }
+
+    #[test]
+    fn bytes_to_hex() {
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        
+        // Test empty bytes
+        assert_eq!(contract.bytes_to_hex(&[]), "");
+        
+        // Test single byte
+        assert_eq!(contract.bytes_to_hex(&[0x00]), "00");
+        assert_eq!(contract.bytes_to_hex(&[0xff]), "ff");
+        
+        // Test multiple bytes
+        assert_eq!(contract.bytes_to_hex(&[0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef]), "0123456789abcdef");
+        
+        // Test typical hash (32 bytes)
+        let hash = vec![0x12; 32];
+        let expected = "1212121212121212121212121212121212121212121212121212121212121212";
+        assert_eq!(contract.bytes_to_hex(&hash), expected);
+    }
+
+    #[test]
+    fn signature_algorithm_from_str() {
+        // Test valid algorithms
+        assert_eq!(SignatureAlgorithm::from_str("secp256k1").unwrap(), SignatureAlgorithm::Secp256k1);
+        assert_eq!(SignatureAlgorithm::from_str("ecdsa").unwrap(), SignatureAlgorithm::Ecdsa);
+        assert_eq!(SignatureAlgorithm::from_str("eddsa").unwrap(), SignatureAlgorithm::Eddsa);
+        
+        // Test case insensitive
+        assert_eq!(SignatureAlgorithm::from_str("SECP256K1").unwrap(), SignatureAlgorithm::Secp256k1);
+        assert_eq!(SignatureAlgorithm::from_str("ECDSA").unwrap(), SignatureAlgorithm::Ecdsa);
+        assert_eq!(SignatureAlgorithm::from_str("EDDSA").unwrap(), SignatureAlgorithm::Eddsa);
+        assert_eq!(SignatureAlgorithm::from_str("EcDsA").unwrap(), SignatureAlgorithm::Ecdsa);
+        
+        // Test invalid algorithm
+        assert!(SignatureAlgorithm::from_str("invalid").is_err());
+        assert!(SignatureAlgorithm::from_str("").is_err());
+        assert!(SignatureAlgorithm::from_str("rsa").is_err());
     }
 }
