@@ -980,7 +980,7 @@ async fn test_sign_legacy() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tokio::test]
-async fn test_sign() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_sign_v2() -> Result<(), Box<dyn std::error::Error>> {
     let contract_wasm = near_workspaces::compile_project("./").await?;
     let sandbox = near_workspaces::sandbox().await?;
     let owner = sandbox.dev_create_account().await?;

@@ -551,6 +551,12 @@ mod tests {
         let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.mpc_key_version(), DEFAULT_MPC_KEY_VERSION);
     }
+
+    #[test]
+    fn mpc_domain_id() {
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        assert_eq!(contract.mpc_domain_id(), DEFAULT_DOMAIN_ID);
+    }
     
     #[test]
     fn version() {
