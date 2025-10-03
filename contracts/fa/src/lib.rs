@@ -405,7 +405,7 @@ impl FastAuth {
     /// # Returns
     /// * Boolean indicating if the sub is valid
     fn verify_sub(&self, sub: String) -> bool {
-        sub.contains('#') && sub.len() <= 256
+        !sub.contains('#') && sub.len() <= 256
     }
 
     /// Initiates signing with legacy algorithm by verifying JWT then signing payload
