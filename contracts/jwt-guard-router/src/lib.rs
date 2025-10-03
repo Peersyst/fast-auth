@@ -52,6 +52,29 @@ impl JwtGuardRouter {
         }
     }
 
+    /// Updates the contract
+    /// # Panics
+    /// * If the caller is not the owner
+    /// # Returns
+    /// * Promise resolving to the contract update result
+    pub fn update_contract(&self) -> Promise {
+        self.only_owner();
+        let code = env::input().expect("Error: No input").to_vec();
+
+        // Deploy the contract on self
+        Promise::new(env::current_account_id())
+            .deploy_contract(code)
+            // When the contract update requires a state migration, you need to make a function call to 
+            // the `migrate` function, to handle all the state migrations
+            // .function_call(
+            //     "migrate".to_string(),
+            //     NO_ARGS,
+            //     NearToken::from_near(0),
+            //     CALL_GAS,
+            // )
+            .as_return()
+    }
+
     /// Checks if caller is contract owner, panics if not
     fn only_owner(&self) {
         assert_eq!(env::predecessor_account_id(), self.owner, "Only the owner can call this function");
@@ -301,4 +324,37 @@ mod tests {
         // Call verify which should make cross-contract call to the guard
         contract.verify("jwt#my-guard.com".to_string(), jwt, sign_payload);
     }
+
+    #[test]
+    fn test_update_contract_owner_success() {
+        let owner = accounts(1);
+        let context = get_context(owner.clone());
+        testing_env!(context.build());
+
+        let contract = JwtGuardRouter {
+            guards: LookupMap::new(MAP_KEY),
+            owner: owner.clone(),
+        };
+
+        // This should not panic for owner (input handling is tested in integration tests)
+        let _promise = contract.update_contract();
+    }
+
+    #[test]
+    #[should_panic(expected = "Only the owner can call this function")]
+    fn test_update_contract_non_owner_fails() {
+        let owner = accounts(1);
+        let non_owner = accounts(2);
+        let context = get_context(non_owner.clone());
+        testing_env!(context.build());
+
+        let contract = JwtGuardRouter {
+            guards: LookupMap::new(MAP_KEY),
+            owner: owner.clone(),
+        };
+
+        // This should panic because non-owner is calling
+        contract.update_contract();
+    }
+
 }

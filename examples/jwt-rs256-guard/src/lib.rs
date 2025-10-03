@@ -1,5 +1,5 @@
 // Find all our documentation at https://docs.near.org
-use near_sdk::{near, AccountId, env};
+use near_sdk::{near, AccountId, env, Promise};
 use near_sdk::serde_json;
 use serde::{Deserialize, Serialize};
 
@@ -80,6 +80,29 @@ impl JwtRS256Guard {
             owner,
             issuer,
         }
+    }
+
+    /// Updates the contract
+    /// # Panics
+    /// * If the caller is not the owner
+    /// # Returns
+    /// * Promise resolving to the contract update result
+    pub fn update_contract(&self) -> Promise {
+        self.only_owner();
+        let code = env::input().expect("Error: No input").to_vec();
+
+        // Deploy the contract on self
+        Promise::new(env::current_account_id())
+            .deploy_contract(code)
+            // When the contract update requires a state migration, you need to make a function call to 
+            // the `migrate` function, to handle all the state migrations
+            // .function_call(
+            //     "migrate".to_string(),
+            //     NO_ARGS,
+            //     NearToken::from_near(0),
+            //     CALL_GAS,
+            // )
+            .as_return()
     }
 
    /// Checks if the caller is the contract owner

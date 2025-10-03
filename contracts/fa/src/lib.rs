@@ -180,6 +180,28 @@ impl FastAuth {
         self.mpc_key_version
     }
 
+    /// Updates the contract
+    /// # Panics
+    /// * If the caller is not the owner
+    /// # Returns
+    /// * Promise resolving to the contract update result
+    pub fn update_contract(&self) -> Promise {
+        self.only_owner();
+        let code = env::input().expect("Error: No input").to_vec();
+
+        // Deploy the contract on self
+        Promise::new(env::current_account_id())
+            .deploy_contract(code)
+            // When the contract update requires a state migration, you need to make a function call to 
+            // the `migrate` function, to handle all the state migrations
+            // .function_call(
+            //     "migrate".to_string(),
+            //     NO_ARGS,
+            //     NearToken::from_near(0),
+            //     CALL_GAS,
+            // )
+            .as_return()
+    }
 
     // FastAuth Guard methods
 
@@ -501,4 +523,61 @@ mod tests {
         let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: version.clone(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.version(), version);
     }
+
+    #[test]
+    fn update_contract_owner_success() {
+        use near_sdk::test_utils::{accounts, VMContextBuilder};
+        use near_sdk::testing_env;
+
+        let owner = accounts(1);
+        let mut context = VMContextBuilder::new();
+        context
+            .current_account_id(accounts(0))
+            .signer_account_id(owner.clone())
+            .predecessor_account_id(owner.clone());
+        testing_env!(context.build());
+
+        let contract = FastAuth { 
+            guards: HashMap::new(), 
+            owner: owner.clone(), 
+            mpc_address: env::current_account_id(), 
+            mpc_key_version: DEFAULT_MPC_KEY_VERSION, 
+            version: CONTRACT_VERSION.to_string(), 
+            paused: false, 
+            pauser: env::current_account_id() 
+        };
+
+        // This should not panic for owner (input handling is tested in integration tests)
+        let _promise = contract.update_contract();
+    }
+
+    #[test]
+    #[should_panic(expected = "Only the owner can call this function")]
+    fn update_contract_non_owner_fails() {
+        use near_sdk::test_utils::{accounts, VMContextBuilder};
+        use near_sdk::testing_env;
+
+        let owner = accounts(1);
+        let non_owner = accounts(2);
+        let mut context = VMContextBuilder::new();
+        context
+            .current_account_id(accounts(0))
+            .signer_account_id(non_owner.clone())
+            .predecessor_account_id(non_owner.clone());
+        testing_env!(context.build());
+
+        let contract = FastAuth { 
+            guards: HashMap::new(), 
+            owner: owner.clone(), 
+            mpc_address: env::current_account_id(), 
+            mpc_key_version: DEFAULT_MPC_KEY_VERSION, 
+            version: CONTRACT_VERSION.to_string(), 
+            paused: false, 
+            pauser: env::current_account_id() 
+        };
+
+        // This should panic because non-owner is calling
+        contract.update_contract();
+    }
+
 }
