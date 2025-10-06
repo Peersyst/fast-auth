@@ -8,6 +8,8 @@ use crate::external_contracts::{external_guard, mpc_contract, SignRequest, SignR
 
 const DEFAULT_MPC_KEY_VERSION: u32 = 0;
 
+const MIGRATION_TGAS: u64 = 10;
+
 const CONTRACT_VERSION: &str = "0.1.0";
 
 // Define the contract structure
@@ -194,13 +196,38 @@ impl FastAuth {
             .deploy_contract(code)
             // When the contract update requires a state migration, you need to make a function call to 
             // the `migrate` function, to handle all the state migrations
-            // .function_call(
-            //     "migrate".to_string(),
-            //     NO_ARGS,
-            //     NearToken::from_near(0),
-            //     CALL_GAS,
-            // )
+            .function_call(
+                "migrate".to_string(),
+                vec![],
+                NearToken::from_near(0),
+                Gas::from_tgas(MIGRATION_TGAS),
+            )
             .as_return()
+    }
+
+    /// Migrates the contract state
+    /// # Returns
+    /// * The migrated contract state
+    #[private]
+    #[init(ignore_state)]
+    pub fn migrate() -> Self {
+        env::log_str("migrate");
+        if env::state_exists() {
+            env::log_str("state exists: migrating state");
+            let prev_state = env::state_read::<Self>().expect("Error: No previous state");
+            Self {
+                guards: prev_state.guards,
+                owner: prev_state.owner,
+                mpc_address: prev_state.mpc_address,
+                mpc_key_version: prev_state.mpc_key_version,
+                version: prev_state.version,
+                pauser: prev_state.pauser,
+                paused: prev_state.paused,
+            }
+        } else {
+            env::log_str("state does not exist: initializing default state");
+            Self::default()
+        }
     }
 
     // FastAuth Guard methods

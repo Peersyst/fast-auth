@@ -1,5 +1,5 @@
 // Find all our documentation at https://docs.near.org
-use near_sdk::{near, AccountId, env, NearToken, Promise, PromiseError};
+use near_sdk::{near, AccountId, env, NearToken, Promise, PromiseError, Gas  };
 use near_sdk::store::LookupMap;
 use crate::external_contract::jwt_guard;
 
@@ -9,6 +9,8 @@ pub const GUARD_NAME_MAX_BYTES_LENGTH: u128 = 2048;
 pub const MAX_ACCOUNT_BYTES_LENGTH: u128 = 64;
 // NOTE: 1 NEAR
 pub const CONTINGENCY_DEPOSIT: u128 = 1_000_000_000_000_000_000_000_000;
+
+const MIGRATION_TGAS: u64 = 10;
 
 const MAP_KEY: &[u8] = b"g";
 
@@ -66,13 +68,33 @@ impl JwtGuardRouter {
             .deploy_contract(code)
             // When the contract update requires a state migration, you need to make a function call to 
             // the `migrate` function, to handle all the state migrations
-            // .function_call(
-            //     "migrate".to_string(),
-            //     NO_ARGS,
-            //     NearToken::from_near(0),
-            //     CALL_GAS,
-            // )
+            .function_call(
+                "migrate".to_string(),
+                vec![],
+                NearToken::from_near(0),
+                Gas::from_tgas(MIGRATION_TGAS),
+            )
             .as_return()
+    }
+
+    /// Migrates the contract state
+    /// # Returns
+    /// * The migrated contract state
+    #[private]
+    #[init(ignore_state)]
+    pub fn migrate() -> Self {
+        env::log_str("migrate");
+        if env::state_exists() {
+            env::log_str("state exists: migrating state");
+            let prev_state = env::state_read::<Self>().expect("Error: No previous state");
+            Self {
+                guards: prev_state.guards,
+                owner: prev_state.owner,
+            }
+        } else {
+            env::log_str("state does not exist: initializing default state");
+            Self::default()
+        }
     }
 
     /// Checks if caller is contract owner, panics if not

@@ -1,5 +1,5 @@
 // Find all our documentation at https://docs.near.org
-use near_sdk::{near, AccountId, env, Promise};
+use near_sdk::{near, AccountId, env, Promise, NearToken, Gas};
 use near_sdk::serde_json;
 use serde::{Deserialize, Serialize};
 use crypto_bigint::{BoxedUint, Odd};
@@ -11,6 +11,7 @@ pub mod rsa;
 pub mod jwt;
 
 const MAX_JWT_SIZE: u128 = 7168;
+const MIGRATION_TGAS: u64 = 10;
 const PRECISION: u32 = 2048;
 
 /// Custom claims structure for FastAuth JWT tokens
@@ -94,13 +95,35 @@ impl Auth0Guard {
             .deploy_contract(code)
             // When the contract update requires a state migration, you need to make a function call to 
             // the `migrate` function, to handle all the state migrations
-            // .function_call(
-            //     "migrate".to_string(),
-            //     NO_ARGS,
-            //     NearToken::from_near(0),
-            //     CALL_GAS,
-            // )
+            .function_call(
+                "migrate".to_string(),
+                vec![],
+                NearToken::from_near(0),
+                Gas::from_tgas(MIGRATION_TGAS),
+            )
             .as_return()
+    }
+
+    /// Migrates the contract state
+    /// # Returns
+    /// * The migrated contract state
+    #[private]
+    #[init(ignore_state)]
+    pub fn migrate() -> Self {
+        env::log_str("migrate");
+        if env::state_exists() {
+            env::log_str("state exists: migrating state");
+            let prev_state = env::state_read::<Self>().expect("Error: No previous state");
+            Self {
+                owner: prev_state.owner,
+                issuer: prev_state.issuer,
+                n_component: prev_state.n_component,
+                e_component: prev_state.e_component,
+            }
+        } else {
+            env::log_str("state does not exist: initializing default state");
+            Self::default()
+        }
     }
 
    /// Checks if the caller is the contract owner
