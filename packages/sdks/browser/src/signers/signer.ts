@@ -123,6 +123,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
                 guard_id: request.guardId,
                 verify_payload: request.verifyPayload,
                 sign_payload: request.signPayload,
+                algorithm: "ecdsa",
             },
             300000000000000n,
             BigInt(parseNearAmount("1")!),

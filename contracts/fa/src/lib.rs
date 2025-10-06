@@ -4,13 +4,35 @@ use std::collections::HashMap;
 // Declare the interfaces module
 pub mod external_contracts;
 
-use crate::external_contracts::{external_guard, mpc_contract, SignRequest, SignResponse};
+use crate::external_contracts::{external_guard, mpc_contract, mpc_contract_legacy, SignRequest, SignRequestV2, SignResponse, PayloadType};
 
 const DEFAULT_MPC_KEY_VERSION: u32 = 0;
+const DEFAULT_DOMAIN_ID: u64 = 0;
 
 const MIGRATION_TGAS: u64 = 10;
 
 const CONTRACT_VERSION: &str = "0.1.0";
+
+/// Supported signature algorithms
+#[derive(Debug, Clone, PartialEq)]
+#[near(serializers=[borsh, json])]
+pub enum SignatureAlgorithm {
+    Secp256k1,
+    Ecdsa,
+    Eddsa,
+}
+
+impl SignatureAlgorithm {
+    /// Parse algorithm from string
+    pub fn parse_str(algorithm: &str) -> Result<Self, String> {
+        match algorithm.to_lowercase().as_str() {
+            "secp256k1" => Ok(SignatureAlgorithm::Secp256k1),
+            "ecdsa" => Ok(SignatureAlgorithm::Ecdsa),
+            "eddsa" => Ok(SignatureAlgorithm::Eddsa),
+            _ => Err(format!("Unsupported algorithm: {}. Supported algorithms are: secp256k1, ecdsa, eddsa", algorithm)),
+        }
+    }
+}
 
 // Define the contract structure
 #[near(contract_state)]
@@ -19,6 +41,7 @@ pub struct FastAuth {
     owner: AccountId,
     mpc_address: AccountId,
     mpc_key_version: u32,
+    mpc_domain_id: u64,
     version: String,
     pauser: AccountId,
     paused: bool,
@@ -32,6 +55,7 @@ impl Default for FastAuth {
             owner: env::current_account_id(),
             mpc_address: env::current_account_id(),
             mpc_key_version: DEFAULT_MPC_KEY_VERSION,
+            mpc_domain_id: DEFAULT_DOMAIN_ID,
             version: CONTRACT_VERSION.to_string(),
             pauser: env::current_account_id(),
             paused: false,
@@ -134,6 +158,7 @@ impl FastAuth {
             owner,
             mpc_address: env::current_account_id(),
             mpc_key_version: DEFAULT_MPC_KEY_VERSION,
+            mpc_domain_id: DEFAULT_DOMAIN_ID,
             version: CONTRACT_VERSION.to_string(),
             pauser,
             paused: false,
@@ -219,6 +244,7 @@ impl FastAuth {
                 guards: prev_state.guards,
                 owner: prev_state.owner,
                 mpc_address: prev_state.mpc_address,
+                mpc_domain_id: prev_state.mpc_domain_id,
                 mpc_key_version: prev_state.mpc_key_version,
                 version: prev_state.version,
                 pauser: prev_state.pauser,
@@ -230,6 +256,26 @@ impl FastAuth {
         }
     }
 
+    /// Sets the MPC domain ID
+    /// # Arguments
+    /// * `mpc_domain_id` - The new MPC domain ID number
+    /// # Panics
+    /// * If the caller is not the owner
+    pub fn set_mpc_domain_id(&mut self, mpc_domain_id: u64) {
+        self.non_paused_only();
+        self.only_owner();
+        env::log_str(&format!("Setting MPC domain ID to {}", mpc_domain_id));
+        self.mpc_domain_id = mpc_domain_id;
+    }
+
+    /// Gets the current MPC domain ID
+    /// # Returns
+    /// * The current MPC domain ID number
+    pub fn mpc_domain_id(&self) -> u64 {
+        self.non_paused_only();
+        self.mpc_domain_id
+    }
+    
     // FastAuth Guard methods
 
     /// Gets the contract address for a guard
@@ -368,19 +414,26 @@ impl FastAuth {
 
     // Signing methods
     
-    /// Initiates signing by verifying JWT then signing payload
+    /// Initiates signing with ECDSA algorithm by verifying JWT then signing payload
     /// # Arguments
     /// * `guard_id` - The guard ID for JWT verification
     /// * `verify_payload` - The JWT to verify
     /// * `sign_payload` - The data to sign
+    /// * `algorithm` - The signature algorithm to use ("secp256k1", "ecdsa", or "eddsa")
     /// # Returns
     /// * Promise chain for verification then signing
     /// # Notes
     /// * Requires an attached deposit for MPC costs
     #[payable]
-    pub fn sign(&mut self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>) -> Promise {
+    pub fn sign(&mut self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>, algorithm: String) -> Promise {
         self.non_paused_only();
         let attached_deposit = env::attached_deposit();
+
+        // Validate algorithm
+        let signature_algorithm = match SignatureAlgorithm::parse_str(&algorithm) {
+            Ok(alg) => alg,
+            Err(err) => env::panic_str(&err),
+        };
 
         let guard_prefix = self.get_guard_prefix(guard_id.clone());
         let guard_address = match self.guards.get(&guard_prefix) {
@@ -393,7 +446,7 @@ impl FastAuth {
         external_guard::ext(guard_address.clone())
         .verify(guard_id.clone(), verify_payload, sign_payload.clone())
         .then(Self::ext(env::current_account_id())
-            .on_verify_sign_callback(guard_id.clone(), sign_payload, attached_deposit)
+            .on_verify_sign_callback(guard_id.clone(), sign_payload, attached_deposit, signature_algorithm)
         )
     }
 
@@ -406,15 +459,101 @@ impl FastAuth {
         !sub.contains('#') && sub.len() <= 256
     }
 
+    /// Initiates signing with legacy algorithm by verifying JWT then signing payload
+    /// # Arguments
+    /// * `guard_id` - The guard ID for JWT verification
+    /// * `verify_payload` - The JWT to verify
+    /// * `sign_payload` - The data to sign
+    /// # Returns
+    /// * Promise chain for verification then signing
+    /// # Notes
+    /// * Requires an attached deposit for MPC costs
+    fn sign_request_secp256k1(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken) -> Promise {
+        let payload_hash = env::sha256(&sign_payload);
+
+        let request: SignRequest = SignRequest {
+            payload: payload_hash,
+            path: format!("{}#{}", guard_id.clone(), user),
+            key_version: self.mpc_key_version,
+        };
+
+        mpc_contract_legacy::ext(self.mpc_address.clone())
+            .with_attached_deposit(attached_deposit)
+            .sign(request)
+            .then(Self::ext(env::current_account_id())
+                .on_sign_callback()
+        )
+    }
+
+    /// Converts bytes to hex string
+    fn bytes_to_hex(&self, bytes: &[u8]) -> String {
+        bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    }
+
+    /// Initiates signing with ECDSA algorithm by verifying JWT then signing payload
+    /// # Arguments
+    /// * `guard_id` - The guard ID for JWT verification
+    /// * `verify_payload` - The JWT to verify
+    /// * `sign_payload` - The data to sign
+    /// # Returns
+    /// * Promise chain for verification then signing
+    /// # Notes
+    /// * Requires an attached deposit for MPC costs
+    fn sign_request_ecdsa(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken) -> Promise {
+        let payload_hash = env::sha256(&sign_payload);
+        let hex_payload = self.bytes_to_hex(&payload_hash);
+
+        let request: SignRequestV2 = SignRequestV2 {
+            payload_v2: PayloadType::Ecdsa(hex_payload),
+            path: format!("{}#{}", guard_id.clone(), user),
+            domain_id: self.mpc_domain_id,
+        };
+
+        mpc_contract::ext(self.mpc_address.clone())
+            .with_attached_deposit(attached_deposit)
+            .sign(request)
+            .then(Self::ext(env::current_account_id())
+                .on_sign_callback()
+        )
+    }
+
+    /// Initiates signing by verifying JWT then signing payload
+    /// # Arguments
+    /// * `guard_id` - The guard ID for JWT verification
+    /// * `verify_payload` - The JWT to verify
+    /// * `sign_payload` - The data to sign
+    /// # Returns
+    /// * Promise chain for verification then signing
+    /// # Notes
+    /// * Requires an attached deposit for MPC costs
+    fn sign_request_eddsa(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken) -> Promise {
+        let payload_hash = env::sha256(&sign_payload);
+        let hex_payload = self.bytes_to_hex(&payload_hash);
+
+        let request: SignRequestV2 = SignRequestV2 {
+            payload_v2: PayloadType::Eddsa(hex_payload),
+            path: format!("{}#{}", guard_id.clone(), user),
+            domain_id: self.mpc_domain_id,
+        };
+
+        mpc_contract::ext(self.mpc_address.clone())
+            .with_attached_deposit(attached_deposit)
+            .sign(request)
+            .then(Self::ext(env::current_account_id())
+                .on_sign_callback()
+        )
+    }
+
     /// Processes verification and initiates MPC signing
     /// # Arguments
     /// * `sign_payload` - The data to sign
     /// * `attached_deposit` - Deposit to forward to MPC
+    /// * `algorithm` - The signature algorithm to use
     /// * `call_result` - Verification result containing success and user ID
     /// # Returns
     /// * Promise for MPC signing or empty promise if verification failed
     #[private]
-    pub fn on_verify_sign_callback(&mut self, guard_id: String, sign_payload: Vec<u8>, attached_deposit: NearToken, #[callback_result] call_result: Result<(bool, String), PromiseError>) -> Promise {
+    pub fn on_verify_sign_callback(&mut self, guard_id: String, sign_payload: Vec<u8>, attached_deposit: NearToken, algorithm: SignatureAlgorithm, #[callback_result] call_result: Result<(bool, String), PromiseError>) -> Promise {
         if call_result.is_err() {
             env::log_str("Guard verification failed");
             return Promise::new(env::current_account_id());
@@ -427,20 +566,17 @@ impl FastAuth {
 
         assert!(self.verify_sub(user.clone()), "Invalid sub");
 
-        let payload_hash = env::sha256(&sign_payload);
-
-        let request = SignRequest {
-            payload: payload_hash,
-            path: format!("{}#{}", guard_id.clone(), user),
-            key_version: self.mpc_key_version,
-        };
-
-        mpc_contract::ext(self.mpc_address.clone())
-            .with_attached_deposit(attached_deposit)
-            .sign(request)
-            .then(Self::ext(env::current_account_id())
-                .on_sign_callback()
-        )
+        match algorithm {
+            SignatureAlgorithm::Secp256k1 => {
+                self.sign_request_secp256k1(guard_id, user, sign_payload, attached_deposit)
+            },
+            SignatureAlgorithm::Ecdsa => {
+                self.sign_request_ecdsa(guard_id, user, sign_payload, attached_deposit)
+            },
+            SignatureAlgorithm::Eddsa => {
+                self.sign_request_eddsa(guard_id, user, sign_payload, attached_deposit)
+            }
+        }
     }
 
     /// Processes MPC signing result
@@ -482,27 +618,27 @@ mod tests {
     #[test]
     fn get_existing_guard() {
         let addr: AccountId = "jwt.fast-auth.near".parse().unwrap();
-        let contract = FastAuth { guards: HashMap::from([("jwt".to_string(), addr.clone())]), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::from([("jwt".to_string(), addr.clone())]), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.get_guard("jwt".to_string()), addr);
     }
 
     #[test]
     #[should_panic]
     fn get_non_existing_guard() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         contract.get_guard("jwt".to_string());
     }
 
     #[test]
     #[should_panic]
     fn get_guard_prefix_with_empty_guard_id() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         contract.get_guard_prefix("".to_string());
     }
 
     #[test]
     fn get_guard_prefix_without_prefix() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.get_guard_prefix("jwt".to_string()), "jwt");
 
         assert_eq!(contract.get_guard_prefix("jwt#".to_string()), "jwt");
@@ -510,44 +646,50 @@ mod tests {
 
     #[test]
     fn get_guard_prefix_with_prefix_and_single_suffix() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.get_guard_prefix("jwt#sub".to_string()), "jwt");
     }
 
     #[test]
     fn get_guard_prefix_with_prefix_and_multiple_suffixes() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.get_guard_prefix("jwt#sub#suffix".to_string()), "jwt");
     }
 
     #[test]
     fn owner() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.owner(), env::current_account_id());
     }
 
     #[test]
     fn paused() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.paused(), false);
     }
     
     #[test]
     fn mpc_address() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.mpc_address(), env::current_account_id());
     }
 
     #[test]
     fn mpc_key_version() {
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.mpc_key_version(), DEFAULT_MPC_KEY_VERSION);
+    }
+
+    #[test]
+    fn mpc_domain_id() {
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        assert_eq!(contract.mpc_domain_id(), DEFAULT_DOMAIN_ID);
     }
     
     #[test]
     fn version() {
         let version = "0.1.0".to_string();
-        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, version: version.clone(), paused: false, pauser: env::current_account_id() };
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: version.clone(), paused: false, pauser: env::current_account_id() };
         assert_eq!(contract.version(), version);
     }
 
@@ -568,6 +710,7 @@ mod tests {
             guards: HashMap::new(), 
             owner: owner.clone(), 
             mpc_address: env::current_account_id(), 
+            mpc_domain_id: DEFAULT_DOMAIN_ID,
             mpc_key_version: DEFAULT_MPC_KEY_VERSION, 
             version: CONTRACT_VERSION.to_string(), 
             paused: false, 
@@ -597,6 +740,7 @@ mod tests {
             guards: HashMap::new(), 
             owner: owner.clone(), 
             mpc_address: env::current_account_id(), 
+            mpc_domain_id: DEFAULT_DOMAIN_ID,
             mpc_key_version: DEFAULT_MPC_KEY_VERSION, 
             version: CONTRACT_VERSION.to_string(), 
             paused: false, 
@@ -607,4 +751,42 @@ mod tests {
         contract.update_contract();
     }
 
+    #[test]
+    fn bytes_to_hex() {
+        let contract = FastAuth { guards: HashMap::new(), owner: env::current_account_id(), mpc_address: env::current_account_id(), mpc_key_version: DEFAULT_MPC_KEY_VERSION, mpc_domain_id: DEFAULT_DOMAIN_ID, version: CONTRACT_VERSION.to_string(), paused: false, pauser: env::current_account_id() };
+        
+        // Test empty bytes
+        assert_eq!(contract.bytes_to_hex(&[]), "");
+        
+        // Test single byte
+        assert_eq!(contract.bytes_to_hex(&[0x00]), "00");
+        assert_eq!(contract.bytes_to_hex(&[0xff]), "ff");
+        
+        // Test multiple bytes
+        assert_eq!(contract.bytes_to_hex(&[0x01, 0x23, 0x45, 0x67, 0x89, 0xab, 0xcd, 0xef]), "0123456789abcdef");
+        
+        // Test typical hash (32 bytes)
+        let hash = vec![0x12; 32];
+        let expected = "1212121212121212121212121212121212121212121212121212121212121212";
+        assert_eq!(contract.bytes_to_hex(&hash), expected);
+    }
+
+    #[test]
+    fn signature_algorithm_from_str() {
+        // Test valid algorithms
+        assert_eq!(SignatureAlgorithm::parse_str("secp256k1").unwrap(), SignatureAlgorithm::Secp256k1);
+        assert_eq!(SignatureAlgorithm::parse_str("ecdsa").unwrap(), SignatureAlgorithm::Ecdsa);
+        assert_eq!(SignatureAlgorithm::parse_str("eddsa").unwrap(), SignatureAlgorithm::Eddsa);
+        
+        // Test case insensitive
+        assert_eq!(SignatureAlgorithm::parse_str("SECP256K1").unwrap(), SignatureAlgorithm::Secp256k1);
+        assert_eq!(SignatureAlgorithm::parse_str("ECDSA").unwrap(), SignatureAlgorithm::Ecdsa);
+        assert_eq!(SignatureAlgorithm::parse_str("EDDSA").unwrap(), SignatureAlgorithm::Eddsa);
+        assert_eq!(SignatureAlgorithm::parse_str("EcDsA").unwrap(), SignatureAlgorithm::Ecdsa);
+        
+        // Test invalid algorithm
+        assert!(SignatureAlgorithm::parse_str("invalid").is_err());
+        assert!(SignatureAlgorithm::parse_str("").is_err());
+        assert!(SignatureAlgorithm::parse_str("rsa").is_err());
+    }
 }
