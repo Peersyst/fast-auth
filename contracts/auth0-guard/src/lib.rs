@@ -1,5 +1,5 @@
 // Find all our documentation at https://docs.near.org
-use near_sdk::{near, AccountId, env};
+use near_sdk::{near, AccountId, env, Promise, NearToken, Gas};
 use near_sdk::serde_json;
 use serde::{Deserialize, Serialize};
 use crypto_bigint::{BoxedUint, Odd};
@@ -11,6 +11,7 @@ pub mod rsa;
 pub mod jwt;
 
 const MAX_JWT_SIZE: u128 = 7168;
+const MIGRATION_TGAS: u64 = 10;
 const PRECISION: u32 = 2048;
 
 /// Custom claims structure for FastAuth JWT tokens
@@ -77,6 +78,51 @@ impl Auth0Guard {
             e_component,
             owner,
             issuer,
+        }
+    }
+
+    /// Updates the contract
+    /// # Panics
+    /// * If the caller is not the owner
+    /// # Returns
+    /// * Promise resolving to the contract update result
+    pub fn update_contract(&self) -> Promise {
+        self.only_owner();
+        let code = env::input().expect("Error: No input").to_vec();
+
+        // Deploy the contract on self
+        Promise::new(env::current_account_id())
+            .deploy_contract(code)
+            // When the contract update requires a state migration, you need to make a function call to 
+            // the `migrate` function, to handle all the state migrations
+            .function_call(
+                "migrate".to_string(),
+                vec![],
+                NearToken::from_near(0),
+                Gas::from_tgas(MIGRATION_TGAS),
+            )
+            .as_return()
+    }
+
+    /// Migrates the contract state
+    /// # Returns
+    /// * The migrated contract state
+    #[private]
+    #[init(ignore_state)]
+    pub fn migrate() -> Self {
+        env::log_str("migrate");
+        if env::state_exists() {
+            env::log_str("state exists: migrating state");
+            let prev_state = env::state_read::<Self>().expect("Error: No previous state");
+            Self {
+                owner: prev_state.owner,
+                issuer: prev_state.issuer,
+                n_component: prev_state.n_component,
+                e_component: prev_state.e_component,
+            }
+        } else {
+            env::log_str("state does not exist: initializing default state");
+            Self::default()
         }
     }
 
@@ -308,4 +354,55 @@ mod tests {
         let result = contract.verify("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.eyJmYXR4biI6WzE4LDAsMCwwLDEwMiw5Nyw0NSwxMDMsMTE3LDEwNSwxMDgsMTA4LDEwMSwxMDksNDYsMTE2LDEwMSwxMTUsMTE2LDExMCwxMDEsMTE2LDEsMzksMTIwLDIsNTAsNDIsMjQ3LDI0MywyMjMsMTUyLDk3LDI1MSwyOCwxNTMsMzgsMTU0LDEzMiwxODQsMTIzLDE1MiwxNTAsMjQ3LDIxNiw4Nyw1Myw3Niw0MiwxMjcsMTksMTI4LDgsMTgyLDIwOSwyNTEsMjcsMTgwLDIwMzcsMTg1LDI0NywzNSw2LDcxLDMxLDk2LDExMCw2NiwxMjEsMTA1LDIyOCwyNSwyNTAyMDYsMTgzLDE5MSwzNiwxMDksNzUsMTA1LDk3LDI5LDQwLDE0Miw4LDI0NCw5Miw0MSwxODYsMTI2LDg2LDExMSwwLDAsMjAsMCwwLDAsOTgsMTEyLDExNSwxMDUsMTE1LDExNiwxMDQsMTAxLDExMCwxMDEsOTcsMTE0LDQ2LDExNiwxMDEsMTE1LDExNiwxMTAxMDEsMTE2LDUyLDIxLDgzLDc1LDIyMCwxNzAsMTA0LDE3OSwxMzYsMjQ0LDE2OCwxMTgsMjUsOTIsMjI0LDY4LDEzMSwxNTIsMTUyLDQxLDI0NSwxOTMsMjI5LDE4Miw4LDEzNiw4NiwyMzcsMTQxLDIxNywxNTcsMTU1LDEsMCwwLDAsMywxMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMF0sImlzcyI6Imh0dHBzOi8vZGV2LWdiMWg1eXJlcGI4NWpzdHoudXMuYXV0aDAuY29tLyIsInN1YiI6Imdvb2dsZS1vYXV0aDJ8MTA1NDQ2OTI1MjM1NjMyNzc3Mzk3IiwiYXVkIjpbImh0dHBzOi8vZmFzdC1hdXRoLXBvYy5jb20iLCJodHRwczovL2Rldi1nYjFoNXlyZXBiODVqc3R6LnVzLmF1dGgwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3NDY2OTczODYsImV4cCI6MTc0Njc4Mzc4Niwic2NvcGUiOiJvcGVuaWQgdHJhbnNhY3Rpb246c2VuZC10cmFuc2FjdGlvbiIsImF6cCI6IjdEbWhXdXVnVVZKRE5TSjRlZE5PVEZtMGM5OHhzOWhwIn0.XChULVjx06hAGdBND54qFWr9KVdP95GXLc4Y8KzC9Fpj4Ky6E76ijbjE9ATVpSylKKMHrpVxjQHMoszyPbkHA759mf9x3gr5mOEkUy2WR8N35SYTZkbB77l8pA5o_zxOS9SKewBrGyZWpij0OyiM-Eqom3nwer3Aw3UPFyVB2ucpQkW-eJVrlNpKB80xhr1lCRBiHvPEnNH2Mk5Ok3x-uRzPTRq__hMjuY3F_udF4cEbeJGoWA2QGr1gTeUMKJyGvSThEk2xxq5xagXDA6FPq5DHi1Q9GxUlA3pPeb7zhNseUoGm1AdCTlqqGwgakUkuWj7I5miBjNu6qd-fQfkGXQ".to_string(), vec![18,0,0,0,102,97,45,103,117,105,108,108,101,109,46,116,101,115,116,110,101,116,1,39,120,2,50,42,247,243,223,152,97,251,28,153,38,154,132,184,123,152,150,247,216,87,53,76,42,127,19,128,8,182,209,251,27,180,20,37,185,247,35,6,71,31,96,110,66,121,105,228,25,250,206,183,191,36,109,75,105,97,29,40,142,8,244,92,41,186,126,86,111,0,0,20,0,0,0,98,111,115,105,115,116,104,101,110,101,97,114,46,116,101,115,116,110,101,116,52,21,83,75,220,170,104,179,136,244,168,118,25,92,224,68,131,152,152,41,245,193,229,182,8,136,86,237,141,217,157,155,1,0,0,0,3,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);
         assert_eq!(result, (false, "".to_string()));
     }
+
+    #[test]
+    fn test_update_contract_owner_success() {
+        use near_sdk::test_utils::{accounts, VMContextBuilder};
+        use near_sdk::testing_env;
+
+        let owner = accounts(1);
+        let mut context = VMContextBuilder::new();
+        context
+            .current_account_id(accounts(0))
+            .signer_account_id(owner.clone())
+            .predecessor_account_id(owner.clone());
+        testing_env!(context.build());
+
+        let contract = Auth0Guard { 
+            n_component: vec![1, 2, 3], 
+            e_component: vec![1, 0, 1], 
+            owner: owner.clone(),
+            issuer: "https://test.auth0.com/".to_string(),
+        };
+
+        // This should not panic for owner (input handling is tested in integration tests)
+        let _promise = contract.update_contract();
+    }
+
+    #[test]
+    #[should_panic(expected = "Only the owner can call this function")]
+    fn test_update_contract_non_owner_fails() {
+        use near_sdk::test_utils::{accounts, VMContextBuilder};
+        use near_sdk::testing_env;
+
+        let owner = accounts(1);
+        let non_owner = accounts(2);
+        let mut context = VMContextBuilder::new();
+        context
+            .current_account_id(accounts(0))
+            .signer_account_id(non_owner.clone())
+            .predecessor_account_id(non_owner.clone());
+        testing_env!(context.build());
+
+        let contract = Auth0Guard { 
+            n_component: vec![1, 2, 3], 
+            e_component: vec![1, 0, 1], 
+            owner: owner.clone(),
+            issuer: "https://test.auth0.com/".to_string(),
+        };
+
+        // This should panic because non-owner is calling
+        contract.update_contract();
+    }
+
 }

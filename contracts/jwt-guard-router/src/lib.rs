@@ -1,5 +1,5 @@
 // Find all our documentation at https://docs.near.org
-use near_sdk::{near, AccountId, env, NearToken, Promise, PromiseError};
+use near_sdk::{near, AccountId, env, NearToken, Promise, PromiseError, Gas  };
 use near_sdk::store::LookupMap;
 use crate::external_contract::jwt_guard;
 
@@ -9,6 +9,8 @@ pub const GUARD_NAME_MAX_BYTES_LENGTH: u128 = 2048;
 pub const MAX_ACCOUNT_BYTES_LENGTH: u128 = 64;
 // NOTE: 1 NEAR
 pub const CONTINGENCY_DEPOSIT: u128 = 1_000_000_000_000_000_000_000_000;
+
+const MIGRATION_TGAS: u64 = 10;
 
 const MAP_KEY: &[u8] = b"g";
 
@@ -49,6 +51,49 @@ impl JwtGuardRouter {
         Self {
             guards: LookupMap::new(MAP_KEY),
             owner,
+        }
+    }
+
+    /// Updates the contract
+    /// # Panics
+    /// * If the caller is not the owner
+    /// # Returns
+    /// * Promise resolving to the contract update result
+    pub fn update_contract(&self) -> Promise {
+        self.only_owner();
+        let code = env::input().expect("Error: No input").to_vec();
+
+        // Deploy the contract on self
+        Promise::new(env::current_account_id())
+            .deploy_contract(code)
+            // When the contract update requires a state migration, you need to make a function call to 
+            // the `migrate` function, to handle all the state migrations
+            .function_call(
+                "migrate".to_string(),
+                vec![],
+                NearToken::from_near(0),
+                Gas::from_tgas(MIGRATION_TGAS),
+            )
+            .as_return()
+    }
+
+    /// Migrates the contract state
+    /// # Returns
+    /// * The migrated contract state
+    #[private]
+    #[init(ignore_state)]
+    pub fn migrate() -> Self {
+        env::log_str("migrate");
+        if env::state_exists() {
+            env::log_str("state exists: migrating state");
+            let prev_state = env::state_read::<Self>().expect("Error: No previous state");
+            Self {
+                guards: prev_state.guards,
+                owner: prev_state.owner,
+            }
+        } else {
+            env::log_str("state does not exist: initializing default state");
+            Self::default()
         }
     }
 
@@ -301,4 +346,37 @@ mod tests {
         // Call verify which should make cross-contract call to the guard
         contract.verify("jwt#my-guard.com".to_string(), jwt, sign_payload);
     }
+
+    #[test]
+    fn test_update_contract_owner_success() {
+        let owner = accounts(1);
+        let context = get_context(owner.clone());
+        testing_env!(context.build());
+
+        let contract = JwtGuardRouter {
+            guards: LookupMap::new(MAP_KEY),
+            owner: owner.clone(),
+        };
+
+        // This should not panic for owner (input handling is tested in integration tests)
+        let _promise = contract.update_contract();
+    }
+
+    #[test]
+    #[should_panic(expected = "Only the owner can call this function")]
+    fn test_update_contract_non_owner_fails() {
+        let owner = accounts(1);
+        let non_owner = accounts(2);
+        let context = get_context(non_owner.clone());
+        testing_env!(context.build());
+
+        let contract = JwtGuardRouter {
+            guards: LookupMap::new(MAP_KEY),
+            owner: owner.clone(),
+        };
+
+        // This should panic because non-owner is calling
+        contract.update_contract();
+    }
+
 }

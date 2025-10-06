@@ -1,5 +1,5 @@
 // Find all our documentation at https://docs.near.org
-use near_sdk::{near, AccountId, env};
+use near_sdk::{near, AccountId, env, Promise};
 use near_sdk::serde_json;
 use serde::{Deserialize, Serialize};
 
@@ -8,6 +8,8 @@ use crate::rsa::rs256::verify_signature_from_components;
 
 pub mod rsa;
 pub mod jwt;
+
+const MIGRATION_TGAS: u64 = 10;
 
 /// Custom claims structure for FastAuth JWT tokens
 /// 
@@ -79,6 +81,51 @@ impl JwtRS256Guard {
             e_component,
             owner,
             issuer,
+        }
+    }
+
+     /// Updates the contract
+    /// # Panics
+    /// * If the caller is not the owner
+    /// # Returns
+    /// * Promise resolving to the contract update result
+    pub fn update_contract(&self) -> Promise {
+        self.only_owner();
+        let code = env::input().expect("Error: No input").to_vec();
+
+        // Deploy the contract on self
+        Promise::new(env::current_account_id())
+            .deploy_contract(code)
+            // When the contract update requires a state migration, you need to make a function call to 
+            // the `migrate` function, to handle all the state migrations
+            .function_call(
+                "migrate".to_string(),
+                vec![],
+                NearToken::from_near(0),
+                Gas::from_tgas(MIGRATION_TGAS),
+            )
+            .as_return()
+    }
+
+    /// Migrates the contract state
+    /// # Returns
+    /// * The migrated contract state
+    #[private]
+    #[init(ignore_state)]
+    pub fn migrate() -> Self {
+        env::log_str("migrate");
+        if env::state_exists() {
+            env::log_str("state exists: migrating state");
+            let prev_state = env::state_read::<Self>().expect("Error: No previous state");
+            Self {
+                owner: prev_state.owner,
+                issuer: prev_state.issuer,
+                n_component: prev_state.n_component,
+                e_component: prev_state.e_component,
+            }
+        } else {
+            env::log_str("state does not exist: initializing default state");
+            Self::default()
         }
     }
 
