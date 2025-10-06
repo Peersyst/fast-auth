@@ -7,6 +7,7 @@ export type SignatureRequest = {
     guardId: string;
     verifyPayload: string;
     signPayload: Uint8Array;
+    algorithm?: "secp256k1" | "ecdsa";
 };
 
 export type RequestSignatureOptions = {

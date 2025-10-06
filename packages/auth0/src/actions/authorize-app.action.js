@@ -235,7 +235,6 @@ exports.onExecutePostLogin = async (event, api) => {
 
     if (hasKeys(query, [TRANSACTION_KEY, IMAGE_URL_KEY, NAME_KEY])) {
         const transaction = parseTransaction(event.request.query.transaction);
-        console.log(transaction.publicKey, transaction.actions);
         api.prompt.render(event.secrets.authorize_app_modal, {
             fields: {
                 imageUrl: event.request.query.imageUrl,

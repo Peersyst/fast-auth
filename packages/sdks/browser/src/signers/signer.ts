@@ -123,22 +123,22 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
                 guard_id: request.guardId,
                 verify_payload: request.verifyPayload,
                 sign_payload: request.signPayload,
-                algorithm: "ecdsa",
+                algorithm: request.algorithm ?? "eddsa",
             },
             300000000000000n,
-            BigInt(parseNearAmount("1")!),
+            BigInt(parseNearAmount("2")!),
         );
     }
 
     /**
      * Sign a message and send it to the network.
      */
-    async sendTransaction(transaction: Transaction, signature: FastAuthSignature) {
-        const sig = signature.recover();
+    async sendTransaction(transaction: Transaction, signature: FastAuthSignature, algorithm: "secp256k1" | "ed25519" = "ed25519") {
+        const sig = signature.recover(algorithm);
         const signedTransaction = new SignedTransaction({
             transaction: transaction,
             signature: new Signature({
-                keyType: KeyType.SECP256K1,
+                keyType: algorithm === "secp256k1" ? KeyType.SECP256K1 : KeyType.ED25519,
                 data: sig,
             }),
         });
@@ -153,10 +153,11 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
      */
     async getPublicKey(): Promise<PublicKey> {
         // Call the fast auth contract with the path
+        console.log("path", JSON.stringify({ path: this.path, predecessor: this.options.fastAuthContractId, domain: 1 }));
         const publicKey = await this.viewFunction({
             contractId: this.options.mpcContractId,
             methodName: "derived_public_key",
-            args: { path: this.path, predecessor: this.options.fastAuthContractId },
+            args: { path: this.path, predecessor: this.options.fastAuthContractId, domain_id: 1 },
         });
 
         return publicKey;

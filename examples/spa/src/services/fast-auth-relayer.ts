@@ -123,6 +123,10 @@ class FastAuthRelayer {
     }
 
     async createTransfer(signerId: string, signerPublicKey: PublicKey, receiverId: string, amount: string) {
+        console.log("signerId", signerId);
+        console.log("signerPublicKey", signerPublicKey);
+        console.log("receiverId", receiverId);
+        console.log("amount", amount);
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
         const accessKey = await this.getConnection().connection.provider.query<AccessKeyView>(
@@ -155,7 +159,7 @@ class FastAuthRelayer {
         const tx = createTransaction(
             this.accountId,
             this.keyPair.getPublicKey(),
-            "fa-test-v2.testnet",
+            "fast-auth-001.testnet",
             nonce,
             [action],
             base_decode(accessKey.block_hash),

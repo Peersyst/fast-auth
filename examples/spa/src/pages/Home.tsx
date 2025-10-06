@@ -40,10 +40,12 @@ const Home: React.FC = () => {
                             setLoggedIn(false);
                             console.error(error);
                         });
-
+                    
+                        console.log("signer", signer);
                     signer
                         ?.getSignatureRequest()
                         .then((signatureRequest) => {
+                            console.log("signatureRequest", signatureRequest);
                             if ("signPayload" in signatureRequest && signatureRequest.signPayload) {
                                 setSignatureRequest(signatureRequest);
                                 setExpandedStep(3);
@@ -86,7 +88,7 @@ const Home: React.FC = () => {
             throw new Error("Transaction not created");
         }
         await signer?.requestTransactionSignature({
-            redirectUri: "http://localhost:3000",
+            // redirectUri: "http://localhost:3000",
             imageUrl:
                 "https://media.licdn.com/dms/image/v2/D4D0BAQH5KL-Ge_0iug/company-logo_200_200/company-logo_200_200/0/1696280807541/peersyst_technology_logo?e=2147483647&v=beta&t=uFYvQ5g6HDoIprYhNNV_zC7tzlBkvmPRkWzuLuDpHtc",
             name: "Peersyst Technology",
@@ -120,6 +122,8 @@ const Home: React.FC = () => {
         }
         setSending(true);
         try {
+            console.log("result", result);
+            console.log("signatureRequest", signatureRequest);
             const tx = Transaction.decode(signatureRequest?.signPayload);
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
