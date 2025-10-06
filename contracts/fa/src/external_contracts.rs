@@ -24,11 +24,25 @@ pub struct Scalar {
 
 #[derive(Serialize, Deserialize, JsonSchema, BorshDeserialize, BorshSerialize, Debug, Clone)]
 #[serde(crate = "near_sdk::serde")]
-pub struct SignResponse {
-    scheme: String,
-    big_r: AffinePoint,
-    s: Scalar,
-    recovery_id: u8, 
+pub struct EcdsaSignResponse {
+    pub scheme: String,
+    pub big_r: AffinePoint,
+    pub s: Scalar,
+    pub recovery_id: u8, 
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, BorshDeserialize, BorshSerialize, Debug, Clone)]
+#[serde(crate = "near_sdk::serde")]
+pub struct EdDsaSignResponse {
+    pub scheme: String,
+    pub signature: Vec<u8>,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema, BorshDeserialize, BorshSerialize, Debug, Clone)]
+#[serde(untagged, crate = "near_sdk::serde")]
+pub enum SignResponseAny {
+    Ecdsa(EcdsaSignResponse),
+    EdDsa(EdDsaSignResponse),
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, BorshDeserialize, BorshSerialize)]
@@ -66,10 +80,10 @@ pub struct Bytes<const MIN_LEN: usize, const MAX_LEN: usize>(Vec<u8>);
 
 #[ext_contract(mpc_contract_legacy)]
 pub trait MPCContractLegacy {
-    fn sign(&self, request: SignRequest) -> PromiseOrValue<SignResponse>;
+    fn sign(&self, request: SignRequest) -> PromiseOrValue<SignResponseAny>;
 }
 
 #[ext_contract(mpc_contract)]
 pub trait MPCContract {
-    fn sign(&self, request: SignRequestV2) -> PromiseOrValue<SignResponse>;
+    fn sign(&self, request: SignRequestV2) -> PromiseOrValue<SignResponseAny>;
 }

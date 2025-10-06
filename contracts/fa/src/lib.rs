@@ -4,10 +4,10 @@ use std::collections::HashMap;
 // Declare the interfaces module
 pub mod external_contracts;
 
-use crate::external_contracts::{external_guard, mpc_contract, mpc_contract_legacy, SignRequest, SignRequestV2, SignResponse, PayloadType};
+use crate::external_contracts::{external_guard, mpc_contract, mpc_contract_legacy, SignRequest, SignRequestV2, SignResponseAny, PayloadType};
 
 const DEFAULT_MPC_KEY_VERSION: u32 = 0;
-const DEFAULT_DOMAIN_ID: u64 = 0;
+const DEFAULT_DOMAIN_ID: u64 = 1;
 
 const MIGRATION_TGAS: u64 = 10;
 
@@ -553,12 +553,12 @@ impl FastAuth {
     /// # Returns
     /// * Promise for MPC signing or empty promise if verification failed
     #[private]
-    pub fn on_verify_sign_callback(&mut self, guard_id: String, sign_payload: Vec<u8>, attached_deposit: NearToken, algorithm: SignatureAlgorithm, #[callback_result] call_result: Result<(bool, String), PromiseError>) -> Promise {
+    pub fn on_verify_sign_callback(&mut self, guard_id: String, sign_payload: Vec<u8>, attached_deposit: NearToken, algorithm: SignatureAlgorithm, #[callback_result] call_result: Result<(bool, String, String), PromiseError>) -> Promise {
         if call_result.is_err() {
             env::log_str("Guard verification failed");
             return Promise::new(env::current_account_id());
         } 
-        let (verification_result, user) = call_result.unwrap();
+        let (verification_result, user, _guard) = call_result.unwrap();
         if !verification_result {
             env::log_str("Guard verification rejected");
             return Promise::new(env::current_account_id());
@@ -585,7 +585,7 @@ impl FastAuth {
     /// # Returns
     /// * Option containing signature if successful
     #[private]
-    pub fn on_sign_callback(&mut self, #[callback_result] call_result: Result<SignResponse, PromiseError>) -> Option<SignResponse> {
+    pub fn on_sign_callback(&mut self, #[callback_result] call_result: Result<SignResponseAny, PromiseError>) -> Option<SignResponseAny> {
         if call_result.is_err() {
             env::log_str("MPC signing failed");
             return None;

@@ -220,16 +220,6 @@ impl JwtGuardRouter {
             .then(Self::ext(env::current_account_id()).on_verify_callback(guard_name))
     }
 
-    /// Formats a path for a guard
-    /// # Arguments
-    /// * `guard_name` - Name of the guard
-    /// * `sub` - Substring to append to the guard name
-    /// # Returns
-    /// * The formatted path
-    fn format_path(&self, guard_name: String, sub: String) -> String {
-        format!("{}#{}", guard_name, sub)
-    }
-
     /// Callback that processes the verification result
     /// # Arguments
     /// * `guard_name` - Name of the guard that was used for verification
@@ -237,17 +227,16 @@ impl JwtGuardRouter {
     ///   * Boolean indicating verification success
     ///   * String containing the user identifier
     /// # Returns
-    pub fn on_verify_callback(&mut self, guard_name: String, #[callback_result] call_result: Result<(bool, String), PromiseError>) -> (bool, String) {
+    pub fn on_verify_callback(&mut self, guard_name: String, #[callback_result] call_result: Result<(bool, String), PromiseError>) -> (bool, String, String) {
         if call_result.is_err() {
             env::panic_str(&format!("Error verifying JWT: {:?}", call_result.err().unwrap()));
         }
 
         let (valid, sub) = call_result.unwrap();
         if valid {
-            let result = self.format_path(guard_name, sub);
-            (true, result)
+            (true, sub, guard_name)
         } else {
-            (false, "".to_string())
+            (false, "".to_string(), "".to_string())
         }
     }
 }
