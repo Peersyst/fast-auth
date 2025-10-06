@@ -11,7 +11,7 @@ const DEFAULT_DOMAIN_ID: u64 = 0;
 
 const MIGRATION_TGAS: u64 = 10;
 
-const CONTRACT_VERSION: &str = "0.1.0";
+const CONTRACT_VERSION: &str = "1.0.0";
 
 /// Supported signature algorithms
 #[derive(Debug, Clone, PartialEq)]
