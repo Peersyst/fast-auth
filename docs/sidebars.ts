@@ -80,6 +80,16 @@ const sidebars: SidebarsConfig = {
         },
         "integrations/custom-backend-express",
     ],
+    resourcesSidebar: [
+        "resources/overview",
+        {
+            type: "html",
+            value: "Contracts",
+            className: "sidebar-label",
+        },
+        "resources/contracts_mainnet",
+        "resources/contracts_testnet",
+    ],
 };
 
 export default sidebars;
