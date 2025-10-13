@@ -1,6 +1,5 @@
 import { Action, functionCall, Signature, SignedTransaction, Transaction } from "near-api-js/lib/transaction";
 import { CreateAccountOptions, CreateSignActionOptions, FastAuthSignerOptions, SignatureRequest } from "./signer.types";
-import { KeyType } from "near-api-js/lib/utils/key_pair";
 import { IFastAuthProvider } from "./providers/fast-auth.provider";
 import { Connection } from "near-api-js";
 import { CodeResult } from "near-api-js/lib/providers/provider";
@@ -10,7 +9,9 @@ import { FastAuthSignature } from "../common/signature/signature";
 import { FastAuthSignerError } from "./signer.errors";
 import { FastAuthSignerErrorCodes } from "./signer.error-codes";
 import { Algorithm } from "../common/signature/types";
-import { getDomainId } from "./utils";
+import { getDomainIdOrFail } from "./utils";
+import { getKeyTypeOrFail } from "./utils/key-type";
+
 
 export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     private path: string;
@@ -122,13 +123,15 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
      */
     async createSignAction(request: SignatureRequest, options?: CreateSignActionOptions): Promise<Action> {
         const { gas = 300000000000000n, deposit = 0n } = options ?? {};
+        const { guardId, verifyPayload, signPayload, algorithm = "eddsa" } = request;
+        
         return functionCall(
             "sign",
             {
-                guard_id: request.guardId,
-                verify_payload: request.verifyPayload,
-                sign_payload: request.signPayload,
-                algorithm: request.algorithm ?? "eddsa",
+                guard_id: guardId,
+                verify_payload: verifyPayload,
+                sign_payload: signPayload,
+                algorithm: algorithm,
             },
             gas,
             deposit,
@@ -147,7 +150,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
         const signedTransaction = new SignedTransaction({
             transaction: transaction,
             signature: new Signature({
-                keyType: algorithm === "secp256k1" ? KeyType.SECP256K1 : KeyType.ED25519,
+                keyType: getKeyTypeOrFail(algorithm),
                 data: sig,
             }),
         });
@@ -165,7 +168,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
         const publicKey = await this.viewFunction({
             contractId: this.options.mpcContractId,
             methodName: "derived_public_key",
-            args: { path: this.path, predecessor: this.options.fastAuthContractId, domain_id: getDomainId(algorithm) },
+            args: { path: this.path, predecessor: this.options.fastAuthContractId, domain_id: getDomainIdOrFail(algorithm) },
         });
 
         return publicKey;

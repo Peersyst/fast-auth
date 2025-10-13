@@ -1,18 +1,14 @@
+import { KeyType } from "near-api-js/lib/utils/key_pair";
+import { FastAuthSignerError } from "../signer.errors";
 import { Algorithm } from "../../common/signature/types";
 import { FastAuthSignerErrorCodes } from "../signer.error-codes";
-import { FastAuthSignerError } from "../signer.errors";
 
-/**
- * Get the domain ID for the algorithm.
- * @param algorithm The algorithm.
- * @returns The domain ID.
- */
-export function getDomainIdOrFail(algorithm: Algorithm): number {
+export function getKeyTypeOrFail(algorithm: Algorithm): KeyType {
     switch (algorithm) {
         case "secp256k1":
-            return 0;
+            return KeyType.EDDSA;
         case "ed25519":
-            return 1;
+            return KeyType.ECDSA;
         default:
             throw new FastAuthSignerError(FastAuthSignerErrorCodes.UNSUPPORTED_ALGORITHM);
     }
