@@ -73,8 +73,8 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
      * @returns The action to create the account.
      */
     async createAccount(accountId: string, options?: CreateAccountOptions): Promise<Action> {
-        const { gas = 300000000000000n, deposit = 0n } = options ?? {};
-        const publicKey = await this.getPublicKey();
+        const { gas = 300000000000000n, deposit = 0n, algorithm = "ed25519" } = options ?? {};
+        const publicKey = await this.getPublicKey(algorithm);
         return functionCall(
             "create_account",
             {

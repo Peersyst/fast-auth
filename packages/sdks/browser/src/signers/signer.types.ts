@@ -1,12 +1,14 @@
+import { Algorithm } from "../common/signature/types";
+
 export type NearCallOptions = {
     gas?: bigint;
     deposit?: bigint;
 };
 
-export type CreateAccountOptions = NearCallOptions;
+export type CreateAccountOptions = NearCallOptions & { algorithm?: Algorithm };
 export type CreateSignActionOptions = NearCallOptions;
 
-export type MPCContractAlgorithm = "eddsa" | "ecdsa";
+export type MPCContractAlgorithm = "secp256k1" | "eddsa" | "ecdsa";
 
 export type SignatureRequest = {
     guardId: string;
