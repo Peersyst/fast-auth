@@ -6,11 +6,13 @@ export type NearCallOptions = {
 export type CreateAccountOptions = NearCallOptions;
 export type CreateSignActionOptions = NearCallOptions;
 
+export type MPCContractAlgorithm = "eddsa" | "ecdsa";
+
 export type SignatureRequest = {
     guardId: string;
     verifyPayload: string;
     signPayload: Uint8Array;
-    algorithm?: "secp256k1" | "ecdsa";
+    algorithm?: MPCContractAlgorithm;
 };
 
 export type RequestSignatureOptions = {

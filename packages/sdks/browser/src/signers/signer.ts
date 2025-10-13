@@ -122,13 +122,14 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
      */
     async createSignAction(request: SignatureRequest, options?: CreateSignActionOptions): Promise<Action> {
         const { gas = 300000000000000n, deposit = 0n } = options ?? {};
+        const { algorithm = "eddsa" } = request;
         return functionCall(
             "sign",
             {
                 guard_id: request.guardId,
                 verify_payload: request.verifyPayload,
                 sign_payload: request.signPayload,
-                algorithm: request.algorithm ?? "eddsa",
+                algorithm: algorithm,
             },
             gas,
             deposit,
