@@ -4,5 +4,5 @@
     "audience": "https://api.fast-auth.com",
     "appOrigin": "http://localhost:3000",
     "mpcContractId": "v1.signer-prod.testnet",
-    "fastAuthContractId": "fast-auth-001.testnet"
+    "fastAuthContractId": "fast-auth-002.testnet"
 }

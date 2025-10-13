@@ -159,7 +159,7 @@ class FastAuthRelayer {
         const tx = createTransaction(
             this.accountId,
             this.keyPair.getPublicKey(),
-            "fast-auth-001.testnet",
+            "fast-auth-002.testnet",
             nonce,
             [action],
             base_decode(accessKey.block_hash),

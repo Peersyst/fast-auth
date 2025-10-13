@@ -8,6 +8,7 @@ import { PublicKey } from "near-api-js/lib/utils";
 import { Transaction } from "near-api-js/lib/transaction";
 import Accordion from "../components/Accordion";
 import Spinner from "../components/Spinner";
+import { parseNearAmount } from "near-api-js/lib/utils/format";
 
 const Home: React.FC = () => {
     const { isClientInitialized, error, client, relayer } = useFastAuth();
@@ -103,7 +104,7 @@ const Home: React.FC = () => {
         }
         setSigning(true);
         try {
-            const action = await signer?.createSignAction(signatureRequest);
+            const action = await signer?.createSignAction(signatureRequest, { deposit: BigInt(parseNearAmount("1")!) });
             if (!action) {
                 throw new Error("Action not created");
             }
