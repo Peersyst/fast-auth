@@ -6,9 +6,9 @@ import { FastAuthSignerErrorCodes } from "../signer.error-codes";
 export function getKeyTypeOrFail(algorithm: Algorithm): KeyType {
     switch (algorithm) {
         case "secp256k1":
-            return KeyType.EDDSA;
+            return KeyType.SECP256K1;
         case "ed25519":
-            return KeyType.ECDSA;
+            return KeyType.ED25519;
         default:
             throw new FastAuthSignerError(FastAuthSignerErrorCodes.UNSUPPORTED_ALGORITHM);
     }
