@@ -49,8 +49,6 @@ class FastAuthRelayer {
 
         // Load the account object
         this.account = new Account(this.near.connection, this.accountId);
-
-        console.log(`Relayer account ${this.accountId} loaded successfully.`);
     }
 
     getAccount() {
@@ -71,10 +69,6 @@ class FastAuthRelayer {
         if (!this.account) {
             throw new Error("Relayer account not initialized. Call init() first.");
         }
-
-        console.log("signing with jwt", jwt);
-        console.log("fast auth contract id", FAST_AUTH_CONTRACT_ID);
-        console.log("is legacy", false);
         try {
             return await this.account.functionCall({
                 contractId: FAST_AUTH_CONTRACT_ID,
@@ -107,15 +101,8 @@ class FastAuthRelayer {
             )) as AccessKeyView;
             const nonce = ++accessKey.nonce;
 
-            console.log("accessKey", accessKey);
-            console.log("nonce", nonce);
-
             const tx = createTransaction(this.accountId, signerPublicKey, "testnet", nonce, [action], base_decode(accessKey.block_hash));
-
-            console.log("tx", tx);
-
-            const result = await this.account.signAndSendTransaction(tx);
-            console.log("result", result);
+            await this.account.signAndSendTransaction(tx);
         } catch (error) {
             console.error("Error creating account:", error);
             throw error;
@@ -123,10 +110,6 @@ class FastAuthRelayer {
     }
 
     async createTransfer(signerId: string, signerPublicKey: PublicKey, receiverId: string, amount: string) {
-        console.log("signerId", signerId);
-        console.log("signerPublicKey", signerPublicKey);
-        console.log("receiverId", receiverId);
-        console.log("amount", amount);
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
         const accessKey = await this.getConnection().connection.provider.query<AccessKeyView>(
@@ -165,8 +148,6 @@ class FastAuthRelayer {
             base_decode(accessKey.block_hash),
         );
 
-        console.log("tx", tx);
-
         const message = encodeTransaction(tx);
         const hash = sha256(message);
 
@@ -182,9 +163,8 @@ class FastAuthRelayer {
             hash: base58.encode(hash),
         };
 
-        const result = await this.getConnection().connection.provider.sendTransaction(signedTransaction.signedTransaction);
-        console.log("result", result);
-        return result;
+        return await this.getConnection().connection.provider.sendTransaction(signedTransaction.signedTransaction);
+        
     }
 
     async send(signature: Uint8Array<ArrayBufferLike>, tx: Transaction) {
@@ -196,8 +176,7 @@ class FastAuthRelayer {
             }),
         });
 
-        const result = await this.getConnection().connection.provider.sendTransaction(signedTransaction);
-        console.log("result", result);
+        return await this.getConnection().connection.provider.sendTransaction(signedTransaction);
     }
 }
 
