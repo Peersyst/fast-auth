@@ -44,17 +44,17 @@ export class FastAuthSignature {
         if (!compressedR || !sHex) {
             throw new FastAuthSignatureError(ED25519ErrorCodes.INVALID_ED25519_PAYLOAD);
         }
-        
+
         let R = Buffer.from(compressedR, "hex");
         let S = Buffer.from(sHex, "hex");
-        
+
         // Normalize R and S to 32 bytes
         if (R.length === 33) R = R.subarray(1);
         if (R.length > 32) R = R.subarray(R.length - 32);
         if (R.length < 32) R = Buffer.concat([Buffer.alloc(32 - R.length, 0), R]);
         if (S.length > 32) S = S.subarray(S.length - 32);
         if (S.length < 32) S = Buffer.concat([Buffer.alloc(32 - S.length, 0), S]);
-        
+
         return Buffer.concat([R, S]);
     }
 
@@ -66,7 +66,7 @@ export class FastAuthSignature {
         const compressedR = (this.payload as any).big_r?.affine_point as string | undefined;
         const sHex = (this.payload as any).s?.scalar as string | undefined;
         const recoveryId = (this.payload as any).recovery_id as number | undefined;
-        
+
         if (!compressedR || !sHex || recoveryId === undefined) {
             throw new FastAuthSignatureError(SECP256K1ErrorCodes.INVALID_SECP256K1_PAYLOAD);
         }
@@ -76,7 +76,7 @@ export class FastAuthSignature {
         const r = point.getX().toArrayLike(Buffer, "be", 32);
         const s = Buffer.from(sHex, "hex");
         const v = recoveryId & 0x01;
-        
+
         return Buffer.concat([r, s, Buffer.from([v])]);
     }
 

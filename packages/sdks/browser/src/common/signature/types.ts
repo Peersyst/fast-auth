@@ -16,5 +16,4 @@ export type EDDSASignaturePayload = {
 
 export type MPCSignaturePayload = ECDSASignaturePayload | EDDSASignaturePayload;
 
-
 export type Algorithm = "secp256k1" | "ed25519";

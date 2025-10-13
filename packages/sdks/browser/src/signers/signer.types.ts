@@ -1,7 +1,7 @@
 export type NearCallOptions = {
     gas?: bigint;
     deposit?: bigint;
-}
+};
 
 export type CreateAccountOptions = NearCallOptions;
 export type CreateSignActionOptions = NearCallOptions;
