@@ -1,4 +1,4 @@
-export type EcdsaSignaturePayload = {
+export type ECDSASignaturePayload = {
     scheme: string;
     big_r: {
         affine_point: string;
@@ -9,9 +9,12 @@ export type EcdsaSignaturePayload = {
     recovery_id: number;
 };
 
-export type EdDsaSignaturePayload = {
+export type EDDSASignaturePayload = {
     scheme: string;
     signature: number[]; // 64 bytes
 };
 
-export type MPCSignaturePayload = EcdsaSignaturePayload | EdDsaSignaturePayload;
+export type MPCSignaturePayload = ECDSASignaturePayload | EDDSASignaturePayload;
+
+
+export type Algorithm = "secp256k1" | "ed25519";

@@ -1,5 +1,5 @@
 import { Action, functionCall, Signature, SignedTransaction, Transaction } from "near-api-js/lib/transaction";
-import { CreateAccountOptions, FastAuthSignerOptions, SignatureRequest } from "./signer.types";
+import { CreateAccountOptions, CreateSignActionOptions, FastAuthSignerOptions, SignatureRequest } from "./signer.types";
 import { KeyType } from "near-api-js/lib/utils/key_pair";
 import { IFastAuthProvider } from "./providers/fast-auth.provider";
 import { Connection } from "near-api-js";
@@ -7,10 +7,10 @@ import { CodeResult } from "near-api-js/lib/providers/provider";
 import { bytesJsonStringify } from "./utils";
 import { ViewFunctionCallOptions } from "@near-js/accounts";
 import { PublicKey } from "near-api-js/lib/utils";
-import { parseNearAmount } from "near-api-js/lib/utils/format";
 import { FastAuthSignature } from "../common/signature/signature";
 import { FastAuthSignerError } from "./signer.errors";
 import { FastAuthSignerErrorCodes } from "./signer.error-codes";
+import { Algorithm } from "../common/signature/types";
 
 export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     private path: string;
@@ -116,7 +116,8 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
      * @param request The request to sign.
      * @returns The signed message.
      */
-    async createSignAction(request: SignatureRequest): Promise<Action> {
+    async createSignAction(request: SignatureRequest, options?: CreateSignActionOptions): Promise<Action> {
+        const { gas = 300000000000000n, deposit = 0n } = options ?? {};
         return functionCall(
             "sign",
             {
@@ -125,15 +126,15 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
                 sign_payload: request.signPayload,
                 algorithm: request.algorithm ?? "eddsa",
             },
-            300000000000000n,
-            BigInt(parseNearAmount("2")!),
+            gas,
+            deposit,
         );
     }
 
     /**
      * Sign a message and send it to the network.
      */
-    async sendTransaction(transaction: Transaction, signature: FastAuthSignature, algorithm: "secp256k1" | "ed25519" = "ed25519") {
+    async sendTransaction(transaction: Transaction, signature: FastAuthSignature, algorithm: Algorithm = "ed25519") {
         const sig = signature.recover(algorithm);
         const signedTransaction = new SignedTransaction({
             transaction: transaction,
