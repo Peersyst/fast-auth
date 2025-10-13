@@ -10,7 +10,7 @@ import { FastAuthSignerError } from "./signer.errors";
 import { FastAuthSignerErrorCodes } from "./signer.error-codes";
 import { Algorithm } from "../common/signature/types";
 import { getDomainIdOrFail } from "./utils";
-import { getKeyTypeOrFail } from "./utils/key-type";
+import { getKeyTypeOrFail } from "./utils";
 
 
 export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
@@ -124,7 +124,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     async createSignAction(request: SignatureRequest, options?: CreateSignActionOptions): Promise<Action> {
         const { gas = 300000000000000n, deposit = 0n } = options ?? {};
         const { guardId, verifyPayload, signPayload, algorithm = "eddsa" } = request;
-        
+
         return functionCall(
             "sign",
             {
