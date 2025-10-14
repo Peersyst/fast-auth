@@ -12,7 +12,6 @@ import { Algorithm } from "../common/signature/types";
 import { getDomainIdOrFail } from "./utils";
 import { getKeyTypeOrFail } from "./utils";
 
-
 export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     private path: string;
     constructor(

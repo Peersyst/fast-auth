@@ -3,6 +3,11 @@ import { FastAuthSignerError } from "../signer.errors";
 import { Algorithm } from "../../common/signature/types";
 import { FastAuthSignerErrorCodes } from "../signer.error-codes";
 
+/**
+ * Get the key type for the algorithm.
+ * @param algorithm The algorithm.
+ * @returns The key type.
+ */
 export function getKeyTypeOrFail(algorithm: Algorithm): KeyType {
     switch (algorithm) {
         case "secp256k1":
