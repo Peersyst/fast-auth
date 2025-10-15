@@ -111,7 +111,7 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
         }
         setSigning(true);
         try {
-            const action = await signer?.createSignAction(signatureRequest, { deposit: BigInt(parseNearAmount("1")!) });
+            const action = await signer?.createSignAction(signatureRequest, { deposit: BigInt(parseNearAmount("0.01")!) });
             if (!action) {
                 throw new Error("Action not created");
             }
