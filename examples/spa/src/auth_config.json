@@ -1,8 +1,8 @@
 {
-    "domain": "login.fast-auth.com",
-    "clientId": "XAWqIOSfug5IxvlL92QI2KEhvZ8M91mG",
-    "audience": "https://api.fast-auth.com",
+    "domain": "auth0.aws.peersyst.tech",
+    "clientId": "qOfA3FaWedmD9LjFS9uRvQVJ0U3XhsgA",
+    "audience": "fast-auth-api-test-0.com",
     "appOrigin": "http://localhost:3000",
     "mpcContractId": "v1.signer-prod.testnet",
-    "fastAuthContractId": "fast-auth-002.testnet"
+    "fastAuthContractId": "fast-auth-beta-001.testnet"
 }

@@ -6,13 +6,22 @@ import { AccessKeyView } from "near-api-js/lib/providers/provider";
 import { Action, encodeTransaction, Signature, SignedTransaction, Transaction, transfer } from "near-api-js/lib/transaction";
 import { createTransaction } from "near-api-js/lib/transaction";
 import { parseNearAmount } from "near-api-js/lib/utils/format";
-import { KeyType, PublicKey } from "near-api-js/lib/utils/key_pair";
+import { KeyPairString, KeyType, PublicKey } from "near-api-js/lib/utils/key_pair";
 import { base_decode } from "near-api-js/lib/utils/serialize";
 
-// TODO: Replace with your actual private key and account ID
-const RELAYER_PRIVATE_KEY = "ed25519:5txww6eaySfKnDTXDRK7H425qpiTyk4biE6rPeC6qwdzYDv5Xw5S258yWXdafgdfwdEBcW3SvfKJ9L5BNVMnitmJ"; // Replace with your private key
-const RELAYER_ACCOUNT_ID = "bosisthenear.testnet"; // Replace with your account ID
-const FAST_AUTH_CONTRACT_ID = "fa-test-v2.testnet";
+// Environment variables for relayer configuration
+const RELAYER_PRIVATE_KEY = import.meta.env.VITE_RELAYER_PRIVATE_KEY;
+const RELAYER_ACCOUNT_ID = import.meta.env.VITE_RELAYER_ACCOUNT_ID;
+const FAST_AUTH_CONTRACT_ID = "fast-auth-beta-001.testnet";
+
+// Validate required environment variables
+if (!RELAYER_PRIVATE_KEY) {
+    throw new Error("VITE_RELAYER_PRIVATE_KEY environment variable is required. Please create a .env file with your relayer credentials.");
+}
+
+if (!RELAYER_ACCOUNT_ID) {
+    throw new Error("VITE_RELAYER_ACCOUNT_ID environment variable is required. Please create a .env file with your relayer credentials.");
+}
 
 class FastAuthRelayer {
     private keyStore: keyStores.InMemoryKeyStore;
@@ -25,8 +34,8 @@ class FastAuthRelayer {
 
     constructor() {
         this.keyStore = new keyStores.InMemoryKeyStore();
-        this.keyPair = KeyPair.fromString(RELAYER_PRIVATE_KEY);
-        this.accountId = RELAYER_ACCOUNT_ID;
+        this.keyPair = KeyPair.fromString(RELAYER_PRIVATE_KEY as KeyPairString);
+        this.accountId = RELAYER_ACCOUNT_ID as string;
         this.networkId = "testnet";
         this.config = {
             networkId: this.networkId,
@@ -142,7 +151,7 @@ class FastAuthRelayer {
         const tx = createTransaction(
             this.accountId,
             this.keyPair.getPublicKey(),
-            "fast-auth-002.testnet",
+            FAST_AUTH_CONTRACT_ID,
             nonce,
             [action],
             base_decode(accessKey.block_hash),
