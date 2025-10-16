@@ -16,11 +16,11 @@ var __copyProps = (to, from, except, desc) => {
   return to;
 };
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
-var index_exports = {};
-__export(index_exports, {
+var src_exports = {};
+__export(src_exports, {
   defineConfig: () => defineConfig
 });
-module.exports = __toCommonJS(index_exports);
+module.exports = __toCommonJS(src_exports);
 var import_child_process = require("child_process");
 function defineConfig({ dts = false, onSuccess, ...restOptions }) {
   return {
