@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useFastAuth } from "./use-fast-auth-relayer";
-import { FastAuthSigner, FastAuthSignature, SignatureRequest, Auth0Provider } from "@fast-auth/browser";
+import { FastAuthSigner, FastAuthSignature, SignatureRequest } from "@fast-auth/browser";
+import { JavascriptProvider } from "@fast-auth/javascript";
 import { PublicKey } from "near-api-js/lib/utils";
 import { Transaction } from "near-api-js/lib/transaction";
 import { parseNearAmount } from "near-api-js/lib/utils/format";
@@ -8,7 +9,7 @@ import { parseNearAmount } from "near-api-js/lib/utils/format";
 export interface WorkflowState {
     loggedIn: boolean;
     publicKey: string | null;
-    signer: FastAuthSigner<Auth0Provider> | null;
+    signer: FastAuthSigner<JavascriptProvider> | null;
     signatureRequest: SignatureRequest | null;
     result: any;
     accountCreated: boolean;
@@ -34,7 +35,7 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
 
     const [loggedIn, setLoggedIn] = useState(false);
     const [publicKey, setPublicKey] = useState<string | null>(null);
-    const [signer, setSigner] = useState<FastAuthSigner<Auth0Provider> | null>(null);
+    const [signer, setSigner] = useState<FastAuthSigner<JavascriptProvider> | null>(null);
     const [signatureRequest, setSignatureRequest] = useState<SignatureRequest | null>(null);
     const [result, setResult] = useState(null);
     const [accountCreated, setAccountCreated] = useState(false);
@@ -47,7 +48,7 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
 
     useEffect(() => {
         if (isClientInitialized) {
-            client?.getSigner().then((signer: FastAuthSigner<Auth0Provider>) => {
+            client?.getSigner().then((signer: FastAuthSigner<JavascriptProvider>) => {
                 setSigner(signer);
                 if (signer) {
                     signer

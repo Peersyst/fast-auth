@@ -10,6 +10,7 @@
     },
     "dependencies": {
         "@fast-auth/browser": "workspace:*",
+        "@fast-auth/javascript": "workspace:*",
         "@noble/hashes": "^1.8.0",
         "@scure/base": "^1.2.6",
         "bignumber.js": "^9.2.1",
@@ -36,5 +37,8 @@
         "typescript-eslint": "^8.26.1",
         "vite": "^6.3.0",
         "vite-plugin-node-polyfills": "^0.24.0"
+    },
+    "exports": {
+        ".": "./src/index.ts"
     }
 }

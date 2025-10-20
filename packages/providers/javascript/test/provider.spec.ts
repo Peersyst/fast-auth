@@ -1,7 +1,4 @@
-import { Auth0Provider } from "../../../src/providers/auth0/auth0.provider";
-import { Auth0ProviderOptions } from "../../../src/providers/auth0/auth0.types";
-import { Auth0ProviderError } from "../../../src/providers/auth0/auth0.errors";
-import { Auth0ProviderErrorCodes } from "../../../src/providers/auth0/auth0.error-codes";
+
 import { Transaction } from "near-api-js/lib/transaction";
 import { DelegateAction } from "@near-js/transactions";
 
@@ -13,11 +10,14 @@ import {
     mockLocation,
     setupGlobalLocationMock,
     mockAuth0Client,
-} from "../../mocks";
+} from "./mocks";
+import { JavascriptProvider } from "../src";
+import { JavascriptProviderOptions } from "../src/types";
+import { JavascriptProviderError, JavascriptProviderErrorCodes } from "../src/errors";
 
 // Mock the utils module directly, avoiding TDZ by requiring inside factory
-jest.mock("../../../src/providers/auth0/utils", () => {
-    const m = require("../../mocks");
+jest.mock("../src/utils", () => {
+    const m = require("./mocks");
     return {
         encodeTransaction: m.encodeTransaction,
         encodeDelegateAction: m.encodeDelegateAction,
@@ -26,7 +26,7 @@ jest.mock("../../../src/providers/auth0/utils", () => {
 
 // Mock jose module directly, avoiding TDZ
 jest.mock("jose", () => {
-    const m = require("../../mocks");
+    const m = require("./mocks");
     return {
         decodeJwt: m.decodeJwt,
     };
@@ -34,7 +34,7 @@ jest.mock("jose", () => {
 
 // Mock Auth0Client directly, avoiding TDZ
 jest.mock("@auth0/auth0-spa-js", () => {
-    const m = require("../../mocks");
+    const m = require("./mocks");
     return {
         Auth0Client: jest.fn().mockImplementation(() => m.mockAuth0Client),
     };
@@ -43,9 +43,9 @@ jest.mock("@auth0/auth0-spa-js", () => {
 // Setup mocks
 setupGlobalLocationMock();
 
-describe("Auth0Provider", () => {
-    let auth0Provider: Auth0Provider;
-    let mockOptions: Auth0ProviderOptions;
+describe("JavascriptProvider", () => {
+    let provider: JavascriptProvider;
+    let mockOptions: JavascriptProviderOptions;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -59,7 +59,7 @@ describe("Auth0Provider", () => {
             audience: "test-audience",
         };
 
-        auth0Provider = new Auth0Provider(mockOptions);
+        provider = new JavascriptProvider(mockOptions);
     });
 
     describe("isLoggedIn", () => {
@@ -72,7 +72,7 @@ describe("Auth0Provider", () => {
             mockAuth0Client.handleRedirectCallback.mockResolvedValue(undefined);
             mockAuth0Client.isAuthenticated.mockResolvedValue(true);
 
-            const result = await auth0Provider.isLoggedIn();
+            const result = await provider.isLoggedIn();
 
             expect(result).toBe(true);
             expect(mockAuth0Client.handleRedirectCallback).toHaveBeenCalled();
@@ -84,7 +84,7 @@ describe("Auth0Provider", () => {
             mockAuth0Client.handleRedirectCallback.mockResolvedValue(undefined);
             mockAuth0Client.isAuthenticated.mockResolvedValue(false);
 
-            const result = await auth0Provider.isLoggedIn();
+            const result = await provider.isLoggedIn();
 
             expect(result).toBe(false);
             expect(mockAuth0Client.handleRedirectCallback).toHaveBeenCalled();
@@ -94,7 +94,7 @@ describe("Auth0Provider", () => {
         it("should return false when no code and state in URL", async () => {
             mockLocation.search = "";
 
-            const result = await auth0Provider.isLoggedIn();
+            const result = await provider.isLoggedIn();
 
             expect(result).toBe(false);
             expect(mockAuth0Client.handleRedirectCallback).not.toHaveBeenCalled();
@@ -104,7 +104,7 @@ describe("Auth0Provider", () => {
         it("should return false when only code is present", async () => {
             mockLocation.search = "?code=test-code";
 
-            const result = await auth0Provider.isLoggedIn();
+            const result = await provider.isLoggedIn();
 
             expect(result).toBe(false);
             expect(mockAuth0Client.handleRedirectCallback).not.toHaveBeenCalled();
@@ -114,7 +114,7 @@ describe("Auth0Provider", () => {
         it("should return false when only state is present", async () => {
             mockLocation.search = "?state=test-state";
 
-            const result = await auth0Provider.isLoggedIn();
+            const result = await provider.isLoggedIn();
 
             expect(result).toBe(false);
             expect(mockAuth0Client.handleRedirectCallback).not.toHaveBeenCalled();
@@ -125,7 +125,7 @@ describe("Auth0Provider", () => {
             mockLocation.search = "?code=test-code&state=test-state";
             mockAuth0Client.handleRedirectCallback.mockRejectedValue(new Error("Auth error"));
 
-            const result = await auth0Provider.isLoggedIn();
+            const result = await provider.isLoggedIn();
 
             expect(result).toBe(false);
             expect(mockAuth0Client.handleRedirectCallback).toHaveBeenCalled();
@@ -137,7 +137,7 @@ describe("Auth0Provider", () => {
             mockAuth0Client.handleRedirectCallback.mockResolvedValue(undefined);
             mockAuth0Client.isAuthenticated.mockRejectedValue(new Error("Auth error"));
 
-            const result = await auth0Provider.isLoggedIn();
+            const result = await provider.isLoggedIn();
 
             expect(result).toBe(false);
             expect(mockAuth0Client.handleRedirectCallback).toHaveBeenCalled();
@@ -147,7 +147,7 @@ describe("Auth0Provider", () => {
 
     describe("login", () => {
         it("should call loginWithRedirect with correct parameters", async () => {
-            await auth0Provider.login();
+            await provider.login();
 
             expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                 authorizationParams: {
@@ -160,13 +160,13 @@ describe("Auth0Provider", () => {
             const error = new Error("Login failed");
             mockAuth0Client.loginWithRedirect.mockRejectedValue(error);
 
-            await expect(auth0Provider.login()).rejects.toThrow("Login failed");
+            await expect(provider.login()).rejects.toThrow("Login failed");
         });
     });
 
     describe("logout", () => {
         it("should call logout", async () => {
-            await auth0Provider.logout();
+            await provider.logout();
 
             expect(mockAuth0Client.logout).toHaveBeenCalled();
         });
@@ -175,7 +175,7 @@ describe("Auth0Provider", () => {
             const error = new Error("Logout failed");
             mockAuth0Client.logout.mockRejectedValue(error);
 
-            await expect(auth0Provider.logout()).rejects.toThrow("Logout failed");
+            await expect(provider.logout()).rejects.toThrow("Logout failed");
         });
     });
 
@@ -186,7 +186,7 @@ describe("Auth0Provider", () => {
             mockAuth0Client.getTokenSilently.mockResolvedValue(mockToken);
             mockDecodeJwt.mockReturnValue({ sub: mockSub });
 
-            const result = await auth0Provider.getPath();
+            const result = await provider.getPath();
 
             expect(result).toBe(`jwt#https://${mockOptions.domain}/#${mockSub}`);
             expect(mockAuth0Client.getTokenSilently).toHaveBeenCalled();
@@ -198,8 +198,8 @@ describe("Auth0Provider", () => {
             mockAuth0Client.getTokenSilently.mockResolvedValue(mockToken);
             mockDecodeJwt.mockReturnValue({ sub: null });
 
-            await expect(auth0Provider.getPath()).rejects.toThrow(Auth0ProviderError);
-            await expect(auth0Provider.getPath()).rejects.toThrow(Auth0ProviderErrorCodes.USER_NOT_LOGGED_IN);
+            await expect(provider.getPath()).rejects.toThrow(JavascriptProviderError);
+            await expect(provider.getPath()).rejects.toThrow(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN);
         });
 
         it("should throw Auth0ProviderError when sub is undefined", async () => {
@@ -207,8 +207,8 @@ describe("Auth0Provider", () => {
             mockAuth0Client.getTokenSilently.mockResolvedValue(mockToken);
             mockDecodeJwt.mockReturnValue({ sub: undefined });
 
-            await expect(auth0Provider.getPath()).rejects.toThrow(Auth0ProviderError);
-            await expect(auth0Provider.getPath()).rejects.toThrow(Auth0ProviderErrorCodes.USER_NOT_LOGGED_IN);
+            await expect(provider.getPath()).rejects.toThrow(JavascriptProviderError);
+            await expect(provider.getPath()).rejects.toThrow(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN);
         });
 
         it("should throw Auth0ProviderError when sub is empty string", async () => {
@@ -216,15 +216,15 @@ describe("Auth0Provider", () => {
             mockAuth0Client.getTokenSilently.mockResolvedValue(mockToken);
             mockDecodeJwt.mockReturnValue({ sub: "" });
 
-            await expect(auth0Provider.getPath()).rejects.toThrow(Auth0ProviderError);
-            await expect(auth0Provider.getPath()).rejects.toThrow(Auth0ProviderErrorCodes.USER_NOT_LOGGED_IN);
+            await expect(provider.getPath()).rejects.toThrow(JavascriptProviderError);
+            await expect(provider.getPath()).rejects.toThrow(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN);
         });
 
         it("should propagate errors from getTokenSilently", async () => {
             const error = new Error("Token retrieval failed");
             mockAuth0Client.getTokenSilently.mockRejectedValue(error);
 
-            await expect(auth0Provider.getPath()).rejects.toThrow("Token retrieval failed");
+            await expect(provider.getPath()).rejects.toThrow("Token retrieval failed");
         });
 
         it("should propagate errors from decodeJwt", async () => {
@@ -234,7 +234,7 @@ describe("Auth0Provider", () => {
                 throw new Error("JWT decode failed");
             });
 
-            await expect(auth0Provider.getPath()).rejects.toThrow("JWT decode failed");
+            await expect(provider.getPath()).rejects.toThrow("JWT decode failed");
         });
     });
 
@@ -259,7 +259,7 @@ describe("Auth0Provider", () => {
             mockEncodeTransaction.mockReturnValue(mockEncodedTransaction);
             mockAuth0Client.loginWithRedirect.mockResolvedValue(undefined);
 
-            await auth0Provider.requestTransactionSignature(mockRequestOptions);
+            await provider.requestTransactionSignature(mockRequestOptions);
 
             expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                 authorizationParams: {
@@ -282,7 +282,7 @@ describe("Auth0Provider", () => {
                 transaction: mockTransaction,
             };
 
-            await auth0Provider.requestTransactionSignature(optionsWithoutRedirectUri);
+            await provider.requestTransactionSignature(optionsWithoutRedirectUri);
 
             expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                 authorizationParams: {
@@ -298,7 +298,7 @@ describe("Auth0Provider", () => {
             const error = new Error("Login redirect failed");
             mockAuth0Client.loginWithRedirect.mockRejectedValue(error);
 
-            await expect(auth0Provider.requestTransactionSignature(mockRequestOptions)).rejects.toThrow("Login redirect failed");
+            await expect(provider.requestTransactionSignature(mockRequestOptions)).rejects.toThrow("Login redirect failed");
         });
 
         it("should propagate errors from encodeTransaction", async () => {
@@ -307,7 +307,7 @@ describe("Auth0Provider", () => {
                 throw error;
             });
 
-            await expect(auth0Provider.requestTransactionSignature(mockRequestOptions)).rejects.toThrow("Transaction encoding failed");
+            await expect(provider.requestTransactionSignature(mockRequestOptions)).rejects.toThrow("Transaction encoding failed");
         });
     });
 
@@ -332,7 +332,7 @@ describe("Auth0Provider", () => {
             mockEncodeDelegateAction.mockReturnValue(mockEncodedDelegateAction);
             mockAuth0Client.loginWithRedirect.mockResolvedValue(undefined);
 
-            await auth0Provider.requestDelegateActionSignature(mockRequestOptions);
+            await provider.requestDelegateActionSignature(mockRequestOptions);
 
             expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                 authorizationParams: {
@@ -355,7 +355,7 @@ describe("Auth0Provider", () => {
                 delegateAction: mockDelegateAction,
             };
 
-            await auth0Provider.requestDelegateActionSignature(optionsWithoutRedirectUri);
+            await provider.requestDelegateActionSignature(optionsWithoutRedirectUri);
 
             expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                 authorizationParams: {
@@ -371,7 +371,7 @@ describe("Auth0Provider", () => {
             const error = new Error("Login redirect failed");
             mockAuth0Client.loginWithRedirect.mockRejectedValue(error);
 
-            await expect(auth0Provider.requestDelegateActionSignature(mockRequestOptions)).rejects.toThrow("Login redirect failed");
+            await expect(provider.requestDelegateActionSignature(mockRequestOptions)).rejects.toThrow("Login redirect failed");
         });
 
         it("should propagate errors from encodeDelegateAction", async () => {
@@ -380,7 +380,7 @@ describe("Auth0Provider", () => {
                 throw error;
             });
 
-            await expect(auth0Provider.requestDelegateActionSignature(mockRequestOptions)).rejects.toThrow(
+            await expect(provider.requestDelegateActionSignature(mockRequestOptions)).rejects.toThrow(
                 "Delegate action encoding failed",
             );
         });
@@ -395,7 +395,7 @@ describe("Auth0Provider", () => {
             mockAuth0Client.getTokenSilently.mockResolvedValue(mockToken);
             mockDecodeJwt.mockReturnValue(mockDecodedToken);
 
-            const result = await auth0Provider.getSignatureRequest();
+            const result = await provider.getSignatureRequest();
 
             expect(result).toEqual({
                 guardId: `jwt#https://${mockOptions.domain}/`,
@@ -412,7 +412,7 @@ describe("Auth0Provider", () => {
             mockAuth0Client.getTokenSilently.mockResolvedValue(mockToken);
             mockDecodeJwt.mockReturnValue(mockDecodedToken);
 
-            const result = await auth0Provider.getSignatureRequest();
+            const result = await provider.getSignatureRequest();
 
             expect(result).toEqual({
                 guardId: `jwt#https://${mockOptions.domain}/`,
@@ -425,7 +425,7 @@ describe("Auth0Provider", () => {
             const error = new Error("Token retrieval failed");
             mockAuth0Client.getTokenSilently.mockRejectedValue(error);
 
-            await expect(auth0Provider.getSignatureRequest()).rejects.toThrow("Token retrieval failed");
+            await expect(provider.getSignatureRequest()).rejects.toThrow("Token retrieval failed");
         });
 
         it("should propagate errors from decodeJwt", async () => {
@@ -435,7 +435,7 @@ describe("Auth0Provider", () => {
                 throw new Error("JWT decode failed");
             });
 
-            await expect(auth0Provider.getSignatureRequest()).rejects.toThrow("JWT decode failed");
+            await expect(provider.getSignatureRequest()).rejects.toThrow("JWT decode failed");
         });
     });
 });
