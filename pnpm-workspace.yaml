@@ -9,3 +9,4 @@ packages:
     - "packages/shared/*"
     - "examples/custom-backend"
     - "examples/spa"
+    - "examples/mobile"
