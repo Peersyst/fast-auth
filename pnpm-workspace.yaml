@@ -6,5 +6,6 @@ packages:
     - "packages/auth"
     - "packages/sdks/*"
     - "packages/shared/*"
+    - "scripts/migration"
     - "examples/custom-backend"
     - "examples/spa"
