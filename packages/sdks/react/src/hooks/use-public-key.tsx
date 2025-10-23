@@ -6,11 +6,11 @@ import { Algorithm } from "../core/common/signature/types";
 /**
  * Hook to get the user's public key
  * 
- * This hook automatically fetches the public key when the user is logged in
- * and provides loading and error states.
+ * This hook provides a convenient way to get the public key from the signer
+ * and manages loading and error states.
  * 
  * @param algorithm - The algorithm to use for the public key (default: "ed25519")
- * @param autoFetch - Whether to automatically fetch the public key when logged in (default: true)
+ * @param autoFetch - Whether to automatically fetch the public key when signer is available (default: true)
  * @returns Object containing public key, loading state, error, and refetch function
  * 
  * @example

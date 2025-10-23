@@ -35,6 +35,14 @@ export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider> {
     }
 
     /**
+     * Check if the user is logged in.
+     * @returns Promise<boolean> indicating if the user is logged in.
+     */
+    async isLoggedIn(): Promise<boolean> {
+        return this.provider.isLoggedIn();
+    }
+
+    /**
      * Get a signer.
      * @returns The signer.
      */

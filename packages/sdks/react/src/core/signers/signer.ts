@@ -46,6 +46,8 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
 
         const encodedArgs = Buffer.from(JSON.stringify(args));
 
+        console.log("connection", this.connection);
+
         const result = await this.connection.provider.query<CodeResult>({
             request_type: "call_function",
             ...blockQuery,

@@ -6,12 +6,8 @@ import { IFastAuthProvider } from "../core";
 /**
  * Hook to access the FastAuth context
  * 
- * This hook provides access to all FastAuth functionality including:
- * - Authentication (login, logout, isLoggedIn)
- * - Client state (isReady, isLoading, error)
- * - Signer operations (getSigner, getPublicKey, createAccount)
- * - Transaction operations (requestTransactionSignature, sendTransaction)
- * - Signature operations (getSignatureRequest, createSignAction)
+ * This hook provides access to the FastAuth client and ready state.
+ * All operations should be performed through the client directly.
  * 
  * @throws Error if used outside of FastAuthProvider
  * 
@@ -20,20 +16,19 @@ import { IFastAuthProvider } from "../core";
  * import { useFastAuth } from '@fast-auth/react';
  * 
  * function MyComponent() {
- *   const { login, logout, isLoggedIn, isLoading } = useFastAuth();
+ *   const { client, isReady } = useFastAuth();
  * 
- *   if (isLoading) {
+ *   if (!isReady || !client) {
  *     return <div>Loading...</div>;
  *   }
  * 
+ *   // Use client directly for all operations
+ *   const handleLogin = async () => {
+ *     await client.login();
+ *   };
+ * 
  *   return (
- *     <div>
- *       {isLoggedIn ? (
- *         <button onClick={logout}>Logout</button>
- *       ) : (
- *         <button onClick={() => login()}>Login</button>
- *       )}
- *     </div>
+ *     <button onClick={handleLogin}>Login</button>
  *   );
  * }
  * ```

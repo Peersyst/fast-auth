@@ -5,10 +5,10 @@ import { FastAuthSigner, IFastAuthProvider } from "../core";
 /**
  * Hook to get the FastAuth signer
  * 
- * This hook automatically fetches the signer when the user is logged in
- * and provides loading and error states.
+ * This hook provides a convenient way to get the signer from the client
+ * and manages loading and error states.
  * 
- * @param autoFetch - Whether to automatically fetch the signer when logged in (default: true)
+ * @param autoFetch - Whether to automatically fetch the signer when client is ready (default: true)
  * @returns Object containing signer, loading state, error, and refetch function
  * 
  * @example
@@ -35,13 +35,13 @@ import { FastAuthSigner, IFastAuthProvider } from "../core";
  * ```
  */
 export function useSigner<P extends IFastAuthProvider = IFastAuthProvider>(autoFetch: boolean = true) {
-    const { getSigner, isLoggedIn } = useFastAuth<P>();
+    const { client, isReady } = useFastAuth<P>();
     const [signer, setSigner] = useState<FastAuthSigner<P> | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
     const fetchSigner = useCallback(async () => {
-        if (isLoggedIn !== true) {
+        if (!client || !isReady) {
             setSigner(null);
             return;
         }
@@ -49,7 +49,7 @@ export function useSigner<P extends IFastAuthProvider = IFastAuthProvider>(autoF
         try {
             setIsLoading(true);
             setError(null);
-            const newSigner = await getSigner();
+            const newSigner = await client.getSigner();
             setSigner(newSigner);
         } catch (err) {
             const error = err instanceof Error ? err : new Error(String(err));
@@ -58,15 +58,15 @@ export function useSigner<P extends IFastAuthProvider = IFastAuthProvider>(autoF
         } finally {
             setIsLoading(false);
         }
-    }, [getSigner, isLoggedIn]);
+    }, [client, isReady]);
 
     useEffect(() => {
-        if (autoFetch && isLoggedIn === true) {
+        if (autoFetch && client && isReady) {
             fetchSigner();
-        } else if (isLoggedIn === false) {
+        } else if (!client || !isReady) {
             setSigner(null);
         }
-    }, [autoFetch, isLoggedIn, fetchSigner]);
+    }, [autoFetch, client, isReady, fetchSigner]);
 
     return {
         signer,

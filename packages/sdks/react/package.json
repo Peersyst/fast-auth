@@ -27,7 +27,8 @@
   },
   "dependencies": {
     "@near-js/accounts": "^2.0.2",
-    "near-api-js": "^5.1.1",
+    "elliptic": "^6.6.1",
+    "near-api-js": "^4.0.4",
     "react": "^19.0.0"
   }
 }
