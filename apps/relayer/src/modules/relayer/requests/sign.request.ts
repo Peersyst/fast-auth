@@ -19,7 +19,7 @@ export const validate = (request: SignRequest) => {
         throw new BusinessException(RelayerErrorCodes.INVALID_GUARD_ID);
     }
     // NOTE: Include more algorithms if needed
-    if (request.algorithm !== "edsa") {
+    if (request.algorithm !== "eddsa") {
         throw new BusinessException(RelayerErrorCodes.INVALID_ALGORITHM);
     }
     try {
