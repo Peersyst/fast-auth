@@ -90,7 +90,7 @@ jobs:
           --install --atomic --wait --timeout 301s \
           --values values/${{ inputs.environment }}.yaml \
           --set-string timestamp="${{ env.NOW }}" \
-          --set-string tagRelayer="${{ env.TAG }}"
+          --set-string tagRelayer="${{ env.TAG }}" \
           --debug
           
       # Send final Slack message if any previous step has failed

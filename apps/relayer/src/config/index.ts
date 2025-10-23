@@ -10,7 +10,7 @@ import nearConfig from "./near.config";
 export default async (): Promise<any> => {
     const secrets = await loadAwsSecrets(process.env.AWS_REGION!, process.env.AWS_SECRET_ID!);
     return {
-        server: serverConfig(secrets),
+        server: serverConfig(),
         logger: loggerConfig(),
         near: nearConfig(secrets),
     };
