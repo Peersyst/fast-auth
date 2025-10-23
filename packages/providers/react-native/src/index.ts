@@ -1,6 +1,9 @@
 // Main provider
 export * from "./provider";
 
+// Provider configuration
+export * from "./provider.config";
+
 // Types
 export * from "./types";
 

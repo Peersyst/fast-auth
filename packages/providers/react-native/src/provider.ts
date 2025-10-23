@@ -42,9 +42,10 @@ export class ReactNativeProvider implements IFastAuthProvider {
     async isLoggedIn(): Promise<boolean> {
         try {
             // Check if we have valid credentials stored
-            const hasValidCredentials = await this.client.credentialsManager.hasValidCredentials();
-            return hasValidCredentials;
-        } catch (_: unknown) {
+            const credentials = await this.client.credentialsManager.getCredentials();
+            return !!credentials;
+        } catch (e: unknown) {
+            console.log("error", e);
             return false;
         }
     }
@@ -58,16 +59,17 @@ export class ReactNativeProvider implements IFastAuthProvider {
      * @returns Promise that resolves when login is complete
      */
     async login(): Promise<void> {
-        const authorizeParams: any = {
-            scope: "openid profile email offline_access",
-        };
 
+        const authorizeParams: WebAuthorizeParameters = {
+    
+        };
         // Add audience if provided
         if (this.options.audience) {
             authorizeParams.audience = this.options.audience;
         }
 
-        await this.client.webAuth.authorize(authorizeParams);
+        const credentials = await this.client.webAuth.authorize(authorizeParams);
+        await this.client.credentialsManager.saveCredentials(credentials);
     }
 
     /**
@@ -131,12 +133,13 @@ export class ReactNativeProvider implements IFastAuthProvider {
     ): Promise<void> {
         const { imageUrl, name, transaction } = requestSignatureOptions;
 
+        const transactionString = encodeTransaction(transaction).toString();
+
         const authorizeParams: WebAuthorizeParameters = {
-            scope: "openid profile email offline_access",
             additionalParameters: {
                 image_url: imageUrl,
                 name,
-                transaction: encodeTransaction(transaction).toString(),
+                transaction: transactionString,
             },
         };
 
@@ -145,7 +148,8 @@ export class ReactNativeProvider implements IFastAuthProvider {
             authorizeParams.audience = this.options.audience;
         }
 
-        await this.client.webAuth.authorize(authorizeParams);
+        const credentials = await this.client.webAuth.authorize(authorizeParams);
+        await this.client.credentialsManager.saveCredentials(credentials);
     }
 
     /**
@@ -164,7 +168,6 @@ export class ReactNativeProvider implements IFastAuthProvider {
         const { imageUrl, name, delegateAction } = options;
 
         const authorizeParams: WebAuthorizeParameters = {
-            scope: "openid profile email offline_access",
             additionalParameters: {
                 image_url: imageUrl,
                 name,
@@ -177,7 +180,8 @@ export class ReactNativeProvider implements IFastAuthProvider {
             authorizeParams.audience = this.options.audience;
         }
 
-        await this.client.webAuth.authorize(authorizeParams);
+        const credentials = await this.client.webAuth.authorize(authorizeParams);
+        await this.client.credentialsManager.saveCredentials(credentials);
     }
 
     /**

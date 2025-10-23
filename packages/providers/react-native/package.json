@@ -22,7 +22,7 @@
   "dependencies": {
     "@near-js/transactions": "^2.0.2",
     "jose": "^6.0.11",
-    "near-api-js": "^5.1.1",
+    "near-api-js": "^4.0.4",
     "react-native-auth0": "^5.0.1"
   },
   "devDependencies": {
