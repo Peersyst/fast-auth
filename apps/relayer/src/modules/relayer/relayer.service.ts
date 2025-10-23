@@ -79,7 +79,7 @@ export class RelayerService {
             await this.clientService.sendTransaction(signedTransaction);
 
             this.fastAuthRelayerMetricsProvider.sign();
-            this.logger.log(`Sign ${body.sign_payload} done with hash ${hash}`);
+            this.logger.log(`Sign ${body.guard_id} done with hash ${hash}`);
 
             await this.signerService.releaseSigner(signer);
 
