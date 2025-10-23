@@ -1,0 +1,117 @@
+name: "Deploy"
+
+# Only trigger, when the build workflow succeeded
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "Environment to deploy"
+        required: true
+        type: string
+        default: 'staging'
+
+permissions:
+  # Needed to configure aws credentials step
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      NOW: ${{ steps.env-vars.outputs.NOW }}
+      TAG: ${{ steps.env-vars.outputs.TAG }}
+    steps:
+
+      # Define global vars that will be used through the pipeline
+      - name: Defining global vars
+        shell: bash
+        id: env-vars
+        run: |
+          echo "NOW=$(TZ=':Europe/Madrid' date +'%Y-%m-%dT%H:%M:%S')" >> $GITHUB_OUTPUT
+          echo "TAG=${GITHUB_SHA:0:8}" >> $GITHUB_OUTPUT
+
+      # Send initial Slack deployment message
+      - name: 📬 Initial Slack deployment message
+        shell: bash
+        env:
+          NOW: ${{ steps.env-vars.outputs.NOW }}
+          TAG: ${{ steps.env-vars.outputs.TAG }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          echo "Send initial Slack message"
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"🎬 Starting *fast-auth* deployment - Commit: <https://github.com/Peersyst/fast-auth/commit/${TAG}|${TAG}> by ${GITHUB_ACTOR}\"}" ${SLACK_WEBHOOK_URL}
+
+      # Checkout repository under $GITHUB_WORKSPACE path
+      - name: Repository checkout
+        uses: actions/checkout@v4
+
+      # Assume gitHubdeploymentsRole AWS role
+      - name: Configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::291847425310:role/gitHubDeploymentsRole
+          role-session-name: deploymentsRole
+          role-duration-seconds: 900
+          aws-region: us-east-1
+
+      # Helm install
+      - uses: azure/setup-helm@v3
+        with:
+          version: v3.12.2
+
+      # KUBECONFIG configuration
+      - name: KUBECONFIG configuration
+        shell: bash
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+        run: |
+          echo ${KUBECONFIG} | base64 --decode > kubeconfig.yaml
+          chmod 600 kubeconfig.yaml
+          echo ${GITHUB_WORKSPACE}
+          echo "KUBECONFIG=${GITHUB_WORKSPACE}/kubeconfig.yaml" >> $GITHUB_ENV
+
+      # Helm deployment
+      - name: Helm deployment
+        working-directory: ./infra/chart
+        shell: bash
+        env:
+          NOW: ${{ steps.env-vars.outputs.NOW }}
+          TAG: ${{ steps.env-vars.outputs.TAG }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          KUBECONFIG: ${{ env.KUBECONFIG }}
+        run: |
+          envsubst < Chart.yaml > Chart-0.yaml
+          mv Chart-0.yaml Chart.yaml
+          kubectl config use-context peersyst-privatenet
+          helm -n fast-auth upgrade ${{ inputs.environment }} ./ \
+          --install --atomic --wait --timeout 301s \
+          --values values/${{ inputs.environment }}.yaml \
+          --set-string timestamp="${{ env.NOW }}" \
+          --set-string tagRelayer="${{ env.TAG }}"
+          --debug
+          
+      # Send final Slack message if any previous step has failed
+      - name: 📬 Failure job notification
+        if: ${{ failure() }}
+        shell: sh
+        env:
+          NOW: ${{ steps.env-vars.outputs.NOW }}
+          TAG: ${{ steps.env-vars.outputs.TAG }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          echo "Send error Slack message"
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"❌ *FAST-AUTH* ${GITHUB_JOB} job *FAILED*. Check pipeline logs <https://github.com/Peersyst/fast-auth/actions/runs/${GITHUB_RUN_ID}|here> - Commit: <https://github.com/Peersyst/fast-auth/commit/${TAG}|${TAG}> by ${GITHUB_ACTOR}\"}" ${SLACK_WEBHOOK_URL}
+
+      # Send final Slack message if success
+      - name: 📬 Final Slack deployment message
+        if: ${{ success() }}
+        shell: bash
+        env:
+          TAG: ${{ steps.env-vars.outputs.TAG }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          echo "Send final Slack message"
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"🏁 *fast-auth* deployment *SUCCESSFULLY* - Commit: <https://github.com/Peersyst/fast-auth/commit/${TAG}|${TAG}> by ${GITHUB_ACTOR}\"}" ${SLACK_WEBHOOK_URL}
