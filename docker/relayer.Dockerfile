@@ -4,28 +4,28 @@ FROM ${BASE_IMAGE} as integration
 ARG TURBO_TEAM=peersyst
 ENV TURBO_TEAM=$TURBO_TEAM
 
-# Include api
-COPY apps/api /project/apps/api
-# Install api dependencies
+# Include relayer
+COPY apps/relayer /project/apps/relayer
+# Install relayer dependencies
 RUN pnpm install
 
-# Lint api
+# Lint relayer
 RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
-    npx turbo run lint --filter=api
-# Check types api
+    npx turbo run lint --filter=relayer
+# Check types relayer
 RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
-    npx turbo run check-types --filter=api
-# Test api
+    npx turbo run check-types --filter=relayer
+# Test relayer
 RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
-    npx turbo run test --filter=api
-# Build api
-WORKDIR /project/apps/api
+    npx turbo run test --filter=relayer
+# Build relayer
+WORKDIR /project/apps/relayer
 RUN pnpm build
 
 WORKDIR /project
-# Isolate api for production
+# Isolate relayer for production
 RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
-    pnpm --filter=api deploy --prod /artifacts
+    pnpm --filter=relayer deploy --prod /artifacts
 
 
 
