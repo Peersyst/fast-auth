@@ -3,6 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "genesys": "genesys",
         "build": "npx turbo run build && echo '🚀 Build completed'",
         "build:packages": "npx turbo run build --filter=\"./packages/**/*\" && echo '🚀 Build packages completed'",
         "build:contracts": "npx turbo run build --filter=\"./contracts/**/*\" && echo '🚀 Build contracts completed'",
