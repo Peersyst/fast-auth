@@ -1,6 +1,6 @@
 import { Body, Controller, Post } from "@nestjs/common";
 import { RelayerService } from "./relayer.service";
-import {SignRequest, validate} from "./requests/sign.request";
+import { SignRequest, validate } from "./requests/sign.request";
 import { ApiBody, ApiTags } from "@nestjs/swagger";
 import { ApiOperation } from "@nestjs/swagger";
 
