@@ -3,16 +3,20 @@ import { FastAuthSigner } from "../signers/signer";
 import { IFastAuthProvider } from "./providers/fast-auth.provider";
 import { FastAuthClientError } from "./client.errors";
 import { FastAuthClientErrorCodes } from "./client.error-codes";
-import { FastAuthClientOptions } from "./client.types";
+import { FastAuthClientNetwork, FastAuthContracts } from "./client.types";
+import { getContractsFromNetwork } from "../../providers/utils/contracts";
+
 
 export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider> {
     private provider: P;
+    private readonly options: FastAuthContracts;
 
     constructor(
         provider: P,
         private readonly connection: Connection,
-        private readonly options: FastAuthClientOptions,
+        network: FastAuthClientNetwork,
     ) {
+        this.options = getContractsFromNetwork(network);
         this.provider = provider;
     }
 

@@ -1,5 +1,5 @@
 {
-  "name": "@fast-auth/javascript",
+  "name": "@fast-auth/javascript-provider",
   "version": "1.0.0",
   "description": "",
   "main": "./dist/index.js",

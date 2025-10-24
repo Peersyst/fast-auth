@@ -1,7 +1,7 @@
 import { PropsWithChildren, ReactNode } from "react";
 import { 
     FastAuthClient, 
-    FastAuthClientOptions, 
+    FastAuthClientNetwork,
     IFastAuthProvider
 } from "../core";
 import { Connection } from "near-api-js";
@@ -52,7 +52,7 @@ export type FastAuthProviderProps<P extends IFastAuthProvider = IFastAuthProvide
     connection: Connection;
 
     /**
-     * FastAuth client options
+     * FastAuth client network
      */
-    clientOptions: FastAuthClientOptions;
+    network: FastAuthClientNetwork;
 }>;

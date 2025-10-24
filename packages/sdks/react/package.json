@@ -1,5 +1,5 @@
 {
-  "name": "@fast-auth/react",
+  "name": "@fast-auth/react-sdk",
   "version": "1.0.0",
   "description": "",
   "main": "./dist/index.js",

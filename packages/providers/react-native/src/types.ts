@@ -2,10 +2,15 @@ import { Transaction } from "near-api-js/lib/transaction";
 import { DelegateAction } from "@near-js/transactions";
 import { Auth0Options } from "react-native-auth0";
 
+export type AppOptions = {
+    imageUrl: string;
+    name: string;
+}
+
 /**
  * Options for initializing the ReactNativeProvider
  */
-export type ReactNativeProviderOptions = Auth0Options & {
+export type ReactNativeProviderOptions = AppOptions & Auth0Options & {
     /**
      * The audience for the API (e.g., your API identifier in Auth0)
      */

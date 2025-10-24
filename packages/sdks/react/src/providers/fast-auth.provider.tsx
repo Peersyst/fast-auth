@@ -44,7 +44,7 @@ export function FastAuthProvider<P extends IFastAuthProvider = IFastAuthProvider
     children, 
     providerConfig, 
     connection, 
-    clientOptions
+    network,
 }: FastAuthProviderProps<P>) {
     const { reactProvider = (children) => children, provider } = providerConfig;
 
@@ -55,14 +55,14 @@ export function FastAuthProvider<P extends IFastAuthProvider = IFastAuthProvider
     // Initialize client on mount or when dependencies change
     useEffect(() => {
         try {
-            const newClient = new FastAuthClient<P>(provider, connection, clientOptions);
+            const newClient = new FastAuthClient<P>(provider, connection, network);
             setClient(newClient);
             setIsReady(true);
         } catch (err) {
             console.error("Failed to initialize FastAuth client:", err);
             setIsReady(false);
         }
-    }, [provider, connection, clientOptions]);
+    }, [provider, connection, network]);
 
     // Memoize context value to prevent unnecessary re-renders
     const contextValue = useMemo<IFastAuthContext<P>>(() => ({

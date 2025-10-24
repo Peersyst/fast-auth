@@ -1,5 +1,5 @@
 {
-  "name": "@fast-auth/react-native",
+  "name": "@fast-auth/react-native-provider",
   "version": "1.0.0",
   "description": "React Native provider for FastAuth - Adapts react-native-auth0 to the FastAuth provider interface",
   "main": "./dist/index.js",
