@@ -8,18 +8,19 @@ import { NearSignerService } from "../near/near-signer.service";
 import { NearClientService } from "../near/near-client.service";
 import { ConfigService } from "@nestjs/config";
 import { FastAuthRelayerMetricsProvider } from "./relayer.metrics";
-import { serialize } from "near-api-js/lib/utils";
 import { SignResponse } from "./response/sign.response";
 import { SignAndSendDelegateActionRequest } from "./requests/sign-and-send-delegate-action.request";
 import { CreateAccountRequest } from "./requests/create-account.request";
+import { FastAuthSignature } from "../common/signature";
+import { getKeyTypeOrFail } from "../common/signature/utils/key-type";
+import { deserialize } from "borsh";
 
 @Injectable()
 export class RelayerService {
     private readonly logger: Logger;
     private readonly fastAuthContractId: string;
-    private readonly mpcContractId: string;
     private readonly accountContractId: string;
-
+    private readonly mpcDepositAmount: bigint;
     constructor(
         @Inject(NearSignerService) private readonly signerService: NearSignerService,
         @Inject(NearClientService) private readonly clientService: NearClientService,
@@ -28,8 +29,8 @@ export class RelayerService {
     ) {
         this.logger = new Logger(RelayerService.name);
         this.fastAuthContractId = this.configService.get("near.fastAuthContractId") as string;
-        this.mpcContractId = this.configService.get("near.mpcContractId") as string;
         this.accountContractId = this.configService.get("near.accountContractId") as string;
+        this.mpcDepositAmount = this.configService.get("near.mpcDepositAmount") as bigint;
     }
 
     /**
@@ -59,7 +60,7 @@ export class RelayerService {
                     algorithm: body.algorithm,
                 },
                 300000000000000n,
-                BigInt(parseNearAmount("0")!),
+                this.mpcDepositAmount,
             ),
         ]);
     }
@@ -70,12 +71,32 @@ export class RelayerService {
      * @returns The sign response.
      */
     async signAndSendDelegateAction(body: SignAndSendDelegateActionRequest): Promise<SignResponse> {
-        const delegateAction = serialize.deserialize(SCHEMA.DelegateAction, Uint8Array.from(body.sign_payload), true) as DelegateAction;
+        console.log("body", body);
+        const encodedDelegateAction = Uint8Array.from(body.sign_payload);
+        
+        // Try to deserialize the DelegateAction
+        // Some encodings may have a 4-byte prefix (DelegateActionPrefix), so we handle both cases
+        let delegateAction: DelegateAction;
+        try {
+            // First, try without prefix
+            delegateAction = deserialize(SCHEMA.DelegateAction, encodedDelegateAction) as DelegateAction;
+        } catch (error) {
+            // If that fails, try skipping the first 4 bytes (prefix)
+            if (encodedDelegateAction.length > 4) {
+                const delegateActionBytes = encodedDelegateAction.slice(4);
+                delegateAction = deserialize(SCHEMA.DelegateAction, delegateActionBytes) as DelegateAction;
+            } else {
+                throw error;
+            }
+        }
+        
         const { result } = await this.signFastAuthRequest(body);
-        const payload = JSON.parse(Buffer.from((result.status as any)?.SuccessValue, "base64").toString());
+
+        const fsSignature = FastAuthSignature.fromBase64(result.status.SuccessValue as string);
+        const algorithm = body.algorithm === "eddsa" ? "ed25519" : "secp256k1";
         const signature = new Signature({
-            keyType: payload.scheme,
-            data: new Uint8Array(payload.signature),
+            keyType: getKeyTypeOrFail(algorithm),
+            data: fsSignature.recover(),
         });
         const signedDelegate = actionCreators.signedDelegate({
             delegateAction,
@@ -90,15 +111,10 @@ export class RelayerService {
      * @returns The sign response.
      */
     async createAccount(body: CreateAccountRequest): Promise<SignResponse> {
-        const publicKey = (await this.clientService.viewFunction(this.mpcContractId, "derived_public_key", {
-            path: `jwt#https://login.fast-auth.com/#${body.sub}`,
-            predecessor: this.fastAuthContractId,
-            domain_id: 1,
-        })) as string;
         return this.signAndSendTransaction(this.accountContractId, [
             functionCall(
                 "create_account",
-                { new_public_key: publicKey, new_account_id: body.account_id },
+                { new_public_key: body.publicKey, new_account_id: body.accountId },
                 300000000000000n,
                 BigInt(parseNearAmount("0")!),
             ),
