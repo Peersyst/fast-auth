@@ -28,6 +28,14 @@ export interface NearConfig {
      */
     fastAuthContractId: string;
     /**
+     * The mpc contract id.
+     */
+    mpcContractId: string;
+    /**
+     * The account contract id.
+     */
+    accountContractId: string;
+    /**
      * The time to wait to get a new recent block hash in ms.
      */
     recentBlockHashTimeout: number;
@@ -66,6 +74,8 @@ export default (secrets: Record<any, any>): NearConfig => {
             production: secrets.NEAR_RPC_BACKOFF,
         },
         fastAuthContractId: process.env.NEAR_FAST_AUTH_CONTRACT_ID || "fast-auth.near",
+        mpcContractId: process.env.NEAR_MPC_CONTRACT_ID || "v1.signer",
+        accountContractId: process.env.NEAR_ACCOUNT_CONTRACT_ID || "near",
         recentBlockHashTimeout: {
             default: process.env.NEAR_RECENT_BLOCK_HASH_TIMEOUT ? parseInt(process.env.NEAR_RECENT_BLOCK_HASH_TIMEOUT) : 36_000_000, // Default to 10 hours
             production: secrets.NEAR_RECENT_BLOCK_HASH_TIMEOUT,

@@ -28,8 +28,7 @@ export const validate = (request: SignRequest) => {
         if (jwt.iss !== "https://login.fast-auth.com/") {
             throw new BusinessException(RelayerErrorCodes.INVALID_VERIFY_PAYLOAD);
         }
-    } catch (e) {
-        console.error(e);
+    } catch (_) {
         throw new BusinessException(RelayerErrorCodes.INVALID_VERIFY_PAYLOAD);
     }
     try {
