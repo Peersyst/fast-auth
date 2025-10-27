@@ -131,14 +131,14 @@ export class ReactNativeProvider implements IFastAuthProvider {
     async requestTransactionSignature(
         requestSignatureOptions: ReactNativeRequestTransactionSignatureOptions
     ): Promise<void> {
-        const { imageUrl, name, transaction } = requestSignatureOptions;
+        const { transaction } = requestSignatureOptions;
 
         const transactionString = encodeTransaction(transaction).toString();
 
         const authorizeParams: WebAuthorizeParameters = {
             additionalParameters: {
-                image_url: imageUrl,
-                name,
+                image_url: this.options.imageUrl,
+                name: this.options.name,
                 transaction: transactionString,
             },
         };
@@ -165,13 +165,13 @@ export class ReactNativeProvider implements IFastAuthProvider {
     async requestDelegateActionSignature(
         options: ReactNativeRequestDelegateActionSignatureOptions
     ): Promise<void> {
-        const { imageUrl, name, delegateAction } = options;
+        const { delegateAction } = options;
 
         const authorizeParams: WebAuthorizeParameters = {
             additionalParameters: {
-                image_url: imageUrl,
-                name,
-                delegate_action: encodeDelegateAction(delegateAction).toString(),
+                image_url: this.options.imageUrl,
+                name: this.options.name,
+                delegateAction: encodeDelegateAction(delegateAction).toString(),
             },
         };
 
