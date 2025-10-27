@@ -22,11 +22,7 @@ importers:
         version: 6.0.1
       tsup:
         specifier: ^8.2.4
-<<<<<<< HEAD
-        version: 8.2.4(jiti@1.21.7)(postcss@8.5.6)(typescript@5.9.3)
-=======
         version: 8.2.4(jiti@1.21.7)(postcss@8.5.6)(typescript@5.9.3)(yaml@2.8.1)
->>>>>>> react-native/feat/sdk
       turbo:
         specifier: ^2.5.4
         version: 2.5.4
@@ -306,10 +302,10 @@ importers:
 
   examples/spa:
     dependencies:
-      '@fast-auth/browser':
+      '@fast-auth/browser-sdk':
         specifier: workspace:*
         version: link:../../packages/sdks/browser
-      '@fast-auth/javascript':
+      '@fast-auth/javascript-provider':
         specifier: workspace:*
         version: link:../../packages/providers/javascript
       '@noble/hashes':
@@ -360,11 +356,7 @@ importers:
         version: 19.1.6(@types/react@19.1.8)
       '@vitejs/plugin-react':
         specifier: ^4.3.4
-<<<<<<< HEAD
-        version: 4.7.0(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(terser@5.43.1))
-=======
         version: 4.7.0(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1))
->>>>>>> react-native/feat/sdk
       eslint:
         specifier: ^8.26.1
         version: 8.57.0
@@ -385,11 +377,10 @@ importers:
         version: 8.38.0(eslint@8.57.0)(typescript@5.7.3)
       vite:
         specifier: ^6.3.0
-<<<<<<< HEAD
-        version: 6.3.5(@types/node@24.9.1)(jiti@1.21.7)(terser@5.43.1)
+        version: 6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1)
       vite-plugin-node-polyfills:
         specifier: ^0.24.0
-        version: 0.24.0(rollup@4.44.1)(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(terser@5.43.1))
+        version: 0.24.0(rollup@4.44.1)(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1))
 
   packages/backend/config:
     devDependencies:
@@ -408,11 +399,45 @@ importers:
       '@types/node':
         specifier: latest
         version: 24.9.1
-=======
-        version: 6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1)
-      vite-plugin-node-polyfills:
-        specifier: ^0.24.0
-        version: 0.24.0(rollup@4.44.1)(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1))
+      typescript:
+        specifier: latest
+        version: 5.9.3
+
+  packages/backend/core:
+    devDependencies:
+      '@nestjs/common':
+        specifier: ^10.3.0
+        version: 10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.2)
+      '@nestjs/swagger':
+        specifier: ^7.1.16
+        version: 7.1.17(@nestjs/common@10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.2))(@nestjs/core@10.4.20)(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)
+      '@nestjs/typeorm':
+        specifier: ^10.0.1
+        version: 10.0.2(@nestjs/common@10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.2))(@nestjs/core@10.4.20)(reflect-metadata@0.1.13)(rxjs@7.8.2)(typeorm@0.3.27(pg@8.16.3)(reflect-metadata@0.1.13)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3)))
+      '@shared/eslint':
+        specifier: workspace:*
+        version: link:../../shared/eslint
+      '@shared/tsconfig':
+        specifier: workspace:*
+        version: link:../../shared/tsconfig
+      '@shared/tsup':
+        specifier: workspace:*
+        version: link:../../shared/tsup
+      '@shared/utils':
+        specifier: workspace:*
+        version: link:../../shared/utils
+      '@types/express':
+        specifier: ^4.17.17
+        version: 4.17.17
+      express:
+        specifier: ^4.19.2
+        version: 4.21.2
+      express-openapi-validator:
+        specifier: ^5.3.1
+        version: 5.6.0(@types/json-schema@7.0.15)(express@4.21.2)
+      typescript:
+        specifier: latest
+        version: 5.9.3
 
   packages/providers/javascript:
     dependencies:
@@ -461,49 +486,14 @@ importers:
         version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
       ts-jest:
         specifier: ^29.1.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0)(typescript@5.9.3)
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3)))(typescript@5.9.3)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@22.16.5)(typescript@5.9.3)
->>>>>>> react-native/feat/sdk
       typescript:
         specifier: latest
         version: 5.9.3
 
-<<<<<<< HEAD
-  packages/backend/core:
-    devDependencies:
-      '@nestjs/common':
-        specifier: ^10.3.0
-        version: 10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.2)
-      '@nestjs/swagger':
-        specifier: ^7.1.16
-        version: 7.1.17(@nestjs/common@10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.2))(@nestjs/core@10.4.20)(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)
-      '@nestjs/typeorm':
-        specifier: ^10.0.1
-        version: 10.0.2(@nestjs/common@10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.2))(@nestjs/core@10.4.20)(reflect-metadata@0.1.13)(rxjs@7.8.2)(typeorm@0.3.27(pg@8.16.3)(reflect-metadata@0.1.13)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3)))
-      '@shared/eslint':
-        specifier: workspace:*
-        version: link:../../shared/eslint
-      '@shared/tsconfig':
-        specifier: workspace:*
-        version: link:../../shared/tsconfig
-      '@shared/tsup':
-        specifier: workspace:*
-        version: link:../../shared/tsup
-      '@shared/utils':
-        specifier: workspace:*
-        version: link:../../shared/utils
-      '@types/express':
-        specifier: ^4.17.17
-        version: 4.17.17
-      express:
-        specifier: ^4.19.2
-        version: 4.21.2
-      express-openapi-validator:
-        specifier: ^5.3.1
-        version: 5.6.0(@types/json-schema@7.0.15)(express@4.21.2)
-=======
   packages/providers/react-native:
     dependencies:
       '@near-js/transactions':
@@ -548,11 +538,10 @@ importers:
         version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
       ts-jest:
         specifier: ^29.1.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0)(typescript@5.9.3)
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3)))(typescript@5.9.3)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@22.16.5)(typescript@5.9.3)
->>>>>>> react-native/feat/sdk
       typescript:
         specifier: latest
         version: 5.9.3
@@ -601,20 +590,13 @@ importers:
         version: 22.16.5
       jest:
         specifier: ^29.7.0
-<<<<<<< HEAD
-        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2))
-      ts-jest:
-        specifier: ^29.1.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2)))(typescript@5.9.2)
-=======
         version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
       ts-jest:
         specifier: ^29.1.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0)(typescript@5.9.3)
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3)))(typescript@5.9.3)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@22.16.5)(typescript@5.9.3)
->>>>>>> react-native/feat/sdk
       typescript:
         specifier: latest
         version: 5.9.3
@@ -660,7 +642,7 @@ importers:
         version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
       ts-jest:
         specifier: ^29.1.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0)(typescript@5.9.3)
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3)))(typescript@5.9.3)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@22.16.5)(typescript@5.9.3)
@@ -747,13 +729,13 @@ importers:
         version: 24.9.1
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3))
+        version: 29.7.0(@types/node@24.9.1)
       near-api-js:
         specifier: ^4.0.4
         version: 4.0.4
       ts-jest:
         specifier: ^29.3.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3)))(typescript@5.9.3)
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@24.9.1))(typescript@5.9.3)
       typescript:
         specifier: latest
         version: 5.9.3
@@ -777,17 +759,10 @@ importers:
         version: 29.5.12
       jest:
         specifier: ^29.7.0
-<<<<<<< HEAD
-        version: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2))
-      ts-jest:
-        specifier: ^29.3.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2)))(typescript@5.9.2)
-=======
-        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
+        version: 29.7.0
       ts-jest:
         specifier: ^29.3.4
         version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0)(typescript@5.9.3)
->>>>>>> react-native/feat/sdk
       typescript:
         specifier: latest
         version: 5.9.3
@@ -844,7 +819,7 @@ importers:
         version: 13.15.3
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3))
+        version: 29.7.0(@types/node@24.9.1)
       typescript:
         specifier: latest
         version: 5.9.3
@@ -1767,13 +1742,10 @@ packages:
     resolution: {integrity: sha512-ooWCrlZP11i8GImSjTHYHLkvFDP48nS4+204nGb1RiX/WXYHmJA2III9/e2DWVabCESdW7hBAEzHRqUn9OUVvQ==}
     engines: {node: '>=0.1.90'}
 
-<<<<<<< HEAD
   '@colors/colors@1.6.0':
     resolution: {integrity: sha512-Ir+AOibqzrIsL6ajt3Rz3LskB7OiMVHqltZmspbW/TJuTVuyOMirVqAkjfY6JISiLHgyNqicAC8AyHHGzNd/dA==}
     engines: {node: '>=0.1.90'}
 
-=======
->>>>>>> react-native/feat/sdk
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
@@ -2753,12 +2725,9 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
-<<<<<<< HEAD
   '@jsdevtools/ono@7.1.3':
     resolution: {integrity: sha512-4JQNk+3mVzK3xh2rqd6RB4J46qUR19azEHBneZyTZM+c456qOrbbM/5xcR8huNCCcbVt7+UmizG6GuUvPvKUYg==}
 
-=======
->>>>>>> react-native/feat/sdk
   '@leichtgewicht/ip-codec@2.0.5':
     resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
 
@@ -2879,7 +2848,6 @@ packages:
   '@near-js/wallet-account@1.3.3':
     resolution: {integrity: sha512-GDzg/Kz0GBYF7tQfyQQQZ3vviwV8yD+8F2lYDzsWJiqIln7R1ov0zaXN4Tii86TeS21KPn2hHAsVu3Y4txa8OQ==}
 
-<<<<<<< HEAD
   '@nestjs/cli@10.4.9':
     resolution: {integrity: sha512-s8qYd97bggqeK7Op3iD49X2MpFtW4LVNLAwXFkfbRxKME6IYT7X0muNTJ2+QfI8hpbNx9isWkrLWIp+g5FOhiA==}
     engines: {node: '>= 16.14'}
@@ -3012,8 +2980,6 @@ packages:
   '@noble/ciphers@0.2.0':
     resolution: {integrity: sha512-6YBxJDAapHSdd3bLDv6x2wRPwq4QFMUaB3HvljNBUTThDd12eSm7/3F+2lnfzx2jvM+S6Nsy0jEt9QbPqSwqRw==}
 
-=======
->>>>>>> react-native/feat/sdk
   '@noble/curves@1.2.0':
     resolution: {integrity: sha512-oYclrNgRaM9SsBUBVbb8M6DTV7ZHRTKugureoYEncY5c65HOmRzvSiTE3y5CYaPYJA/GVkrhXEoF0M3Ya9PMnw==}
 
@@ -3149,8 +3115,8 @@ packages:
     resolution: {integrity: sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==}
     engines: {node: '>=8.0.0'}
 
-  '@paralleldrive/cuid2@2.2.2':
-    resolution: {integrity: sha512-ZOBkgDwEdoYVlSeRbYYXs0S9MejQofiVYoTbKzy/6GQa39/q5tQU2IX46+shYnUkpEl3wc+J6wRlar7r2EK2xA==}
+  '@paralleldrive/cuid2@2.3.1':
+    resolution: {integrity: sha512-XO7cAxhnTZl0Yggq6jOgjiOHhbgcO4NqFqwSmQpjK3b6TEE6Uj/jfSk6wzYyemh3+I0sHirKSetjQwn5cZktFw==}
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -3865,9 +3831,6 @@ packages:
   '@types/node@24.9.1':
     resolution: {integrity: sha512-QoiaXANRkSXK6p0Duvt56W208du4P9Uye9hWLWgGMDTEoKPhuenzNcC4vGUmrNkiOKTlIrBoyNQYNpSwfEZXSg==}
 
-  '@types/node@24.9.1':
-    resolution: {integrity: sha512-QoiaXANRkSXK6p0Duvt56W208du4P9Uye9hWLWgGMDTEoKPhuenzNcC4vGUmrNkiOKTlIrBoyNQYNpSwfEZXSg==}
-
   '@types/parse-json@4.0.2':
     resolution: {integrity: sha512-dISoDXWWQwUquiKsyZ4Ng+HX2KsPL7LyHKHQwgGFEA3IaKac4Obd+h2a/a6waisAoepJlBcx9paWqjA8/HVjCw==}
 
@@ -4136,14 +4099,12 @@ packages:
   '@xtuc/long@4.2.2':
     resolution: {integrity: sha512-NuHqBY1PB/D8xU6s/thBgOAiAP7HOYDQ32+BFZILJ8ivkUkAHQnWfn6WhL79Owj1qmUnoN/YPhktdIoucipkAQ==}
 
-<<<<<<< HEAD
   abbrev@1.1.1:
     resolution: {integrity: sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==}
-=======
+
   abort-controller@3.0.0:
     resolution: {integrity: sha512-h8lQ8tacZYnR3vNQTgibj+tODHI5/+l06Au2Pcriv/Gmet0eaj4TwWH41sO9wnHDiQsEj19q0drzdWdeAHtweg==}
     engines: {node: '>=6.5'}
->>>>>>> react-native/feat/sdk
 
   accepts@1.3.8:
     resolution: {integrity: sha512-PYAthTa2m2VKxuvSD3DPC/Gy+U+sOA1LAuT8mkmRuvw+NACSaeXEQ+NHcVF7rONl6qcaxV3Uuemwawk+7+SJLw==}
@@ -4171,15 +4132,13 @@ packages:
     resolution: {integrity: sha512-4B/qKCfeE/ODUaAUpSwfzazo5x29WD4r3vXiWsB7I2mSDAihwEqKO+g8GELZUQSSAo5e1XTYh3ZVfLyxBc12nA==}
     engines: {node: '>= 10.0.0'}
 
-<<<<<<< HEAD
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
     engines: {node: '>= 6.0.0'}
-=======
+
   agent-base@7.1.4:
     resolution: {integrity: sha512-MnA+YT8fwfJPgBx3m60MNqakm30XOkyIoH1y6huTQvC0PwZG7ki8NacLBcrPbNoo8vEZy7Jpuk7+jMO+CUovTQ==}
     engines: {node: '>= 14'}
->>>>>>> react-native/feat/sdk
 
   aggregate-error@3.1.0:
     resolution: {integrity: sha512-4I7Td01quW/RpocfNayFdFVk1qSuoh0E7JrbRJ16nH01HhKFQ88INq9Sd+nd72zqRySlr9BmDA8xlEJ6vJMrYA==}
@@ -4298,33 +4257,28 @@ packages:
     resolution: {integrity: sha512-KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw==}
     engines: {node: '>= 8'}
 
-<<<<<<< HEAD
   app-root-path@3.1.0:
     resolution: {integrity: sha512-biN3PwB2gUtjaYy/isrU3aNWI5w+fAfvHkSvCKeQGxhmYpwKFUxudR3Yya+KqVRHBmEDYh+/lTozYCFbmzX4nA==}
     engines: {node: '>= 6.0.0'}
+
+  appdirsjs@1.2.7:
+    resolution: {integrity: sha512-Quji6+8kLBC3NnBeo14nPDq0+2jUs5s3/xEye+udFHumHhRk4M7aAMXp/PBJqkKYGuuyR9M/6Dq7d2AViiGmhw==}
 
   append-field@1.0.0:
     resolution: {integrity: sha512-klpgFSWLW1ZEs8svjfb7g4qWY0YS5imI82dTg+QahUvJ8YqAY0P10Uk8tTyh9ZGuYEZEMaeJYCF5BFuX552hsw==}
 
   aproba@2.1.0:
     resolution: {integrity: sha512-tLIEcj5GuR2RSTnxNKdkK0dJ/GrC7P38sUkiDmDuHfsHmbagTFAxDVIBltoklXEVIQ/f14IL8IMJ5pn9Hez1Ew==}
-=======
-  appdirsjs@1.2.7:
-    resolution: {integrity: sha512-Quji6+8kLBC3NnBeo14nPDq0+2jUs5s3/xEye+udFHumHhRk4M7aAMXp/PBJqkKYGuuyR9M/6Dq7d2AViiGmhw==}
->>>>>>> react-native/feat/sdk
 
   are-docs-informative@0.0.2:
     resolution: {integrity: sha512-ixiS0nLNNG5jNQzgZJNoUpBKdo9yTYZMGJ+QgT2jmjR7G7+QHRCc4v6LQ3NgE7EBJq+o0ams3waJwkrlBom8Ig==}
     engines: {node: '>=14'}
 
-<<<<<<< HEAD
   are-we-there-yet@2.0.0:
     resolution: {integrity: sha512-Ci/qENmwHnsYo9xKIcUJN5LeDKdJ6R1Z1j9V/J5wyq8nh/mYPEpIKJbBZXtZjG04HiK7zV/p6Vs9952MrMeUIw==}
     engines: {node: '>=10'}
     deprecated: This package is no longer supported.
 
-=======
->>>>>>> react-native/feat/sdk
   arg@4.1.3:
     resolution: {integrity: sha512-58S9QDqG0Xx27YwPSt9fJxivjYl432YCwfDMfZ+71RAqUrZef7LrKQZ3LHLOwCS4FLNBplP533Zx895SeOCHvA==}
 
@@ -4492,12 +4446,9 @@ packages:
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
-<<<<<<< HEAD
-=======
   base-64@1.0.0:
     resolution: {integrity: sha512-kwDPIFCGx0NZHog36dj+tHiwP4QMzsZ3AgMViUBKI0+V5n4U0ufTCUMhnQ04diaRI8EX/QcPfql7zlhZ7j4zgg==}
 
->>>>>>> react-native/feat/sdk
   base-x@2.0.6:
     resolution: {integrity: sha512-UAmjxz9KbK+YIi66xej+pZVo/vxUOh49ubEvZW5egCbxhur05pBb+hwuireQwKO4nDpsNm64/jEei17LEpsr5g==}
     engines: {node: '>=4.5.0'}
@@ -4527,12 +4478,9 @@ packages:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
     engines: {node: '>=8'}
 
-<<<<<<< HEAD
   bintrees@1.0.2:
     resolution: {integrity: sha512-VOMgTMwjAaUG580SXn3LacVgjurrbMme7ZZNYGSSV7mmtY6QQRh0Eg3pwIcntQ77DErK1L0NxkbetjcoXzVwKw==}
 
-=======
->>>>>>> react-native/feat/sdk
   bl@4.1.0:
     resolution: {integrity: sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==}
 
@@ -4751,16 +4699,14 @@ packages:
     resolution: {integrity: sha512-7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw==}
     engines: {node: '>= 8.10.0'}
 
-<<<<<<< HEAD
   chownr@2.0.0:
     resolution: {integrity: sha512-bIomtDF5KGpdogkLd9VspvFzk9KfpyyGlS8YFVZl7TGPBHL5snIOnxeshwVgPteQ9b4Eydl+pVbIyE1DcvCWgQ==}
     engines: {node: '>=10'}
-=======
+
   chrome-launcher@0.15.2:
     resolution: {integrity: sha512-zdLEwNo3aUVzIhKhTtXfxhdvZhUghrnmkvcAq2NoDd+LeOHKf03H5jwZ8T/STsAlzyALkBVK552iaG1fGf1xVQ==}
     engines: {node: '>=12.13.0'}
     hasBin: true
->>>>>>> react-native/feat/sdk
 
   chrome-trace-event@1.0.4:
     resolution: {integrity: sha512-rNjApaLzuwaOTjCiT8lSDdGN1APCiqkChLMJxJPWLunPAt5fy8xgU9/jNOchV84wfIxrA0lRQB7oCT8jrn/wrQ==}
@@ -4813,7 +4759,6 @@ packages:
     resolution: {integrity: sha512-+W/5efTR7y5HRD7gACw9yQjqMVvEMLBHmboM/kPWam+H+Hmyrgjh6YncVKK122YZkXrLudzTuAukUw9FnMf7IQ==}
     engines: {node: 10.* || >= 12.*}
 
-<<<<<<< HEAD
   cli-width@3.0.0:
     resolution: {integrity: sha512-FxqpkPPwu1HjuN93Omfm4h8uIanXofW0RxVEW3k5RKx+mJJYSthzNhp32Kzxxy3YAEZ/Dc/EWN1vZRY0+kOhbw==}
     engines: {node: '>= 10'}
@@ -4821,10 +4766,9 @@ packages:
   cli-width@4.1.0:
     resolution: {integrity: sha512-ouuZd4/dm2Sw5Gmqy6bGyNNNe1qt9RpmxveLSO7KcgsTnU7RXfsw+/bukWGo1abgBiMAic068rclZsO4IWmmxQ==}
     engines: {node: '>= 12'}
-=======
+
   cliui@6.0.0:
     resolution: {integrity: sha512-t6wbgtoCXvAzst7QgXxJYqPt0usEfbgQdftEPbLL/cvv6HPE5VgvqCuAIDR0NgU52ds6rFwqrgakNLrHEjCbrQ==}
->>>>>>> react-native/feat/sdk
 
   cliui@8.0.1:
     resolution: {integrity: sha512-BSeNnyus75C4//NQ9gQt1/csTXyo/8Sb+afLAkzAptFuMsod9HFokGNudZpi/oQV73hnVK+sR+5PVRMd+Dr7YQ==}
@@ -4863,14 +4807,12 @@ packages:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
     engines: {node: '>=7.0.0'}
 
-<<<<<<< HEAD
   color-convert@3.1.2:
     resolution: {integrity: sha512-UNqkvCDXstVck3kdowtOTWROIJQwafjOfXSmddoDrXo4cewMKmusCeF22Q24zvjR8nwWib/3S/dfyzPItPEiJg==}
     engines: {node: '>=14.6'}
-=======
+
   color-name@1.1.3:
     resolution: {integrity: sha512-72fSenhMw2HZMTVHeCA9KCmpEIbzWiQsjN+BHcBbS9vr1mtt+vJjPdksIBNUmKAW8TFUDPJK5SUU3QhE9NEXDw==}
->>>>>>> react-native/feat/sdk
 
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
@@ -4944,15 +4886,13 @@ packages:
     resolution: {integrity: sha512-OkTL9umf+He2DZkUq8f8J9of7yL6RJKI24dVITBmNfZBmri9zYZQrKkuXiKhyfPSu8tUhnVBB1iKXevvnlR4Ww==}
     engines: {node: '>= 12'}
 
-<<<<<<< HEAD
-  comment-json@4.2.5:
-    resolution: {integrity: sha512-bKw/r35jR3HGt5PEPm1ljsQQGyCrR8sFGNiN5L+ykDHdpO8Smxkrkla9Yi6NkQyUrb8V54PGhfMs6NrIwtxtdw==}
-    engines: {node: '>= 6'}
-=======
   commander@9.5.0:
     resolution: {integrity: sha512-KRs7WVDKg86PWiuAqhDrAQnTXZKraVcCc6vFdL14qrZ/DcWwuRo7VoiYXalXO7S5GKpqYiVEwCbgFDfxNHKJBQ==}
     engines: {node: ^12.20.0 || >=14}
->>>>>>> react-native/feat/sdk
+
+  comment-json@4.2.5:
+    resolution: {integrity: sha512-bKw/r35jR3HGt5PEPm1ljsQQGyCrR8sFGNiN5L+ykDHdpO8Smxkrkla9Yi6NkQyUrb8V54PGhfMs6NrIwtxtdw==}
+    engines: {node: '>= 6'}
 
   comment-parser@1.4.1:
     resolution: {integrity: sha512-buhp5kePrmda3vhc5B9t7pUQXAb2Tnd0qgpkIhPhkHXxJpiPJ11H0ZEU0oBpJ2QztSbzG/ZxMj/CHsYJqRHmyg==}
@@ -4990,14 +4930,12 @@ packages:
     resolution: {integrity: sha512-U73+6lQFmfiNPrYbXqr6kZ1i1wiRqXnp2nhMsINseWXO8lDau0LGEffJ8kQi4EjLZympVgRdvqjAgiZ1tgzDDA==}
     engines: {node: '>=0.8'}
 
-<<<<<<< HEAD
-  consola@2.15.3:
-    resolution: {integrity: sha512-9vAdYbHj6x2fLKC4+oPH0kFzY/orMZyG2Aj+kNylHxKGJ/Ed4dpNyAQYwJOdqO4zdM7XpVHmyejQDcQHrnuXbw==}
-=======
   connect@3.7.0:
     resolution: {integrity: sha512-ZqRXc+tZukToSNmh5C2iWMSoV3X1YUcPbqEM4DkEG5tNQXrQUZCNVGGv3IuicnkMtPfGf3Xtp8WCXs295iQ1pQ==}
     engines: {node: '>= 0.10.0'}
->>>>>>> react-native/feat/sdk
+
+  consola@2.15.3:
+    resolution: {integrity: sha512-9vAdYbHj6x2fLKC4+oPH0kFzY/orMZyG2Aj+kNylHxKGJ/Ed4dpNyAQYwJOdqO4zdM7XpVHmyejQDcQHrnuXbw==}
 
   consola@3.4.2:
     resolution: {integrity: sha512-5IKcdX0nnYavi6G7TtOhwkYzyjfJlatbjMjuLSfE2kYT5pMDOilZ4OvMhi637CcDICTmz3wARPoyhqyX1Y+XvA==}
@@ -5565,11 +5503,11 @@ packages:
     resolution: {integrity: sha512-aN97NXWF6AWBTahfVOIrB/NShkzi5H7F9r1s9mD3cDj4Ko5f2qhhVoYMibXF7GlLveb/D2ioWay8lxI97Ven3g==}
     engines: {node: '>=0.12'}
 
-<<<<<<< HEAD
   env-cmd@10.1.0:
     resolution: {integrity: sha512-mMdWTT9XKN7yNth/6N6g2GuKuJTsKMDHlQFUDacb/heQRRWOTIZ42t1rMHnQu4jYxU1ajdTeJM+9eEETlqToMA==}
     engines: {node: '>=8.0.0'}
-=======
+    hasBin: true
+
   env-paths@2.2.1:
     resolution: {integrity: sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A==}
     engines: {node: '>=6'}
@@ -5577,7 +5515,6 @@ packages:
   envinfo@7.19.0:
     resolution: {integrity: sha512-DoSM9VyG6O3vqBf+p3Gjgr/Q52HYBBtO3v+4koAxt1MnWr+zEnxE+nke/yXS4lt2P4SYCHQ4V3f1i88LQVOpAw==}
     engines: {node: '>=4'}
->>>>>>> react-native/feat/sdk
     hasBin: true
 
   error-ex@1.3.2:
@@ -5947,13 +5884,12 @@ packages:
   fast-uri@3.0.6:
     resolution: {integrity: sha512-Atfo14OibSv5wAp4VWNsFYE1AchQRTv9cBGWET4pZWHzYshFSS9NQI6I57rdKn9croWVMbYFbLhJ+yJvmZIIHw==}
 
-<<<<<<< HEAD
   fast-xml-parser@4.2.5:
     resolution: {integrity: sha512-B9/wizE4WngqQftFPmdaMYlXoJlJOYxGQOanC77fq9k8+Z0v5dDSVh+3glErdIROP//s/jgb7ZuxKfB8nVyo0g==}
-=======
+    hasBin: true
+
   fast-xml-parser@4.5.3:
     resolution: {integrity: sha512-RKihhV+SHsIUGXObeVy9AXiBbFwkVk7Syp8XgwN5U3JV416+Gwp/GO9i0JYKmikykgz/UHRrrV4ROuZEo/T0ig==}
->>>>>>> react-native/feat/sdk
     hasBin: true
 
   fastq@1.19.1:
@@ -6072,13 +6008,11 @@ packages:
   flatted@3.3.3:
     resolution: {integrity: sha512-GX+ysw4PBCz0PzosHDepZGANEuFCMLrnRTiEy9McGjmkCQYwRq4A/X786G/fjM/+OjsWSU1ZrY5qyARZmO/uwg==}
 
-<<<<<<< HEAD
-  fn.name@1.1.0:
-    resolution: {integrity: sha512-GRnmB5gPyJpAhTQdSZTSp9uaPSvl09KoYcMQtsB9rQoOmzs9dH6ffeccH+Z+cv6P68Hu5bC6JjRh4Ah/mHSNRw==}
-=======
   flow-enums-runtime@0.0.6:
     resolution: {integrity: sha512-3PYnM29RFXwvAN6Pc/scUfkI7RwhQ/xqyLUyPNlXUp9S40zI8nup9tUSrTLSVnWGBN38FNiGWbwZOB6uR4OGdw==}
->>>>>>> react-native/feat/sdk
+
+  fn.name@1.1.0:
+    resolution: {integrity: sha512-GRnmB5gPyJpAhTQdSZTSp9uaPSvl09KoYcMQtsB9rQoOmzs9dH6ffeccH+Z+cv6P68Hu5bC6JjRh4Ah/mHSNRw==}
 
   follow-redirects@1.15.9:
     resolution: {integrity: sha512-gew4GsXizNgdoRyqmyfMHyAmXsZDk6mHkSxZFCzW9gwlbtOW44CDtYavM+y+72qD/Vq2l550kMF52DT8fOLJqQ==}
@@ -6401,11 +6335,10 @@ packages:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
 
-<<<<<<< HEAD
   helmet@6.2.0:
     resolution: {integrity: sha512-DWlwuXLLqbrIOltR6tFQXShj/+7Cyp0gLi6uAb8qMdFh/YBBFbKSgQ6nbXmScYd8emMctuthmgIa7tUfo9Rtyg==}
     engines: {node: '>=14.0.0'}
-=======
+
   hermes-compiler@0.0.0:
     resolution: {integrity: sha512-boVFutx6ME/Km2mB6vvsQcdnazEYYI/jV1pomx1wcFUG/EVqTkr5CU0CW9bKipOA/8Hyu3NYwW3THg2Q1kNCfA==}
 
@@ -6414,7 +6347,6 @@ packages:
 
   hermes-parser@0.32.0:
     resolution: {integrity: sha512-g4nBOWFpuiTqjR3LZdRxKUkij9iyveWeuks7INEsMX741f3r9xxrOe8TeQfUxtda0eXmiIFiMQzoeSQEno33Hw==}
->>>>>>> react-native/feat/sdk
 
   history@4.10.1:
     resolution: {integrity: sha512-36nwAD620w12kuzPAsyINPWJqlNbij+hpK1k9XRloDtym8mxzGYl2c17LnV6IAGB2Dmg4tEa7G7DlawS0+qjew==}
@@ -6516,15 +6448,13 @@ packages:
   https-browserify@1.0.0:
     resolution: {integrity: sha512-J+FkSdyD+0mA0N+81tMotaRMfSL9SGi+xpD3T6YApKsc3bGSXJlfXri3VyFOeYkfLRQisDk1W+jIFFKBeUBbBg==}
 
-<<<<<<< HEAD
   https-proxy-agent@5.0.1:
     resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}
     engines: {node: '>= 6'}
-=======
+
   https-proxy-agent@7.0.6:
     resolution: {integrity: sha512-vK9P5/iUfdl95AI+JVyUuIcVtd4ofvtrOr3HNtM2yxC9bnMbEdp3x01OhQNnjb8IJYi38VlTE3mBXwcfvywuSw==}
     engines: {node: '>= 14'}
->>>>>>> react-native/feat/sdk
 
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
@@ -7149,16 +7079,14 @@ packages:
     engines: {node: '>=6'}
     hasBin: true
 
-<<<<<<< HEAD
   jsonc-parser@3.2.1:
     resolution: {integrity: sha512-AilxAyFOAcK5wA1+LeaySVBrHsGQvUFCDWXKpZjzaL0PqW+xfBOttn8GNtWKFWqneyMZj41MWF9Kl6iPWLwgOA==}
 
   jsonc-parser@3.3.1:
     resolution: {integrity: sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==}
-=======
+
   jsonfile@4.0.0:
     resolution: {integrity: sha512-m6F1R3z8jjlf2imQHS2Qez5sjKWQzbuuhuJ/FKYFRZvPE3PuHcSMVZzfsLhGVOkfd20obL5SWEBew5ShlquNxg==}
->>>>>>> react-native/feat/sdk
 
   jsonfile@6.1.0:
     resolution: {integrity: sha512-5dgndWOriYSm5cnYaJNhalLNDKOqFwyDB/rr1E9ZsGciGvKPs8R2xYGCacuf3z6K1YKDz182fd+fY3cn3pMqXQ==}
@@ -7217,10 +7145,9 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
-<<<<<<< HEAD
-  libphonenumber-js@1.12.24:
-    resolution: {integrity: sha512-l5IlyL9AONj4voSd7q9xkuQOL4u8Ty44puTic7J88CmdXkxfGsRfoVLXHCxppwehgpb/Chdb80FFehHqjN3ItQ==}
-=======
+  libphonenumber-js@1.12.25:
+    resolution: {integrity: sha512-u90tUu/SEF8b+RaDKCoW7ZNFDakyBtFlX1ex3J+VH+ElWes/UaitJLt/w4jGu8uAE41lltV/s+kMVtywcMEg7g==}
+
   lighthouse-logger@1.4.2:
     resolution: {integrity: sha512-gPWxznF6TKmUHrOQjlVo2UbaL2EJ71mb2CCeRs/2qBpi4L/g4LUVc9+3lKQ6DTUZwJswfM7ainGrLO1+fOqa2g==}
 
@@ -7293,7 +7220,6 @@ packages:
   lightningcss@1.30.2:
     resolution: {integrity: sha512-utfs7Pr5uJyyvDETitgsaqSyjCb2qNRAtuqUeWIAKztsOYdcACf2KtARYXg2pSvhkt+9NfoaNY7fxjl6nuMjIQ==}
     engines: {node: '>= 12.0.0'}
->>>>>>> react-native/feat/sdk
 
   lilconfig@3.1.3:
     resolution: {integrity: sha512-/vlFKAoH5Cgt3Ie+JLhRbwOsCQePABiU3tJ1egGvyQ+33R/vcwM2Zl2QR/LzjsBeItPt3oSVXapn+m4nQDvpzw==}
@@ -7393,15 +7319,13 @@ packages:
     resolution: {integrity: sha512-8XPvpAA8uyhfteu8pIvQxpJZ7SYYdpUivZpGy6sFsBuKRY/7rQGavedeB8aK+Zkyq6upMFVL/9AW6vOYzfRyLg==}
     engines: {node: '>=10'}
 
-<<<<<<< HEAD
   logform@2.7.0:
     resolution: {integrity: sha512-TFYA4jnP7PVbmlBIfhlSe+WKxs9dklXMTEGcBCIvLhE/Tn3H6Gk1norupVW7m5Cnd4bLcr08AytbyV/xj7f/kQ==}
     engines: {node: '>= 12.0.0'}
-=======
+
   logkitty@0.7.1:
     resolution: {integrity: sha512-/3ER20CTTbahrCrpYfPn7Xavv9diBROZpoXGVZDWMw4b/X4uuUwAC0ki85tgsdMRONURyIJbcOvS94QsUBYPbQ==}
     hasBin: true
->>>>>>> react-native/feat/sdk
 
   longest-streak@3.1.0:
     resolution: {integrity: sha512-9Ri+o0JYgehTaVBBDoMqIl8GXtbWg711O3srftcHhZ0dqnETqLaoIK0x17fUw9rFSlK/0NlsKe0Ahhyl5pXE2g==}
@@ -7854,7 +7778,6 @@ packages:
     resolution: {integrity: sha512-qOOzS1cBTWYF4BH8fVePDBOO9iptMnGUEZwNc/cMWnTV2nVLZ7VoNWEPHkYczZA0pdoA7dl6e7FL659nX9S2aw==}
     engines: {node: '>=16 || 14 >=14.17'}
 
-<<<<<<< HEAD
   minizlib@2.1.2:
     resolution: {integrity: sha512-bAxsR8BVfj60DWXHE3u30oHzfl4G7khkSuPW+qvpd7jFRHm7dLxOjUk1EHACJ/hxLY8phGJ0YhYHZo7jil7Qdg==}
     engines: {node: '>= 8'}
@@ -7863,20 +7786,15 @@ packages:
     resolution: {integrity: sha512-FP+p8RB8OWpF3YZBCrP5gtADmtXApB5AMLn+vdyA+PyxCjrCs00mjyUozssO33cwDeT3wNGdLxJ5M//YqtHAJw==}
     hasBin: true
 
-=======
->>>>>>> react-native/feat/sdk
   mkdirp@1.0.4:
     resolution: {integrity: sha512-vVqVZQyf3WLx2Shd0qJ9xuvqgAyKPLAiqITEtqW0oIUjzo3PePDd6fW9iFz30ef7Ysp/oiWqbhszeGWW2T6Gzw==}
     engines: {node: '>=10'}
     hasBin: true
 
-<<<<<<< HEAD
   morgan@1.10.1:
     resolution: {integrity: sha512-223dMRJtI/l25dJKWpgij2cMtywuG/WiUKXdvwfbhGKBhy1puASqXwFzmWZ7+K73vUPoR7SS2Qz2cI/g9MKw0A==}
     engines: {node: '>= 0.8.0'}
 
-=======
->>>>>>> react-native/feat/sdk
   mrmime@2.0.1:
     resolution: {integrity: sha512-Y3wQdFg2Va6etvQ5I82yUhGdsKrcYox6p7FfL1LbK2J4V01F9TGlepTIhnK24t7koZibmg82KGglhA1XK5IsLQ==}
     engines: {node: '>=10'}
@@ -7962,14 +7880,12 @@ packages:
   no-case@3.0.4:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
 
-<<<<<<< HEAD
-  node-abort-controller@3.1.1:
-    resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
-=======
   nocache@3.0.4:
     resolution: {integrity: sha512-WDD0bdg9mbq6F4mRxEYcPWwfA1vxd0mrvKOyxI7Xj/atfRHVeutzuWByG//jfm4uPzp0y4Kj051EORCBSQMycw==}
     engines: {node: '>=12.0.0'}
->>>>>>> react-native/feat/sdk
+
+  node-abort-controller@3.1.1:
+    resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
 
   node-addon-api@5.1.0:
     resolution: {integrity: sha512-eh0GgfEkpnoWDq+VY8OyvYhFEzBk6jIYbRKdIlyTiAXIVJ8PyBaKb0rp7oDtoddbdoHWhq8wwr+XZ81F1rpNdA==}
@@ -8008,16 +7924,14 @@ packages:
     resolution: {integrity: sha512-X75ZN8DCLftGM5iKwoYLA3rjnrAEs97MkzvSd4q2746Tgpg8b8XWiBGiBG4ZpgcAqBgtgPHTiAc8ZMCvZuikDw==}
     engines: {node: '>=10'}
 
-<<<<<<< HEAD
+  node-stream-zip@1.15.0:
+    resolution: {integrity: sha512-LN4fydt9TqhZhThkZIVQnF9cwjU3qmUH9h78Mx/K7d3VvfRqqwthLwJEUOEL0QPZ0XQmNN7be5Ggit5+4dq3Bw==}
+    engines: {node: '>=0.12.0'}
+
   nopt@5.0.0:
     resolution: {integrity: sha512-Tbj67rffqceeLpcRXrT7vKAN8CwfPeIBgM7E6iBkmKLV7bEMwpGgYLGv0jACUsECaa/vuxP0IjEont6umdMgtQ==}
     engines: {node: '>=6'}
     hasBin: true
-=======
-  node-stream-zip@1.15.0:
-    resolution: {integrity: sha512-LN4fydt9TqhZhThkZIVQnF9cwjU3qmUH9h78Mx/K7d3VvfRqqwthLwJEUOEL0QPZ0XQmNN7be5Ggit5+4dq3Bw==}
-    engines: {node: '>=0.12.0'}
->>>>>>> react-native/feat/sdk
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -8123,10 +8037,9 @@ packages:
     resolution: {integrity: sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==}
     engines: {node: '>=6'}
 
-<<<<<<< HEAD
   ono@7.1.3:
     resolution: {integrity: sha512-9jnfVriq7uJM4o5ganUY54ntUm+5EK21EGaQ5NWnkWg3zz5ywbbonlBguRcnmF1/HDiIe3zxNxXcO1YPBmPcQQ==}
-=======
+
   open@6.4.0:
     resolution: {integrity: sha512-IFenVPgF70fSm1keSd2iDBIDIBZkroLeuffXq+wKTzTJlBpesFWojV9lb8mzOfaAzM1sr7HQHuO0vtV0zYekGg==}
     engines: {node: '>=8'}
@@ -8134,7 +8047,6 @@ packages:
   open@7.4.2:
     resolution: {integrity: sha512-MVHddDVweXZF3awtlAS+6pgKLlm/JgxZ90+/NBurBoQctVOOB/zDdVjcyPzQ+0laDGbsWgrRkflI65sQeOgT9Q==}
     engines: {node: '>=8'}
->>>>>>> react-native/feat/sdk
 
   open@8.4.2:
     resolution: {integrity: sha512-7x81NCL719oNbsq/3mh+hVrAWmFuEYUqrq/Iw3kUzH8ReypT9QQ0BLoJS7/G9k6N81XjW4qHWtjWwe/9eLy1EQ==}
@@ -8882,14 +8794,12 @@ packages:
     resolution: {integrity: sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A==}
     engines: {node: '>= 0.6.0'}
 
-<<<<<<< HEAD
   prom-client@15.1.3:
     resolution: {integrity: sha512-6ZiOBfCywsD4k1BN9IX0uZhF+tJkV8q8llP64G5Hajs4JOeVLPCwpPVcpXy3BwYiUGgyJzsJJQeOIv7+hDSq8g==}
     engines: {node: ^16 || ^18 || >=20}
-=======
+
   promise@8.3.0:
     resolution: {integrity: sha512-rZPNPKTOYVNEEKFaq1HqTgOwZD+4/YHS5ukLzQCypkj+OkYx7iv0mA91lJlpPPZ8vMau3IIGj5Qlwrx+8iiSmg==}
->>>>>>> react-native/feat/sdk
 
   prompts@2.4.2:
     resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
@@ -9745,13 +9655,10 @@ packages:
   strnum@1.1.2:
     resolution: {integrity: sha512-vrN+B7DBIoTTZjnPNewwhx6cBA/H+IS7rfW68n7XxC1y7uoiGQBxaKzqucGUgavX15dJgiGztLJ8vxuEzwqBdA==}
 
-<<<<<<< HEAD
   strtok3@10.3.4:
     resolution: {integrity: sha512-KIy5nylvC5le1OdaaoCJ07L+8iQzJHGH6pWDuzS+d07Cu7n1MZ2x26P8ZKIWfbK02+XIL8Mp4RkWeqdUCrDMfg==}
     engines: {node: '>=18'}
 
-=======
->>>>>>> react-native/feat/sdk
   style-to-js@1.1.17:
     resolution: {integrity: sha512-xQcBGDxJb6jjFCTzvQtfiPn6YvvP2O8U1MDIPNfJQlWMYfktPy+iGsHE7cssjs7y84d9fQaK4UF3RIJaAHSoYA==}
 
@@ -9802,8 +9709,8 @@ packages:
   swagger-ui-dist@5.10.3:
     resolution: {integrity: sha512-fu3aozjxFWsmcO1vyt1q1Ji2kN7KlTd1vHy27E9WgPyXo9nrEzhQPqgxaAjbMsOmb8XFKNGo4Sa3Q+84Fh+pFw==}
 
-  swagger-ui-dist@5.29.5:
-    resolution: {integrity: sha512-2zFnjONgLXlz8gLToRKvXHKJdqXF6UGgCmv65i8T6i/UrjDNyV1fIQ7FauZA40SaivlGKEvW2tw9XDyDhfcXqQ==}
+  swagger-ui-dist@5.30.0:
+    resolution: {integrity: sha512-BoiDSeT9PCtHfDYMgX5UpB/qTQy44UoSFRmzHqvhGfgxzEVPHxIW78a+HMLUIHnSFu3z63wjtbq6L6+Rto20Rw==}
 
   swagger-ui-express@4.6.0:
     resolution: {integrity: sha512-ZxpQFp1JR2RF8Ar++CyJzEDdvufa08ujNUJgMVTMWPi86CuQeVdBtvaeO/ysrz6dJAYXf9kbVNhWD7JWocwqsA==}
@@ -9872,13 +9779,11 @@ packages:
   thenify@3.3.1:
     resolution: {integrity: sha512-RVZSIV5IG10Hk3enotrhvz0T9em6cyHBLkH/YAZuKqd8hRkKhSfCGIcP2KUY0EPxndzANBmNllzWPwak+bheSw==}
 
-<<<<<<< HEAD
-  through@2.3.8:
-    resolution: {integrity: sha512-w89qg7PI8wAdvX60bMDP+bFoD5Dvhm9oLheFp5O4a2QF0cSBGsBX4qZmadPMvVqlLJBBci+WqGGOAPvcDeNSVg==}
-=======
   throat@5.0.0:
     resolution: {integrity: sha512-fcwX4mndzpLQKBS1DVYhGAcYaYt7vsHNIvQV+WXMvnow5cgjPphq5CaayLaGsjRdSCKZFNGt7/GYAuXaNOiYCA==}
->>>>>>> react-native/feat/sdk
+
+  through@2.3.8:
+    resolution: {integrity: sha512-w89qg7PI8wAdvX60bMDP+bFoD5Dvhm9oLheFp5O4a2QF0cSBGsBX4qZmadPMvVqlLJBBci+WqGGOAPvcDeNSVg==}
 
   thunky@1.1.0:
     resolution: {integrity: sha512-eHY7nBftgThBqOyHGVN+l8gF0BucP09fMo0oO/Lb0w1OF80dJv+lDVpXG60WMQvkcxAkNybKsrEIE3ZtKGmPrA==}
@@ -10008,7 +9913,6 @@ packages:
       esbuild:
         optional: true
 
-<<<<<<< HEAD
   ts-loader@9.4.2:
     resolution: {integrity: sha512-OmlC4WVmFv5I0PpaxYb+qGeGOdm5giHU7HwDDUjw59emP2UYMHy9fFSDcYgSNoH8sXcj4hGCSEhlDZ9ULeDraA==}
     engines: {node: '>=12.0.0'}
@@ -10016,8 +9920,6 @@ packages:
       typescript: '*'
       webpack: ^5.0.0
 
-=======
->>>>>>> react-native/feat/sdk
   ts-node@10.9.2:
     resolution: {integrity: sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==}
     hasBin: true
@@ -10032,13 +9934,10 @@ packages:
       '@swc/wasm':
         optional: true
 
-<<<<<<< HEAD
   tsconfig-paths-webpack-plugin@4.2.0:
     resolution: {integrity: sha512-zbem3rfRS8BgeNK50Zz5SIQgXzLafiHjOwUAvk/38/o1jHn/V5QAgVUcz884or7WYcPaH3N2CIfUc2u0ul7UcA==}
     engines: {node: '>=10.13.0'}
 
-=======
->>>>>>> react-native/feat/sdk
   tsconfig-paths@3.15.0:
     resolution: {integrity: sha512-2Ac2RgzDe/cn48GvOe3M+o82pEFewD3UPbyoUHHdKasHwJKjds4fLXWf/Ux5kATBKN20oaFGu+jbElp1pos0mg==}
 
@@ -10253,11 +10152,6 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  typescript@5.9.3:
-    resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
-    engines: {node: '>=14.17'}
-    hasBin: true
-
   uid@2.0.2:
     resolution: {integrity: sha512-u3xV3X7uzvi5b1MncmZo3i2Aw222Zk1keqLA1YkHldREkAhAqi65wuPfe7lHx8H/Wzy+8CE7S7uS3jekIM5s8g==}
     engines: {node: '>=8'}
@@ -10272,9 +10166,6 @@ packages:
 
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
-
-  undici-types@7.16.0:
-    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
 
   undici-types@7.16.0:
     resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
@@ -10392,13 +10283,10 @@ packages:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
     hasBin: true
 
-<<<<<<< HEAD
   uuid@9.0.1:
     resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
     hasBin: true
 
-=======
->>>>>>> react-native/feat/sdk
   v8-compile-cache-lib@3.0.1:
     resolution: {integrity: sha512-wa7YjyUGfNZngI/vtK0UHAN+lgDCxBPCylVXGp0zu59Fz5aiGtNXaq3DhIov063MorB+VfufLh3JlF2KdTK3xg==}
 
@@ -12142,11 +12030,8 @@ snapshots:
   '@colors/colors@1.5.0':
     optional: true
 
-<<<<<<< HEAD
   '@colors/colors@1.6.0': {}
 
-=======
->>>>>>> react-native/feat/sdk
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
@@ -13570,11 +13455,7 @@ snapshots:
       jest-util: 29.7.0
       slash: 3.0.0
 
-<<<<<<< HEAD
-  '@jest/core@29.7.0(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2))':
-=======
   '@jest/core@29.7.0(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))':
->>>>>>> react-native/feat/sdk
     dependencies:
       '@jest/console': 29.7.0
       '@jest/reporters': 29.7.0
@@ -13588,43 +13469,7 @@ snapshots:
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-<<<<<<< HEAD
-      jest-config: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2))
-      jest-haste-map: 29.7.0
-      jest-message-util: 29.7.0
-      jest-regex-util: 29.6.3
-      jest-resolve: 29.7.0
-      jest-resolve-dependencies: 29.7.0
-      jest-runner: 29.7.0
-      jest-runtime: 29.7.0
-      jest-snapshot: 29.7.0
-      jest-util: 29.7.0
-      jest-validate: 29.7.0
-      jest-watcher: 29.7.0
-      micromatch: 4.0.8
-      pretty-format: 29.7.0
-      slash: 3.0.0
-      strip-ansi: 6.0.1
-    transitivePeerDependencies:
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
-
-  '@jest/core@29.7.0(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2))':
-    dependencies:
-      '@jest/console': 29.7.0
-      '@jest/reporters': 29.7.0
-      '@jest/test-result': 29.7.0
-      '@jest/transform': 29.7.0
-      '@jest/types': 29.6.3
-      '@types/node': 24.9.1
-      ansi-escapes: 4.3.2
-      chalk: 4.1.2
-      ci-info: 3.9.0
-      exit: 0.1.2
-      graceful-fs: 4.2.11
-      jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2))
+      jest-config: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -13660,9 +13505,6 @@ snapshots:
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
       jest-config: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3))
-=======
-      jest-config: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
->>>>>>> react-native/feat/sdk
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -13829,11 +13671,8 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.4
 
-<<<<<<< HEAD
   '@jsdevtools/ono@7.1.3': {}
 
-=======
->>>>>>> react-native/feat/sdk
   '@leichtgewicht/ip-codec@2.0.5': {}
 
   '@ljharb/through@2.3.14':
@@ -14112,7 +13951,6 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-<<<<<<< HEAD
   '@nestjs/cli@10.4.9(esbuild@0.23.1)':
     dependencies:
       '@angular-devkit/core': 17.3.11(chokidar@3.6.0)
@@ -14269,8 +14107,6 @@ snapshots:
 
   '@noble/ciphers@0.2.0': {}
 
-=======
->>>>>>> react-native/feat/sdk
   '@noble/curves@1.2.0':
     dependencies:
       '@noble/hashes': 1.3.2
@@ -14372,7 +14208,7 @@ snapshots:
 
   '@opentelemetry/api@1.9.0': {}
 
-  '@paralleldrive/cuid2@2.2.2':
+  '@paralleldrive/cuid2@2.3.1':
     dependencies:
       '@noble/hashes': 1.8.0
 
@@ -15234,11 +15070,8 @@ snapshots:
   '@types/connect@3.4.38':
     dependencies:
       '@types/node': 24.9.1
-<<<<<<< HEAD
 
   '@types/cookiejar@2.1.5': {}
-=======
->>>>>>> react-native/feat/sdk
 
   '@types/debug@4.1.12':
     dependencies:
@@ -15377,10 +15210,6 @@ snapshots:
     dependencies:
       undici-types: 7.16.0
 
-  '@types/node@24.9.1':
-    dependencies:
-      undici-types: 7.16.0
-
   '@types/parse-json@4.0.2': {}
 
   '@types/prismjs@1.26.5': {}
@@ -15467,13 +15296,10 @@ snapshots:
   '@types/ws@8.18.1':
     dependencies:
       '@types/node': 24.9.1
-<<<<<<< HEAD
 
   '@types/ws@8.5.4':
     dependencies:
       '@types/node': 24.9.1
-=======
->>>>>>> react-native/feat/sdk
 
   '@types/yargs-parser@21.0.3': {}
 
@@ -15657,11 +15483,7 @@ snapshots:
 
   '@ungap/structured-clone@1.3.0': {}
 
-<<<<<<< HEAD
-  '@vitejs/plugin-react@4.7.0(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(terser@5.43.1))':
-=======
   '@vitejs/plugin-react@4.7.0(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1))':
->>>>>>> react-native/feat/sdk
     dependencies:
       '@babel/core': 7.28.0
       '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.28.0)
@@ -15669,11 +15491,7 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-beta.27
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
-<<<<<<< HEAD
-      vite: 6.3.5(@types/node@24.9.1)(jiti@1.21.7)(terser@5.43.1)
-=======
       vite: 6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1)
->>>>>>> react-native/feat/sdk
     transitivePeerDependencies:
       - supports-color
 
@@ -15765,13 +15583,11 @@ snapshots:
 
   '@xtuc/long@4.2.2': {}
 
-<<<<<<< HEAD
   abbrev@1.1.1: {}
-=======
+
   abort-controller@3.0.0:
     dependencies:
       event-target-shim: 5.0.1
->>>>>>> react-native/feat/sdk
 
   accepts@1.3.8:
     dependencies:
@@ -15795,15 +15611,13 @@ snapshots:
 
   address@1.2.2: {}
 
-<<<<<<< HEAD
   agent-base@6.0.2:
     dependencies:
       debug: 4.4.1
     transitivePeerDependencies:
       - supports-color
-=======
+
   agent-base@7.1.4: {}
->>>>>>> react-native/feat/sdk
 
   aggregate-error@3.1.0:
     dependencies:
@@ -15927,8 +15741,10 @@ snapshots:
       normalize-path: 3.0.0
       picomatch: 2.3.1
 
-<<<<<<< HEAD
   app-root-path@3.1.0: {}
+
+  appdirsjs@1.2.7:
+    optional: true
 
   append-field@1.0.0: {}
 
@@ -15941,13 +15757,6 @@ snapshots:
       delegates: 1.0.0
       readable-stream: 3.6.2
 
-=======
-  appdirsjs@1.2.7:
-    optional: true
-
-  are-docs-informative@0.0.2: {}
-
->>>>>>> react-native/feat/sdk
   arg@4.1.3: {}
 
   arg@5.0.2: {}
@@ -16196,11 +16005,8 @@ snapshots:
 
   balanced-match@1.0.2: {}
 
-<<<<<<< HEAD
-=======
   base-64@1.0.0: {}
 
->>>>>>> react-native/feat/sdk
   base-x@2.0.6:
     dependencies:
       safe-buffer: 5.2.1
@@ -16227,20 +16033,13 @@ snapshots:
 
   binary-extensions@2.3.0: {}
 
-<<<<<<< HEAD
   bintrees@1.0.2: {}
 
-=======
->>>>>>> react-native/feat/sdk
   bl@4.1.0:
     dependencies:
       buffer: 5.7.1
       inherits: 2.0.4
       readable-stream: 3.6.2
-<<<<<<< HEAD
-=======
-    optional: true
->>>>>>> react-native/feat/sdk
 
   bn.js@4.12.2: {}
 
@@ -16543,9 +16342,8 @@ snapshots:
     optionalDependencies:
       fsevents: 2.3.3
 
-<<<<<<< HEAD
   chownr@2.0.0: {}
-=======
+
   chrome-launcher@0.15.2:
     dependencies:
       '@types/node': 24.9.1
@@ -16554,7 +16352,6 @@ snapshots:
       lighthouse-logger: 1.4.2
     transitivePeerDependencies:
       - supports-color
->>>>>>> react-native/feat/sdk
 
   chrome-trace-event@1.0.4: {}
 
@@ -16585,7 +16382,7 @@ snapshots:
   class-validator@0.14.0:
     dependencies:
       '@types/validator': 13.15.3
-      libphonenumber-js: 1.12.24
+      libphonenumber-js: 1.12.25
       validator: 13.15.0
 
   clean-css@5.3.3:
@@ -16599,15 +16396,8 @@ snapshots:
   cli-cursor@3.1.0:
     dependencies:
       restore-cursor: 3.1.0
-<<<<<<< HEAD
 
   cli-spinners@2.9.2: {}
-=======
-    optional: true
-
-  cli-spinners@2.9.2:
-    optional: true
->>>>>>> react-native/feat/sdk
 
   cli-table3@0.6.5:
     dependencies:
@@ -16615,18 +16405,16 @@ snapshots:
     optionalDependencies:
       '@colors/colors': 1.5.0
 
-<<<<<<< HEAD
   cli-width@3.0.0: {}
 
   cli-width@4.1.0: {}
-=======
+
   cliui@6.0.0:
     dependencies:
       string-width: 4.2.3
       strip-ansi: 6.0.1
       wrap-ansi: 6.2.0
     optional: true
->>>>>>> react-native/feat/sdk
 
   cliui@8.0.1:
     dependencies:
@@ -16640,12 +16428,7 @@ snapshots:
       kind-of: 6.0.3
       shallow-clone: 3.0.1
 
-<<<<<<< HEAD
   clone@1.0.4: {}
-=======
-  clone@1.0.4:
-    optional: true
->>>>>>> react-native/feat/sdk
 
   clsx@2.0.0: {}
 
@@ -16666,14 +16449,12 @@ snapshots:
     dependencies:
       color-name: 1.1.4
 
-<<<<<<< HEAD
   color-convert@3.1.2:
     dependencies:
       color-name: 2.0.2
-=======
+
   color-name@1.1.3:
     optional: true
->>>>>>> react-native/feat/sdk
 
   color-name@1.1.4: {}
 
@@ -16724,7 +16505,9 @@ snapshots:
 
   commander@8.3.0: {}
 
-<<<<<<< HEAD
+  commander@9.5.0:
+    optional: true
+
   comment-json@4.2.5:
     dependencies:
       array-timsort: 1.0.3
@@ -16732,10 +16515,6 @@ snapshots:
       esprima: 4.0.1
       has-own-prop: 2.0.0
       repeat-string: 1.6.1
-=======
-  commander@9.5.0:
-    optional: true
->>>>>>> react-native/feat/sdk
 
   comment-parser@1.4.1: {}
 
@@ -16783,9 +16562,6 @@ snapshots:
 
   connect-history-api-fallback@2.0.0: {}
 
-<<<<<<< HEAD
-  consola@2.15.3: {}
-=======
   connect@3.7.0:
     dependencies:
       debug: 2.6.9
@@ -16794,7 +16570,8 @@ snapshots:
       utils-merge: 1.0.1
     transitivePeerDependencies:
       - supports-color
->>>>>>> react-native/feat/sdk
+
+  consola@2.15.3: {}
 
   consola@3.4.2: {}
 
@@ -16874,7 +16651,6 @@ snapshots:
     optionalDependencies:
       typescript: 5.6.2
 
-<<<<<<< HEAD
   cosmiconfig@8.3.6(typescript@5.7.2):
     dependencies:
       import-fresh: 3.3.1
@@ -16883,7 +16659,7 @@ snapshots:
       path-type: 4.0.0
     optionalDependencies:
       typescript: 5.7.2
-=======
+
   cosmiconfig@9.0.0(typescript@5.9.3):
     dependencies:
       env-paths: 2.2.1
@@ -16893,7 +16669,6 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
     optional: true
->>>>>>> react-native/feat/sdk
 
   create-ecdh@4.0.4:
     dependencies:
@@ -16924,33 +16699,13 @@ snapshots:
       safe-buffer: 5.2.1
       sha.js: 2.4.12
 
-<<<<<<< HEAD
-  create-jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2)):
-=======
   create-jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3)):
->>>>>>> react-native/feat/sdk
     dependencies:
       '@jest/types': 29.6.3
       chalk: 4.1.2
       exit: 0.1.2
       graceful-fs: 4.2.11
-<<<<<<< HEAD
-      jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2))
-      jest-util: 29.7.0
-      prompts: 2.4.2
-    transitivePeerDependencies:
-      - '@types/node'
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
-
-  create-jest@29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2)):
-    dependencies:
-      '@jest/types': 29.6.3
-      chalk: 4.1.2
-      exit: 0.1.2
-      graceful-fs: 4.2.11
-      jest-config: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2))
+      jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
       jest-util: 29.7.0
       prompts: 2.4.2
     transitivePeerDependencies:
@@ -16966,9 +16721,6 @@ snapshots:
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-config: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3))
-=======
-      jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
->>>>>>> react-native/feat/sdk
       jest-util: 29.7.0
       prompts: 2.4.2
     transitivePeerDependencies:
@@ -17170,12 +16922,7 @@ snapshots:
       es-errors: 1.3.0
       is-data-view: 1.0.2
 
-<<<<<<< HEAD
   dayjs@1.11.18: {}
-=======
-  dayjs@1.11.18:
-    optional: true
->>>>>>> react-native/feat/sdk
 
   debounce@1.2.1: {}
 
@@ -17217,10 +16964,6 @@ snapshots:
   defaults@1.0.4:
     dependencies:
       clone: 1.0.4
-<<<<<<< HEAD
-=======
-    optional: true
->>>>>>> react-native/feat/sdk
 
   defer-to-connect@2.0.1: {}
 
@@ -17266,12 +17009,7 @@ snapshots:
 
   destroy@1.2.0: {}
 
-<<<<<<< HEAD
   detect-libc@2.1.2: {}
-=======
-  detect-libc@2.1.2:
-    optional: true
->>>>>>> react-native/feat/sdk
 
   detect-newline@3.1.0: {}
 
@@ -17447,18 +17185,16 @@ snapshots:
 
   entities@6.0.1: {}
 
-<<<<<<< HEAD
   env-cmd@10.1.0:
     dependencies:
       commander: 4.1.1
       cross-spawn: 7.0.6
-=======
+
   env-paths@2.2.1:
     optional: true
 
   envinfo@7.19.0:
     optional: true
->>>>>>> react-native/feat/sdk
 
   error-ex@1.3.2:
     dependencies:
@@ -18128,16 +17864,14 @@ snapshots:
 
   fast-uri@3.0.6: {}
 
-<<<<<<< HEAD
   fast-xml-parser@4.2.5:
     dependencies:
       strnum: 1.1.2
-=======
+
   fast-xml-parser@4.5.3:
     dependencies:
       strnum: 1.1.2
     optional: true
->>>>>>> react-native/feat/sdk
 
   fastq@1.19.1:
     dependencies:
@@ -18282,11 +18016,9 @@ snapshots:
 
   flatted@3.3.3: {}
 
-<<<<<<< HEAD
-  fn.name@1.1.0: {}
-=======
   flow-enums-runtime@0.0.6: {}
->>>>>>> react-native/feat/sdk
+
+  fn.name@1.1.0: {}
 
   follow-redirects@1.15.9(debug@4.4.1):
     optionalDependencies:
@@ -18352,7 +18084,7 @@ snapshots:
 
   formidable@2.1.5:
     dependencies:
-      '@paralleldrive/cuid2': 2.2.2
+      '@paralleldrive/cuid2': 2.3.1
       dezalgo: 1.0.4
       once: 1.4.0
       qs: 6.14.0
@@ -18730,9 +18462,8 @@ snapshots:
 
   he@1.2.0: {}
 
-<<<<<<< HEAD
   helmet@6.2.0: {}
-=======
+
   hermes-compiler@0.0.0: {}
 
   hermes-estree@0.32.0: {}
@@ -18740,7 +18471,6 @@ snapshots:
   hermes-parser@0.32.0:
     dependencies:
       hermes-estree: 0.32.0
->>>>>>> react-native/feat/sdk
 
   history@4.10.1:
     dependencies:
@@ -18887,15 +18617,16 @@ snapshots:
 
   https-browserify@1.0.0: {}
 
-<<<<<<< HEAD
   https-proxy-agent@5.0.1:
     dependencies:
       agent-base: 6.0.2
-=======
+      debug: 4.4.1
+    transitivePeerDependencies:
+      - supports-color
+
   https-proxy-agent@7.0.6:
     dependencies:
       agent-base: 7.1.4
->>>>>>> react-native/feat/sdk
       debug: 4.4.1
     transitivePeerDependencies:
       - supports-color
@@ -19116,12 +18847,7 @@ snapshots:
       global-dirs: 3.0.1
       is-path-inside: 3.0.3
 
-<<<<<<< HEAD
   is-interactive@1.0.0: {}
-=======
-  is-interactive@1.0.0:
-    optional: true
->>>>>>> react-native/feat/sdk
 
   is-map@2.0.3: {}
 
@@ -19207,12 +18933,7 @@ snapshots:
 
   is-typedarray@1.0.0: {}
 
-<<<<<<< HEAD
   is-unicode-supported@0.1.0: {}
-=======
-  is-unicode-supported@0.1.0:
-    optional: true
->>>>>>> react-native/feat/sdk
 
   is-weakmap@2.0.2: {}
 
@@ -19347,18 +19068,25 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-<<<<<<< HEAD
-  jest-cli@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2)):
+  jest-cli@29.7.0:
     dependencies:
-      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2))
+      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3))
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
       chalk: 4.1.2
-      create-jest: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2))
+      create-jest: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
       exit: 0.1.2
       import-local: 3.2.0
-      jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2))
-=======
+      jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
+      jest-util: 29.7.0
+      jest-validate: 29.7.0
+      yargs: 17.7.2
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+
   jest-cli@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3)):
     dependencies:
       '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
@@ -19369,27 +19097,6 @@ snapshots:
       exit: 0.1.2
       import-local: 3.2.0
       jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
->>>>>>> react-native/feat/sdk
-      jest-util: 29.7.0
-      jest-validate: 29.7.0
-      yargs: 17.7.2
-    transitivePeerDependencies:
-      - '@types/node'
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
-
-<<<<<<< HEAD
-  jest-cli@29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2)):
-    dependencies:
-      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2))
-      '@jest/test-result': 29.7.0
-      '@jest/types': 29.6.3
-      chalk: 4.1.2
-      create-jest: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2))
-      exit: 0.1.2
-      import-local: 3.2.0
-      jest-config: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2))
       jest-util: 29.7.0
       jest-validate: 29.7.0
       yargs: 17.7.2
@@ -19418,10 +19125,7 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest-config@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2)):
-=======
   jest-config@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3)):
->>>>>>> react-native/feat/sdk
     dependencies:
       '@babel/core': 7.28.0
       '@jest/test-sequencer': 29.7.0
@@ -19447,20 +19151,12 @@ snapshots:
       strip-json-comments: 3.1.1
     optionalDependencies:
       '@types/node': 22.16.5
-<<<<<<< HEAD
-      ts-node: 10.9.2(@types/node@22.16.5)(typescript@5.9.2)
-=======
       ts-node: 10.9.2(@types/node@22.16.5)(typescript@5.9.3)
->>>>>>> react-native/feat/sdk
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
 
-<<<<<<< HEAD
-  jest-config@29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2)):
-=======
   jest-config@29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3)):
->>>>>>> react-native/feat/sdk
     dependencies:
       '@babel/core': 7.28.0
       '@jest/test-sequencer': 29.7.0
@@ -19486,39 +19182,7 @@ snapshots:
       strip-json-comments: 3.1.1
     optionalDependencies:
       '@types/node': 24.9.1
-<<<<<<< HEAD
-      ts-node: 10.9.2(@types/node@22.16.5)(typescript@5.9.2)
-    transitivePeerDependencies:
-      - babel-plugin-macros
-      - supports-color
-
-  jest-config@29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2)):
-    dependencies:
-      '@babel/core': 7.28.0
-      '@jest/test-sequencer': 29.7.0
-      '@jest/types': 29.6.3
-      babel-jest: 29.7.0(@babel/core@7.28.0)
-      chalk: 4.1.2
-      ci-info: 3.9.0
-      deepmerge: 4.3.1
-      glob: 7.2.3
-      graceful-fs: 4.2.11
-      jest-circus: 29.7.0
-      jest-environment-node: 29.7.0
-      jest-get-type: 29.6.3
-      jest-regex-util: 29.6.3
-      jest-resolve: 29.7.0
-      jest-runner: 29.7.0
-      jest-util: 29.7.0
-      jest-validate: 29.7.0
-      micromatch: 4.0.8
-      parse-json: 5.2.0
-      pretty-format: 29.7.0
-      slash: 3.0.0
-      strip-json-comments: 3.1.1
-    optionalDependencies:
-      '@types/node': 24.9.1
-      ts-node: 10.9.2(@types/node@24.9.1)(typescript@5.9.2)
+      ts-node: 10.9.2(@types/node@22.16.5)(typescript@5.9.3)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -19550,9 +19214,6 @@ snapshots:
     optionalDependencies:
       '@types/node': 24.9.1
       ts-node: 10.9.2(@types/node@24.9.1)(typescript@5.9.3)
-=======
-      ts-node: 10.9.2(@types/node@22.16.5)(typescript@5.9.3)
->>>>>>> react-native/feat/sdk
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -19778,7 +19439,6 @@ snapshots:
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
-<<<<<<< HEAD
   jest@29.4.2(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3)):
     dependencies:
       '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3))
@@ -19791,44 +19451,36 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2)):
-    dependencies:
-      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2))
-      '@jest/types': 29.6.3
-      import-local: 3.2.0
-      jest-cli: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2))
-    transitivePeerDependencies:
-      - '@types/node'
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
-
-  jest@29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2)):
-    dependencies:
-      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2))
-      '@jest/types': 29.6.3
-      import-local: 3.2.0
-      jest-cli: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2))
-    transitivePeerDependencies:
-      - '@types/node'
-      - babel-plugin-macros
-      - supports-color
-      - ts-node
-
-  jest@29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3)):
+  jest@29.7.0:
     dependencies:
       '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3))
       '@jest/types': 29.6.3
       import-local: 3.2.0
-      jest-cli: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3))
-=======
+      jest-cli: 29.7.0
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+
   jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3)):
     dependencies:
       '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
       '@jest/types': 29.6.3
       import-local: 3.2.0
       jest-cli: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
->>>>>>> react-native/feat/sdk
+    transitivePeerDependencies:
+      - '@types/node'
+      - babel-plugin-macros
+      - supports-color
+      - ts-node
+
+  jest@29.7.0(@types/node@24.9.1):
+    dependencies:
+      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3))
+      '@jest/types': 29.6.3
+      import-local: 3.2.0
+      jest-cli: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3))
     transitivePeerDependencies:
       - '@types/node'
       - babel-plugin-macros
@@ -19884,16 +19536,14 @@ snapshots:
 
   json5@2.2.3: {}
 
-<<<<<<< HEAD
   jsonc-parser@3.2.1: {}
 
   jsonc-parser@3.3.1: {}
-=======
+
   jsonfile@4.0.0:
     optionalDependencies:
       graceful-fs: 4.2.11
     optional: true
->>>>>>> react-native/feat/sdk
 
   jsonfile@6.1.0:
     dependencies:
@@ -19966,9 +19616,8 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
-<<<<<<< HEAD
-  libphonenumber-js@1.12.24: {}
-=======
+  libphonenumber-js@1.12.25: {}
+
   lighthouse-logger@1.4.2:
     dependencies:
       debug: 2.6.9
@@ -20025,7 +19674,6 @@ snapshots:
       lightningcss-win32-arm64-msvc: 1.30.2
       lightningcss-win32-x64-msvc: 1.30.2
     optional: true
->>>>>>> react-native/feat/sdk
 
   lilconfig@3.1.3: {}
 
@@ -20100,7 +19748,6 @@ snapshots:
     dependencies:
       chalk: 4.1.2
       is-unicode-supported: 0.1.0
-<<<<<<< HEAD
 
   logform@2.7.0:
     dependencies:
@@ -20110,8 +19757,6 @@ snapshots:
       ms: 2.1.3
       safe-stable-stringify: 2.5.0
       triple-beam: 1.4.1
-=======
-    optional: true
 
   logkitty@0.7.1:
     dependencies:
@@ -20119,7 +19764,6 @@ snapshots:
       dayjs: 1.11.18
       yargs: 15.4.1
     optional: true
->>>>>>> react-native/feat/sdk
 
   longest-streak@3.1.0: {}
 
@@ -20903,12 +20547,7 @@ snapshots:
 
   mime@1.6.0: {}
 
-<<<<<<< HEAD
   mime@2.6.0: {}
-=======
-  mime@2.6.0:
-    optional: true
->>>>>>> react-native/feat/sdk
 
   mimic-fn@2.1.0: {}
 
@@ -20952,7 +20591,6 @@ snapshots:
 
   minipass@7.1.2: {}
 
-<<<<<<< HEAD
   minizlib@2.1.2:
     dependencies:
       minipass: 3.3.6
@@ -20974,10 +20612,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-=======
-  mkdirp@1.0.4: {}
-
->>>>>>> react-native/feat/sdk
   mrmime@2.0.1: {}
 
   ms@2.0.0: {}
@@ -21094,12 +20728,10 @@ snapshots:
       lower-case: 2.0.2
       tslib: 2.8.1
 
-<<<<<<< HEAD
-  node-abort-controller@3.1.1: {}
-=======
   nocache@3.0.4:
     optional: true
->>>>>>> react-native/feat/sdk
+
+  node-abort-controller@3.1.1: {}
 
   node-addon-api@5.1.0: {}
 
@@ -21156,14 +20788,12 @@ snapshots:
       util: 0.12.5
       vm-browserify: 1.1.2
 
-<<<<<<< HEAD
+  node-stream-zip@1.15.0:
+    optional: true
+
   nopt@5.0.0:
     dependencies:
       abbrev: 1.1.1
-=======
-  node-stream-zip@1.15.0:
-    optional: true
->>>>>>> react-native/feat/sdk
 
   normalize-path@3.0.0: {}
 
@@ -21273,11 +20903,10 @@ snapshots:
     dependencies:
       mimic-fn: 2.1.0
 
-<<<<<<< HEAD
   ono@7.1.3:
     dependencies:
       '@jsdevtools/ono': 7.1.3
-=======
+
   open@6.4.0:
     dependencies:
       is-wsl: 1.1.0
@@ -21287,7 +20916,6 @@ snapshots:
     dependencies:
       is-docker: 2.2.1
       is-wsl: 2.2.0
->>>>>>> react-native/feat/sdk
 
   open@8.4.2:
     dependencies:
@@ -21317,10 +20945,6 @@ snapshots:
       log-symbols: 4.1.0
       strip-ansi: 6.0.1
       wcwidth: 1.0.1
-<<<<<<< HEAD
-=======
-    optional: true
->>>>>>> react-native/feat/sdk
 
   os-browserify@0.3.0: {}
 
@@ -22069,16 +21693,14 @@ snapshots:
 
   process@0.11.10: {}
 
-<<<<<<< HEAD
   prom-client@15.1.3:
     dependencies:
       '@opentelemetry/api': 1.9.0
       tdigest: 0.1.2
-=======
+
   promise@8.3.0:
     dependencies:
       asap: 2.0.6
->>>>>>> react-native/feat/sdk
 
   prompts@2.4.2:
     dependencies:
@@ -22659,10 +22281,6 @@ snapshots:
     dependencies:
       onetime: 5.1.2
       signal-exit: 3.0.7
-<<<<<<< HEAD
-=======
-    optional: true
->>>>>>> react-native/feat/sdk
 
   retry@0.13.1: {}
 
@@ -22914,12 +22532,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-<<<<<<< HEAD
   set-blocking@2.0.0: {}
-=======
-  set-blocking@2.0.0:
-    optional: true
->>>>>>> react-native/feat/sdk
 
   set-cookie-parser@2.7.1: {}
 
@@ -23262,16 +22875,11 @@ snapshots:
 
   strip-json-comments@3.1.1: {}
 
-<<<<<<< HEAD
   strnum@1.1.2: {}
 
   strtok3@10.3.4:
     dependencies:
       '@tokenizer/token': 0.3.0
-=======
-  strnum@1.1.2:
-    optional: true
->>>>>>> react-native/feat/sdk
 
   style-to-js@1.1.17:
     dependencies:
@@ -23343,14 +22951,14 @@ snapshots:
 
   swagger-ui-dist@5.10.3: {}
 
-  swagger-ui-dist@5.29.5:
+  swagger-ui-dist@5.30.0:
     dependencies:
       '@scarf/scarf': 1.4.0
 
   swagger-ui-express@4.6.0(express@4.21.2):
     dependencies:
       express: 4.21.2
-      swagger-ui-dist: 5.29.5
+      swagger-ui-dist: 5.30.0
 
   symbol-observable@4.0.0: {}
 
@@ -23423,11 +23031,9 @@ snapshots:
     dependencies:
       any-promise: 1.3.0
 
-<<<<<<< HEAD
-  through@2.3.8: {}
-=======
   throat@5.0.0: {}
->>>>>>> react-native/feat/sdk
+
+  through@2.3.8: {}
 
   thunky@1.1.0: {}
 
@@ -23496,7 +23102,6 @@ snapshots:
 
   ts-interface-checker@0.1.13: {}
 
-<<<<<<< HEAD
   ts-jest@29.0.5(@babel/core@7.28.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.4.2(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3)))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
@@ -23515,19 +23120,12 @@ snapshots:
       babel-jest: 29.7.0(@babel/core@7.28.0)
       esbuild: 0.23.1
 
-  ts-jest@29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2)))(typescript@5.9.2):
-=======
-  ts-jest@29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0)(typescript@5.9.3):
->>>>>>> react-native/feat/sdk
+  ts-jest@29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3)))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
       ejs: 3.1.10
       fast-json-stable-stringify: 2.1.0
-<<<<<<< HEAD
-      jest: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2))
-=======
       jest: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3))
->>>>>>> react-native/feat/sdk
       jest-util: 29.7.0
       json5: 2.2.3
       lodash.memoize: 4.1.2
@@ -23543,20 +23141,19 @@ snapshots:
       babel-jest: 29.7.0(@babel/core@7.28.0)
       esbuild: 0.23.1
 
-<<<<<<< HEAD
-  ts-jest@29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2)))(typescript@5.9.2):
+  ts-jest@29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@24.9.1))(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
       ejs: 3.1.10
       fast-json-stable-stringify: 2.1.0
-      jest: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2))
+      jest: 29.7.0(@types/node@24.9.1)
       jest-util: 29.7.0
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
       semver: 7.7.2
       type-fest: 4.41.0
-      typescript: 5.9.2
+      typescript: 5.9.3
       yargs-parser: 21.1.1
     optionalDependencies:
       '@babel/core': 7.28.0
@@ -23565,12 +23162,12 @@ snapshots:
       babel-jest: 29.7.0(@babel/core@7.28.0)
       esbuild: 0.23.1
 
-  ts-jest@29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3)))(typescript@5.9.3):
+  ts-jest@29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0)(typescript@5.9.3):
     dependencies:
       bs-logger: 0.2.6
       ejs: 3.1.10
       fast-json-stable-stringify: 2.1.0
-      jest: 29.7.0(@types/node@24.9.1)(ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3))
+      jest: 29.7.0
       jest-util: 29.7.0
       json5: 2.2.3
       lodash.memoize: 4.1.2
@@ -23595,10 +23192,7 @@ snapshots:
       typescript: 5.9.3
       webpack: 5.99.9(esbuild@0.23.1)
 
-  ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.2):
-=======
   ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3):
->>>>>>> react-native/feat/sdk
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.11
@@ -23612,30 +23206,9 @@ snapshots:
       create-require: 1.1.1
       diff: 4.0.2
       make-error: 1.3.6
-<<<<<<< HEAD
-      typescript: 5.9.2
+      typescript: 5.9.3
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
-    optional: true
-
-  ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.2):
-    dependencies:
-      '@cspotcode/source-map-support': 0.8.1
-      '@tsconfig/node10': 1.0.11
-      '@tsconfig/node12': 1.0.11
-      '@tsconfig/node14': 1.0.3
-      '@tsconfig/node16': 1.0.4
-      '@types/node': 24.9.1
-      acorn: 8.15.0
-      acorn-walk: 8.3.4
-      arg: 4.1.3
-      create-require: 1.1.1
-      diff: 4.0.2
-      make-error: 1.3.6
-      typescript: 5.9.2
-      v8-compile-cache-lib: 3.0.1
-      yn: 3.1.1
-    optional: true
 
   ts-node@10.9.2(@types/node@24.9.1)(typescript@5.9.3):
     dependencies:
@@ -23651,13 +23224,10 @@ snapshots:
       create-require: 1.1.1
       diff: 4.0.2
       make-error: 1.3.6
-=======
->>>>>>> react-native/feat/sdk
       typescript: 5.9.3
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
 
-<<<<<<< HEAD
   tsconfig-paths-webpack-plugin@4.2.0:
     dependencies:
       chalk: 4.1.2
@@ -23665,8 +23235,6 @@ snapshots:
       tapable: 2.2.2
       tsconfig-paths: 4.2.0
 
-=======
->>>>>>> react-native/feat/sdk
   tsconfig-paths@3.15.0:
     dependencies:
       '@types/json5': 0.0.29
@@ -23697,33 +23265,6 @@ snapshots:
       joycon: 3.1.1
       picocolors: 1.1.1
       postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.6)(yaml@2.8.1)
-      resolve-from: 5.0.0
-      rollup: 4.44.1
-      source-map: 0.8.0-beta.0
-      sucrase: 3.35.0
-      tree-kill: 1.2.2
-    optionalDependencies:
-      postcss: 8.5.6
-      typescript: 5.9.3
-    transitivePeerDependencies:
-      - jiti
-      - supports-color
-      - tsx
-      - yaml
-
-  tsup@8.2.4(jiti@1.21.7)(postcss@8.5.6)(typescript@5.9.3):
-    dependencies:
-      bundle-require: 5.1.0(esbuild@0.23.1)
-      cac: 6.7.14
-      chokidar: 3.6.0
-      consola: 3.4.2
-      debug: 4.4.1
-      esbuild: 0.23.1
-      execa: 5.1.1
-      globby: 11.1.0
-      joycon: 3.1.1
-      picocolors: 1.1.1
-      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.6)
       resolve-from: 5.0.0
       rollup: 4.44.1
       source-map: 0.8.0-beta.0
@@ -23878,8 +23419,6 @@ snapshots:
 
   typescript@5.9.3: {}
 
-  typescript@5.9.3: {}
-
   uid@2.0.2:
     dependencies:
       '@lukeed/csprng': 1.1.0
@@ -23894,8 +23433,6 @@ snapshots:
       which-boxed-primitive: 1.1.1
 
   undici-types@6.21.0: {}
-
-  undici-types@7.16.0: {}
 
   undici-types@7.16.0: {}
 
@@ -24023,11 +23560,8 @@ snapshots:
 
   uuid@8.3.2: {}
 
-<<<<<<< HEAD
   uuid@9.0.1: {}
 
-=======
->>>>>>> react-native/feat/sdk
   v8-compile-cache-lib@3.0.1: {}
 
   v8-to-istanbul@9.3.0:
@@ -24057,17 +23591,6 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.2
 
-<<<<<<< HEAD
-  vite-plugin-node-polyfills@0.24.0(rollup@4.44.1)(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(terser@5.43.1)):
-    dependencies:
-      '@rollup/plugin-inject': 5.0.5(rollup@4.44.1)
-      node-stdlib-browser: 1.3.1
-      vite: 6.3.5(@types/node@24.9.1)(jiti@1.21.7)(terser@5.43.1)
-    transitivePeerDependencies:
-      - rollup
-
-  vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(terser@5.43.1):
-=======
   vite-plugin-node-polyfills@0.24.0(rollup@4.44.1)(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1)):
     dependencies:
       '@rollup/plugin-inject': 5.0.5(rollup@4.44.1)
@@ -24077,7 +23600,6 @@ snapshots:
       - rollup
 
   vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1):
->>>>>>> react-native/feat/sdk
     dependencies:
       esbuild: 0.25.8
       fdir: 6.4.6(picomatch@4.0.3)
@@ -24113,10 +23635,6 @@ snapshots:
   wcwidth@1.0.1:
     dependencies:
       defaults: 1.0.4
-<<<<<<< HEAD
-=======
-    optional: true
->>>>>>> react-native/feat/sdk
 
   web-namespaces@2.0.1: {}
 
@@ -24396,10 +23914,6 @@ snapshots:
       ansi-styles: 4.3.0
       string-width: 4.2.3
       strip-ansi: 6.0.1
-<<<<<<< HEAD
-=======
-    optional: true
->>>>>>> react-native/feat/sdk
 
   wrap-ansi@7.0.0:
     dependencies:
