@@ -7,6 +7,8 @@ packages:
     - "packages/auth"
     - "packages/backend/*"
     - "packages/sdks/*"
+    - "packages/providers/*"
     - "packages/shared/*"
     - "examples/custom-backend"
     - "examples/spa"
+    - "examples/mobile"
