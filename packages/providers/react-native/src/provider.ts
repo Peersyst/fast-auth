@@ -12,18 +12,10 @@ import { SignatureRequest } from "./core";
 
 /**
  * ReactNativeProvider adapts react-native-auth0 to the FastAuth provider interface.
- * 
+ *
  * This provider handles authentication and signature requests for React Native applications
  * using Auth0 as the identity provider.
- * 
- * @example
- * ```typescript
- * const provider = new ReactNativeProvider({
- *   domain: 'your-domain.auth0.com',
- *   clientId: 'your-client-id',
- *   audience: 'your-api-identifier',
- * });
- * ```
+ *
  */
 export class ReactNativeProvider implements IFastAuthProvider {
     private readonly options: ReactNativeProviderOptions;
@@ -36,7 +28,6 @@ export class ReactNativeProvider implements IFastAuthProvider {
 
     /**
      * Check if the user is signed in by verifying if valid credentials exist.
-     * 
      * @returns Promise resolving to true if the user has valid credentials, false otherwise.
      */
     async isLoggedIn(): Promise<boolean> {
@@ -44,25 +35,20 @@ export class ReactNativeProvider implements IFastAuthProvider {
             // Check if we have valid credentials stored
             const credentials = await this.client.credentialsManager.getCredentials();
             return !!credentials;
-        } catch (e: unknown) {
-            console.log("error", e);
+        } catch {
             return false;
         }
     }
 
     /**
      * Sign in to the client using Web Authentication.
-     * 
+     *
      * This method initiates the OAuth flow using the system browser.
      * After successful authentication, credentials will be stored automatically.
-     * 
-     * @returns Promise that resolves when login is complete
+     * @returns Promise that resolves when login is complete.
      */
     async login(): Promise<void> {
-
-        const authorizeParams: WebAuthorizeParameters = {
-    
-        };
+        const authorizeParams: WebAuthorizeParameters = {};
         // Add audience if provided
         if (this.options.audience) {
             authorizeParams.audience = this.options.audience;
@@ -74,16 +60,15 @@ export class ReactNativeProvider implements IFastAuthProvider {
 
     /**
      * Log out of the client and clear stored credentials.
-     * 
+     *
      * This method will clear the session both locally and on Auth0's servers.
-     * 
-     * @returns Promise that resolves when logout is complete
+     * @returns Promise that resolves when logout is complete.
      */
     async logout(): Promise<void> {
         try {
             // Clear the session on Auth0's servers
             await this.client.webAuth.clearSession();
-            
+
             // Clear local credentials
             await this.client.credentialsManager.clearCredentials();
         } catch (error) {
@@ -95,42 +80,38 @@ export class ReactNativeProvider implements IFastAuthProvider {
 
     /**
      * Get the path for the user.
-     * 
+     *
      * The path is constructed from the JWT token's subject claim and the Auth0 domain.
      * Format: `jwt#https://{domain}/#${sub}`
-     * 
-     * @returns Promise resolving to the user's path
-     * @throws ReactNativeProviderError if user is not logged in or token is invalid
+     * @returns Promise resolving to the user's path.
+     * @throws ReactNativeProviderError if user is not logged in or token is invalid.
      */
     async getPath(): Promise<string> {
         const credentials = await this.client.credentialsManager.getCredentials();
-        
+
         if (!credentials || !credentials.idToken) {
             throw new ReactNativeProviderError(ReactNativeProviderErrorCodes.CREDENTIALS_NOT_FOUND);
         }
 
         const { sub } = decodeJwt(credentials.idToken);
-        
+
         if (!sub) {
             throw new ReactNativeProviderError(ReactNativeProviderErrorCodes.INVALID_TOKEN);
         }
-        
+
         return `jwt#https://${this.options.domain}/#${sub}`;
     }
 
     /**
      * Request a transaction signature from the user.
-     * 
+     *
      * This method initiates a new authorization flow with the transaction data
      * encoded in the authorization parameters. After the user approves the transaction
      * in the Auth0 flow, the signature can be retrieved using `getSignatureRequest()`.
-     * 
-     * @param requestSignatureOptions Options for the transaction signature request
-     * @returns Promise that resolves when the authorization flow is initiated
+     * @param requestSignatureOptions Options for the transaction signature request.
+     * @returns Promise that resolves when the authorization flow is initiated.
      */
-    async requestTransactionSignature(
-        requestSignatureOptions: ReactNativeRequestTransactionSignatureOptions
-    ): Promise<void> {
+    async requestTransactionSignature(requestSignatureOptions: ReactNativeRequestTransactionSignatureOptions): Promise<void> {
         const { transaction } = requestSignatureOptions;
 
         const transactionString = encodeTransaction(transaction).toString();
@@ -154,17 +135,14 @@ export class ReactNativeProvider implements IFastAuthProvider {
 
     /**
      * Request a delegate action signature from the user.
-     * 
+     *
      * This method initiates a new authorization flow with the delegate action data
      * encoded in the authorization parameters. After the user approves the delegate action
      * in the Auth0 flow, the signature can be retrieved using `getSignatureRequest()`.
-     * 
-     * @param options Options for the delegate action signature request
-     * @returns Promise that resolves when the authorization flow is initiated
+     * @param options Options for the delegate action signature request.
+     * @returns Promise that resolves when the authorization flow is initiated.
      */
-    async requestDelegateActionSignature(
-        options: ReactNativeRequestDelegateActionSignatureOptions
-    ): Promise<void> {
+    async requestDelegateActionSignature(options: ReactNativeRequestDelegateActionSignatureOptions): Promise<void> {
         const { delegateAction } = options;
 
         const authorizeParams: WebAuthorizeParameters = {
@@ -186,25 +164,24 @@ export class ReactNativeProvider implements IFastAuthProvider {
 
     /**
      * Get the signature request from the current session.
-     * 
+     *
      * This method retrieves the access token and decodes it to extract the
      * signature payload. The token itself serves as the verify payload.
-     * 
-     * @returns Promise resolving to the signature request containing:
+     * @returns Promise resolving to the signature request containing:.
      *   - guardId: The JWT guard identifier
      *   - verifyPayload: The access token (used for verification)
      *   - signPayload: The transaction/delegate action payload to sign
-     * @throws ReactNativeProviderError if credentials are not found
+     * @throws ReactNativeProviderError if credentials are not found.
      */
     async getSignatureRequest(): Promise<SignatureRequest> {
         const credentials = await this.client.credentialsManager.getCredentials();
-        
+
         if (!credentials || !credentials.accessToken) {
             throw new ReactNativeProviderError(ReactNativeProviderErrorCodes.CREDENTIALS_NOT_FOUND);
         }
 
         const decoded = decodeJwt(credentials.accessToken);
-        
+
         return {
             guardId: `jwt#https://${this.options.domain}/`,
             verifyPayload: credentials.accessToken,
@@ -212,4 +189,3 @@ export class ReactNativeProvider implements IFastAuthProvider {
         };
     }
 }
-

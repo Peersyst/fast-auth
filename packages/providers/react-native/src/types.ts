@@ -5,17 +5,18 @@ import { Auth0Options } from "react-native-auth0";
 export type AppOptions = {
     imageUrl: string;
     name: string;
-}
+};
 
 /**
  * Options for initializing the ReactNativeProvider
  */
-export type ReactNativeProviderOptions = AppOptions & Auth0Options & {
-    /**
-     * The audience for the API (e.g., your API identifier in Auth0)
-     */
-    audience?: string;
-};
+export type ReactNativeProviderOptions = AppOptions &
+    Auth0Options & {
+        /**
+         * The audience for the API (e.g., your API identifier in Auth0)
+         */
+        audience?: string;
+    };
 
 /**
  * Base options for requesting signatures
@@ -25,7 +26,7 @@ export type ReactNativeBaseRequestSignatureOptions = {
      * URL of the image to display in the authorization UI
      */
     imageUrl: string;
-    
+
     /**
      * Name of the application requesting the signature
      */

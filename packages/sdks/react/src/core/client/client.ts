@@ -7,7 +7,6 @@ import { FastAuthClientNetwork, FastAuthContracts } from "./client.types";
 import { getContractsFromNetwork } from "../../providers/utils/contracts";
 import { DEFAULT_RELAYER_URL } from "./client.constants";
 
-
 export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider> {
     private provider: P;
     private readonly options: FastAuthContracts;
@@ -21,7 +20,7 @@ export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider> {
     ) {
         this.options = getContractsFromNetwork(network);
         this.provider = provider;
-        this.relayerURL = relayerURL ?? DEFAULT_RELAYER_URL; 
+        this.relayerURL = relayerURL ?? DEFAULT_RELAYER_URL;
     }
 
     /**

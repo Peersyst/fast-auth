@@ -1,9 +1,5 @@
 import { PropsWithChildren, ReactNode } from "react";
-import { 
-    FastAuthClient, 
-    FastAuthClientNetwork,
-    IFastAuthProvider
-} from "../core";
+import { FastAuthClient, FastAuthClientNetwork, IFastAuthProvider } from "../core";
 import { Connection } from "near-api-js";
 
 /**

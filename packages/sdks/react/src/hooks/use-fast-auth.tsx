@@ -4,29 +4,28 @@ import { IFastAuthContext } from "../providers/fast-auth.provider.types";
 import { IFastAuthProvider } from "../core";
 
 /**
- * Hook to access the FastAuth context
- * 
+ * Hook to access the FastAuth context.
+ *
  * This hook provides access to the FastAuth client and ready state.
  * All operations should be performed through the client directly.
- * 
- * @throws Error if used outside of FastAuthProvider
- * 
+ * @returns The FastAuth context containing the client and ready state.
+ * @throws Error if used outside of FastAuthProvider.
  * @example
  * ```tsx
  * import { useFastAuth } from '@fast-auth/react';
- * 
+ *
  * function MyComponent() {
  *   const { client, isReady } = useFastAuth();
- * 
+ *
  *   if (!isReady || !client) {
  *     return <div>Loading...</div>;
  *   }
- * 
+ *
  *   // Use client directly for all operations
  *   const handleLogin = async () => {
  *     await client.login();
  *   };
- * 
+ *
  *   return (
  *     <button onClick={handleLogin}>Login</button>
  *   );

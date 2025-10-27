@@ -1,5 +1,12 @@
 import { Action, functionCall, Signature, SignedTransaction, Transaction } from "near-api-js/lib/transaction";
-import { CreateAccountOptions, CreateSignActionOptions, FastAuthSignerOptions, SignAndSendDelegateActionOptions, SignAndSendTransactionOptions, SignatureRequest } from "./signer.types";
+import {
+    CreateAccountOptions,
+    CreateSignActionOptions,
+    FastAuthSignerOptions,
+    SignAndSendDelegateActionOptions,
+    SignAndSendTransactionOptions,
+    SignatureRequest,
+} from "./signer.types";
 import { IFastAuthProvider } from "./providers/fast-auth.provider";
 import { Connection } from "near-api-js";
 import { CodeResult, FinalExecutionOutcome } from "near-api-js/lib/providers/provider";
@@ -78,7 +85,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
      * @returns The action to create the account.
      */
     async createAccount(accountId: string, options?: CreateAccountOptions): Promise<string> {
-        const { gas = 300000000000000n, deposit = 0n, algorithm = "ed25519" } = options ?? {};
+        const { algorithm = "ed25519" } = options ?? {};
         const publicKey = await this.getPublicKey(algorithm);
         // return functionCall(
         //     "create_account",
@@ -89,7 +96,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
         //     gas,
         //     deposit,
         // );
-        const { hash } =  await this.relayer.relayCreateAccount({
+        const { hash } = await this.relayer.relayCreateAccount({
             accountId,
             publicKey: publicKey.toString(),
         });
@@ -118,7 +125,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
 
     /**
      * Sign a transaction and relay it to the network.
-     * @param args The arguments to sign a transaction.
+     * @param opts The options for the sign and send transaction.
      * @returns The signed transaction.
      */
     async signAndSendTransaction(opts: SignAndSendTransactionOptions<P>): Promise<FinalExecutionOutcome> {
@@ -130,7 +137,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
 
         const { result } = await this.relayer.relayTransactionSignatureRequest({ ...signatureRequest, algorithm: algorithmParam });
 
-        if (typeof result.status !== 'object' || !('SuccessValue' in result.status)) {
+        if (typeof result.status !== "object" || !("SuccessValue" in result.status)) {
             throw new Error("Failed to sign delegate action");
         }
         const signature = FastAuthSignature.fromBase64(result.status.SuccessValue!);
@@ -141,7 +148,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
 
     /**
      * Sign a delegate action and relay it to the network.
-     * @param args The arguments to sign a delegate action.
+     * @param opts The options for the sign and send delegate action.
      * @returns The signed delegate action.
      */
     async signAndSendDelegateAction(opts: SignAndSendDelegateActionOptions<P>): Promise<FinalExecutionOutcome> {
@@ -191,7 +198,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
      * Sign a message and send it to the network.
      * @param transaction The transaction to sign.
      * @param signature The signature to use.
-     * @param algorithm The algorithm to use.
+     * @param algorithm The algorithm to use (default: ed25519).
      * @returns The provider result.
      */
     async sendTransaction(transaction: Transaction, signature: FastAuthSignature, algorithm: Algorithm = "ed25519") {
@@ -209,7 +216,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
 
     /**
      * Get the public key of the account.
-     * @param algorithm The algorithm to use.
+     * @param algorithm The algorithm to use (default: ed25519).
      * @returns The public key.
      */
     async getPublicKey(algorithm: Algorithm = "ed25519"): Promise<PublicKey> {

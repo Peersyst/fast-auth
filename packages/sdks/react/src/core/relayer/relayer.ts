@@ -1,22 +1,29 @@
-import { RelayCreateAccountRequest, RelayCreateAccountResponse, RelayDelegateActionSignatureRequest, RelayDelegateActionSignatureResponse, RelayTransactionSignatureRequest, RelayTransactionSignatureResponse } from "./types";
+import {
+    RelayCreateAccountRequest,
+    RelayCreateAccountResponse,
+    RelayDelegateActionSignatureRequest,
+    RelayDelegateActionSignatureResponse,
+    RelayTransactionSignatureRequest,
+    RelayTransactionSignatureResponse,
+} from "./types";
 
 export class FastAuthRelayer {
     private readonly url: string;
-    
+
     constructor(url: string) {
         this.url = url;
     }
 
     /**
      * Relay a sign action.
-     * @param action The action to relay.
+     * @param request The request to relay.
      * @returns The result of the relay.
      */
     async relayTransactionSignatureRequest(request: RelayTransactionSignatureRequest): Promise<RelayTransactionSignatureResponse> {
         const response = await fetch(`${this.url}/sign-tx`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
             },
             body: JSON.stringify({
                 guard_id: request.guardId,
@@ -44,9 +51,9 @@ export class FastAuthRelayer {
      */
     async relayDelegateActionSignatureRequest(request: RelayDelegateActionSignatureRequest): Promise<RelayDelegateActionSignatureResponse> {
         const response = await fetch(`${this.url}/sign-delegate-tx`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
             },
             body: JSON.stringify({
                 guard_id: request.guardId,
@@ -70,14 +77,14 @@ export class FastAuthRelayer {
 
     /**
      * Relay a create account action.
-     * @param action The action to relay.
+     * @param payload The payload to relay.
      * @returns The result of the relay.
      */
     async relayCreateAccount(payload: RelayCreateAccountRequest): Promise<RelayCreateAccountResponse> {
         const response = await fetch(`${this.url}/create-account`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
             },
             body: JSON.stringify(payload),
         });

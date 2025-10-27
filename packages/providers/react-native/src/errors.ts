@@ -16,4 +16,3 @@ export class ReactNativeProviderError extends Error {
         this.name = "ReactNativeProviderError";
     }
 }
-

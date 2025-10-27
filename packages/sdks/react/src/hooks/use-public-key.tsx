@@ -4,42 +4,37 @@ import { IFastAuthProvider } from "../core";
 import { Algorithm } from "../core/common/signature/types";
 
 /**
- * Hook to get the user's public key
- * 
+ * Hook to get the user's public key.
+ *
  * This hook provides a convenient way to get the public key from the signer
  * and manages loading and error states.
- * 
- * @param algorithm - The algorithm to use for the public key (default: "ed25519")
- * @param autoFetch - Whether to automatically fetch the public key when signer is available (default: true)
- * @returns Object containing public key, loading state, error, and refetch function
- * 
+ * @param algorithm The algorithm to use for the public key (default: "ed25519").
+ * @param autoFetch Whether to automatically fetch the public key when signer is available (default: true).
+ * @returns Object containing public key, loading state, error, and refetch function.
  * @example
  * ```tsx
  * import { usePublicKey } from '@fast-auth/react';
- * 
+ *
  * function MyComponent() {
  *   const { publicKey, isLoading, error } = usePublicKey();
- * 
+ *
  *   if (isLoading) {
  *     return <div>Loading public key...</div>;
  *   }
- * 
+ *
  *   if (error) {
  *     return <div>Error: {error.message}</div>;
  *   }
- * 
+ *
  *   if (!publicKey) {
  *     return <div>Please log in</div>;
  *   }
- * 
+ *
  *   return <div>Public Key: {publicKey.toString()}</div>;
  * }
  * ```
  */
-export function usePublicKey<P extends IFastAuthProvider = IFastAuthProvider>(
-    algorithm: Algorithm = "ed25519",
-    autoFetch: boolean = true
-) {
+export function usePublicKey<P extends IFastAuthProvider = IFastAuthProvider>(algorithm: Algorithm = "ed25519", autoFetch: boolean = true) {
     const { signer } = useSigner<P>(autoFetch);
     const [publicKey, setPublicKey] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -80,4 +75,3 @@ export function usePublicKey<P extends IFastAuthProvider = IFastAuthProvider>(
         refetch: fetchPublicKey,
     };
 }
-

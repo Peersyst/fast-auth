@@ -1,4 +1,3 @@
-
 import { Transaction } from "near-api-js/lib/transaction";
 import { DelegateAction } from "@near-js/transactions";
 
@@ -380,9 +379,7 @@ describe("JavascriptProvider", () => {
                 throw error;
             });
 
-            await expect(provider.requestDelegateActionSignature(mockRequestOptions)).rejects.toThrow(
-                "Delegate action encoding failed",
-            );
+            await expect(provider.requestDelegateActionSignature(mockRequestOptions)).rejects.toThrow("Delegate action encoding failed");
         });
     });
 

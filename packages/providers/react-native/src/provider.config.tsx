@@ -15,5 +15,5 @@ export function reactNativeProviderConfig(opts: ReactNativeProviderOptions) {
                 {children}
             </Auth0Provider>
         ),
-    }
+    };
 }
