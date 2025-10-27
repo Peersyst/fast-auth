@@ -1,0 +1,1 @@
+export const DEFAULT_RELAYER_URL = "http://localhost:3000/api/relayer/fast-auth";

@@ -51,4 +51,3 @@ export type ReactNativeRequestDelegateActionSignatureOptions = ReactNativeBaseRe
      */
     delegateAction: DelegateAction;
 };
-

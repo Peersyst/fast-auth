@@ -2,7 +2,7 @@ import { Action, functionCall, Signature, SignedTransaction, Transaction } from 
 import { CreateAccountOptions, CreateSignActionOptions, FastAuthSignerOptions, SignatureRequest } from "./signer.types";
 import { IFastAuthProvider } from "./providers/fast-auth.provider";
 import { Connection } from "near-api-js";
-import { CodeResult } from "near-api-js/lib/providers/provider";
+import { CodeResult, FinalExecutionOutcome } from "near-api-js/lib/providers/provider";
 import { ViewFunctionCallOptions } from "@near-js/accounts";
 import { PublicKey } from "near-api-js/lib/utils";
 import { FastAuthSignature } from "../common/signature/signature";
@@ -11,14 +11,20 @@ import { FastAuthSignerErrorCodes } from "./signer.error-codes";
 import { Algorithm } from "../common/signature/types";
 import { getDomainIdOrFail } from "./utils";
 import { getKeyTypeOrFail } from "./utils";
+import { FastAuthRelayer } from "../relayer";
 
 export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     private path: string;
+    private readonly relayer: FastAuthRelayer;
+
     constructor(
         private readonly fastAuthProvider: P,
         private readonly connection: Connection,
         private readonly options: FastAuthSignerOptions,
-    ) {}
+        relayerURL: string,
+    ) {
+        this.relayer = new FastAuthRelayer(relayerURL);
+    }
 
     /**
      * Validate the arguments.
@@ -105,6 +111,44 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     async requestDelegateActionSignature(...args: Parameters<P["requestDelegateActionSignature"]>) {
         // Call the fast auth provider to request a delegate action signature.
         return await this.fastAuthProvider.requestDelegateActionSignature(...args);
+    }
+
+    /**
+     * Sign a transaction and relay it to the network.
+     * @param args The arguments to sign a transaction.
+     * @returns The signed transaction.
+     */
+    async signAndSendTransaction(...args: Parameters<P["requestTransactionSignature"]>): Promise<FinalExecutionOutcome> {
+        // Call the fast auth provider to sign a transaction.
+        await this.fastAuthProvider.requestTransactionSignature(...args);
+
+        const signatureRequest = await this.getSignatureRequest();    
+        const { result } = await this.relayer.relaySignatureRequest(signatureRequest);
+
+        if (!result.status.SuccessValue) {
+            throw new Error("Failed to sign delegate action");
+        }
+        const signature = FastAuthSignature.fromBase64(result.status.SuccessValue as string);
+        return await this.sendTransaction(tx, signature);
+    }
+
+    /**
+     * Sign a delegate action and relay it to the network.
+     * @param args The arguments to sign a delegate action.
+     * @returns The signed delegate action.
+     */
+    async signAndSendDelegateAction(...args: Parameters<P["requestDelegateActionSignature"]>): Promise<FinalExecutionOutcome> {
+        // Call the fast auth provider to sign a delegate action.
+        await this.fastAuthProvider.requestDelegateActionSignature(...args);
+
+        const signatureRequest = await this.getSignatureRequest();
+        const { result } = await this.relayer.relaySignatureRequest(signatureRequest);
+
+        if (!result.status.SuccessValue) {
+            throw new Error("Failed to sign delegate action");
+        }
+        const signature = FastAuthSignature.fromBase64(result.status.SuccessValue as string);
+        return await this.sendTransaction(tx, signature);
     }
 
     /**

@@ -5,19 +5,23 @@ import { FastAuthClientError } from "./client.errors";
 import { FastAuthClientErrorCodes } from "./client.error-codes";
 import { FastAuthClientNetwork, FastAuthContracts } from "./client.types";
 import { getContractsFromNetwork } from "../../providers/utils/contracts";
+import { DEFAULT_RELAYER_URL } from "./client.constants";
 
 
 export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider> {
     private provider: P;
     private readonly options: FastAuthContracts;
+    private readonly relayerURL: string;
 
     constructor(
         provider: P,
         private readonly connection: Connection,
         network: FastAuthClientNetwork,
+        relayerURL?: string,
     ) {
         this.options = getContractsFromNetwork(network);
         this.provider = provider;
+        this.relayerURL = relayerURL ?? DEFAULT_RELAYER_URL; 
     }
 
     /**
@@ -55,7 +59,7 @@ export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider> {
         if (!isLoggedIn) {
             throw new FastAuthClientError(FastAuthClientErrorCodes.USER_NOT_LOGGED_IN);
         }
-        const signer = new FastAuthSigner<P>(this.provider, this.connection, this.options);
+        const signer = new FastAuthSigner<P>(this.provider, this.connection, this.options, this.relayerURL);
         await signer.init();
         return signer;
     }

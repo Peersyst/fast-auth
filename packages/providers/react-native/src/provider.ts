@@ -6,9 +6,9 @@ import {
 } from "./types";
 import { encodeDelegateAction, encodeTransaction } from "./utils";
 import { decodeJwt } from "jose";
-import { SignatureRequest } from "./core/signer/types";
 import { ReactNativeProviderError, ReactNativeProviderErrorCodes } from "./errors";
 import { IFastAuthProvider } from "./core/provider/types";
+import { SignatureRequest } from "./core";
 
 /**
  * ReactNativeProvider adapts react-native-auth0 to the FastAuth provider interface.
