@@ -1,4 +1,5 @@
 import { buildConfig } from "@backend/config";
+import { parseNearAmount } from "near-api-js/lib/utils/format";
 
 export interface NearConfig {
     /**
@@ -35,6 +36,18 @@ export interface NearConfig {
      * The account contract id.
      */
     accountContractId: string;
+    /**
+     * The JWT guard id.
+     */
+    guardId: string;
+    /**
+     * The JWT issuer.
+     */
+    issuer: string;
+    /**
+     * The deposit amount for the mpc contract.
+     */
+    mpcDepositAmount: bigint;
     /**
      * The time to wait to get a new recent block hash in ms.
      */
@@ -76,6 +89,9 @@ export default (secrets: Record<any, any>): NearConfig => {
         fastAuthContractId: process.env.NEAR_FAST_AUTH_CONTRACT_ID || "fast-auth.near",
         mpcContractId: process.env.NEAR_MPC_CONTRACT_ID || "v1.signer",
         accountContractId: process.env.NEAR_ACCOUNT_CONTRACT_ID || "near",
+        guardId: process.env.NEAR_GUARD_ID || "jwt#https://login.fast-auth.com/",
+        issuer: process.env.NEAR_ISSUER || "https://login.fast-auth.com/",
+        mpcDepositAmount: BigInt(parseNearAmount(process.env.NEAR_MPC_DEPOSIT_AMOUNT ?? "2")!),
         recentBlockHashTimeout: {
             default: process.env.NEAR_RECENT_BLOCK_HASH_TIMEOUT ? parseInt(process.env.NEAR_RECENT_BLOCK_HASH_TIMEOUT) : 36_000_000, // Default to 10 hours
             production: secrets.NEAR_RECENT_BLOCK_HASH_TIMEOUT,

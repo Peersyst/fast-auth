@@ -98,6 +98,9 @@ importers:
       bignumber.js:
         specifier: ^9.3.0
         version: 9.3.1
+      borsh:
+        specifier: ^2.0.0
+        version: 2.0.0
       class-transformer:
         specifier: 0.5.1
         version: 0.5.1
@@ -107,6 +110,9 @@ importers:
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
+      elliptic:
+        specifier: ^6.6.1
+        version: 6.6.1
       express:
         specifier: ^4.19.2
         version: 4.21.2
@@ -180,6 +186,9 @@ importers:
       '@types/bcrypt':
         specifier: ^5.0.0
         version: 5.0.2
+      '@types/elliptic':
+        specifier: ^6.4.18
+        version: 6.4.18
       '@types/express':
         specifier: 4.17.17
         version: 4.17.17
@@ -4506,6 +4515,9 @@ packages:
 
   borsh@1.0.0:
     resolution: {integrity: sha512-fSVWzzemnyfF89EPwlUNsrS5swF5CrtiN4e+h0/lLf4dz2he4L3ndM20PS9wj7ICSkXJe/TQUHdaPTq15b1mNQ==}
+
+  borsh@2.0.0:
+    resolution: {integrity: sha512-kc9+BgR3zz9+cjbwM8ODoUB4fs3X3I5A/HtX7LZKxCLaMrEeDFoBpnhZY//DTS1VZBSs6S5v46RZRbZjRFspEg==}
 
   bowser@2.12.1:
     resolution: {integrity: sha512-z4rE2Gxh7tvshQ4hluIT7XcFrgLIQaw9X3A+kTTRdovCz5PMukm/0QC/BKSYPj3omF5Qfypn9O/c5kgpmvYUCw==}
@@ -16084,6 +16096,8 @@ snapshots:
   boolbase@1.0.0: {}
 
   borsh@1.0.0: {}
+
+  borsh@2.0.0: {}
 
   bowser@2.12.1: {}
 
