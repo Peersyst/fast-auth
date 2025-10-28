@@ -91,7 +91,7 @@ export default (secrets: Record<any, any>): NearConfig => {
         accountContractId: process.env.NEAR_ACCOUNT_CONTRACT_ID || "near",
         guardId: process.env.NEAR_GUARD_ID || "jwt#https://login.fast-auth.com/",
         issuer: process.env.NEAR_ISSUER || "https://login.fast-auth.com/",
-        mpcDepositAmount: BigInt(parseNearAmount(process.env.NEAR_MPC_DEPOSIT_AMOUNT ?? "0.01")!),
+        mpcDepositAmount: BigInt(parseNearAmount(process.env.NEAR_MPC_DEPOSIT_AMOUNT ?? "2")!),
         recentBlockHashTimeout: {
             default: process.env.NEAR_RECENT_BLOCK_HASH_TIMEOUT ? parseInt(process.env.NEAR_RECENT_BLOCK_HASH_TIMEOUT) : 36_000_000, // Default to 10 hours
             production: secrets.NEAR_RECENT_BLOCK_HASH_TIMEOUT,
