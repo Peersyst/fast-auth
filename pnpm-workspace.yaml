@@ -1,9 +1,11 @@
 packages:
+    - "apps/*"
     - "contracts/auth0-guard"
     - "contracts/fa"
     - "contracts/jwt-guard-router"
     - "docs"
     - "packages/auth"
+    - "packages/backend/*"
     - "packages/sdks/*"
     - "packages/providers/*"
     - "packages/shared/*"

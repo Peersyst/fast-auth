@@ -1,0 +1,4 @@
+apiVersion: v2
+name: FAST-AUTH
+description: fast-auth
+version: 1.0.0+${TAG}

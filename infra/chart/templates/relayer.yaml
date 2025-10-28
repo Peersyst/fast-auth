@@ -1,0 +1,101 @@
+{{- if .Values.relayer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/port: {{ .Values.relayer.service.targetPort | quote }}
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/api/metrics"
+  name: relayer-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+  - name: relayer
+    port: {{ .Values.relayer.service.port }}
+    targetPort: {{ .Values.relayer.service.targetPort }}
+  selector:
+    app: relayer-{{ .Values.environment }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.relayer.deployment.name }}-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.relayer.deployment.name }}-{{ .Values.environment }}
+spec:
+  replicas: {{ .Values.relayer.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.relayer.deployment.name }}-{{ .Values.environment }}
+  template:
+    metadata:
+      annotations:
+        timestamp: {{ .Values.timestamp }}
+      labels:
+        app: {{ .Values.relayer.deployment.name }}-{{ .Values.environment }}
+    spec:
+      serviceAccountName: peersyst-secrets-iamserviceaccount
+      volumes:
+      - name: relayer-secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: relayer-{{ .Values.environment }}-secrets
+      containers:
+      - name: relayer
+        image: peersyst/fast-auth-relayer:{{ .Values.tagRelayer }}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: {{ .Values.relayer.deployment.memoryRequest }}
+            cpu: {{ .Values.relayer.deployment.cpuRequest }}
+          limits:
+            memory: {{ .Values.relayer.deployment.memoryLimit }}
+            cpu: {{ .Values.relayer.deployment.cpuLimit }}
+        ports:
+        - containerPort: {{ .Values.relayer.deployment.port }}
+        volumeMounts:
+        - name: relayer-secrets
+          mountPath: "/mnt/secrets"
+          readOnly: true
+        env:
+        - name: CONFIG_ENV
+          value: {{ .Values.environment }}
+        {{- range $k, $v := .Values.relayer.secretProviderClass.secrets }}
+        - name: {{ $v }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Values.relayer.secretProviderClass.objectAlias }}
+              key: {{ $v }}
+        {{ end }}
+      imagePullSecrets:
+      - name: regcred
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: relayer-{{ .Values.environment }}-secrets
+  namespace: {{ $.Values.namespace }}
+spec:
+  provider: aws
+  parameters:
+    region: us-east-1
+    objects: |
+      - objectName: {{ $.Values.relayer.secretProviderClass.objectName }}
+        objectType: secretsmanager
+        jmesPath:
+        {{- range $k, $v := .Values.relayer.secretProviderClass.secrets }}
+          - path: {{ $v }}
+            objectAlias: {{ $k }}
+        {{ end }}
+  secretObjects:
+  - secretName: {{ $.Values.relayer.secretProviderClass.objectAlias }}
+    type: Opaque
+    data:
+    {{- range $k, $v := .Values.relayer.secretProviderClass.secrets }}
+    - objectName: {{ $k }}
+      key: {{ $v }}
+    {{ end }}
+{{- end }}
