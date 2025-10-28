@@ -84,13 +84,38 @@ const config: Config = {
                 },
                 {
                     type: "dropdown",
-                    label: "SDKs",
+                    label: "Tools",
                     position: "left",
                     items: [
+                        {
+                            type: "html",
+                            value: "<strong>SDKs</strong>",
+                            className: "dropdown-section-label",
+                        },
                         {
                             label: "Browser",
                             to: "/docs/sdk/browser/getting-started",
                             sidebarId: "browserSdkSidebar",
+                        },
+                        {
+                            label: "React",
+                            to: "/docs/sdk/react/getting-started",
+                            sidebarId: "reactSdkSidebar",
+                        },
+                        {
+                            type: "html",
+                            value: "<strong>Providers</strong>",
+                            className: "dropdown-section-label",
+                        },
+                        {
+                            label: "JavaScript",
+                            to: "/docs/providers/javascript/getting-started",
+                            sidebarId: "javascriptProviderSidebar",
+                        },
+                        {
+                            label: "React Native",
+                            to: "/docs/providers/react-native/getting-started",
+                            sidebarId: "reactNativeProviderSidebar",
                         },
                     ],
                 },

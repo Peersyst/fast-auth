@@ -5,8 +5,7 @@
     "type": "module",
     "scripts": {
         "start": "pnpm run build && node dist/index.js",
-        "build": "tsc",
-        "lint": "eslint ."
+        "build": "tsc"
     },
     "dependencies": {
         "express": "^5.1.0",

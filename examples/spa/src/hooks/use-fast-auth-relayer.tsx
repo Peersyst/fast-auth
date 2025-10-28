@@ -1,12 +1,13 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import FastAuthRelayer from "../services/fast-auth-relayer";
-import { FastAuthClient, Auth0Provider } from "@fast-auth/browser";
+import { FastAuthClient } from "@fast-auth/browser";
+import { JavascriptProvider } from "@fast-auth/javascript";
 import config from "../auth_config.json";
 import { Connection } from "near-api-js";
 
 interface FastAuthContextType {
     relayer: FastAuthRelayer | null;
-    client: FastAuthClient<Auth0Provider> | null;
+    client: FastAuthClient<JavascriptProvider> | null;
     isRelayerInitialized: boolean;
     isClientInitialized: boolean;
     error: Error | null;
@@ -14,19 +15,21 @@ interface FastAuthContextType {
 
 const FastAuthContext = createContext<FastAuthContextType | null>(null);
 
+const APP_ORIGIN = import.meta.env.VITE_APP_ORIGIN || config.appOrigin;
+
 export function FastAuthProvider({ children }: { children: ReactNode }) {
     const [relayer, setRelayer] = useState<FastAuthRelayer | null>(null);
-    const [client, setClient] = useState<FastAuthClient<Auth0Provider> | null>(null);
+    const [client, setClient] = useState<FastAuthClient<JavascriptProvider> | null>(null);
     const [isRelayerInitialized, setIsRelayerInitialized] = useState(false);
     const [isClientInitialized, setIsClientInitialized] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
         const initializeClient = async (connection: Connection) => {
-            const provider = new Auth0Provider({
+            const provider = new JavascriptProvider({
                 domain: config.domain,
                 clientId: config.clientId,
-                redirectUri: config.appOrigin,
+                redirectUri: APP_ORIGIN,
                 audience: config.audience,
             });
             const client = new FastAuthClient(provider, connection, {

@@ -21,8 +21,6 @@ export class Auth0Provider implements IFastAuthProvider {
                 redirect_uri: this.options.redirectUri,
             },
         });
-
-        // Initialize the Auth0 client.
     }
 
     /**
