@@ -13,7 +13,8 @@ import { ConfigService } from "@nestjs/config";
 export class RelayerController {
     constructor(
         @Inject(ConfigService) private readonly configService: ConfigService,
-        private readonly fastAuthRelayerService: RelayerService,) {}
+        private readonly fastAuthRelayerService: RelayerService,
+    ) {}
 
     private validateRequest(body: any): void {
         const guardId = this.configService.get("near.guardId") as string;

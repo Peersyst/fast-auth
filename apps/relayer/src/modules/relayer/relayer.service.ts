@@ -72,7 +72,7 @@ export class RelayerService {
      */
     async signAndSendDelegateAction(body: SignAndSendDelegateActionRequest): Promise<SignResponse> {
         const encodedDelegateAction = Uint8Array.from(body.sign_payload);
-        
+
         // Try to deserialize the DelegateAction
         // Some encodings may have a 4-byte prefix (DelegateActionPrefix), so we handle both cases
         let delegateAction: DelegateAction;
@@ -88,7 +88,7 @@ export class RelayerService {
                 throw error;
             }
         }
-        
+
         const { result } = await this.signFastAuthRequest(body);
 
         const fsSignature = FastAuthSignature.fromBase64(result.status.SuccessValue as string);

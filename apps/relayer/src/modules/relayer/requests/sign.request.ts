@@ -12,10 +12,10 @@ export class SignRequest {
 /**
  * Validates the Sign Request.
  * @param request The sign request to validate.
+ * @param guardId The guard id to validate.
+ * @param issuer The issuer to validate.
  */
 export const validate = (request: SignRequest, guardId: string, issuer: string) => {
-    console.log("guardId", guardId);
-    console.log("issuer", issuer);
     // NOTE: Include more guards if needed
     if (request.guard_id !== guardId) {
         throw new BusinessException(RelayerErrorCodes.INVALID_GUARD_ID);
