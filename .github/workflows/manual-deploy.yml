@@ -49,7 +49,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           echo "Send initial Slack message"
-          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"🎬 Starting *NEAR-MOBILE* deployment - Commit: <https://github.com/Peersyst/near-mobile/commit/${TAG}|${TAG}> by ${GITHUB_ACTOR}\"}" ${SLACK_WEBHOOK_URL}
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"🎬 Starting *fast-auth* deployment - Commit: <https://github.com/Peersyst/fast-auth/commit/${TAG}|${TAG}> by ${GITHUB_ACTOR}\"}" ${SLACK_WEBHOOK_URL}
 
       # Checkout repository under $GITHUB_WORKSPACE path
       - name: Repository checkout
@@ -93,7 +93,7 @@ jobs:
           envsubst < Chart.yaml > Chart-0.yaml
           mv Chart-0.yaml Chart.yaml
           kubectl config use-context peersyst-privatenet
-          helm -n near-mobile upgrade ${{ github.event.inputs.environment }} ./ --install --atomic --wait --timeout 301s --values values/${{ github.event.inputs.environment }}.yaml --set-string timestamp=${NOW} --set-string tagRelayer=${{ github.event.inputs.relayer-tag }} --debug
+          helm -n fast-auth upgrade ${{ github.event.inputs.environment }} ./ --install --atomic --wait --timeout 301s --values values/${{ github.event.inputs.environment }}.yaml --set-string timestamp=${NOW} --set-string tagRelayer=${{ github.event.inputs.relayer-tag }} --debug
 
       # Send Slack message if any previous step has failed in this job
       - name: 📬 Failure job notification
@@ -105,7 +105,7 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           echo "Send error Slack message"
-          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"❌ *NEAR-MOBILE* ${GITHUB_JOB} job *FAILED* in ${{ github.event.inputs.environment }}. Check pipeline logs <https://github.com/Peersyst/near-mobile/actions/runs/${GITHUB_RUN_ID}|here> - Commit: <https://github.com/Peersyst/near-mobile/commit/${TAG}|${TAG}> by ${GITHUB_ACTOR}\"}" ${SLACK_WEBHOOK_URL}
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"❌ *fast-auth* ${GITHUB_JOB} job *FAILED* in ${{ github.event.inputs.environment }}. Check pipeline logs <https://github.com/Peersyst/fast-auth/actions/runs/${GITHUB_RUN_ID}|here> - Commit: <https://github.com/Peersyst/fast-auth/commit/${TAG}|${TAG}> by ${GITHUB_ACTOR}\"}" ${SLACK_WEBHOOK_URL}
 
       # Send final Slack message if success
       - name: 📬 Final Slack deployment message
@@ -116,4 +116,4 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           echo "Send final Slack message"
-          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"🏁 *NEAR-MOBILE* deployment *SUCCESSFULLY* in ${{ github.event.inputs.environment }} - Commit: <https://github.com/Peersyst/near-mobile/commit/${TAG}|${TAG}> by ${GITHUB_ACTOR}\"}" ${SLACK_WEBHOOK_URL}
+          curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"🏁 *fast-auth* deployment *SUCCESSFULLY* in ${{ github.event.inputs.environment }} - Commit: <https://github.com/Peersyst/fast-auth/commit/${TAG}|${TAG}> by ${GITHUB_ACTOR}\"}" ${SLACK_WEBHOOK_URL}
