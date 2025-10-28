@@ -64,6 +64,30 @@ const sidebars: SidebarsConfig = {
         "sdk/browser/providers",
         "sdk/browser/signer",
     ],
+    reactSdkSidebar: [
+        {
+            type: "html",
+            value: "Introduction",
+            className: "sidebar-label",
+        },
+        "sdk/react/getting-started",
+        "sdk/react/installation",
+        "sdk/react/concepts",
+        // {
+        //     type: "html",
+        //     value: "Guides",
+        //     className: "sidebar-label",
+        // },
+        // "sdk/react/integration",
+        {
+            type: "html",
+            value: "Reference",
+            className: "sidebar-label",
+        },
+        "sdk/react/client",
+        "sdk/react/providers",
+        "sdk/react/signer",
+    ],
     integrationsSidebar: [
         "integrations/overview",
         {
@@ -79,6 +103,38 @@ const sidebars: SidebarsConfig = {
             className: "sidebar-label",
         },
         "integrations/custom-backend-express",
+    ],
+    javascriptProviderSidebar: [
+        {
+            type: "html",
+            value: "Introduction",
+            className: "sidebar-label",
+        },
+        "providers/javascript/getting-started",
+        "providers/javascript/installation",
+        "providers/javascript/usage",
+        {
+            type: "html",
+            value: "Reference",
+            className: "sidebar-label",
+        },
+        "providers/javascript/api",
+    ],
+    reactNativeProviderSidebar: [
+        {
+            type: "html",
+            value: "Introduction",
+            className: "sidebar-label",
+        },
+        "providers/react-native/getting-started",
+        "providers/react-native/installation",
+        "providers/react-native/usage",
+        {
+            type: "html",
+            value: "Reference",
+            className: "sidebar-label",
+        },
+        "providers/react-native/api",
     ],
 };
 

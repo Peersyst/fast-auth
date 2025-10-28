@@ -349,6 +349,24 @@ function AuthorizeAppTransactionDetails(context) {
         return textContent;
     };
 
+    const createJsonContent = (label, value) => {
+        const textContent = document.createElement("div");
+        textContent.classList.add("text-content");
+
+        const labelElement = document.createElement("div");
+        labelElement.classList.add("label");
+        labelElement.textContent = label;
+
+        const valueElement = document.createElement("div");
+        valueElement.classList.add("json-content");
+        valueElement.textContent = value;
+
+        textContent.appendChild(labelElement);
+        textContent.appendChild(valueElement);
+
+        return textContent;
+    };
+
     return {
         /** Invoked once when the field is created */
         init() {
@@ -356,10 +374,11 @@ function AuthorizeAppTransactionDetails(context) {
             box.classList.add("box");
 
             const config = context.custom.getParams();
-            const { signerId, receiverId, actions } = config;
+            const { senderId, receiverId, actions, maxBlockHeight: maxBlockHeightString } = config;
 
-            const sender = createTextContent("Signer ID", signerId);
+            const sender = createTextContent("Sender ID", senderId);
             const receiver = createTextContent("Receiver ID", receiverId);
+            const maxBlockHeight = createTextContent("Max Block Height", maxBlockHeightString);
 
             const parsedActions = JSON.parse(actions);
             const actionAccordions = [];
@@ -371,6 +390,7 @@ function AuthorizeAppTransactionDetails(context) {
 
             box.appendChild(sender);
             box.appendChild(receiver);
+            box.appendChild(maxBlockHeight);
 
             const actionsContainer = document.createElement("div");
             actionsContainer.classList.add("actions-container");

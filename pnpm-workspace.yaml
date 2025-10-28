@@ -5,6 +5,8 @@ packages:
     - "docs"
     - "packages/auth"
     - "packages/sdks/*"
+    - "packages/providers/*"
     - "packages/shared/*"
     - "examples/custom-backend"
     - "examples/spa"
+    - "examples/mobile"
