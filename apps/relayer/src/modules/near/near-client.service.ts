@@ -78,6 +78,25 @@ export class NearClientService {
     }
 
     /**
+     * Query a function call.
+     * @param accountId The account id to query the function call.
+     * @param method The method to query the function call.
+     * @param args The args to query the function call.
+     * @returns The function call result.
+     */
+    async viewFunction(accountId: string, method: string, args: object): Promise<unknown> {
+        const encodedArgs = Buffer.from(JSON.stringify(args));
+        const result = await this.query({
+            request_type: "call_function",
+            account_id: accountId,
+            method_name: method,
+            args_base64: encodedArgs.toString("base64"),
+            sync_checkpoint: "earliest_available",
+        });
+        return JSON.parse(Buffer.from(result.result).toString());
+    }
+
+    /**
      * Sends a transaction to the network.
      * @param signedTransaction The signed transaction to send.
      * @returns The result of the transaction.
