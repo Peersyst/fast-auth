@@ -10,14 +10,15 @@ relayer:
         name: relayer
         replicas: 1
         port: 3000
-        memoryRequest: 512Mi
-        cpuRequest: 250m
-        memoryLimit: 1024Mi
-        cpuLimit: 250m
+        memoryRequest: 256Mi
+        cpuRequest: 100m
+        memoryLimit: 256Mi
+        cpuLimit: 100m
     secretProviderClass:
         objectName: "fast-auth/staging/relayer"
         objectAlias: fast-auth-staging-relayer
         secrets:
+            appPort: APP_PORT
             nearPrivateKeys: NEAR_PRIVATE_KEYS
             nearRpcUrls: NEAR_RPC_URLS
             nearFastAuthContractId: NEAR_FAST_AUTH_CONTRACT_ID
