@@ -60,7 +60,7 @@ export function FastAuthProvider<P extends IFastAuthProvider = IFastAuthProvider
     // Initialize client on mount or when dependencies change
     useEffect(() => {
         try {
-            const newClient = new FastAuthClient<P>(provider, connection, network);
+            const newClient = new FastAuthClient<P>(provider, connection, network, "https://localhost:3001/api/relayer/fast-auth");
             setClient(newClient);
             setIsReady(true);
         } catch {

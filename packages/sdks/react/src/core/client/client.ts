@@ -5,7 +5,6 @@ import { FastAuthClientError } from "./client.errors";
 import { FastAuthClientErrorCodes } from "./client.error-codes";
 import { FastAuthClientNetwork, FastAuthContracts } from "./client.types";
 import { getContractsFromNetwork } from "../../providers/utils/contracts";
-import { DEFAULT_RELAYER_URL } from "./client.constants";
 
 export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider> {
     private provider: P;
@@ -16,11 +15,11 @@ export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider> {
         provider: P,
         private readonly connection: Connection,
         network: FastAuthClientNetwork,
-        relayerURL?: string,
+        relayerURL: string,
     ) {
         this.options = getContractsFromNetwork(network);
         this.provider = provider;
-        this.relayerURL = relayerURL ?? DEFAULT_RELAYER_URL;
+        this.relayerURL = relayerURL;
     }
 
     /**
