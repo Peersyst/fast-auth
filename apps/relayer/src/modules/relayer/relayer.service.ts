@@ -71,7 +71,6 @@ export class RelayerService {
      * @returns The sign response.
      */
     async signAndSendDelegateAction(body: SignAndSendDelegateActionRequest): Promise<SignResponse> {
-        console.log("body", body);
         const encodedDelegateAction = Uint8Array.from(body.sign_payload);
         
         // Try to deserialize the DelegateAction
