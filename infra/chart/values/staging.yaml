@@ -19,9 +19,12 @@ relayer:
         objectAlias: fast-auth-staging-relayer
         secrets:
             nearPrivateKeys: NEAR_PRIVATE_KEYS
-            fastAuthContractId: NEAR_FAST_AUTH_CONTRACT_ID
-            appPort: APP_PORT
             nearRpcUrls: NEAR_RPC_URLS
+            nearFastAuthContractId: NEAR_FAST_AUTH_CONTRACT_ID
+            nearMpcContractId: NEAR_MPC_CONTRACT_ID
+            nearAccountContractId: NEAR_ACCOUNT_CONTRACT_ID
+            nearGuardId: NEAR_GUARD_ID
+            nearIssuer: NEAR_ISSUER
 
 ingress:
     enabled: true
