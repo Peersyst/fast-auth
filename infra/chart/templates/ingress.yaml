@@ -9,13 +9,9 @@ metadata:
     alb.ingress.kubernetes.io/load-balancer-name: {{ .Values.namespace }}-{{ .Values.environment }}
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
-    {{- if .Values.api.enabled }}
+    {{- if .Values.relayer.enabled }}
     alb.ingress.kubernetes.io/actions.api-{{ .Values.environment }}: >
       {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"api-{{ .Values.environment }}","servicePort":"api","weight":20}]}}
-    {{- end }}
-    {{- if .Values.web.enabled }}
-    alb.ingress.kubernetes.io/actions.web-{{ .Values.environment }}: >
-      {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"web-{{ .Values.environment }}","servicePort":"web","weight":20}]}}
     {{- end }}
   name: {{ .Values.namespace }}-{{ .Values.environment }}
   namespace: {{ .Values.namespace }}
@@ -24,16 +20,7 @@ spec:
   rules:
     - http:
         paths:
-          {{- if .Values.web.enabled }}
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: web-{{ .Values.environment }}
-                port:
-                  name: use-annotation
-          {{- end }}
-          {{- if .Values.api.enabled }}
+          {{- if .Values.relayer.enabled }}
           - path: /api
             pathType: Prefix
             backend:
