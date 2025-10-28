@@ -41,7 +41,6 @@ export class RelayerController {
     @ApiOperation({ summary: "Create account" })
     @ApiBody({ type: CreateAccountRequest })
     async createAccount(@Body() body: CreateAccountRequest): Promise<SignResponse> {
-        this.validateRequest(body);
         return this.fastAuthRelayerService.createAccount(body);
     }
 }
