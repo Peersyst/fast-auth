@@ -11,7 +11,7 @@ metadata:
     alb.ingress.kubernetes.io/target-type: ip
     {{- if .Values.relayer.enabled }}
     alb.ingress.kubernetes.io/actions.api-{{ .Values.environment }}: >
-      {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"api-{{ .Values.environment }}","servicePort":"api","weight":20}]}}
+      {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"relayer-{{ .Values.environment }}","servicePort":"api","weight":20}]}}
     {{- end }}
   name: {{ .Values.namespace }}-{{ .Values.environment }}
   namespace: {{ .Values.namespace }}

@@ -10,7 +10,7 @@ metadata:
   namespace: {{ .Values.namespace }}
 spec:
   ports:
-  - name: relayer
+  - name: api
     port: {{ .Values.relayer.service.port }}
     targetPort: {{ .Values.relayer.service.targetPort }}
   selector:
