@@ -1,5 +1,9 @@
 import { Auth0Client } from "@auth0/auth0-spa-js";
-import { JavascriptProviderOptions, JavascriptRequestDelegateActionSignatureOptions, JavascriptRequestTransactionSignatureOptions } from "./types";
+import {
+    JavascriptProviderOptions,
+    JavascriptRequestDelegateActionSignatureOptions,
+    JavascriptRequestTransactionSignatureOptions,
+} from "./types";
 import { encodeDelegateAction, encodeTransaction } from "./utils";
 import { decodeJwt } from "jose";
 import { SignatureRequest } from "./core/signer/types";

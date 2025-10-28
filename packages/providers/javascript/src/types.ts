@@ -6,7 +6,7 @@ export type JavascriptProviderOptions = {
     clientId: string;
     redirectUri: string;
     audience: string;
-}
+};
 
 export type JavascriptBaseRequestSignatureOptions = {
     imageUrl: string;

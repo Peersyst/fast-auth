@@ -8,16 +8,21 @@ import { FastAuthProviderProps, IFastAuthContext } from "./fast-auth.provider.ty
 export const FastAuthContext = createContext<IFastAuthContext | null>(null);
 
 /**
- * FastAuthProvider component
- * 
+ * FastAuthProvider component.
+ *
  * Provides FastAuth client to the React component tree.
  * Manages the FastAuth client lifecycle.
- * 
+ * @param props The component props.
+ * @param props.children The children to render.
+ * @param props.providerConfig The provider configuration.
+ * @param props.connection The connection to use.
+ * @param props.network The network to use.
+ * @returns The provider component.
  * @example
  * ```tsx
  * import { FastAuthProvider } from '@fast-auth/react';
  * import { JavascriptProvider } from '@fast-auth/javascript-provider';
- * 
+ *
  * function App() {
  *   const providerConfig = {
  *     provider: new JavascriptProvider({
@@ -27,7 +32,7 @@ export const FastAuthContext = createContext<IFastAuthContext | null>(null);
  *       audience: 'your-audience'
  *     })
  *   };
- * 
+ *
  *   return (
  *     <FastAuthProvider
  *       providerConfig={providerConfig}
@@ -40,10 +45,10 @@ export const FastAuthContext = createContext<IFastAuthContext | null>(null);
  * }
  * ```
  */
-export function FastAuthProvider<P extends IFastAuthProvider = IFastAuthProvider>({ 
-    children, 
-    providerConfig, 
-    connection, 
+export function FastAuthProvider<P extends IFastAuthProvider = IFastAuthProvider>({
+    children,
+    providerConfig,
+    connection,
     network,
 }: FastAuthProviderProps<P>) {
     const { reactProvider = (children) => children, provider } = providerConfig;
@@ -55,24 +60,22 @@ export function FastAuthProvider<P extends IFastAuthProvider = IFastAuthProvider
     // Initialize client on mount or when dependencies change
     useEffect(() => {
         try {
-            const newClient = new FastAuthClient<P>(provider, connection, network);
+            const newClient = new FastAuthClient<P>(provider, connection, network, "https://localhost:3001/api/relayer/fast-auth");
             setClient(newClient);
             setIsReady(true);
-        } catch (err) {
-            console.error("Failed to initialize FastAuth client:", err);
+        } catch {
             setIsReady(false);
         }
     }, [provider, connection, network]);
 
     // Memoize context value to prevent unnecessary re-renders
-    const contextValue = useMemo<IFastAuthContext<P>>(() => ({
-        client,
-        isReady,
-    }), [client, isReady]);
-
-    return (
-        <FastAuthContext.Provider value={contextValue}>
-            {reactProvider(children)}
-        </FastAuthContext.Provider>
+    const contextValue = useMemo<IFastAuthContext<P>>(
+        () => ({
+            client,
+            isReady,
+        }),
+        [client, isReady],
     );
+
+    return <FastAuthContext.Provider value={contextValue}>{reactProvider(children)}</FastAuthContext.Provider>;
 }

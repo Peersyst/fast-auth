@@ -1,4 +1,3 @@
-
 import { createMock, MethodMock } from "@shared/test";
 import { IFastAuthProvider } from "../../src/core";
 

@@ -1,4 +1,6 @@
+import { Transaction } from "near-api-js/lib/transaction";
 import { Algorithm } from "../common/signature/types";
+import { IFastAuthProvider } from "./providers";
 
 export type NearCallOptions = {
     gas?: bigint;
@@ -26,4 +28,18 @@ export type RequestSignatureOptions = {
 export type FastAuthSignerOptions = {
     mpcContractId: string;
     fastAuthContractId: string;
+};
+
+export type SignAndSendTransactionOptions<P extends IFastAuthProvider = IFastAuthProvider> = Parameters<
+    P["requestTransactionSignature"]
+> & {
+    algorithm?: MPCContractAlgorithm;
+    transaction: Transaction;
+};
+
+export type SignAndSendDelegateActionOptions<P extends IFastAuthProvider = IFastAuthProvider> = Parameters<
+    P["requestDelegateActionSignature"]
+> & {
+    algorithm?: MPCContractAlgorithm;
+    receiverId: string;
 };

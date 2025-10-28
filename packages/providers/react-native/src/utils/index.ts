@@ -28,4 +28,3 @@ export function encodeDelegateAction(delegateAction: DelegateAction): number[] {
         return acc;
     }, [] as number[]);
 }
-
