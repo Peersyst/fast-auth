@@ -428,6 +428,7 @@ impl FastAuth {
     pub fn sign(&mut self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>, algorithm: String) -> Promise {
         self.non_paused_only();
         let attached_deposit = env::attached_deposit();
+        let caller = env::predecessor_account_id();
 
         // Validate algorithm
         let signature_algorithm = match SignatureAlgorithm::parse_str(&algorithm) {
@@ -446,7 +447,7 @@ impl FastAuth {
         external_guard::ext(guard_address.clone())
         .verify(guard_id.clone(), verify_payload, sign_payload.clone())
         .then(Self::ext(env::current_account_id())
-            .on_verify_sign_callback(guard_id.clone(), sign_payload, attached_deposit, signature_algorithm)
+            .on_verify_sign_callback(guard_id.clone(), sign_payload, attached_deposit, signature_algorithm, caller)
         )
     }
 
@@ -464,11 +465,12 @@ impl FastAuth {
     /// * `guard_id` - The guard ID for JWT verification
     /// * `verify_payload` - The JWT to verify
     /// * `sign_payload` - The data to sign
+    /// * `caller` - The original caller to refund deposit to
     /// # Returns
     /// * Promise chain for verification then signing
     /// # Notes
     /// * Requires an attached deposit for MPC costs
-    fn sign_request_secp256k1(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken) -> Promise {
+    fn sign_request_secp256k1(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken, caller: AccountId) -> Promise {
         let payload_hash = env::sha256(&sign_payload);
 
         let request: SignRequest = SignRequest {
@@ -481,7 +483,7 @@ impl FastAuth {
             .with_attached_deposit(attached_deposit)
             .sign(request)
             .then(Self::ext(env::current_account_id())
-                .on_sign_callback()
+                .on_sign_callback(caller, attached_deposit)
         )
     }
 
@@ -495,11 +497,12 @@ impl FastAuth {
     /// * `guard_id` - The guard ID for JWT verification
     /// * `verify_payload` - The JWT to verify
     /// * `sign_payload` - The data to sign
+    /// * `caller` - The original caller to refund deposit to
     /// # Returns
     /// * Promise chain for verification then signing
     /// # Notes
     /// * Requires an attached deposit for MPC costs
-    fn sign_request_ecdsa(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken) -> Promise {
+    fn sign_request_ecdsa(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken, caller: AccountId) -> Promise {
         let payload_hash = env::sha256(&sign_payload);
         let hex_payload = self.bytes_to_hex(&payload_hash);
 
@@ -513,7 +516,7 @@ impl FastAuth {
             .with_attached_deposit(attached_deposit)
             .sign(request)
             .then(Self::ext(env::current_account_id())
-                .on_sign_callback()
+                .on_sign_callback(caller, attached_deposit)
         )
     }
 
@@ -522,11 +525,12 @@ impl FastAuth {
     /// * `guard_id` - The guard ID for JWT verification
     /// * `verify_payload` - The JWT to verify
     /// * `sign_payload` - The data to sign
+    /// * `caller` - The original caller to refund deposit to
     /// # Returns
     /// * Promise chain for verification then signing
     /// # Notes
     /// * Requires an attached deposit for MPC costs
-    fn sign_request_eddsa(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken) -> Promise {
+    fn sign_request_eddsa(&self, guard_id: String, user: String, sign_payload: Vec<u8>, attached_deposit: NearToken, caller: AccountId) -> Promise {
         let payload_hash = env::sha256(&sign_payload);
         let hex_payload = self.bytes_to_hex(&payload_hash);
 
@@ -540,7 +544,7 @@ impl FastAuth {
             .with_attached_deposit(attached_deposit)
             .sign(request)
             .then(Self::ext(env::current_account_id())
-                .on_sign_callback()
+                .on_sign_callback(caller, attached_deposit)
         )
     }
 
@@ -549,50 +553,62 @@ impl FastAuth {
     /// * `sign_payload` - The data to sign
     /// * `attached_deposit` - Deposit to forward to MPC
     /// * `algorithm` - The signature algorithm to use
+    /// * `caller` - The original caller to refund deposit to
     /// * `call_result` - Verification result containing success and user ID
     /// # Returns
     /// * Promise for MPC signing or empty promise if verification failed
     #[private]
-    pub fn on_verify_sign_callback(&mut self, guard_id: String, sign_payload: Vec<u8>, attached_deposit: NearToken, algorithm: SignatureAlgorithm, #[callback_result] call_result: Result<(bool, String, String), PromiseError>) -> Promise {
+    pub fn on_verify_sign_callback(&mut self, guard_id: String, sign_payload: Vec<u8>, attached_deposit: NearToken, algorithm: SignatureAlgorithm, caller: AccountId, #[callback_result] call_result: Result<(bool, String, String), PromiseError>) -> Promise {
         if call_result.is_err() {
             env::log_str("Guard verification failed");
-            return Promise::new(env::current_account_id());
+            return Promise::new(caller)
+                .transfer(attached_deposit);
         } 
         let (verification_result, user, _guard) = call_result.unwrap();
         if !verification_result {
             env::log_str("Guard verification rejected");
-            return Promise::new(env::current_account_id());
+            return Promise::new(caller)
+                .transfer(attached_deposit);
         }
 
         assert!(self.verify_sub(user.clone()), "Invalid sub");
 
         match algorithm {
             SignatureAlgorithm::Secp256k1 => {
-                self.sign_request_secp256k1(guard_id, user, sign_payload, attached_deposit)
+                self.sign_request_secp256k1(guard_id, user, sign_payload, attached_deposit, caller)
             },
             SignatureAlgorithm::Ecdsa => {
-                self.sign_request_ecdsa(guard_id, user, sign_payload, attached_deposit)
+                self.sign_request_ecdsa(guard_id, user, sign_payload, attached_deposit, caller)
             },
             SignatureAlgorithm::Eddsa => {
-                self.sign_request_eddsa(guard_id, user, sign_payload, attached_deposit)
+                self.sign_request_eddsa(guard_id, user, sign_payload, attached_deposit, caller)
             }
         }
     }
 
-    /// Processes MPC signing result
+    /// Processes MPC signing result and returns deposit to caller
     /// # Arguments
+    /// * `caller` - The original caller to refund deposit to
+    /// * `original_deposit` - The original deposit amount to refund
     /// * `call_result` - The signing result from MPC
     /// # Returns
     /// * Option containing signature if successful
     #[private]
-    pub fn on_sign_callback(&mut self, #[callback_result] call_result: Result<SignResponseAny, PromiseError>) -> Option<SignResponseAny> {
+    #[payable]
+    pub fn on_sign_callback(&mut self, caller: AccountId, original_deposit: NearToken, #[callback_result] call_result: Result<SignResponseAny, PromiseError>) -> Option<SignResponseAny> {
         if call_result.is_err() {
             env::log_str("MPC signing failed");
+            // Return the deposit to the caller
+            Promise::new(caller).transfer(original_deposit);
             return None;
         } 
 
         let sign_response = call_result.unwrap();
         env::log_str(&format!("MPC signing successful: {:?}", sign_response));
+        
+        // Return the refunded deposit to the original caller
+        Promise::new(caller).transfer(original_deposit);
+        
         Some(sign_response)
     }
 
