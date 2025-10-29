@@ -257,7 +257,7 @@ async fn test_mpc() -> Result<(), Box<dyn std::error::Error>> {
         .view()
         .await?
         .json::<u64>()?;
-    assert_eq!(mpc_domain_id, 0);
+    assert_eq!(mpc_domain_id, 1);
 
     // Test setting new MPC address
     let set_mpc_outcome = contract
@@ -760,7 +760,7 @@ async fn test_mpc_domain_id() -> Result<(), Box<dyn std::error::Error>> {
         .view()
         .await?
         .json::<u64>()?;
-    assert_eq!(initial_domain_id, 0);
+    assert_eq!(initial_domain_id, 1);
 
     // Test setting new domain ID
     let new_domain_id = 12345u64;
@@ -833,7 +833,7 @@ async fn test_mpc_domain_id_authorization() -> Result<(), Box<dyn std::error::Er
         .view()
         .await?
         .json::<u64>()?;
-    assert_eq!(domain_id, 0); // Should still be default value
+    assert_eq!(domain_id, 1); // Should still be default value
 
     // Test that owner can set domain ID
     let owner_set_outcome = owner.call(contract.id(), "set_mpc_domain_id")
