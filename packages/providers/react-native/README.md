@@ -1,4 +1,4 @@
-# @fast-auth/react-native
+# @fast-auth/react-native-provider
 
 React Native provider for FastAuth - Adapts react-native-auth0 to the FastAuth provider interface.
 
@@ -34,8 +34,8 @@ Since this package uses `react-native-auth0`, you need to configure your React N
 ### Basic Setup with FastAuth React SDK
 
 ```tsx
-import { FastAuthProvider } from '@fast-auth/react';
-import { ReactNativeProvider, Auth0Provider } from '@fast-auth/react-native';
+import { FastAuthProvider } from '@fast-auth/react-sdk';
+import { reactNativeProviderConfig } from '@fast-auth/react-native-provider';
 import { Connection } from 'near-api-js';
 
 // Configure NEAR connection
@@ -44,36 +44,27 @@ const connection = new Connection({
   provider: { type: 'JsonRpcProvider', args: { url: 'https://rpc.testnet.near.org' } },
 });
 
-// Configure FastAuth client options
-const clientOptions = {
+// Configure FastAuth network
+const network = {
   mpcContractId: 'v1.signer-prod.testnet',
   fastAuthContractId: 'fastauth.testnet',
 };
 
 function App() {
-  // Create the provider instance
-  const provider = new ReactNativeProvider({
+  // Configure the ReactNative provider with Auth0 credentials
+  const providerConfig = reactNativeProviderConfig({
     domain: 'your-domain.auth0.com',
     clientId: 'your-client-id',
+    imageUrl: 'https://your-app.com/icon.png',
+    name: 'Your App Name',
     audience: 'your-api-identifier', // optional
   });
-
-  // Configure the provider for FastAuth React SDK
-  const providerConfig = {
-    provider,
-    // Wrap with Auth0Provider for proper React Native Auth0 integration
-    reactProvider: (children) => (
-      <Auth0Provider domain="your-domain.auth0.com" clientId="your-client-id">
-        {children}
-      </Auth0Provider>
-    ),
-  };
 
   return (
     <FastAuthProvider
       providerConfig={providerConfig}
       connection={connection}
-      clientOptions={clientOptions}
+      network={network}
     >
       <YourApp />
     </FastAuthProvider>
@@ -134,38 +125,6 @@ function LoginScreen() {
 }
 ```
 
-### Requesting Transaction Signatures
-
-```tsx
-import { useFastAuth } from '@fast-auth/react';
-import { Transaction } from 'near-api-js/lib/transaction';
-
-function TransactionSigner() {
-  const { requestTransactionSignature, getSignatureRequest } = useFastAuth();
-
-  const signTransaction = async (transaction: Transaction) => {
-    try {
-      // Request signature from user
-      await requestTransactionSignature({
-        transaction,
-        imageUrl: 'https://your-app.com/icon.png',
-        name: 'Your App Name',
-      });
-
-      // After user approves, get the signature
-      const signatureRequest = await getSignatureRequest();
-      console.log('Signature:', signatureRequest);
-    } catch (error) {
-      console.error('Failed to sign transaction:', error);
-    }
-  };
-
-  return (
-    // Your UI
-  );
-}
-```
-
 ## API Reference
 
 ### ReactNativeProvider
@@ -176,83 +135,12 @@ function TransactionSigner() {
 type ReactNativeProviderOptions = {
   domain: string;        // Your Auth0 domain (e.g., 'your-tenant.auth0.com')
   clientId: string;      // Your Auth0 client ID
+  imageUrl: string;      // URL of the app image to display in authorization UI
+  name: string;          // Name of your application
   audience?: string;     // Optional: Your API identifier in Auth0
   timeout?: number;      // Optional: Request timeout in milliseconds
   headers?: Record<string, string>; // Optional: Additional headers
 };
-```
-
-#### Methods
-
-##### `isLoggedIn(): Promise<boolean>`
-
-Check if the user has valid credentials.
-
-```typescript
-const isLoggedIn = await provider.isLoggedIn();
-```
-
-##### `login(): Promise<void>`
-
-Initiate the OAuth login flow using the system browser.
-
-```typescript
-await provider.login();
-```
-
-##### `logout(): Promise<void>`
-
-Log out the user and clear stored credentials.
-
-```typescript
-await provider.logout();
-```
-
-##### `getPath(): Promise<string>`
-
-Get the user's path (identifier) for NEAR FastAuth.
-
-```typescript
-const path = await provider.getPath();
-// Returns: "jwt#https://your-domain.auth0.com/#user-sub"
-```
-
-##### `requestTransactionSignature(options): Promise<void>`
-
-Request a transaction signature from the user.
-
-```typescript
-await provider.requestTransactionSignature({
-  transaction: myTransaction,
-  imageUrl: 'https://your-app.com/icon.png',
-  name: 'Your App Name',
-});
-```
-
-##### `requestDelegateActionSignature(options): Promise<void>`
-
-Request a delegate action signature from the user.
-
-```typescript
-await provider.requestDelegateActionSignature({
-  delegateAction: myDelegateAction,
-  imageUrl: 'https://your-app.com/icon.png',
-  name: 'Your App Name',
-});
-```
-
-##### `getSignatureRequest(): Promise<SignatureRequest>`
-
-Get the current signature request after user approval.
-
-```typescript
-const signatureRequest = await provider.getSignatureRequest();
-// Returns:
-// {
-//   guardId: "jwt#https://your-domain.auth0.com/",
-//   verifyPayload: "access-token",
-//   signPayload: Uint8Array,
-// }
 ```
 
 ## Error Handling
@@ -347,55 +235,12 @@ Update `android/app/src/main/AndroidManifest.xml`:
 - ✅ Android
 - ⚠️ Web (uses react-native-auth0's web implementation)
 
-## TypeScript
-
-The package is fully typed and exports all necessary types:
-
-```typescript
-import type {
-  ReactNativeProviderOptions,
-  ReactNativeRequestTransactionSignatureOptions,
-  ReactNativeRequestDelegateActionSignatureOptions,
-  ReactNativeProviderError,
-  ReactNativeProviderErrorCodes,
-} from '@fast-auth/react-native';
-```
-
-## Troubleshooting
-
-### "No credentials found" error
-
-Make sure the user is logged in before calling methods that require authentication:
-
-```typescript
-const isLoggedIn = await provider.isLoggedIn();
-if (!isLoggedIn) {
-  await provider.login();
-}
-```
-
-### Authentication flow doesn't redirect back to app
-
-Verify that:
-1. Your callback URLs are correctly configured in Auth0
-2. Your iOS `Info.plist` has the correct URL scheme
-3. Your Android `AndroidManifest.xml` has the correct intent filter
-
-### Token expiration
-
-The provider automatically handles token refresh using react-native-auth0's credential manager. If you encounter token expiration issues, try logging out and logging in again.
-
-## Examples
-
-See the `examples/` directory in the repository for complete example applications.
-
 ## License
 
 MIT
 
 ## Related Packages
 
-- [@fast-auth/react](../react) - React SDK for FastAuth
-- [@fast-auth/javascript](../javascript) - JavaScript provider for web applications
+- [@fast-auth/react-sdk](../react) - React SDK for FastAuth
 - [react-native-auth0](https://github.com/auth0/react-native-auth0) - Auth0 SDK for React Native
 
