@@ -241,6 +241,6 @@ MIT
 
 ## Related Packages
 
-- [@fast-auth/react-sdk](../react) - React SDK for FastAuth
+- [@fast-auth/react-sdk](../../sdks/react/README.md) - React SDK for FastAuth
 - [react-native-auth0](https://github.com/auth0/react-native-auth0) - Auth0 SDK for React Native
 
