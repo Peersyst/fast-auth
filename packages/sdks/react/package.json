@@ -1,12 +1,13 @@
 {
   "name": "@fast-auth/react-sdk",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.1",
   "description": "",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "bundle": "genesys bundle"
   },
   "keywords": [],
   "author": "",
@@ -24,10 +25,12 @@
     "ts-node": "^10.9.2",
     "typescript": "latest"
   },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
   "dependencies": {
     "@near-js/accounts": "^2.0.2",
     "elliptic": "^6.6.1",
-    "near-api-js": "^4.0.4",
-    "react": "^19.0.0"
+    "near-api-js": "^4.0.4"
   }
 }

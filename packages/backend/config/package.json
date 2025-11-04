@@ -1,28 +1,32 @@
 {
-    "name": "@backend/config",
-    "author": "Peersyst",
-    "version": "0.0.0",
-    "license": "UNLICENSED",
-    "scripts": {
-        "dev": "tsup --watch",
-        "build": "tsup",
-        "clean": "rimraf .turbo dist node_modules",
-        "lint": "eslint .",
-        "check-types": "npx tsc --noEmit",
-        "bundle": "genesys bundle"
-    },
-    "exports": {
-        ".": "./src/index.ts"
-    },
-    "peerDependencies": {
-        "@aws-sdk/client-secrets-manager": "3.449.0"
-    },
-    "devDependencies": {
-        "@aws-sdk/client-secrets-manager": "3.449.0",
-        "@shared/eslint": "workspace:*",
-        "@shared/tsconfig": "workspace:*",
-        "@shared/tsup": "workspace:*",
-        "@types/node": "latest",
-        "typescript": "latest"
+  "name": "@backend/config",
+  "author": "Peersyst",
+  "version": "0.0.0",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "clean": "rimraf .turbo dist node_modules",
+    "lint": "eslint .",
+    "check-types": "npx tsc --noEmit",
+    "bundle": "genesys bundle"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
     }
+  },
+  "peerDependencies": {
+    "@aws-sdk/client-secrets-manager": "3.449.0"
+  },
+  "devDependencies": {
+    "@aws-sdk/client-secrets-manager": "3.449.0",
+    "@shared/eslint": "workspace:*",
+    "@shared/tsconfig": "workspace:*",
+    "@shared/tsup": "workspace:*",
+    "@types/node": "latest",
+    "typescript": "latest"
+  }
 }

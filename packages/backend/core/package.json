@@ -1,39 +1,51 @@
 {
-    "name": "@backend/core",
-    "author": "Peersyst",
-    "version": "0.0.0",
-    "license": "UNLICENSED",
-    "scripts": {
-        "dev": "tsup --watch",
-        "build": "tsup",
-        "clean": "rimraf .turbo dist node_modules",
-        "lint": "eslint .",
-        "check-types": "npx tsc --noEmit",
-        "bundle": "genesys bundle"
+  "name": "@backend/core",
+  "author": "Peersyst",
+  "version": "0.0.0",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "clean": "rimraf .turbo dist node_modules",
+    "lint": "eslint .",
+    "check-types": "npx tsc --noEmit",
+    "bundle": "genesys bundle"
+  },
+  "exports": {
+    "./decorators": {
+      "types": "./dist/decorators/index.d.ts",
+      "require": "./dist/decorators/index.js",
+      "import": "./dist/decorators/index.mjs"
     },
-    "exports": {
-        "./decorators": "./src/decorators/index.ts",
-        "./exceptions": "./src/exceptions/index.ts",
-        "./pagination": "./src/pagination/index.ts"
+    "./exceptions": {
+      "types": "./dist/exceptions/index.d.ts",
+      "require": "./dist/exceptions/index.js",
+      "import": "./dist/exceptions/index.mjs"
     },
-    "peerDependencies": {
-        "@nestjs/common": "^10.3.0",
-        "@nestjs/typeorm": "^10.0.1",
-        "@nestjs/swagger": "^7.1.16",
-        "express": "^4.19.2",
-        "express-openapi-validator": "^5.3.1"
-    },
-    "devDependencies": {
-        "@nestjs/common": "^10.3.0",
-        "@nestjs/typeorm": "^10.0.1",
-        "@nestjs/swagger": "^7.1.16",
-        "@shared/eslint": "workspace:*",
-        "@shared/tsconfig": "workspace:*",
-        "@shared/tsup": "workspace:*",
-        "@shared/utils": "workspace:*",
-        "@types/express": "^4.17.17",
-        "express": "^4.19.2",
-        "express-openapi-validator": "^5.3.1",
-        "typescript": "latest"
+    "./pagination": {
+      "types": "./dist/pagination/index.d.ts",
+      "require": "./dist/pagination/index.js",
+      "import": "./dist/pagination/index.mjs"
     }
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^10.3.0",
+    "@nestjs/typeorm": "^10.0.1",
+    "@nestjs/swagger": "^7.1.16",
+    "express": "^4.19.2",
+    "express-openapi-validator": "^5.3.1"
+  },
+  "devDependencies": {
+    "@nestjs/common": "^10.3.0",
+    "@nestjs/typeorm": "^10.0.1",
+    "@nestjs/swagger": "^7.1.16",
+    "@shared/eslint": "workspace:*",
+    "@shared/tsconfig": "workspace:*",
+    "@shared/tsup": "workspace:*",
+    "@shared/utils": "workspace:*",
+    "@types/express": "^4.17.17",
+    "express": "^4.19.2",
+    "express-openapi-validator": "^5.3.1",
+    "typescript": "latest"
+  }
 }

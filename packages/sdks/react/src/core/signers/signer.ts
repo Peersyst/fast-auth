@@ -124,7 +124,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     }
 
     /**
-     * Sign a transaction and relay it to the network.
+     * Sign a transaction and relay it to the network. (Only compatible with react-native-provider)
      * @param opts The options for the sign and send transaction.
      * @returns The signed transaction.
      */
@@ -147,7 +147,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     }
 
     /**
-     * Sign a delegate action and relay it to the network.
+     * Sign a delegate action and relay it to the network. (Only compatible with react-native-provider)
      * @param opts The options for the sign and send delegate action.
      * @returns The signed delegate action.
      */

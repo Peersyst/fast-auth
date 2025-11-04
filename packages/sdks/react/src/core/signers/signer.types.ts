@@ -32,14 +32,14 @@ export type FastAuthSignerOptions = {
 
 export type SignAndSendTransactionOptions<P extends IFastAuthProvider = IFastAuthProvider> = Parameters<
     P["requestTransactionSignature"]
-> & {
+>[0] & {
     algorithm?: MPCContractAlgorithm;
     transaction: Transaction;
 };
 
 export type SignAndSendDelegateActionOptions<P extends IFastAuthProvider = IFastAuthProvider> = Parameters<
     P["requestDelegateActionSignature"]
-> & {
+>[0] & {
     algorithm?: MPCContractAlgorithm;
     receiverId: string;
 };
