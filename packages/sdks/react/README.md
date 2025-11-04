@@ -1,4 +1,4 @@
-# @fast-auth/react
+# @fast-auth/react-sdk
 
 React SDK for FastAuth - A provider-agnostic authentication solution for NEAR Protocol.
 
@@ -14,44 +14,57 @@ React SDK for FastAuth - A provider-agnostic authentication solution for NEAR Pr
 ## Installation
 
 ```bash
-npm install @fast-auth/react near-api-js
+npm install @fast-auth/react-sdk near-api-js
 # or
-pnpm add @fast-auth/react near-api-js
+pnpm add @fast-auth/react-sdk near-api-js
 # or
-yarn add @fast-auth/react near-api-js
+yarn add @fast-auth/react-sdk near-api-js
 ```
+
+## Compatible Providers
+
+| Provider | Package | Platform | Status |
+|----------|---------|----------|--------|
+| React Native (Auth0) | `@fast-auth/react-native-provider` | React Native (iOS/Android) | ✅ Stable |
+
+> **Note:** You can create custom providers by implementing the `IFastAuthProvider` interface.
 
 ## Usage
 
-### Basic Setup
+### Basic Setup with React Native Provider
 
 ```tsx
-import { FastAuthProvider } from '@fast-auth/react';
+import { FastAuthProvider } from '@fast-auth/react-sdk';
+import { reactNativeProviderConfig } from '@fast-auth/react-native-provider';
 import { Connection } from 'near-api-js';
-import { YourAuthProvider } from '@your-auth/provider';
 
+// Configure NEAR connection
 const connection = new Connection({
   networkId: 'testnet',
   provider: { type: 'JsonRpcProvider', args: { url: 'https://rpc.testnet.near.org' } },
 });
 
-const clientOptions = {
+// Configure FastAuth network
+const network = {
   mpcContractId: 'v1.signer-prod.testnet',
   fastAuthContractId: 'fastauth.testnet',
 };
 
 function App() {
-  const providerConfig = {
-    provider: new YourAuthProvider({
-      // Your provider configuration
-    }),
-  };
+  // Configure the ReactNative provider with Auth0 credentials
+  const providerConfig = reactNativeProviderConfig({
+    domain: 'your-domain.auth0.com',
+    clientId: 'your-client-id',
+    imageUrl: 'https://your-app.com/icon.png',
+    name: 'Your App Name',
+    audience: 'your-api-identifier', // optional
+  });
 
   return (
     <FastAuthProvider
       providerConfig={providerConfig}
       connection={connection}
-      clientOptions={clientOptions}
+      network={network}
     >
       <YourApp />
     </FastAuthProvider>
@@ -59,30 +72,43 @@ function App() {
 }
 ```
 
-### With React Provider Wrapper
+### With Custom Provider
 
-If your auth provider has its own React provider (like `react-native-auth0`), you can wrap it:
+If you want to create a custom provider, implement the `IFastAuthProvider` interface:
 
 ```tsx
-import { Auth0Provider } from 'react-native-auth0';
+import { FastAuthProvider } from '@fast-auth/react-sdk';
+import { Connection } from 'near-api-js';
+import { YourCustomProvider } from './your-custom-provider';
 
-const providerConfig = {
-  provider: new YourAuthProvider({
-    // Your provider configuration
-  }),
-  reactProvider: (children) => (
-    <Auth0Provider domain="your-domain.auth0.com" clientId="your-client-id">
-      {children}
-    </Auth0Provider>
-  ),
+const connection = new Connection({
+  networkId: 'testnet',
+  provider: { type: 'JsonRpcProvider', args: { url: 'https://rpc.testnet.near.org' } },
+});
+
+const network = {
+  mpcContractId: 'v1.signer-prod.testnet',
+  fastAuthContractId: 'fastauth.testnet',
 };
 
 function App() {
+  const providerConfig = {
+    provider: new YourCustomProvider({
+      // Your provider configuration
+    }),
+    // Optional: wrap with a React provider if needed
+    reactProvider: (children) => (
+      <YourAuthProvider>
+        {children}
+      </YourAuthProvider>
+    ),
+  };
+
   return (
     <FastAuthProvider
       providerConfig={providerConfig}
       connection={connection}
-      clientOptions={clientOptions}
+      network={network}
     >
       <YourApp />
     </FastAuthProvider>
@@ -97,7 +123,7 @@ function App() {
 Main hook to access the FastAuth client and ready state.
 
 ```tsx
-import { useFastAuth } from '@fast-auth/react';
+import { useFastAuth } from '@fast-auth/react-sdk';
 
 function MyComponent() {
   const { client, isReady } = useFastAuth();
@@ -129,7 +155,7 @@ function MyComponent() {
 Convenient hook to check login status with loading and error states.
 
 ```tsx
-import { useIsLoggedIn } from '@fast-auth/react';
+import { useIsLoggedIn } from '@fast-auth/react-sdk';
 
 function LoginButton() {
   const { isLoggedIn, isLoading, error } = useIsLoggedIn();
@@ -151,7 +177,7 @@ function LoginButton() {
 Hook to get the FastAuth signer with automatic state management.
 
 ```tsx
-import { useSigner } from '@fast-auth/react';
+import { useSigner } from '@fast-auth/react-sdk';
 
 function SignerComponent() {
   const { signer, isLoading, error, refetch } = useSigner();
@@ -177,7 +203,7 @@ function SignerComponent() {
 Hook to get the user's public key.
 
 ```tsx
-import { usePublicKey } from '@fast-auth/react';
+import { usePublicKey } from '@fast-auth/react-sdk';
 
 function PublicKeyDisplay() {
   const { publicKey, isLoading, error } = usePublicKey('ed25519');
@@ -203,11 +229,12 @@ function PublicKeyDisplay() {
 To create a custom auth provider, implement the `IFastAuthProvider` interface:
 
 ```typescript
-import { IFastAuthProvider } from '@fast-auth/react';
+import { IFastAuthProvider, SignatureRequest } from '@fast-auth/react-sdk';
 
 export class MyCustomProvider implements IFastAuthProvider {
   async isLoggedIn(): Promise<boolean> {
     // Check if user is logged in
+    return false;
   }
 
   async login(...args: any[]): Promise<void> {
@@ -219,19 +246,26 @@ export class MyCustomProvider implements IFastAuthProvider {
   }
 
   async getPath(): Promise<string> {
-    // Return the user's path
+    // Return the user's path (e.g., "jwt#https://domain.com/#user-id")
+    return "";
   }
 
   async requestTransactionSignature(...args: any[]): Promise<void> {
-    // Request transaction signature
+    // Request transaction signature from user
   }
 
   async requestDelegateActionSignature(...args: any[]): Promise<void> {
-    // Request delegate action signature
+    // Request delegate action signature from user
   }
 
   async getSignatureRequest(): Promise<SignatureRequest> {
-    // Get signature request
+    // Get the signature request after user approval
+    return {
+      guardId: "",
+      verifyPayload: "",
+      signPayload: new Uint8Array(),
+      algorithm: "ecdsa",
+    };
   }
 }
 ```
@@ -241,15 +275,17 @@ export class MyCustomProvider implements IFastAuthProvider {
 The SDK is fully typed. You can use generic types for better type inference:
 
 ```typescript
-import { useFastAuth } from '@fast-auth/react';
+import { useFastAuth } from '@fast-auth/react-sdk';
 import { MyCustomProvider } from './my-provider';
 
 function MyComponent() {
-  const { login } = useFastAuth<MyCustomProvider>();
+  const { client } = useFastAuth<MyCustomProvider>();
 
-  // TypeScript will infer the correct parameter types for login
-  const handleLogin = () => {
-    login(/* correctly typed parameters */);
+  // TypeScript will infer the correct types
+  const handleLogin = async () => {
+    if (client) {
+      await client.login(/* correctly typed parameters */);
+    }
   };
 }
 ```
@@ -262,7 +298,7 @@ function MyComponent() {
 |-------------------|-----------------------------------|----------|--------------------------------------------------|
 | `providerConfig`  | `FastAuthProviderConfig`          | Yes      | Provider configuration                           |
 | `connection`      | `Connection`                      | Yes      | NEAR connection instance                         |
-| `clientOptions`   | `FastAuthClientOptions`           | Yes      | FastAuth client options                          |
+| `network`         | `FastAuthClientNetwork`           | Yes      | FastAuth network configuration                   |
 
 ### FastAuthProviderConfig
 
@@ -271,13 +307,52 @@ function MyComponent() {
 | `provider`       | `IFastAuthProvider`               | Yes      | Auth provider implementation         |
 | `reactProvider`  | `(children: ReactNode) => ReactNode` | No   | Optional React provider wrapper      |
 
-### IFastAuthContext
+### FastAuthClientNetwork
 
-See the type definitions in the source code for a complete list of available methods and properties.
+| Property            | Type     | Required | Description                          |
+|---------------------|----------|----------|--------------------------------------|
+| `mpcContractId`     | `string` | Yes      | MPC contract account ID              |
+| `fastAuthContractId`| `string` | Yes      | FastAuth contract account ID         |
+
+### IFastAuthProvider Interface
+
+Required methods for custom providers:
+
+| Method | Parameters | Returns | Description |
+|--------|-----------|---------|-------------|
+| `isLoggedIn` | - | `Promise<boolean>` | Check if user is logged in |
+| `login` | `...args: any[]` | `Promise<void>` | Initiate login flow |
+| `logout` | - | `Promise<void>` | Log out user |
+| `getPath` | - | `Promise<string>` | Get user's path identifier |
+| `requestTransactionSignature` | `...args: any[]` | `Promise<void>` | Request transaction signature |
+| `requestDelegateActionSignature` | `...args: any[]` | `Promise<void>` | Request delegate action signature |
+| `getSignatureRequest` | - | `Promise<SignatureRequest>` | Get signature request after approval |
+
+### Hook Return Types
+
+All hooks return objects with loading, error, and data states:
+
+```typescript
+// useIsLoggedIn
+{ isLoggedIn: boolean | null; isLoading: boolean; error: Error | null }
+
+// useSigner
+{ signer: FastAuthSigner | null; isLoading: boolean; error: Error | null; refetch: () => void }
+
+// usePublicKey
+{ publicKey: PublicKey | null; isLoading: boolean; error: Error | null }
+
+// useFastAuth
+{ client: FastAuthClient | null; isReady: boolean }
+```
 
 ## Examples
 
 See the `examples/` directory for complete examples using different providers.
+
+## Related Packages
+
+- [`@fast-auth/react-native-provider`](../../providers/react-native/README.md) - React Native provider for Auth0
 
 ## License
 
