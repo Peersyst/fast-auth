@@ -1,6 +1,8 @@
 {
     "extends": "@shared/tsconfig/react-native",
     "compilerOptions": {
+        "declaration": true,
+        "declarationMap": true,
         "outDir": "./dist"
     },
     "include": ["*/**/*.ts", "*/**/*.tsx"],

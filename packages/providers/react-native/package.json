@@ -1,12 +1,13 @@
 {
   "name": "@fast-auth/react-native-provider",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.1",
   "description": "React Native provider for FastAuth - Adapts react-native-auth0 to the FastAuth provider interface",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "bundle": "genesys bundle"
   },
   "keywords": [
     "fastauth",
@@ -37,10 +38,14 @@
     "typescript": "latest"
   },
   "peerDependencies": {
-    "react": ">=16.8.0",
+    "react": ">=18.0.0",
     "react-native": ">=0.60.0"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.mjs"
+    }
   }
 }
