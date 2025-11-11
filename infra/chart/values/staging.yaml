@@ -1,0 +1,28 @@
+environment: staging
+namespace: fast-auth
+
+relayer:
+    enabled: true
+    service:
+        port: 3000
+        targetPort: 3000
+    deployment:
+        name: relayer
+        replicas: 1
+        port: 3000
+        memoryRequest: 512Mi
+        cpuRequest: 250m
+        memoryLimit: 1024Mi
+        cpuLimit: 250m
+    secretProviderClass:
+        objectName: "fast-auth/staging/relayer"
+        objectAlias: fast-auth-staging-relayer
+        secrets:
+            nearPrivateKeys: NEAR_PRIVATE_KEYS
+            fastAuthContractId: NEAR_FAST_AUTH_CONTRACT_ID
+            appPort: APP_PORT
+            nearRpcUrls: NEAR_RPC_URLS
+
+ingress:
+    enabled: true
+    certificate: "arn:aws:acm:us-east-1:291847425310:certificate/b183b365-4363-4245-9966-7e990bf7b3d4"

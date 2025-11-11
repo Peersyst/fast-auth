@@ -1,0 +1,28 @@
+{
+    "name": "@shared/cli",
+    "version": "0.0.0",
+    "license": "UNLICENSED",
+    "type": "module",
+    "bin": {
+        "genesys": "./src/cli.mjs"
+    },
+    "scripts": {
+        "dev": "tsup --watch",
+        "build": "tsup",
+        "clean": "rimraf .turbo dist node_modules",
+        "lint": "eslint .",
+        "check-types": "npx tsc --noEmit"
+    },
+    "peerDependencies": {
+        "turbo": "^2.1.0"
+    },
+    "devDependencies": {
+        "@shared/eslint": "workspace:*",
+        "@shared/tsconfig": "workspace:*",
+        "@shared/tsup": "workspace:*",
+        "@types/node": "latest",
+        "commander": "^12.1.0",
+        "turbo": "^2.1.0",
+        "typescript": "latest"
+    }
+}
