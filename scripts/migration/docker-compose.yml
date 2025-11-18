@@ -12,6 +12,8 @@ services:
     command: "pnpm run migrate"
     volumes:
       - ./config.json:/project/scripts/migration/config.json
+    environment:
+      GOOGLE_CLOUD_CREDENTIALS_JSON: $GOOGLE_CLOUD_CREDENTIALS_JSON
     depends_on:
       - redis
   dashboard:

@@ -1,8 +1,7 @@
 import { MPCProvider } from "../../provider/MPCProvider";
 import { KeyPair } from "near-api-js";
 
-const JWT_TOKEN =
-    "ey...";
+const JWT_TOKEN = "ey...";
 
 (async () => {
     const keyPair = KeyPair.fromString("ed25519:MHz6wrZAegmeCXT6frJCJLYtGy39pz48JFeu2R1zKpeS74PVbaCXnZ1h8cCNzt9yyr2rq9DFswJWx7gWD5gRgFd");

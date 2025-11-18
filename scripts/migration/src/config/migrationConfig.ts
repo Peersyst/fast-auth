@@ -2,8 +2,12 @@ import fs from "node:fs";
 import path from "node:path";
 
 export type MigrationConfig = {
-    mpcDatabaseFile: string;
     firebaseDatabaseFile: string;
+    datastore: {
+        projectId: string;
+        kind: string;
+        pageSize: number;
+    };
     oldMpc: {
         url: string;
         tmpPrivateKey: string;
@@ -38,8 +42,12 @@ export const initMigrationConfig = (): MigrationConfig => {
         console.warn("Could not read config, using default");
     }
     return {
-        mpcDatabaseFile: path.join(__dirname, "../../data", "datastore-export.json"),
         firebaseDatabaseFile: path.join(__dirname, "../../data", "firebase-export.json"),
+        datastore: {
+            projectId: "fast-auth-000",
+            kind: "EncryptedUserCredentials-dev",
+            pageSize: 10_000,
+        },
         oldMpc: {
             url: "https://mpc.mainnet.sig.network",
             tmpPrivateKey: "ed25519:MHz6wrZAegmeCXT6frJCJLYtGy39pz48JFeu2R1zKpeS74PVbaCXnZ1h8cCNzt9yyr2rq9DFswJWx7gWD5gRgFd",

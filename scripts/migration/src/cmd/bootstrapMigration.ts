@@ -15,7 +15,7 @@ import { MpcUserQueue } from "../queue/MpcUserQueue";
  */
 export const bootstrapMigration = () => {
     const config = initMigrationConfig();
-    const mpcDatabase = new MpcDatabase(config.mpcDatabaseFile);
+    const mpcDatabase = new MpcDatabase(config.datastore.projectId, config.datastore.kind, config.datastore.pageSize);
     const firebaseDatabase = new FirebaseDatabase(config.firebaseDatabaseFile);
 
     const mpc = new MPCProvider(config.oldMpc.url, config.oldMpc.tmpPrivateKey, config.oldMpc.salt);
