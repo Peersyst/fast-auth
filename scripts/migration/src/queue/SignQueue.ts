@@ -1,13 +1,15 @@
 import Bull from "bull";
-import { DelegateAction } from "@near-js/transactions";
+import { DelegateAction, SCHEMA } from "@near-js/transactions";
 import { MPCProvider } from "../provider/MPCProvider";
 import { RelayQueue } from "./RelayQueue";
 import { Queue } from "./Queue";
+import { serialize } from "near-api-js/lib/utils";
 
 export const QUEUE_NAME = "sign-queue";
 
 export type JobParams = {
-    delegateAction: DelegateAction;
+    serializedDelegateAction: string;
+    jwt: string;
 };
 
 export class SignQueue extends Queue<JobParams> {
@@ -15,7 +17,6 @@ export class SignQueue extends Queue<JobParams> {
         config: Bull.QueueOptions,
         private readonly relayQueue: RelayQueue,
         private readonly mpcProvider: MPCProvider,
-        private readonly bypassJwt: string,
     ) {
         super(QUEUE_NAME, config);
     }
@@ -25,7 +26,15 @@ export class SignQueue extends Queue<JobParams> {
      * @param job
      */
     async _process(job: Bull.Job<JobParams>): Promise<void> {
-        const signResponse = await this.mpcProvider.sign(this.bypassJwt, job.data.delegateAction);
-        await this.relayQueue.add({ delegateAction: job.data.delegateAction, signature: signResponse.signature });
+        const delegateAction = serialize.deserialize(
+            SCHEMA.DelegateAction,
+            Uint8Array.from(Buffer.from(job.data.serializedDelegateAction, "base64")),
+            true,
+        ) as DelegateAction;
+        const signResponse = await this.mpcProvider.sign(job.data.jwt, delegateAction);
+        await this.relayQueue.add({
+            serializedDelegateAction: job.data.serializedDelegateAction,
+            signature: signResponse.signature,
+        });
     }
 }

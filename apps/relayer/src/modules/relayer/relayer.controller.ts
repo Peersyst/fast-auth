@@ -6,6 +6,7 @@ import { ApiOperation } from "@nestjs/swagger";
 import { SignResponse } from "./response/sign.response";
 import { SignAndSendDelegateActionRequest } from "./requests/sign-and-send-delegate-action.request";
 import { CreateAccountRequest } from "./requests/create-account.request";
+import {CreateAccountAtomicRequest} from "./requests/create-account-atomic.request";
 
 @ApiTags("fast-auth-relayer")
 @Controller("relayer/fast-auth")
@@ -33,5 +34,12 @@ export class RelayerController {
     @ApiBody({ type: CreateAccountRequest })
     async createAccount(@Body() body: CreateAccountRequest): Promise<SignResponse> {
         return this.fastAuthRelayerService.createAccount(body);
+    }
+
+    @Post("/create_account_atomic")
+    @ApiOperation({ summary: "Create account" })
+    @ApiBody({ type: CreateAccountAtomicRequest })
+    async createAccountAtomic(@Body() body: CreateAccountAtomicRequest): Promise<SignResponse> {
+        return this.fastAuthRelayerService.createAccountAtomic(body);
     }
 }

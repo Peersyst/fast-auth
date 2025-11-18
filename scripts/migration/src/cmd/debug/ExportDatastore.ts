@@ -2,7 +2,7 @@ import { Datastore } from "@google-cloud/datastore";
 import * as fs from "fs";
 
 const datastore = new Datastore({
-    projectId: "near-mobile-99e38",
+    projectId: "fast-auth-000",
 });
 
 /**
@@ -11,11 +11,8 @@ const datastore = new Datastore({
  * @param format
  */
 async function exportDatastore(kind: string, format: "json" | "csv" = "json") {
-    console.log("query");
     const query = datastore.createQuery(kind);
-    console.log("runquery");
     const [entities] = await datastore.runQuery(query);
-    console.log("entities", entities.length);
 
     if (format === "json") {
         fs.writeFileSync(`${kind}.json`, JSON.stringify(entities, null, 2));
@@ -33,7 +30,7 @@ async function exportDatastore(kind: string, format: "json" | "csv" = "json") {
 
 (async () => {
     // Example: list all kinds and export them
-    const kinds = ["EncryptedUserCredentials-mainnet"]; // You need to list kinds manually or from metadata
+    const kinds = ["EncryptedUserCredentials-dev"]; // You need to list kinds manually or from metadata
     for (const kind of kinds) {
         await exportDatastore(kind, "json");
     }

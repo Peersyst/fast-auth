@@ -29,8 +29,8 @@ import { initMigrationConfig } from "../config/migrationConfig";
 
     app.use("/admin", serverAdapter.getRouter());
 
-    app.listen(3000, () => {
-        console.log("Running on 3000...");
+    app.listen(3009, () => {
+        console.log("Running on 3009...");
         console.log("For the UI, open http://localhost:3000/admin");
         console.log("Make sure Redis is running on port 6379 by default");
     });

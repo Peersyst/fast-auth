@@ -6,3 +6,53 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+  migrate:
+    image: migration
+    container_name: migration
+    command: "pnpm run migrate"
+    volumes:
+      - ./config.json:/project/scripts/migration/config.json
+    depends_on:
+      - redis
+  dashboard:
+    image: migration
+    container_name: dashboard
+    command: "pnpm run dashboard"
+    volumes:
+      - ./config.json:/project/scripts/migration/config.json
+    ports:
+      - "3009:3009"
+    depends_on:
+      - redis
+  mpc-user-worker:
+    image: migration
+    container_name: mpc-user-worker
+    command: "pnpm run work:mpc-user"
+    volumes:
+      - ./config.json:/project/scripts/migration/config.json
+    depends_on:
+      - redis
+  add-access-keys-worker:
+    image: migration
+    container_name: add-access-keys-worker
+    command: "pnpm run work:add-access-keys"
+    volumes:
+      - ./config.json:/project/scripts/migration/config.json
+    depends_on:
+      - redis
+  sign-worker:
+    image: migration
+    container_name: sign-worker
+    command: "pnpm run work:sign"
+    volumes:
+      - ./config.json:/project/scripts/migration/config.json
+    depends_on:
+      - redis
+  relay-worker:
+    image: migration
+    container_name: relay-worker
+    command: "pnpm run work:relay"
+    volumes:
+      - ./config.json:/project/scripts/migration/config.json
+    depends_on:
+      - redis

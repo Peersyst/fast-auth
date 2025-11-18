@@ -1,0 +1,58 @@
+name: "Build migration script image"
+
+on:
+  workflow_call:
+    inputs:
+      push:
+        required: true
+        type: boolean
+      target:
+        required: true
+        type: string
+      base_image:
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # Checkout repository under $GITHUB_WORKSPACE path
+      - name: Repository checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PUSH_TOKEN }}
+
+      # Configure tag name
+      - name: Sets env vars
+        run: |
+          echo "DOCKER_IMAGE_NAME=${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}-migration:${GITHUB_SHA:0:8}" >> $GITHUB_ENV
+
+      # Build docker image
+      - name: Build docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: docker/migration.Dockerfile
+          target: ${{ inputs.target }}
+          push: ${{ inputs.push }}
+          tags: ${{ env.DOCKER_IMAGE_NAME }}
+          build-args: |
+            BASE_IMAGE=${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}-base:${{ inputs.base_image }}
+            TURBO_TEAM=peersyst
+          secrets: |
+            turbo_token=${{ secrets.TURBO_TOKEN }}

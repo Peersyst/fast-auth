@@ -1,17 +1,18 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { SignRequest } from "./requests/sign.request";
 import { createTransaction, functionCall, SCHEMA, Action, Signature } from "near-api-js/lib/transaction";
-import { actionCreators, DelegateAction } from "@near-js/transactions";
+import {actionCreators, buildDelegateAction, DelegateAction} from "@near-js/transactions";
 import { parseNearAmount } from "near-api-js/lib/utils/format";
-import { base_decode } from "near-api-js/lib/utils/serialize";
+import {base_decode} from "near-api-js/lib/utils/serialize";
 import { NearSignerService } from "../near/near-signer.service";
 import { NearClientService } from "../near/near-client.service";
 import { ConfigService } from "@nestjs/config";
 import { FastAuthRelayerMetricsProvider } from "./relayer.metrics";
-import { serialize } from "near-api-js/lib/utils";
+import {PublicKey, serialize} from "near-api-js/lib/utils";
 import { SignResponse } from "./response/sign.response";
 import { SignAndSendDelegateActionRequest } from "./requests/sign-and-send-delegate-action.request";
 import { CreateAccountRequest } from "./requests/create-account.request";
+import {CreateAccountAtomicRequest} from "./requests/create-account-atomic.request";
 
 @Injectable()
 export class RelayerService {
@@ -103,6 +104,34 @@ export class RelayerService {
                 BigInt(parseNearAmount("0")!),
             ),
         ]);
+    }
+
+    async createAccountAtomic(body: CreateAccountAtomicRequest): Promise<SignResponse> {
+        const functionCallAction = body.signed_delegate_action.delegate_action.actions[0].FunctionCall;
+        const [sigAlgo, sigData] = body.signed_delegate_action.signature.split(":")
+        const signedDelegate = actionCreators.signedDelegate({
+            delegateAction: buildDelegateAction({
+                senderId: body.signed_delegate_action.delegate_action.sender_id,
+                receiverId: body.signed_delegate_action.delegate_action.receiver_id,
+                actions: [
+                    functionCall(
+                        functionCallAction.method_name,
+                        JSON.parse(Buffer.from(functionCallAction.args, "base64").toString()),
+                        functionCallAction.gas,
+                        functionCallAction.deposit,
+                    )
+                ],
+                nonce: body.signed_delegate_action.delegate_action.nonce,
+                maxBlockHeight: body.signed_delegate_action.delegate_action.max_block_height,
+                publicKey: PublicKey.from(body.signed_delegate_action.delegate_action.public_key),
+            }),
+            signature: new Signature({
+                keyType: sigAlgo === "ed25519" ? 0 : 1,
+                data: base_decode(sigData),
+                // 245, 37, 132, 230, ... 63, 170, 6
+            }),
+        });
+        return await this.signAndSendTransaction(body.signed_delegate_action.delegate_action.sender_id, [signedDelegate]);
     }
 
     /**

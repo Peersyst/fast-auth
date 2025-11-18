@@ -1,0 +1,19 @@
+{
+  "oldMpc": {
+    "url": "http://localhost:3000",
+    "tmpPrivateKey": "ed25519:MHz6wr...gRgFd",
+    "salt": 3177899144,
+    "bypassPrivateKeyPem": "-----BEGIN PRIVATE KEY-----\nMIIEvAI...IbiFCFzqBw0UQ==\n-----END PRIVATE KEY-----\n"
+  },
+  "near": {
+    "relayerPrivateKey": "ed25519:28u4nNG...MoK",
+    "networkId": "testnet",
+    "nodeUrl": "https://rpc.testnet.near.org",
+    "indexerUrl": "https://api-testnet.nearblocks.io"
+  },
+  "fastAuth": {
+    "mpcContractId": "v1.signer-prod.testnet",
+    "contractId": "fast-auth-beta-001.testnet",
+    "domainUrl": "https://domain.com"
+  }
+}

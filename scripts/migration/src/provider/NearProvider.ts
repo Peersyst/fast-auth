@@ -1,8 +1,11 @@
-import { AccessKeyInfoView, AccessKeyViewRaw } from "near-api-js/lib/providers/provider";
+import { AccessKeyInfoView, AccessKeyViewRaw, FinalExecutionOutcome } from "near-api-js/lib/providers/provider";
 import { timeoutPromise, TimeoutPromiseError } from "../utils/timeout-promise";
 import { Near } from "near-api-js";
-import { DelegateAction } from "@near-js/transactions";
+import { Action, actionCreators, createTransaction, DelegateAction } from "@near-js/transactions";
 import { PublicKey } from "near-api-js/lib/utils/key_pair";
+import { Signature } from "near-api-js/lib/transaction";
+import { base_decode } from "near-api-js/lib/utils/serialize";
+import { NearSigner } from "./NearSigner";
 
 export interface FastNearGetAccountIdsForPublicKeyResponse {
     /**
@@ -19,11 +22,15 @@ export interface FastNearGetAccountIdsForPublicKeyResponse {
 
 export class NearProvider {
     private readonly maxRequestTimeout: number = 20_000;
+    private readonly relayerSigner: NearSigner;
 
     constructor(
         private readonly indexerUrl: string,
         private readonly near: Near,
-    ) {}
+        relayerPrivateKey: string,
+    ) {
+        this.relayerSigner = new NearSigner(relayerPrivateKey);
+    }
 
     /**
      *
@@ -44,7 +51,6 @@ export class NearProvider {
         const response = await fetch(this.indexerUrl + path);
 
         if (!response.ok) {
-            console.log("text", await response.url);
             throw new Error("could not fetch json " + path);
         }
         return (await response.json()) as T;
@@ -97,7 +103,7 @@ export class NearProvider {
             public_key: publicKey,
             finality: "optimistic",
         });
-        return rawAccessKey.nonce;
+        return BigInt(rawAccessKey.nonce);
     }
 
     /**
@@ -105,17 +111,77 @@ export class NearProvider {
      */
     async getMaxBlockHeight(): Promise<bigint> {
         const status = await this.near.connection.provider.status();
-        return status.sync_info.latest_block_height + 1_000;
+        return BigInt(status.sync_info.latest_block_height + 1_000);
     }
 
     // @ts-ignore
     /**
      *
+     * @param receiverId
      * @param delegateAction
-     * @param signature
+     * @param rawSignature
      */
-    async relayMetaTransaction(delegateAction: DelegateAction, signature: string): Promise<void> {
-        throw new Error("not implemented " + delegateAction + signature);
+    async relayMetaTransaction(
+        receiverId: string,
+        delegateAction: DelegateAction,
+        rawSignature: string,
+    ): Promise<{
+        hash: string;
+        result: FinalExecutionOutcome;
+    }> {
+        const signature = new Signature({
+            keyType: 0,
+            data: new Uint8Array(Buffer.from(rawSignature, "hex")),
+        });
+        const signedDelegate = actionCreators.signedDelegate({
+            delegateAction,
+            signature,
+        });
+        return this.signAndSendTransaction(receiverId, [signedDelegate]);
+    }
+
+    /**
+     * Gets a recent block hash.
+     * @returns The recent block hash.
+     */
+    async getRecentBlockHash(): Promise<string> {
+        const response = await this.near.connection.provider.block({
+            finality: "final",
+        });
+        return response.header.hash;
+    }
+
+    /**
+     * Sign and sends a transaction using a signer.
+     * @param receiverId The receiver id of the transaction.
+     * @param actions The actions of the transaction.
+     * @returns The sign response.
+     */
+    private async signAndSendTransaction(
+        receiverId: string,
+        actions: Action[],
+    ): Promise<{
+        hash: string;
+        result: FinalExecutionOutcome;
+    }> {
+        const sender = this.relayerSigner.getAddress();
+        const senderPublicKey = this.relayerSigner.getPublicKey();
+        const senderPublicKeyString = senderPublicKey.toString();
+
+        // Do not use Promise.all to ensure client service updates recent hash only once
+        const nonce = (await this.getAccountNonce(sender, senderPublicKeyString)) + 1n;
+        const recentBlockHash = await this.getRecentBlockHash();
+
+        const tx = createTransaction(sender, senderPublicKey, receiverId, nonce, actions, base_decode(recentBlockHash));
+
+        const { signedTransaction, hash } = this.relayerSigner.signTransaction(tx);
+
+        console.log(`Sending transaction ${hash}`);
+        const result = await this.near.connection.provider.sendTransactionUntil(signedTransaction, "FINAL");
+
+        console.log(`Sign to ${receiverId} done with hash ${hash}`);
+
+        return { hash, result };
     }
 
     /**

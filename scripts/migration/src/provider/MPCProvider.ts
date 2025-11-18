@@ -98,7 +98,7 @@ export class MPCProvider {
         return this.request("/sign", {
             delegate_action: Buffer.from(serializedDelegateAction).toString("base64"),
             oidc_token: jwt,
-            frp_signature: await this.frpSignatureCredentials(jwt),
+            frp_signature: await this.frpSignatureSign(jwt, serializedDelegateAction),
             user_credentials_frp_signature: await this.frpSignatureCredentials(jwt),
             frp_public_key: this.frpKeyPair.getPublicKey().toString(),
         });
@@ -106,10 +106,17 @@ export class MPCProvider {
 
     /**
      *
-     * @param request
+     * @param jwt
+     * @param accountId
      */
-    async createNewAccount(request: CreateNewAccountRequest): Promise<CreateNewAccountResponse> {
-        return this.request("/new_account", request);
+    async createNewAccount(jwt: string, accountId: string): Promise<CreateNewAccountResponse> {
+        return this.request("/new_account", {
+            near_account_id: accountId,
+            create_account_options: {},
+            oidc_token: jwt,
+            user_credentials_frp_signature: await this.frpSignatureCredentials(jwt),
+            frp_public_key: this.frpKeyPair.getPublicKey().toString(),
+        } as CreateNewAccountRequest);
     }
 
     /**
@@ -120,7 +127,7 @@ export class MPCProvider {
         return this.request("/claim_oidc", {
             oidc_token_hash: Buffer.from(await this.hashToken(jwt)).toString("hex"),
             frp_public_key: this.frpKeyPair.getPublicKey().toString(),
-            frp_signature: await this.frpSignature(jwt, 0),
+            frp_signature: await this.frpSignature(jwt),
         } as ClaimOIDCTokenRequest);
     }
 
@@ -135,23 +142,46 @@ export class MPCProvider {
 
     /**
      *
-     * @param jwt
-     * @param saltOffset
+     * @param bytesArray
      */
-    private async frpSignature(jwt: string, saltOffset: number): Promise<string> {
-        const saltSerialized = serialize.serialize("u32", this.salt + saltOffset); // or your schema for u32
-        const oidcSerialized = serialize.serialize(U8_32, new BytesBox(await this.hashToken(jwt)));
-        const zeroByte = new Uint8Array([0]);
-        const frpSerialized = serialize.serialize(U8_32, new BytesBox(this.frpKeyPair.getPublicKey().data));
-        const combined = new Uint8Array(saltSerialized.length + oidcSerialized.length + zeroByte.length + frpSerialized.length);
-        combined.set(saltSerialized, 0);
-        combined.set(oidcSerialized, saltSerialized.length);
-        combined.set(zeroByte, saltSerialized.length + oidcSerialized.length);
-        combined.set(frpSerialized, saltSerialized.length + oidcSerialized.length + zeroByte.length);
+    private async signBytes(bytesArray: Uint8Array[]): Promise<string> {
+        const totalLength = bytesArray.reduce((a, b) => a + b.length, 0);
+        const combined = new Uint8Array(totalLength);
+        let currentLength = 0;
+        for (const bytes of bytesArray) {
+            combined.set(bytes, currentLength);
+            currentLength += bytes.length;
+        }
         const hash = createHash("sha256").update(combined).digest();
 
         const signature = this.frpKeyPair.sign(hash);
         return Buffer.from(signature.signature).toString("hex");
+    }
+
+    /**
+     *
+     * @param jwt
+     */
+    private async frpSignature(jwt: string): Promise<string> {
+        const saltSerialized = serialize.serialize("u32", this.salt); // or your schema for u32
+        const oidcSerialized = serialize.serialize(U8_32, new BytesBox(await this.hashToken(jwt)));
+        const zeroByte = new Uint8Array([0]);
+        const frpSerialized = serialize.serialize(U8_32, new BytesBox(this.frpKeyPair.getPublicKey().data));
+        return this.signBytes([saltSerialized, oidcSerialized, zeroByte, frpSerialized]);
+    }
+
+    /**
+     *
+     * @param jwt
+     * @param delegateAction
+     */
+    private async frpSignatureSign(jwt: string, delegateAction: Uint8Array): Promise<string> {
+        const saltSerialized = serialize.serialize("u32", this.salt + 3); // or your schema for u32
+        const delegateSerialized = delegateAction;
+        const oidcSerialized = serialize.serialize(U8_ARRAY, new BytesBox(Buffer.from(jwt)));
+        const zeroByte = new Uint8Array([0]);
+        const frpSerialized = serialize.serialize(U8_32, new BytesBox(this.frpKeyPair.getPublicKey().data));
+        return this.signBytes([saltSerialized, delegateSerialized, oidcSerialized, zeroByte, frpSerialized]);
     }
 
     /**
@@ -160,18 +190,10 @@ export class MPCProvider {
      */
     private async frpSignatureCredentials(jwt: string): Promise<string> {
         const saltSerialized = serialize.serialize("u32", this.salt + 2); // or your schema for u32
-        const oidcSerialized = serialize.serialize(U8_ARRAY, new BytesBox(Buffer.from(jwt, "base64")));
+        const oidcSerialized = serialize.serialize(U8_ARRAY, new BytesBox(Buffer.from(jwt)));
         const zeroByte = new Uint8Array([0]);
         const frpSerialized = serialize.serialize(U8_32, new BytesBox(this.frpKeyPair.getPublicKey().data));
-        const combined = new Uint8Array(saltSerialized.length + oidcSerialized.length + zeroByte.length + frpSerialized.length);
-        combined.set(saltSerialized, 0);
-        combined.set(oidcSerialized, saltSerialized.length);
-        combined.set(zeroByte, saltSerialized.length + oidcSerialized.length);
-        combined.set(frpSerialized, saltSerialized.length + oidcSerialized.length + zeroByte.length);
-        const hash = createHash("sha256").update(combined).digest();
-
-        const signature = this.frpKeyPair.sign(hash);
-        return Buffer.from(signature.signature).toString("hex");
+        return this.signBytes([saltSerialized, oidcSerialized, zeroByte, frpSerialized]);
     }
 
     /**
@@ -180,7 +202,6 @@ export class MPCProvider {
      * @param request
      */
     private async request(path: string, request: object): Promise<any> {
-        console.log(request);
         const res = await fetch(`${this.baseUrl}${path}`, {
             method: "POST",
             headers: {
@@ -188,6 +209,10 @@ export class MPCProvider {
             },
             body: JSON.stringify(request),
         });
+
+        if (res.status >= 300) {
+            throw new Error(await res.text());
+        }
 
         return res.json();
     }

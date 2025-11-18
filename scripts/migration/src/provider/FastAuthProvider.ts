@@ -57,7 +57,11 @@ export class FastAuthProvider {
         const publicKey = await this.viewFunction({
             contractId: this.mpcContractId,
             methodName: "derived_public_key",
-            args: { path: `jwt#https://${this.fastAuthDomain}/#${provider}|${providerId}`, predecessor: this.fastAuthContractId, domain_id: 1 },
+            args: {
+                path: `jwt#https://${this.fastAuthDomain}/#${provider}|${providerId}`,
+                predecessor: this.fastAuthContractId,
+                domain_id: 1,
+            },
         });
 
         return publicKey;

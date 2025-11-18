@@ -1,12 +1,13 @@
 import Bull from "bull";
-import { DelegateAction } from "@near-js/transactions";
 import { NearProvider } from "../provider/NearProvider";
 import { Queue } from "./Queue";
+import { serialize } from "near-api-js/lib/utils";
+import { DelegateAction, SCHEMA } from "@near-js/transactions";
 
 export const QUEUE_NAME = "relay-queue";
 
 export type JobParams = {
-    delegateAction: DelegateAction;
+    serializedDelegateAction: string;
     signature: string;
 };
 
@@ -23,6 +24,18 @@ export class RelayQueue extends Queue<JobParams> {
      * @param job
      */
     async _process(job: Bull.Job<JobParams>): Promise<void> {
-        await this.nearProvider.relayMetaTransaction(job.data.delegateAction, job.data.signature);
+        const delegateAction = serialize.deserialize(
+            SCHEMA.DelegateAction,
+            Uint8Array.from(Buffer.from(job.data.serializedDelegateAction, "base64")),
+            true,
+        ) as DelegateAction;
+        const { result, hash } = await this.nearProvider.relayMetaTransaction(
+            delegateAction.receiverId,
+            delegateAction,
+            job.data.signature,
+        );
+        if (result.status?.Failure) {
+            throw new Error(JSON.stringify({ hash, result: result.status }));
+        }
     }
 }
