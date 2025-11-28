@@ -53,7 +53,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::291847425310:role/gitHubDeploymentsRoleFastAuth
-          role-session-name: deploymentsRole
+          role-session-name: deploymentsRoleFastAuth
           role-duration-seconds: 900
           aws-region: us-east-1
 
