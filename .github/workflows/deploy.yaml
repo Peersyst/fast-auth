@@ -52,15 +52,20 @@ jobs:
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::291847425310:role/gitHubDeploymentsRole
+          role-to-assume: arn:aws:iam::291847425310:role/gitHubDeploymentsRoleFastAuth
           role-session-name: deploymentsRole
           role-duration-seconds: 900
           aws-region: us-east-1
 
+      # Kubectl install
+      - uses: azure/setup-kubectl@v3
+        with:
+          version: ${{ vars.KUBECTL_VERSION }}
+
       # Helm install
       - uses: azure/setup-helm@v3
         with:
-          version: v3.12.2
+          version: ${{ vars.HELM_VERSION }}
 
       # KUBECONFIG configuration
       - name: KUBECONFIG configuration
