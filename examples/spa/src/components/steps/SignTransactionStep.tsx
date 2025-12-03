@@ -1,6 +1,6 @@
 import React from "react";
 import { Transaction } from "near-api-js/lib/transaction";
-import { SignatureRequest } from "@fast-auth/browser";
+import { SignatureRequest } from "@fast-auth/browser-sdk";
 import Accordion from "../Accordion";
 import Spinner from "../Spinner";
 

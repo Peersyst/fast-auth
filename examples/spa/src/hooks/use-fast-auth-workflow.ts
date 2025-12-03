@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useFastAuth } from "./use-fast-auth-relayer";
-import { FastAuthSigner, FastAuthSignature, SignatureRequest } from "@fast-auth/browser";
-import { JavascriptProvider } from "@fast-auth/javascript";
+import { FastAuthSigner, FastAuthSignature, SignatureRequest } from "@fast-auth/browser-sdk";
+import { JavascriptProvider } from "@fast-auth/javascript-provider";
 import { PublicKey } from "near-api-js/lib/utils";
 import { Transaction } from "near-api-js/lib/transaction";
 import { parseNearAmount } from "near-api-js/lib/utils/format";
