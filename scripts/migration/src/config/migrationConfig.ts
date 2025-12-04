@@ -47,8 +47,7 @@ export const initMigrationConfig = (): MigrationConfig => {
             file: path.join(__dirname, "../../data/firebase-export.json"),
         },
         bypassJwt: {
-            privateKeyPem:
-                "-----BEGIN PRIVATE KEY-----\nMIIEvAI...IbiFCFzqBw0UQ==\n-----END PRIVATE KEY-----\n",
+            privateKeyPem: "-----BEGIN PRIVATE KEY-----\nMIIEvAI...IbiFCFzqBw0UQ==\n-----END PRIVATE KEY-----\n",
             jwtIssuer: "https://securetoken.google.com/near-mobile-99e38",
             jwtAudience: "near-mobile-99e38",
         },
