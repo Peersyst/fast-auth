@@ -75,7 +75,7 @@ export class NearProvider {
      *
      * @param publicKey
      */
-    async getAccountIdsByPublicKey(publicKey: string): Promise<string[]> {
+    async _getAccountIdsByPublicKey(publicKey: string): Promise<string[]> {
         const accountIds = await this.fetchJson<string[]>(`/v1/kitwallet/publicKey/${publicKey}/accounts`);
         return accountIds.map(this.parseAccountId);
     }
@@ -84,9 +84,9 @@ export class NearProvider {
      *
      * @param publicKey
      */
-    async _getAccountIdsByPublicKey(publicKey: string): Promise<string[]> {
+    async getAccountIdsByPublicKey(publicKey: string): Promise<string[]> {
         const { account_ids: accountIds } = await this.fetchJson<FastNearGetAccountIdsForPublicKeyResponse>(
-            `/v1/public-key/${publicKey}/accounts`,
+            `/v0/public_key/${publicKey}`,
         );
         return accountIds.map(this.parseAccountId);
     }

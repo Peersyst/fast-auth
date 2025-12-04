@@ -1,19 +1,18 @@
 import Bull from "bull";
 import { PublicKey } from "near-api-js/lib/utils/key_pair";
 import { AddAccessKeysQueue } from "./AddAccessKeysQueue";
-import { firebaseIdFromInternalAccountId, firebaseProviderToAuth0Provider } from "../utils/firebase";
-import { MpcUser } from "../database/MpcDatabase";
-import { FirebaseDatabase } from "../database/FirebaseDatabase";
+import { firebaseProviderToAuth0Provider } from "../utils/firebase";
 import { FastAuthProvider } from "../provider/FastAuthProvider";
 import { Queue } from "./Queue";
 import { MPCProvider } from "../provider/MPCProvider";
 import { SignJWT } from "jose";
 import { createPrivateKey } from "node:crypto";
+import { FirebaseUser } from "../database/IFirebaseDatabase";
 
 export const QUEUE_NAME = "mpc-user-queue";
 
 export type JobParams = {
-    user: MpcUser;
+    user: FirebaseUser;
 };
 
 export class MpcUserQueue extends Queue<JobParams> {
@@ -21,9 +20,10 @@ export class MpcUserQueue extends Queue<JobParams> {
         config: Bull.QueueOptions,
         private readonly mpcProvider: MPCProvider,
         private readonly addAccessKeysQueue: AddAccessKeysQueue,
-        private readonly firebaseDatabase: FirebaseDatabase,
         private readonly fastAuthProvider: FastAuthProvider,
         private readonly privateKeyPem: string,
+        private readonly jwtIssuer: string,
+        private readonly jwtAudience: string,
     ) {
         super(QUEUE_NAME, config);
     }
@@ -42,10 +42,7 @@ export class MpcUserQueue extends Queue<JobParams> {
      */
     async _process(job: Bull.Job<JobParams>): Promise<void> {
         const pk = createPrivateKey({ key: this.normalizePem(this.privateKeyPem), format: "pem", type: "pkcs1" });
-        const [issP1, issP2, sub] = job.data.user.internal_account_id.split(":");
-        const issP2Parts = issP2.split("/");
-        const aud = issP2Parts[issP2Parts.length - 1];
-        const jwt = await new SignJWT({ iss: `${issP1}:${issP2}`, sub, aud })
+        const jwt = await new SignJWT({ iss: this.jwtIssuer, sub: job.data.user.localId, aud: this.jwtAudience })
             .setProtectedHeader({ alg: "RS256", kid: "migration-key" })
             .setIssuedAt()
             .setExpirationTime("1h")
@@ -55,7 +52,7 @@ export class MpcUserQueue extends Queue<JobParams> {
         const userCredentials = await this.mpcProvider.userCredentials(jwt);
         const oldPublicKey = PublicKey.fromString(userCredentials.recovery_pk);
 
-        const firebaseUser = this.firebaseDatabase.findById(firebaseIdFromInternalAccountId(job.data.user.internal_account_id));
+        const firebaseUser = job.data.user;
 
         // Retrieve new public key
         const newPublicKeys: PublicKey[] = [];

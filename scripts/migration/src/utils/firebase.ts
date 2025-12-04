@@ -17,7 +17,7 @@ export const firebaseIdFromInternalAccountId = (internalAccountId: string) => {
 export const firebaseProviderToAuth0Provider = (provider: string): string => {
     switch (provider) {
         case "google.com":
-            return "goauth-2";
+            return "google-oauth2";
         default:
             throw new Error("firebaseProvider unknown " + provider);
     }

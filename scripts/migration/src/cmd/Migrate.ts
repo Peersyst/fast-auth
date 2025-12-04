@@ -1,9 +1,9 @@
 import { bootstrapMigration } from "./bootstrapMigration";
 
 (async () => {
-    const { mpcDatabase, mpcUserQueue } = bootstrapMigration();
+    const { firebaseDatabase, mpcUserQueue } = bootstrapMigration();
 
-    await mpcDatabase.iterateAll(async (user) => {
+    await firebaseDatabase.iterateAll(async (user) => {
         await mpcUserQueue.add({ user });
     });
 

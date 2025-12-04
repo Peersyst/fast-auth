@@ -1,6 +1,5 @@
 import { initMigrationConfig } from "../config/migrationConfig";
-import { MpcDatabase } from "../database/MpcDatabase";
-import { FirebaseDatabase } from "../database/FirebaseDatabase";
+import { LocalFirebaseDatabase } from "../database/LocalFirebaseDatabase";
 import { MPCProvider } from "../provider/MPCProvider";
 import { Near } from "near-api-js";
 import { NearProvider } from "../provider/NearProvider";
@@ -15,8 +14,8 @@ import { MpcUserQueue } from "../queue/MpcUserQueue";
  */
 export const bootstrapMigration = () => {
     const config = initMigrationConfig();
-    const mpcDatabase = new MpcDatabase(config.datastore.projectId, config.datastore.kind, config.datastore.pageSize);
-    const firebaseDatabase = new FirebaseDatabase(config.firebaseDatabaseFile);
+    // const mpcDatabase = new MpcDatabase(config.datastore.projectId, config.datastore.kind, config.datastore.pageSize);
+    const firebaseDatabase = new LocalFirebaseDatabase(config.firebase.file);
 
     const mpc = new MPCProvider(config.oldMpc.url, config.oldMpc.tmpPrivateKey, config.oldMpc.salt);
 
@@ -36,16 +35,17 @@ export const bootstrapMigration = () => {
         config.queue,
         mpc,
         addAccessKeysQueue,
-        firebaseDatabase,
         fastAuthProvider,
-        config.oldMpc.bypassPrivateKeyPem,
+        config.bypassJwt.privateKeyPem,
+        config.bypassJwt.jwtIssuer,
+        config.bypassJwt.jwtAudience,
     );
 
     return {
-        mpcDatabase,
         relayQueue,
         signQueue,
         addAccessKeysQueue,
         mpcUserQueue,
+        firebaseDatabase,
     };
 };
