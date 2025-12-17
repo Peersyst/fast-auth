@@ -83,7 +83,7 @@ importers:
         version: 19.1.6(@types/react@19.2.2)
       '@vitejs/plugin-react':
         specifier: ^4.3.4
-        version: 4.7.0(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1))
+        version: 4.7.0(vite@6.4.1(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1))
       eslint:
         specifier: ^8.26.1
         version: 8.57.0
@@ -103,11 +103,11 @@ importers:
         specifier: ^8.26.1
         version: 8.38.0(eslint@8.57.0)(typescript@5.7.3)
       vite:
-        specifier: ^6.3.0
-        version: 6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1)
+        specifier: ^6.3.7
+        version: 6.4.1(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1)
       vite-plugin-node-polyfills:
-        specifier: ^0.24.0
-        version: 0.24.0(rollup@4.44.1)(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1))
+        specifier: 0.17.0
+        version: 0.17.0(rollup@4.44.1)(vite@6.4.1(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1))
 
   apps/relayer:
     dependencies:
@@ -10416,6 +10416,11 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
+  vite-plugin-node-polyfills@0.17.0:
+    resolution: {integrity: sha512-iPmPn7376e5u6QvoTSJa16hf5Q0DFwHFXJk2uYpsNlmI3JdPms7hWyh55o+OysJ5jo9J5XPhLC9sMOYifwFd1w==}
+    peerDependencies:
+      vite: ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0
+
   vite-plugin-node-polyfills@0.24.0:
     resolution: {integrity: sha512-GA9QKLH+vIM8NPaGA+o2t8PDfFUl32J8rUp1zQfMKVJQiNkOX4unE51tR6ppl6iKw5yOrDAdSH7r/UIFLCVhLw==}
     peerDependencies:
@@ -10423,6 +10428,46 @@ packages:
 
   vite@6.3.5:
     resolution: {integrity: sha512-cZn6NDFE7wdTpINgs++ZJ4N49W2vRp8LCKrn3Ob1kYNtOo21vfDoaV5GzBfLU4MovSAB8uNRm4jgzVQZ+mBzPQ==}
+    engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
+    hasBin: true
+    peerDependencies:
+      '@types/node': ^18.0.0 || ^20.0.0 || >=22.0.0
+      jiti: '>=1.21.0'
+      less: '*'
+      lightningcss: ^1.21.0
+      sass: '*'
+      sass-embedded: '*'
+      stylus: '*'
+      sugarss: '*'
+      terser: ^5.16.0
+      tsx: ^4.8.1
+      yaml: ^2.4.2
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+      jiti:
+        optional: true
+      less:
+        optional: true
+      lightningcss:
+        optional: true
+      sass:
+        optional: true
+      sass-embedded:
+        optional: true
+      stylus:
+        optional: true
+      sugarss:
+        optional: true
+      terser:
+        optional: true
+      tsx:
+        optional: true
+      yaml:
+        optional: true
+
+  vite@6.4.1:
+    resolution: {integrity: sha512-+Oxm7q9hDoLMyJOYfUYBuHQo+dkAloi33apOPP56pzj+vsdJDzr+j1NISE5pyaAuKL4A3UD34qd0lx5+kfKp2g==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
     peerDependencies:
@@ -14610,9 +14655,7 @@ snapshots:
       metro-runtime: 0.83.3
     transitivePeerDependencies:
       - '@babel/core'
-      - bufferutil
       - supports-color
-      - utf-8-validate
     optional: true
 
   '@react-native/normalize-colors@0.82.0': {}
@@ -15599,6 +15642,18 @@ snapshots:
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
       vite: 6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1)
+    transitivePeerDependencies:
+      - supports-color
+
+  '@vitejs/plugin-react@4.7.0(vite@6.4.1(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1))':
+    dependencies:
+      '@babel/core': 7.28.0
+      '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.28.0)
+      '@babel/plugin-transform-react-jsx-source': 7.27.1(@babel/core@7.28.0)
+      '@rolldown/pluginutils': 1.0.0-beta.27
+      '@types/babel__core': 7.20.5
+      react-refresh: 0.17.0
+      vite: 6.4.1(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -23721,6 +23776,16 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.2
 
+  vite-plugin-node-polyfills@0.17.0(rollup@4.44.1)(vite@6.4.1(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1)):
+    dependencies:
+      '@rollup/plugin-inject': 5.0.5(rollup@4.44.1)
+      buffer-polyfill: buffer@6.0.3
+      node-stdlib-browser: 1.3.1
+      process: 0.11.10
+      vite: 6.4.1(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1)
+    transitivePeerDependencies:
+      - rollup
+
   vite-plugin-node-polyfills@0.24.0(rollup@4.44.1)(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1)):
     dependencies:
       '@rollup/plugin-inject': 5.0.5(rollup@4.44.1)
@@ -23730,6 +23795,22 @@ snapshots:
       - rollup
 
   vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1):
+    dependencies:
+      esbuild: 0.25.8
+      fdir: 6.4.6(picomatch@4.0.3)
+      picomatch: 4.0.3
+      postcss: 8.5.6
+      rollup: 4.44.1
+      tinyglobby: 0.2.14
+    optionalDependencies:
+      '@types/node': 24.9.1
+      fsevents: 2.3.3
+      jiti: 1.21.7
+      lightningcss: 1.30.2
+      terser: 5.43.1
+      yaml: 2.8.1
+
+  vite@6.4.1(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1):
     dependencies:
       esbuild: 0.25.8
       fdir: 6.4.6(picomatch@4.0.3)
