@@ -27,6 +27,88 @@ importers:
         specifier: ^2.5.4
         version: 2.5.4
 
+  apps/account-verifier:
+    dependencies:
+      '@fast-auth/browser-sdk':
+        specifier: workspace:*
+        version: link:../../packages/sdks/browser
+      '@fast-auth/javascript-provider':
+        specifier: workspace:*
+        version: link:../../packages/providers/javascript
+      '@noble/hashes':
+        specifier: ^1.8.0
+        version: 1.8.0
+      '@scure/base':
+        specifier: ^1.2.6
+        version: 1.2.6
+      bignumber.js:
+        specifier: ^9.2.1
+        version: 9.3.1
+      buffer:
+        specifier: ^6.0.3
+        version: 6.0.3
+      elliptic:
+        specifier: ^6.6.1
+        version: 6.6.1
+      history:
+        specifier: 5.3.0
+        version: 5.3.0
+      jose:
+        specifier: ^6.0.11
+        version: 6.0.12
+      near-api-js:
+        specifier: ^5.1.1
+        version: 5.1.1
+      react:
+        specifier: 19.2.0
+        version: 19.2.0
+      react-dom:
+        specifier: 19.2.0
+        version: 19.2.0(react@19.2.0)
+      react-router-dom:
+        specifier: ^7.5.0
+        version: 7.7.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+    devDependencies:
+      '@eslint/js':
+        specifier: ^9.22.0
+        version: 9.38.0
+      '@types/elliptic':
+        specifier: ^6.4.18
+        version: 6.4.18
+      '@types/react':
+        specifier: ^19.0.10
+        version: 19.2.2
+      '@types/react-dom':
+        specifier: ^19.0.4
+        version: 19.1.6(@types/react@19.2.2)
+      '@vitejs/plugin-react':
+        specifier: ^4.3.4
+        version: 4.7.0(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1))
+      eslint:
+        specifier: ^8.26.1
+        version: 8.57.0
+      eslint-plugin-react-hooks:
+        specifier: ^5.2.0
+        version: 5.2.0(eslint@8.57.0)
+      eslint-plugin-react-refresh:
+        specifier: ^0.4.19
+        version: 0.4.20(eslint@8.57.0)
+      globals:
+        specifier: ^16.0.0
+        version: 16.3.0
+      typescript:
+        specifier: ~5.7.2
+        version: 5.7.3
+      typescript-eslint:
+        specifier: ^8.26.1
+        version: 8.38.0(eslint@8.57.0)(typescript@5.7.3)
+      vite:
+        specifier: ^6.3.0
+        version: 6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1)
+      vite-plugin-node-polyfills:
+        specifier: ^0.24.0
+        version: 0.24.0(rollup@4.44.1)(vite@6.3.5(@types/node@24.9.1)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(yaml@2.8.1))
+
   apps/relayer:
     dependencies:
       '@aws-sdk/client-secrets-manager':
@@ -470,7 +552,7 @@ importers:
         version: 5.1.1
       react-native-auth0:
         specifier: ^5.0.1
-        version: 5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.1.1))(react@19.1.1)
+        version: 5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)
     devDependencies:
       '@shared/eslint':
         specifier: workspace:*
@@ -577,7 +659,7 @@ importers:
         version: 5.1.1
       react-native-auth0:
         specifier: ^5.0.1
-        version: 5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.1.1))(react@19.1.1)
+        version: 5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)
     devDependencies:
       '@shared/eslint':
         specifier: workspace:*
@@ -8919,6 +9001,11 @@ packages:
     peerDependencies:
       react: ^19.1.0
 
+  react-dom@19.2.0:
+    resolution: {integrity: sha512-UlbRu4cAiGaIewkPyiRGJk0imDN2T3JjieT6spoL2UeSf5od4n5LB/mQ4ejmxhCFT1tYe8IvaFulzynWovsEFQ==}
+    peerDependencies:
+      react: ^19.2.0
+
   react-error-overlay@6.1.0:
     resolution: {integrity: sha512-SN/U6Ytxf1QGkw/9ve5Y+NxBbZM6Ht95tuXNMKs8EJyFa/Vy/+Co3stop3KBHARfn/giv+Lj1uUnTfOJ3moFEQ==}
 
@@ -9010,8 +9097,8 @@ packages:
     resolution: {integrity: sha512-FS+XFBNvn3GTAWq26joslQgWNoFu08F4kl0J4CgdNKADkdSGXQyTCnKteIAJy96Br6YbpEU1LSzV5dYtjMkMDg==}
     engines: {node: '>=0.10.0'}
 
-  react@19.1.1:
-    resolution: {integrity: sha512-w8nqGImo45dmMIfljjMwOGtbmC/mk4CMYhWIicdSflH91J9TyCyczcPFXJzrZ/ZXcgGRFeP6BU0BEJTw6tZdfQ==}
+  react@19.2.0:
+    resolution: {integrity: sha512-tmbWg6W31tQLeB5cdIBOicJDJRR2KzXsV7uSK9iNfLWQ5bIZfxuPEHp7M8wiHyHnn0DD1i7w3Zmin0FtkrwoCQ==}
     engines: {node: '>=0.10.0'}
 
   readable-stream@2.3.8:
@@ -9279,6 +9366,9 @@ packages:
 
   scheduler@0.26.0:
     resolution: {integrity: sha512-NlHwttCI/l5gCPR3D1nNXtWABUmBwvZpEQiD4IXSbIDq8BzLIK/7Ir5gTFSGZDUu37K5cMNp0hFtzO38sC7gWA==}
+
+  scheduler@0.27.0:
+    resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
 
   schema-utils@2.7.0:
     resolution: {integrity: sha512-0ilKFI6QQF5nxDZLFn2dMjvc4hjg/Wkg7rHd3jK6/A4a1Hl9VFdQWvgB1UMGoU94pad1P/8N7fMcEnLnSiju8A==}
@@ -12524,7 +12614,7 @@ snapshots:
     dependencies:
       '@docusaurus/types': 3.7.0(acorn@8.15.0)(esbuild@0.23.1)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@types/history': 4.7.11
-      '@types/react': 19.1.8
+      '@types/react': 19.2.2
       '@types/react-router-config': 5.0.11
       '@types/react-router-dom': 5.3.3
       react: 19.1.0
@@ -13022,7 +13112,7 @@ snapshots:
     dependencies:
       '@mdx-js/mdx': 3.1.0(acorn@8.15.0)
       '@types/history': 4.7.11
-      '@types/react': 19.1.8
+      '@types/react': 19.2.2
       commander: 5.1.0
       joi: 17.13.3
       react: 19.1.0
@@ -13389,8 +13479,7 @@ snapshots:
 
   '@eslint/js@9.31.0': {}
 
-  '@eslint/js@9.38.0':
-    optional: true
+  '@eslint/js@9.38.0': {}
 
   '@eslint/object-schema@2.1.7':
     optional: true
@@ -14521,7 +14610,9 @@ snapshots:
       metro-runtime: 0.83.3
     transitivePeerDependencies:
       - '@babel/core'
+      - bufferutil
       - supports-color
+      - utf-8-validate
     optional: true
 
   '@react-native/normalize-colors@0.82.0': {}
@@ -14535,12 +14626,12 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.1.8
 
-  '@react-native/virtualized-lists@0.82.0(@types/react@19.2.2)(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.1.1))(react@19.1.1)':
+  '@react-native/virtualized-lists@0.82.0(@types/react@19.2.2)(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)':
     dependencies:
       invariant: 2.2.4
       nullthrows: 1.1.1
-      react: 19.1.1
-      react-native: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.1.1)
+      react: 19.2.0
+      react-native: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0)
     optionalDependencies:
       '@types/react': 19.2.2
 
@@ -15233,6 +15324,10 @@ snapshots:
   '@types/react-dom@19.1.6(@types/react@19.1.8)':
     dependencies:
       '@types/react': 19.1.8
+
+  '@types/react-dom@19.1.6(@types/react@19.2.2)':
+    dependencies:
+      '@types/react': 19.2.2
 
   '@types/react-router-config@5.0.11':
     dependencies:
@@ -21858,6 +21953,11 @@ snapshots:
       react: 19.1.0
       scheduler: 0.26.0
 
+  react-dom@19.2.0(react@19.2.0):
+    dependencies:
+      react: 19.2.0
+      scheduler: 0.27.0
+
   react-error-overlay@6.1.0: {}
 
   react-fast-compare@3.2.2: {}
@@ -21885,13 +21985,13 @@ snapshots:
       react-native: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0)
       url: 0.11.4
 
-  react-native-auth0@5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.1.1))(react@19.1.1):
+  react-native-auth0@5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0):
     dependencies:
       '@auth0/auth0-spa-js': 2.3.0
       base-64: 1.0.0
       jwt-decode: 4.0.0
-      react: 19.1.1
-      react-native: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.1.1)
+      react: 19.2.0
+      react-native: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0)
       url: 0.11.4
 
   react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0):
@@ -21942,7 +22042,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.1.1):
+  react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0):
     dependencies:
       '@jest/create-cache-key-function': 29.7.0
       '@react-native/assets-registry': 0.82.0
@@ -21951,7 +22051,7 @@ snapshots:
       '@react-native/gradle-plugin': 0.82.0
       '@react-native/js-polyfills': 0.82.0
       '@react-native/normalize-colors': 0.82.0
-      '@react-native/virtualized-lists': 0.82.0(@types/react@19.2.2)(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.1.1))(react@19.1.1)
+      '@react-native/virtualized-lists': 0.82.0(@types/react@19.2.2)(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.9.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)
       abort-controller: 3.0.0
       anser: 1.4.10
       ansi-regex: 5.0.1
@@ -21970,7 +22070,7 @@ snapshots:
       nullthrows: 1.1.1
       pretty-format: 29.7.0
       promise: 8.3.0
-      react: 19.1.1
+      react: 19.2.0
       react-devtools-core: 6.1.5
       react-refresh: 0.14.2
       regenerator-runtime: 0.13.11
@@ -22017,6 +22117,12 @@ snapshots:
       react-dom: 19.1.0(react@19.1.0)
       react-router: 7.7.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
 
+  react-router-dom@7.7.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+    dependencies:
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+      react-router: 7.7.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+
   react-router@5.3.4(react@19.1.0):
     dependencies:
       '@babel/runtime': 7.27.6
@@ -22038,9 +22144,17 @@ snapshots:
     optionalDependencies:
       react-dom: 19.1.0(react@19.1.0)
 
+  react-router@7.7.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+    dependencies:
+      cookie: 1.0.2
+      react: 19.2.0
+      set-cookie-parser: 2.7.1
+    optionalDependencies:
+      react-dom: 19.2.0(react@19.2.0)
+
   react@19.1.0: {}
 
-  react@19.1.1: {}
+  react@19.2.0: {}
 
   readable-stream@2.3.8:
     dependencies:
@@ -22412,6 +22526,8 @@ snapshots:
   sax@1.4.1: {}
 
   scheduler@0.26.0: {}
+
+  scheduler@0.27.0: {}
 
   schema-utils@2.7.0:
     dependencies:

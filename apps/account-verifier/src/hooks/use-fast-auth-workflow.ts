@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useFastAuth } from "./use-fast-auth-relayer";
 import { FastAuthSigner, FastAuthSignature, SignatureRequest } from "@fast-auth/browser-sdk";
 import { JavascriptProvider } from "@fast-auth/javascript-provider";
@@ -31,7 +31,7 @@ export interface WorkflowActions {
 }
 
 export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
-    const { isClientInitialized, client, relayer } = useFastAuth();
+    const { isClientInitialized, client, relayer, network } = useFastAuth();
 
     const [loggedIn, setLoggedIn] = useState(false);
     const [publicKey, setPublicKey] = useState<string | null>(null);
@@ -46,37 +46,45 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
     const [sending, setSending] = useState(false);
     const [txHash, setTxHash] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (isClientInitialized) {
-            client?.getSigner().then((signer: FastAuthSigner<JavascriptProvider>) => {
-                setSigner(signer);
-                if (signer) {
-                    signer
-                        .getPublicKey()
-                        .then((publicKey) => {
-                            setPublicKey(publicKey.toString());
-                            setLoggedIn(true);
-                        })
-                        .catch((error) => {
-                            setLoggedIn(false);
-                            console.error(error);
-                        });
-                    
-                    signer
-                        ?.getSignatureRequest()
-                        .then((signatureRequest) => {
-                            if ("signPayload" in signatureRequest && signatureRequest.signPayload) {
-                                setSignatureRequest(signatureRequest);
-                                setExpandedStep(3);
-                            }
-                        })
-                        .catch((error) => {
-                            console.error(error);
-                        });
-                }
-            });
+    const fetchPublicKey = useCallback(async () => {
+        if (!isClientInitialized || !client) {
+            setLoggedIn(false);
+            setPublicKey(null);
+            setSigner(null);
+            return;
         }
-    }, [isClientInitialized, client, relayer]);
+
+        try {
+            const signerInstance = await client.getSigner();
+            setSigner(signerInstance);
+            if (signerInstance) {
+                const publicKeyValue = await signerInstance.getPublicKey();
+                setPublicKey(publicKeyValue.toString());
+                setLoggedIn(true);
+                
+                signerInstance
+                    ?.getSignatureRequest()
+                    .then((signatureRequest) => {
+                        if ("signPayload" in signatureRequest && signatureRequest.signPayload) {
+                            setSignatureRequest(signatureRequest);
+                            setExpandedStep(3);
+                        }
+                    })
+                    .catch((error) => {
+                        console.error(error);
+                    });
+            }
+        } catch (error) {
+            setLoggedIn(false);
+            setPublicKey(null);
+            setSigner(null);
+            console.error(error);
+        }
+    }, [isClientInitialized, client, relayer, network]);
+
+    useEffect(() => {
+        fetchPublicKey();
+    }, [fetchPublicKey]);
 
     const handleLogin = async () => {
         setExpandedStep(1);
