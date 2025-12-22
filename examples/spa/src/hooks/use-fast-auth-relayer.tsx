@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 import FastAuthRelayer from "../services/fast-auth-relayer";
-import { FastAuthClient } from "@fast-auth/browser";
-import { JavascriptProvider } from "@fast-auth/javascript";
+import { FastAuthClient } from "@fast-auth/browser-sdk";
+import { JavascriptProvider } from "@fast-auth/javascript-provider";
 import config from "../auth_config.json";
 import { Connection } from "near-api-js";
 
