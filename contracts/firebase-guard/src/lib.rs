@@ -1,7 +1,13 @@
-use near_sdk::{near, AccountId, env, StorageUsage};
+use borsh::{BorshDeserialize, BorshSerialize};
+use near_sdk::{near, AccountId, env, NearToken};
 use near_sdk::env::sha256;
 use jwt_guard::{JwtGuard, JwtPublicKey};
 use near_contract_standards::storage_management::{StorageBalance, StorageBalanceBounds, StorageManagement};
+use near_sdk::json_types::{U128};
+
+mod storage_impl;
+
+const JWT_CLAIM_STORAGE: u128 = 128;
 
 /// A NEAR contract that verifies JWT tokens signed with RS256 algorithm
 /// 
@@ -13,6 +19,7 @@ pub struct FirebaseGuard {
     public_key: JwtPublicKey,
     issuer: String,
     jwt_claims: near_sdk::store::LookupMap<AccountId, Vec<u8>>,
+    account_storage_usage: U128,
 }
 
 #[derive(near_sdk::BorshStorageKey)]
@@ -30,35 +37,41 @@ impl Default for FirebaseGuard{
                 e: vec![],
             },
             issuer: "".to_string(),
-            jwt_claims: near_sdk::store::LookupMap::new(Prefix::JwtClaims)
+            jwt_claims: near_sdk::store::LookupMap::new(Prefix::JwtClaims),
+            account_storage_usage: U128(JWT_CLAIM_STORAGE),
         }
     }
 }
 
-#[near]
+#[near(serializers = [json, borsh])]
 impl FirebaseGuard {
     /// Initializes the contract with an owner and RSA public key components
-    /// 
+    ///
     /// # Arguments
     /// * `n_component` - The RSA public key modulus as a byte vector
     /// * `e_component` - The RSA public key exponent as a byte vector
-    /// 
+    ///
     /// # Panics
     /// Panics if the contract is already initialized
-    #[private]
     #[init]
     pub fn init(owner: AccountId, issuer: String, n_component: Vec<u8>, e_component: Vec<u8>) -> Self {
         if env::state_exists() {
             env::panic_str("Contract is already initialized");
         }
-        Self {
+        let mut this = Self {
             public_key: JwtPublicKey {
                 n: n_component,
                 e: e_component,
             },
             issuer,
-            jwt_claims: near_sdk::store::LookupMap::new(Prefix::JwtClaims)
-        }
+            jwt_claims: near_sdk::store::LookupMap::new(Prefix::JwtClaims),
+            account_storage_usage: U128(JWT_CLAIM_STORAGE)
+        };
+        this
+    }
+
+    pub fn get_account_storage_usage(&self) -> U128 {
+        self.account_storage_usage.clone()
     }
 
     /// Claims an OIDC token by storing its hash for the caller.
@@ -75,9 +88,14 @@ impl FirebaseGuard {
     /// # Storage Usage
     /// This method consumes storage space associated with the sender's `AccountId`.
     pub fn claim_oidc(&mut self, oidc_token_hash: Vec<u8>) {
-        // TODO: Storage management
         assert_eq!(oidc_token_hash.len(), 32, "OIDC token hash must be 32 bytes");
-        self.jwt_claims.insert(env::predecessor_account_id(), oidc_token_hash);
+        let account_id = env::predecessor_account_id();
+        self.internal_unwrap_jwt_claim(&account_id);
+        self.jwt_claims.insert(account_id, oidc_token_hash);
+    }
+
+    pub fn jwt_claim_of(&self, account_id: &AccountId) -> Option<Vec<u8>> {
+        self.jwt_claims.get(account_id).cloned()
     }
 
     /// Sets the issuer of the contract
@@ -91,6 +109,30 @@ impl FirebaseGuard {
         // TODO: self.only_owner(); -> Load from public keys contract
         self.issuer = issuer;
     }
+
+    fn internal_unwrap_jwt_claim(&self, account_id: &AccountId) -> &Vec<u8> {
+        match self.jwt_claims.get(account_id) {
+            Some(jwt_hash) => jwt_hash,
+            None => {
+                env::panic_str(format!("The account {} is not registered", &account_id).as_str())
+            }
+        }
+    }
+
+    /// Verifies a JWT token and its custom claims
+    ///
+    /// # Arguments
+    /// * `jwt` - The JWT token to verify as a string
+    /// * `sign_payload` - The payload to verify against the JWT
+    ///
+    /// # Returns
+    /// * Tuple containing:
+    ///   * Boolean indicating if verification succeeded
+    ///   * String containing either the subject claim or error message
+    pub fn verify(&self, jwt: String, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
+        self.internal_verify(jwt, sign_payload, predecessor)
+    }
+
 }
 
 impl JwtGuard for FirebaseGuard {
@@ -126,14 +168,42 @@ impl JwtGuard for FirebaseGuard {
     ///   * String containing either the subject claim or error message
     fn verify_custom_claims(&self, jwt_payload: Vec<u8>, _sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
         // Parse the payload into CustomClaims
-        let claim_hash = self.jwt_claims.get(&predecessor);
-        if claim_hash.is_none() {
-            return (false, format!("Claim {} not found", predecessor));
-        }
-        let jwt_hash = sha256(jwt_payload.as_slice());
-        if !jwt_hash.eq(claim_hash.unwrap()) {
-            return (false, format!("Claim {} not matching hash", predecessor));
+        let claim_hash = self.internal_unwrap_jwt_claim(&predecessor);
+        let jwt_hash = sha256(jwt_payload);
+        if !jwt_hash.eq(claim_hash) {
+            return (false, format!("Claim for user {} not matching hash {:?}", predecessor, jwt_hash));
         }
         (true, "".parse().unwrap())
+    }
+}
+
+
+#[near]
+impl StorageManagement for FirebaseGuard {
+    #[payable]
+    fn storage_deposit(
+        &mut self,
+        account_id: Option<AccountId>,
+        registration_only: Option<bool>,
+    ) -> StorageBalance {
+        self.internal_storage_deposit(account_id)
+    }
+
+    #[payable]
+    fn storage_withdraw(&mut self, amount: Option<NearToken>) -> StorageBalance {
+        self.internal_storage_withdraw(amount)
+    }
+
+    #[payable]
+    fn storage_unregister(&mut self, force: Option<bool>) -> bool {
+        self.internal_storage_unregister()
+    }
+
+    fn storage_balance_bounds(&self) -> StorageBalanceBounds {
+        self.internal_storage_balance_bounds()
+    }
+
+    fn storage_balance_of(&self, account_id: AccountId) -> Option<StorageBalance> {
+        self.internal_storage_balance_of(&account_id)
     }
 }
