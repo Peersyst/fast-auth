@@ -360,7 +360,7 @@ impl FastAuth {
         };
 
         external_guard::ext(guard_address.clone())
-        .verify(guard_id, verify_payload, sign_payload)
+        .verify(guard_id, verify_payload, sign_payload, env::predecessor_account_id())
         .then(Self::ext(env::current_account_id())
             .on_verify_callback()
         )
@@ -444,7 +444,7 @@ impl FastAuth {
         };
 
         external_guard::ext(guard_address.clone())
-        .verify(guard_id.clone(), verify_payload, sign_payload.clone())
+        .verify(guard_id.clone(), verify_payload, sign_payload.clone(), env::predecessor_account_id())
         .then(Self::ext(env::current_account_id())
             .on_verify_sign_callback(guard_id.clone(), sign_payload, attached_deposit, signature_algorithm)
         )

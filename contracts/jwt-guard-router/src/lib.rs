@@ -211,12 +211,12 @@ impl JwtGuardRouter {
     /// * `jwt` - The JWT token to verify as a string
     /// * `sign_payload` - The payload to be signed by the MPC
     /// # Returns
-    pub fn verify(&self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>) -> Promise {
+    pub fn verify(&self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>, predecessor: AccountId) -> Promise {
         let (_, guard_name) = self.assert_guard_name_format(guard_id);
         let guard_account = self.get_guard(guard_name.clone());
 
         jwt_guard::ext(guard_account)
-            .verify(verify_payload, sign_payload)
+            .verify(verify_payload, sign_payload, predecessor)
             .then(Self::ext(env::current_account_id()).on_verify_callback(guard_name))
     }
 
@@ -333,7 +333,7 @@ mod tests {
         let sign_payload = vec![1, 2, 3];
 
         // Call verify which should make cross-contract call to the guard
-        contract.verify("jwt#my-guard.com".to_string(), jwt, sign_payload);
+        contract.verify("jwt#my-guard.com".to_string(), jwt, sign_payload, "predecessor".parse().unwrap());
     }
 
     #[test]

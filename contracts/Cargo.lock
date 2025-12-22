@@ -118,6 +118,7 @@ version = "0.1.0-rc.1"
 dependencies = [
  "borsh",
  "crypto-bigint",
+ "jwt_guard",
  "near-sdk",
  "near-workspaces",
  "serde",
@@ -1004,6 +1005,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "firebase-guard"
+version = "0.1.0-rc.1"
+dependencies = [
+ "borsh",
+ "crypto-bigint",
+ "jwt_guard",
+ "near-sdk",
+ "near-workspaces",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sha2",
+ "tokio",
+]
+
+[[package]]
 name = "fixed-hash"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1675,6 +1692,21 @@ dependencies = [
  "near-sdk",
  "near-workspaces",
  "serde_json",
+ "tokio",
+]
+
+[[package]]
+name = "jwt_guard"
+version = "0.1.0-rc.1"
+dependencies = [
+ "borsh",
+ "crypto-bigint",
+ "near-sdk",
+ "near-workspaces",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sha2",
  "tokio",
 ]
 

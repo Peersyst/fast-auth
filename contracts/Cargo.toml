@@ -2,6 +2,8 @@
 members = [
     "./auth0-guard",
     "./fa",
+    "./firebase-guard",
+    "./jwt-guard",
     "./jwt-guard-router",
     "./mocks/external-guard",
     "./mocks/mpc",
