@@ -21,10 +21,17 @@ async fn deploy_contract() -> Result<(Account, Contract), Box<dyn std::error::Er
     let outcome = user_account
         .call(contract.id(), "init")
         .args_json(json!({
-            "owner": user_account.id(),
-            "issuer": "https://dev-gb1h5yrp85jsty.us.auth0.com/",
-            "n_component": n,
-            "e_component": e
+            "config": {
+                "owner": user_account.id(),
+                "issuer": "https://dev-gb1h5yrp85jsty.us.auth0.com/",
+                "n_component": n,
+                "e_component": e,
+                "roles": {
+                    "super_admins": [user_account.id()],
+                    "admins": {},
+                    "grantees": {},
+                },
+            }
         }))
         .transact()
         .await?;
@@ -175,7 +182,7 @@ async fn test_verify_should_pass() -> Result<(), Box<dyn std::error::Error>> {
 
     near_sdk::log!("outcome: {:?}", outcome);
     assert!(outcome.is_success());
-    
+
     Ok(())
 }
 

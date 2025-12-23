@@ -22,6 +22,7 @@ impl FirebaseGuard {
         }
     }
 
+    /// Internal method that returns the storage balance of an account.
     pub(crate) fn internal_storage_balance_of(&self, account_id: &AccountId) -> Option<StorageBalance> {
         if self.jwt_claims.contains_key(account_id) {
             Some(StorageBalance {
@@ -33,13 +34,14 @@ impl FirebaseGuard {
         }
     }
 
-
+    /// Internal method that registers an account with the contract.
     pub(crate) fn internal_register_account(&mut self, account_id: &AccountId) {
         if self.jwt_claims.insert(account_id.clone(), vec![0u8; 32]).is_some() {
             env::panic_str("The account is already registered");
         }
     }
 
+    /// Internal method that registers the storage deposit
     pub(crate) fn internal_storage_deposit(
         &mut self,
         account_id: Option<AccountId>,
@@ -89,6 +91,8 @@ impl FirebaseGuard {
         }
     }
 
+    /// Internal method that returns the storage balance bounds for the contract.
+    /// The minimum storage balance is equal to the storage cost of the contract's storage usage.
     pub(crate) fn internal_storage_balance_bounds(&self) -> StorageBalanceBounds {
         let required_storage_balance =
             env::storage_byte_cost().saturating_mul(self.account_storage_usage.into());
