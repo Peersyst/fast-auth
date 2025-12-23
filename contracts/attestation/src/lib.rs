@@ -105,6 +105,10 @@ impl AttestationContract {
         );
         require!(quorum > 0, "Quorum must be greater than 0");
         require!(!super_admins.is_empty(), "Must have at least one super admin");
+        require!(
+            quorum <= attesters.len() as u32,
+            "Quorum cannot be greater than the number of attesters"
+        );
         
         let mut contract = Self {
             attestations: IterableMap::new(Prefix::Attestations),
@@ -142,6 +146,11 @@ impl AttestationContract {
     #[pause]
     #[access_control_any(roles(Role::Attester, Role::DAO))]
     pub fn attest_keys(&mut self, public_keys: Vec<PublicKey>) {
+        require!(!public_keys.is_empty(), "Public keys cannot be empty");
+        for pk in &public_keys {
+            require!(!pk.n.is_empty() && !pk.e.is_empty(), "Public key components cannot be empty");
+        }
+
         let caller = env::predecessor_account_id();
         
         // Compute SHA256 hash of the public keys
@@ -196,7 +205,39 @@ impl AttestationContract {
     #[access_control_any(roles(Role::DAO))]
     pub fn set_quorum(&mut self, quorum: u32) {
         require!(quorum > 0, "Quorum must be greater than 0");
+        
+        // Get current number of attesters
+        let attester_count = self.acl_get_grantees("Attester".to_string(), 0, u64::MAX).len() as u32;
+        require!(
+            quorum <= attester_count,
+            "Quorum cannot be greater than the number of attesters"
+        );
+        
         self.quorum = quorum;
+    }
+
+    // Method to grant attester role
+    #[pause]
+    #[access_control_any(roles(Role::DAO))]
+    pub fn grant_attester(&mut self, account_id: AccountId) {
+        self.acl_grant_role("Attester".to_string(), account_id);
+    }
+
+    // Safe method to revoke attester role with quorum validation
+    #[pause]
+    #[access_control_any(roles(Role::DAO))]
+    pub fn revoke_attester(&mut self, account_id: AccountId) {
+        // Get current number of attesters
+        let current_attester_count = self.acl_get_grantees("Attester".to_string(), 0, u64::MAX).len() as u32;
+        
+        // Check if removing this attester would make quorum invalid
+        require!(
+            self.quorum < current_attester_count,
+            "Cannot revoke attester: would make quorum greater than remaining attesters"
+        );
+        
+        // Revoke the role
+        self.acl_revoke_role("Attester".to_string(), account_id);
     }
 
     // Helper function to compute hash of public keys
@@ -476,13 +517,13 @@ mod tests {
         testing_env!(context.build());
         
         // Add attester
-        contract.acl_grant_role("Attester".to_string(), new_attester.clone());
+        contract.grant_attester(new_attester.clone());
         let attesters = contract.get_attesters(0, 10);
         assert_eq!(attesters.len(), 3);
         assert!(attesters.contains(&new_attester));
         
         // Remove attester
-        contract.acl_revoke_role("Attester".to_string(), new_attester.clone());
+        contract.revoke_attester(new_attester.clone());
         let attesters = contract.get_attesters(0, 10);
         assert_eq!(attesters.len(), 2);
         assert!(!attesters.contains(&new_attester));
@@ -542,5 +583,83 @@ mod tests {
         // Should immediately set public keys with quorum of 1
         contract.attest_keys(public_keys);
         assert_eq!(contract.get_public_keys().len(), 1);
+    }
+
+    #[test]
+    #[should_panic(expected = "Quorum cannot be greater than the number of attesters")]
+    fn test_new_contract_quorum_exceeds_attesters() {
+        let dao: AccountId = "dao.near".parse().unwrap();
+        let attester: AccountId = "attester.near".parse().unwrap();
+        
+        let context = get_context(dao.clone());
+        testing_env!(context.build());
+        
+        // Try to create contract with quorum > number of attesters (should panic)
+        AttestationContract::new(
+            3,  // quorum of 3
+            vec![dao.clone()],
+            vec![attester.clone()],  // only 1 attester
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "Quorum cannot be greater than the number of attesters")]
+    fn test_set_quorum_exceeds_attesters() {
+        let (mut contract, dao, _, _) = setup_contract();
+        
+        let context = get_context(dao);
+        testing_env!(context.build());
+        
+        // Try to set quorum higher than number of attesters (2) - should panic
+        contract.set_quorum(5);
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot revoke attester: would make quorum greater than remaining attesters")]
+    fn test_revoke_attester_violates_quorum() {
+        let (mut contract, dao, attester1, _) = setup_contract();
+        
+        let context = get_context(dao);
+        testing_env!(context.build());
+        
+        // Contract has 2 attesters and quorum of 2
+        // Try to remove one attester (should panic because quorum would be > remaining attesters)
+        contract.revoke_attester(attester1);
+    }
+
+    #[test]
+    fn test_revoke_attester_with_safe_quorum() {
+        let (mut contract, dao, _, _) = setup_contract();
+        let new_attester: AccountId = "newattester.near".parse().unwrap();
+        
+        let context = get_context(dao.clone());
+        testing_env!(context.build());
+        
+        // Add a third attester first
+        contract.grant_attester(new_attester.clone());
+        assert_eq!(contract.get_attesters(0, 10).len(), 3);
+        
+        // Now we can safely remove one attester (3 - 1 = 2, which still satisfies quorum of 2)
+        contract.revoke_attester(new_attester.clone());
+        assert_eq!(contract.get_attesters(0, 10).len(), 2);
+    }
+
+    #[test]
+    fn test_set_quorum_after_adding_attesters() {
+        let (mut contract, dao, _, _) = setup_contract();
+        let new_attester1: AccountId = "newattester1.near".parse().unwrap();
+        let new_attester2: AccountId = "newattester2.near".parse().unwrap();
+        
+        let context = get_context(dao.clone());
+        testing_env!(context.build());
+        
+        // Add more attesters
+        contract.grant_attester(new_attester1);
+        contract.grant_attester(new_attester2);
+        assert_eq!(contract.get_attesters(0, 10).len(), 4);
+        
+        // Now we can increase quorum to 4
+        contract.set_quorum(4);
+        assert_eq!(contract.get_quorum(), 4);
     }
 }
