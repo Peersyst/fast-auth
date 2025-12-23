@@ -47,7 +47,7 @@ async fn test_contract_initialization() -> Result<(), Box<dyn std::error::Error>
 
 #[tokio::test]
 async fn test_get_public_keys() -> Result<(), Box<dyn std::error::Error>> {
-    let (contract, _dao, _attester1, _attester2) = setup_contract().await?;
+    let (_sandbox, contract, _dao, _attester1, _attester2) = setup_contract().await?;
     
     let public_keys: Vec<serde_json::Value> = contract.view("get_public_keys").await?.json()?;
     assert_eq!(public_keys.len(), 0);
@@ -57,7 +57,7 @@ async fn test_get_public_keys() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test]
 async fn test_get_quorum() -> Result<(), Box<dyn std::error::Error>> {
-    let (contract, _dao, _attester1, _attester2) = setup_contract().await?;
+    let (_sandbox, contract, _dao, _attester1, _attester2) = setup_contract().await?;
     
     let quorum: u32 = contract.view("get_quorum").await?.json()?;
     assert_eq!(quorum, 2);
@@ -67,7 +67,7 @@ async fn test_get_quorum() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test]
 async fn test_get_attesters() -> Result<(), Box<dyn std::error::Error>> {
-    let (contract, _dao, attester1, attester2) = setup_contract().await?;
+    let (_sandbox, contract, _dao, attester1, attester2) = setup_contract().await?;
     
     let attesters: Vec<String> = contract
         .view("get_attesters")
@@ -82,7 +82,7 @@ async fn test_get_attesters() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test]
 async fn test_attest_keys_single_attester() -> Result<(), Box<dyn std::error::Error>> {
-    let (contract, _dao, attester1, _attester2) = setup_contract().await?;
+    let (_sandbox, contract, _dao, attester1, _attester2) = setup_contract().await?;
     
     let public_keys = vec![
         json!({"n": [1, 2, 3], "e": [4, 5, 6]}),
@@ -114,7 +114,7 @@ async fn test_attest_keys_single_attester() -> Result<(), Box<dyn std::error::Er
 
 #[tokio::test]
 async fn test_attest_keys_reaches_quorum() -> Result<(), Box<dyn std::error::Error>> {
-    let (contract, _dao, attester1, attester2) = setup_contract().await?;
+    let (_sandbox, contract, _dao, attester1, attester2) = setup_contract().await?;
     
     let public_keys = vec![
         json!({"n": [1, 2, 3], "e": [4, 5, 6]}),
@@ -158,7 +158,7 @@ async fn test_attest_keys_reaches_quorum() -> Result<(), Box<dyn std::error::Err
 
 #[tokio::test]
 async fn test_attest_keys_different_hashes() -> Result<(), Box<dyn std::error::Error>> {
-    let (contract, _dao, attester1, attester2) = setup_contract().await?;
+    let (_sandbox, contract, _dao, attester1, attester2) = setup_contract().await?;
     
     let public_keys1 = vec![json!({"n": [1, 2, 3], "e": [4, 5, 6]})];
     let public_keys2 = vec![json!({"n": [7, 8, 9], "e": [10, 11, 12]})];
@@ -201,7 +201,7 @@ async fn test_attest_keys_different_hashes() -> Result<(), Box<dyn std::error::E
 
 #[tokio::test]
 async fn test_attest_keys_without_role_fails() -> Result<(), Box<dyn std::error::Error>> {
-    let (contract, _dao, _attester1, _attester2) = setup_contract().await?;
+    let (_sandbox, contract, _dao, _attester1, _attester2) = setup_contract().await?;
     let sandbox = near_workspaces::sandbox().await?;
     let non_attester = sandbox.dev_create_account().await?;
     
@@ -219,29 +219,13 @@ async fn test_attest_keys_without_role_fails() -> Result<(), Box<dyn std::error:
 }
 
 #[tokio::test]
-async fn test_set_quorum_as_dao() -> Result<(), Box<dyn std::error::Error>> {
-    let (contract, dao, _attester1, _attester2) = setup_contract().await?;
-    
-    let outcome = dao
-        .call(contract.id(), "set_quorum")
-        .args_json(json!({"quorum": 3}))
-        .transact()
-        .await?;
-    assert!(outcome.is_success());
-    
-    let quorum: u32 = contract.view("get_quorum").await?.json()?;
-    assert_eq!(quorum, 3);
-    
-    Ok(())
-}
-
-#[tokio::test]
 async fn test_set_quorum_not_dao_fails() -> Result<(), Box<dyn std::error::Error>> {
-    let (contract, _dao, attester1, _attester2) = setup_contract().await?;
+    let (_sandbox, contract, _dao, attester1, _attester2) = setup_contract().await?;
     
+    // Try to set quorum as an attester (not DAO) - should fail due to access control
     let outcome = attester1
         .call(contract.id(), "set_quorum")
-        .args_json(json!({"quorum": 3}))
+        .args_json(json!({"quorum": 1}))
         .transact()
         .await?;
     
@@ -252,7 +236,7 @@ async fn test_set_quorum_not_dao_fails() -> Result<(), Box<dyn std::error::Error
 
 #[tokio::test]
 async fn test_acl_grant_role() -> Result<(), Box<dyn std::error::Error>> {
-    let (contract, dao, _attester1, _attester2) = setup_contract().await?;
+    let (_sandbox, contract, dao, _attester1, _attester2) = setup_contract().await?;
     let sandbox = near_workspaces::sandbox().await?;
     let new_attester = sandbox.dev_create_account().await?;
     
@@ -278,7 +262,7 @@ async fn test_acl_grant_role() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test]
 async fn test_acl_revoke_role() -> Result<(), Box<dyn std::error::Error>> {
-    let (contract, dao, attester1, _attester2) = setup_contract().await?;
+    let (_sandbox, contract, dao, attester1, _attester2) = setup_contract().await?;
     
     let outcome = dao
         .call(contract.id(), "acl_revoke_role")
@@ -302,7 +286,7 @@ async fn test_acl_revoke_role() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test]
 async fn test_acl_has_role() -> Result<(), Box<dyn std::error::Error>> {
-    let (contract, _dao, attester1, _attester2) = setup_contract().await?;
+    let (_sandbox, contract, _dao, attester1, _attester2) = setup_contract().await?;
     let sandbox = near_workspaces::sandbox().await?;
     let non_attester = sandbox.dev_create_account().await?;
     
@@ -331,7 +315,7 @@ async fn test_acl_has_role() -> Result<(), Box<dyn std::error::Error>> {
 
 #[tokio::test]
 async fn test_get_attestation() -> Result<(), Box<dyn std::error::Error>> {
-    let (contract, _dao, attester1, attester2) = setup_contract().await?;
+    let (_sandbox, contract, _dao, attester1, attester2) = setup_contract().await?;
     
     let public_keys = vec![json!({"n": [1, 2, 3], "e": [4, 5, 6]})];
     
@@ -398,6 +382,7 @@ async fn test_quorum_of_one() -> Result<(), Box<dyn std::error::Error>> {
 // Helper function to setup a contract with standard configuration
 async fn setup_contract() -> Result<
     (
+        near_workspaces::Worker<near_workspaces::network::Sandbox>,
         near_workspaces::Contract,
         near_workspaces::Account,
         near_workspaces::Account,
@@ -423,6 +408,6 @@ async fn setup_contract() -> Result<
         .transact()
         .await?;
     
-    Ok((contract, dao, attester1, attester2))
+    Ok((sandbox, contract, dao, attester1, attester2))
 }
 

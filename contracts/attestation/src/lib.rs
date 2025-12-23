@@ -197,7 +197,7 @@ impl AttestationContract {
     }
 
     pub fn get_attesters(&self, from_index: u64, limit: u64) -> Vec<AccountId> {
-        self.acl_get_grantees("Attester".to_string(), from_index, limit)
+        self.acl_get_grantees(Role::Attester.into(), from_index, limit)
     }
 
     // DAO-only method to update quorum
@@ -207,7 +207,7 @@ impl AttestationContract {
         require!(quorum > 0, "Quorum must be greater than 0");
         
         // Get current number of attesters
-        let attester_count = self.acl_get_grantees("Attester".to_string(), 0, u64::MAX).len() as u32;
+        let attester_count = self.acl_get_grantees(Role::Attester.into(), 0, u64::MAX).len() as u32;
         require!(
             quorum <= attester_count,
             "Quorum cannot be greater than the number of attesters"
@@ -220,7 +220,7 @@ impl AttestationContract {
     #[pause]
     #[access_control_any(roles(Role::DAO))]
     pub fn grant_attester(&mut self, account_id: AccountId) {
-        self.acl_grant_role("Attester".to_string(), account_id);
+        self.acl_grant_role(Role::Attester.into(), account_id);
     }
 
     // Safe method to revoke attester role with quorum validation
@@ -228,16 +228,16 @@ impl AttestationContract {
     #[access_control_any(roles(Role::DAO))]
     pub fn revoke_attester(&mut self, account_id: AccountId) {
         // Get current number of attesters
-        let current_attester_count = self.acl_get_grantees("Attester".to_string(), 0, u64::MAX).len() as u32;
+        let current_attester_count = self.acl_get_grantees(Role::Attester.into(), 0, u64::MAX).len() as u32;
         
         // Check if removing this attester would make quorum invalid
         require!(
-            self.quorum < current_attester_count,
+            self.quorum <= current_attester_count - 1,
             "Cannot revoke attester: would make quorum greater than remaining attesters"
         );
         
         // Revoke the role
-        self.acl_revoke_role("Attester".to_string(), account_id);
+        self.acl_revoke_role(Role::Attester.into(), account_id);
     }
 
     // Helper function to compute hash of public keys
@@ -473,8 +473,9 @@ mod tests {
         let context = get_context(dao);
         testing_env!(context.build());
         
-        contract.set_quorum(3);
-        assert_eq!(contract.get_quorum(), 3);
+        // Can set quorum to 1 (less than 2 attesters)
+        contract.set_quorum(1);
+        assert_eq!(contract.get_quorum(), 1);
     }
 
     #[test]
