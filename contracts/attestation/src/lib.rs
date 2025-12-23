@@ -232,7 +232,7 @@ impl AttestationContract {
         
         // Check if removing this attester would make quorum invalid
         require!(
-            self.quorum <= current_attester_count - 1,
+            self.quorum < current_attester_count,
             "Cannot revoke attester: would make quorum greater than remaining attesters"
         );
         
