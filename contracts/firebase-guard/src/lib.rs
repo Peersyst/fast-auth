@@ -5,10 +5,7 @@ use near_sdk::env::sha256;
 use jwt_guard::{JwtGuard, JwtPublicKey};
 use near_contract_standards::storage_management::{StorageBalance, StorageBalanceBounds, StorageManagement};
 use near_sdk::json_types::{U128};
-use near_plugins::{
-    access_control, pause, AccessControlRole, AccessControllable, Pausable,
-    Upgradable,
-};
+use near_plugins::{access_control, access_control_any, AccessControlRole, AccessControllable, Pausable, Upgradable};
 use crate::config::{FirebaseGuardConfig, RolesConfig};
 use crate::error::FirebaseGuardError;
 
@@ -176,8 +173,8 @@ impl FirebaseGuard {
     /// 
     /// # Panics
     /// Panics if the caller is not the contract owner
+    #[access_control_any(roles(Role::DAO))]
     pub fn set_issuer(&mut self, issuer: String) {
-        // TODO: self.only_owner(); -> Load from public keys contract
         self.issuer = issuer;
     }
 
