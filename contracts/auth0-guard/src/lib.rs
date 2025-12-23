@@ -1,13 +1,10 @@
-use borsh::BorshSerialize;
 // Find all our documentation at https://docs.near.org
 use near_sdk::{near, AccountId, env, Promise, NearToken, Gas};
 use near_sdk::serde_json;
 use serde::{Deserialize, Serialize};
-use crypto_bigint::{BoxedUint, Odd};
 use jwt_guard::{JwtGuard, JwtPublicKey};
-
+use jwt_guard::assert_valid_public_key;
 const MIGRATION_TGAS: u64 = 10;
-const PRECISION: u32 = 2048;
 
 /// Custom claims structure for FastAuth Auth0 JWT tokens
 #[derive(Serialize, Deserialize)]
@@ -22,7 +19,7 @@ pub struct CustomClaims {
 /// The contract stores the RSA public key components (modulus and exponent) used for verification.
 #[near(contract_state)]
 pub struct Auth0Guard {
-    public_key: JwtPublicKey,
+    public_keys: Vec<JwtPublicKey>,
     owner: AccountId,
     issuer: String,
 }
@@ -32,10 +29,13 @@ pub struct Auth0Guard {
 impl Default for Auth0Guard{
     fn default() -> Self {
         Self {
-            public_key: JwtPublicKey{
+            public_keys: vec![JwtPublicKey{
                 n: vec![],
                 e: vec![],
-            },
+            },JwtPublicKey{
+                n: vec![],
+                e: vec![],
+            }],
             owner: env::current_account_id(),
             issuer: "".to_string(),
         }
@@ -54,15 +54,16 @@ impl Auth0Guard {
     /// # Panics
     /// Panics if the contract is already initialized
     #[init]
-    pub fn init(owner: AccountId, issuer: String, n_component: Vec<u8>, e_component: Vec<u8>) -> Self {
+    pub fn init(owner: AccountId, issuer: String, public_keys: Vec<JwtPublicKey>) -> Self {
         if env::state_exists() {
             env::panic_str("Contract is already initialized");
         }
+
+        for public_key in public_keys.iter() {
+            assert_valid_public_key(public_key.clone());
+        }
         Self {
-            public_key: JwtPublicKey{
-                n: n_component,
-                e: e_component,
-            },
+            public_keys,
             owner,
             issuer,
         }
@@ -104,7 +105,7 @@ impl Auth0Guard {
             Self {
                 owner: prev_state.owner,
                 issuer: prev_state.issuer,
-                public_key: prev_state.public_key,
+                public_keys: prev_state.public_keys,
             }
         } else {
             env::log_str("state does not exist: initializing default state");
@@ -150,17 +151,13 @@ impl Auth0Guard {
     /// 
     /// # Panics
     /// Panics if the caller is not the contract owner
-    pub fn set_public_key(&mut self, n: Vec<u8>, e: Vec<u8>) {
+    pub fn set_public_key(&mut self, public_keys: Vec<JwtPublicKey>) {
         self.only_owner();
 
-        assert_eq!(n.len(), 256, "modulus must be 2048 bits");
-        let n_int = BoxedUint::from_be_slice(&n, PRECISION).unwrap();
-        assert!(Odd::new(n_int).is_some().unwrap_u8() == 1, "modulus must be odd");
-
-        let allowed_e: &[&[u8]] = &[&[0x01, 0x00, 0x01]];
-        assert!(allowed_e.contains(&e.as_slice()), "invalid exponent");
-        
-        self.public_key = JwtPublicKey{ n, e }
+        for public_key in public_keys.iter() {
+            assert_valid_public_key(public_key.clone());
+        }
+        self.public_keys = public_keys;
     }
 
     /// Sets the issuer of the contract
@@ -198,11 +195,8 @@ impl JwtGuard for Auth0Guard {
     /// A tuple containing:
     /// * `Vec<u8>` - The modulus component as a byte vector
     /// * `Vec<u8>` - The exponent component as a byte vector
-    fn get_public_key(&self) -> JwtPublicKey {
-        JwtPublicKey {
-            n: self.public_key.n.clone(),
-            e: self.public_key.e.clone(),
-        }
+    fn get_public_keys(&self) -> Vec<JwtPublicKey> {
+        self.public_keys.clone()
     }
 
     /// Gets the current issuer of the contract
@@ -222,7 +216,7 @@ impl JwtGuard for Auth0Guard {
     /// * Tuple containing:
     ///   * Boolean indicating if verification succeeded
     ///   * String containing either the subject claim or error message
-    fn verify_custom_claims(&self, jwt_payload: Vec<u8>, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
+    fn verify_custom_claims(&self, jwt_payload: Vec<u8>, sign_payload: Vec<u8>, _predecessor: AccountId) -> (bool, String) {
         // Parse the payload into CustomClaims
         let claims: CustomClaims = match serde_json::from_slice(&jwt_payload) {
             Ok(claims) => claims,
@@ -249,10 +243,10 @@ mod tests {
     #[test]
     fn test_verify_signature() {
         let contract = Auth0Guard { 
-            public_key: JwtPublicKey {
+            public_keys: vec![JwtPublicKey {
                 n: vec![183, 68, 77, 78, 175, 25, 252, 16, 216, 124, 221, 80, 120, 196, 71, 60, 217, 168, 127, 211, 193, 143, 212, 221, 57, 61, 224, 49, 146, 77, 41, 83, 74, 185, 254, 100, 120, 138, 37, 171, 214, 128, 143, 107, 242, 123, 27, 11, 186, 161, 231, 36, 239, 230, 18, 23, 244, 255, 255, 65, 242, 40, 250, 103, 235, 139, 53, 99, 79, 157, 218, 194, 243, 176, 11, 44, 126, 122, 36, 199, 226, 5, 166, 173, 251, 161, 100, 148, 19, 233, 97, 115, 206, 145, 122, 128, 11, 246, 62, 44, 131, 12, 182, 70, 33, 122, 16, 96, 118, 248, 163, 185, 204, 246, 108, 96, 214, 227, 25, 219, 46, 66, 15, 132, 109, 138, 184, 135, 104, 160, 237, 110, 124, 79, 193, 102, 202, 76, 90, 170, 147, 136, 184, 76, 84, 153, 195, 80, 186, 83, 225, 157, 87, 56, 150, 61, 48, 114, 73, 247, 217, 177, 237, 249, 121, 205, 58, 205, 78, 195, 4, 159, 50, 74, 224, 238, 224, 137, 151, 8, 248, 46, 80, 185, 9, 50, 162, 192, 195, 84, 97, 29, 64, 111, 54, 228, 219, 65, 21, 104, 154, 105, 84, 119, 148, 92, 251, 225, 201, 36, 36, 223, 157, 9, 178, 93, 235, 64, 201, 144, 56, 12, 222, 61, 236, 100, 118, 51, 51, 129, 231, 220, 16, 109, 180, 57, 192, 86, 91, 126, 162, 251, 204, 35, 79, 34, 0, 127, 134, 142, 192, 82, 222, 95, 162, 215],
                 e: vec![1, 0, 1],
-            },
+            }],
             owner: env::current_account_id(),
             issuer: "https://dev-gb1h5yrepb85jstz.us.auth0.com/".to_string(),
         };
@@ -263,10 +257,10 @@ mod tests {
     #[test]
     fn test_verify_signature_invalid_pk() {
          let contract = Auth0Guard {
-            public_key: JwtPublicKey {
+            public_keys: vec![JwtPublicKey {
                 n: vec![182, 68, 77, 78, 175, 25, 252, 16, 216, 124, 221, 80, 120, 196, 71, 60, 217, 168, 127, 211, 193, 143, 212, 221, 57, 61, 224, 49, 146, 77, 41, 83, 74, 185, 254, 100, 120, 138, 37, 171, 214, 128, 143, 107, 242, 123, 27, 11, 186, 161, 231, 36, 239, 230, 18, 23, 244, 255, 255, 65, 242, 40, 250, 103, 235, 139, 53, 99, 79, 157, 218, 194, 243, 176, 11, 44, 126, 122, 36, 199, 226, 5, 166, 173, 251, 161, 100, 148, 19, 233, 97, 115, 206, 145, 122, 128, 11, 246, 62, 44, 131, 12, 182, 70, 33, 122, 16, 96, 118, 248, 163, 185, 204, 246, 108, 96, 214, 227, 25, 219, 46, 66, 15, 132, 109, 138, 184, 135, 104, 160, 237, 110, 124, 79, 193, 102, 202, 76, 90, 170, 147, 136, 184, 76, 84, 153, 195, 80, 186, 83, 225, 157, 87, 56, 150, 61, 48, 114, 73, 247, 217, 177, 237, 249, 121, 205, 58, 205, 78, 195, 4, 159, 50, 74, 224, 238, 224, 137, 151, 8, 248, 46, 80, 185, 9, 50, 162, 192, 195, 84, 97, 29, 64, 111, 54, 228, 219, 65, 21, 104, 154, 105, 84, 119, 148, 92, 251, 225, 201, 36, 36, 223, 157, 9, 178, 93, 235, 64, 201, 144, 56, 12, 222, 61, 236, 100, 118, 51, 51, 129, 231, 220, 16, 109, 180, 57, 192, 86, 91, 126, 162, 251, 204, 35, 79, 34, 0, 127, 134, 142, 192, 82, 222, 95, 162, 215],
                 e: vec![1, 0, 1],
-            },
+            }],
             owner: env::current_account_id(),
             issuer: "https://dev-gb1h5yrp85jsty.us.auth0.com/".to_string(),
         };
@@ -277,10 +271,10 @@ mod tests {
     #[test]
     fn test_verify_signature_invalid_signature() {
         let contract = Auth0Guard {
-            public_key: JwtPublicKey {
+            public_keys: vec![JwtPublicKey {
                 n: vec![183, 68, 77, 78, 175, 25, 252, 16, 216, 124, 221, 80, 120, 196, 71, 60, 217, 168, 127, 211, 193, 143, 212, 221, 57, 61, 224, 49, 146, 77, 41, 83, 74, 185, 254, 100, 120, 138, 37, 171, 214, 128, 143, 107, 242, 123, 27, 11, 186, 161, 231, 36, 239, 230, 18, 23, 244, 255, 255, 65, 242, 40, 250, 103, 235, 139, 53, 99, 79, 157, 218, 194, 243, 176, 11, 44, 126, 122, 36, 199, 226, 5, 166, 173, 251, 161, 100, 148, 19, 233, 97, 115, 206, 145, 122, 128, 11, 246, 62, 44, 131, 12, 182, 70, 33, 122, 16, 96, 118, 248, 163, 185, 204, 246, 108, 96, 214, 227, 25, 219, 46, 66, 15, 132, 109, 138, 184, 135, 104, 160, 237, 110, 124, 79, 193, 102, 202, 76, 90, 170, 147, 136, 184, 76, 84, 153, 195, 80, 186, 83, 225, 157, 87, 56, 150, 61, 48, 114, 73, 247, 217, 177, 237, 249, 121, 205, 58, 205, 78, 195, 4, 159, 50, 74, 224, 238, 224, 137, 151, 8, 248, 46, 80, 185, 9, 50, 162, 192, 195, 84, 97, 29, 64, 111, 54, 228, 219, 65, 21, 104, 154, 105, 84, 119, 148, 92, 251, 225, 201, 36, 36, 223, 157, 9, 178, 93, 235, 64, 201, 144, 56, 12, 222, 61, 236, 100, 118, 51, 51, 129, 231, 220, 16, 109, 180, 57, 192, 86, 91, 126, 162, 251, 204, 35, 79, 34, 0, 127, 134, 142, 192, 82, 222, 95, 162, 215],
                 e: vec![1, 0, 1],
-            },
+            }],
             owner: env::current_account_id(),
             issuer: "https://dev-gb1h5yrp85jsty.us.auth0.com/".to_string(),
         };
@@ -291,10 +285,10 @@ mod tests {
     #[test]
     fn test_verify_signature_invalid_payload() {
         let contract = Auth0Guard {
-            public_key: JwtPublicKey {
+            public_keys: vec![JwtPublicKey {
                 n: vec![183, 68, 77, 78, 175, 25, 252, 16, 216, 124, 221, 80, 120, 196, 71, 60, 217, 168, 127, 211, 193, 143, 212, 221, 57, 61, 224, 49, 146, 77, 41, 83, 74, 185, 254, 100, 120, 138, 37, 171, 214, 128, 143, 107, 242, 123, 27, 11, 186, 161, 231, 36, 239, 230, 18, 23, 244, 255, 255, 65, 242, 40, 250, 103, 235, 139, 53, 99, 79, 157, 218, 194, 243, 176, 11, 44, 126, 122, 36, 199, 226, 5, 166, 173, 251, 161, 100, 148, 19, 233, 97, 115, 206, 145, 122, 128, 11, 246, 62, 44, 131, 12, 182, 70, 33, 122, 16, 96, 118, 248, 163, 185, 204, 246, 108, 96, 214, 227, 25, 219, 46, 66, 15, 132, 109, 138, 184, 135, 104, 160, 237, 110, 124, 79, 193, 102, 202, 76, 90, 170, 147, 136, 184, 76, 84, 153, 195, 80, 186, 83, 225, 157, 87, 56, 150, 61, 48, 114, 73, 247, 217, 177, 237, 249, 121, 205, 58, 205, 78, 195, 4, 159, 50, 74, 224, 238, 224, 137, 151, 8, 248, 46, 80, 185, 9, 50, 162, 192, 195, 84, 97, 29, 64, 111, 54, 228, 219, 65, 21, 104, 154, 105, 84, 119, 148, 92, 251, 225, 201, 36, 36, 223, 157, 9, 178, 93, 235, 64, 201, 144, 56, 12, 222, 61, 236, 100, 118, 51, 51, 129, 231, 220, 16, 109, 180, 57, 192, 86, 91, 126, 162, 251, 204, 35, 79, 34, 0, 127, 134, 142, 192, 82, 222, 95, 162, 215],
                 e: vec![1, 0, 1],
-            },
+            }],
             owner: env::current_account_id(),
             issuer: "https://dev-gb1h5yrp85jsty.us.auth0.com/".to_string(),
         };
@@ -316,10 +310,10 @@ mod tests {
         testing_env!(context.build());
 
         let contract = Auth0Guard {
-            public_key: JwtPublicKey {
+            public_keys: vec![JwtPublicKey {
                 n: vec![1, 2, 3],
                 e: vec![1, 0, 1],
-            },
+            }],
             owner: owner.clone(),
             issuer: "https://test.auth0.com/".to_string(),
         };
@@ -344,10 +338,10 @@ mod tests {
         testing_env!(context.build());
 
         let contract = Auth0Guard {
-            public_key: JwtPublicKey {
+            public_keys: vec![JwtPublicKey {
                 n: vec![1, 2, 3],
                 e: vec![1, 0, 1],
-            },
+            }],
             owner: owner.clone(),
             issuer: "https://test.auth0.com/".to_string(),
         };

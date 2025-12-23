@@ -3,6 +3,7 @@ use borsh::{BorshDeserialize};
 use near_sdk::{near, AccountId, env, NearToken, PanicOnDefault};
 use near_sdk::env::sha256;
 use jwt_guard::{JwtGuard, JwtPublicKey};
+use jwt_guard::assert_valid_public_key;
 use near_contract_standards::storage_management::{StorageBalance, StorageBalanceBounds, StorageManagement};
 use near_sdk::json_types::{U128};
 use near_plugins::{access_control, access_control_any, AccessControlRole, AccessControllable, Pausable, Upgradable};
@@ -23,15 +24,17 @@ pub enum Role {
     CodeStager,
     CodeDeployer,
     DurationManager,
+    PublicKeyManager,
 }
 
 impl Role {
     pub fn iterator() -> Iter<'static, Role> {
-        static ROLES: [Role; 4] = [
+        static ROLES: [Role; 5] = [
             Role::DAO,
             Role::CodeStager,
             Role::CodeDeployer,
             Role::DurationManager,
+            Role::PublicKeyManager,
         ];
         ROLES.iter()
     }
@@ -53,7 +56,7 @@ impl Role {
 ))]
 #[near(contract_state)]
 pub struct FirebaseGuard {
-    public_key: JwtPublicKey,
+    public_keys: Vec<JwtPublicKey>,
     issuer: String,
     jwt_claims: near_sdk::store::LookupMap<AccountId, Vec<u8>>,
     account_storage_usage: U128,
@@ -83,10 +86,7 @@ impl FirebaseGuard {
         );
         config.assert_valid();
         let mut this = Self {
-            public_key: JwtPublicKey {
-                n: config.n_component,
-                e: config.e_component,
-            },
+            public_keys: config.public_keys,
             issuer: config.issuer,
             jwt_claims: near_sdk::store::LookupMap::new(Prefix::JwtClaims),
             account_storage_usage: U128(JWT_CLAIM_STORAGE)
@@ -178,6 +178,19 @@ impl FirebaseGuard {
         self.issuer = issuer;
     }
 
+    /// Sets the public keys of the contract
+    /// # Arguments
+    /// * `public_keys` - The public keys to set
+    /// # Panics
+    /// Panics if the caller is not the contract owner
+    #[access_control_any(roles(Role::PublicKeyManager, Role::DAO))]
+    pub fn set_public_keys(&mut self, public_keys: Vec<JwtPublicKey>) {
+        for public_key in public_keys.iter() {
+            assert_valid_public_key(public_key.clone());
+        }
+        self.public_keys = public_keys;
+    }
+
     /// Unwraps the JWT claim of an account
     /// 
     /// # Arguments
@@ -218,11 +231,8 @@ impl JwtGuard for FirebaseGuard {
     /// A tuple containing:
     /// * `Vec<u8>` - The modulus component as a byte vector
     /// * `Vec<u8>` - The exponent component as a byte vector
-    fn get_public_key(&self) -> JwtPublicKey {
-        JwtPublicKey {
-            n: self.public_key.n.clone(),
-            e: self.public_key.e.clone(),
-        }
+    fn get_public_keys(&self) -> Vec<JwtPublicKey> {
+        self.public_keys.clone()
     }
 
     /// Gets the current issuer of the contract

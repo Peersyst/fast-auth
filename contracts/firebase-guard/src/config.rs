@@ -1,20 +1,18 @@
-use near_sdk::{json_types::U64, near, AccountId};
+use near_sdk::{near, AccountId};
 use std::collections::{HashMap, HashSet};
-use jwt_guard::JwtPublicKey;
+use jwt_guard::{JwtPublicKey, assert_valid_public_key};
 use crate::{
     error::FirebaseGuardError,
     require_err,
     utils::{assert_valid_account_id},
 };
-use crate::utils::assert_valid_public_key;
 use super::Role;
 
 #[near(serializers = [json])]
 #[derive(Clone)]
 pub struct FirebaseGuardConfig {
     pub issuer: String,
-    pub n_component: Vec<u8>,
-    pub e_component: Vec<u8>,
+    pub public_keys: Vec<JwtPublicKey>,
     pub roles: RolesConfig,
 }
 
@@ -26,7 +24,9 @@ impl FirebaseGuardConfig {
     /// * If the config is not valid
     pub fn assert_valid(&self) {
         // Public key validation
-        assert_valid_public_key(JwtPublicKey{ n: self.n_component.clone(), e: self.e_component.clone() });
+        for public_key in self.public_keys.iter() {
+            assert_valid_public_key(public_key.clone());
+        }
         // Roles validation
         self.roles.assert_valid();
     }

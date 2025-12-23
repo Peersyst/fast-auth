@@ -1,4 +1,3 @@
-use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::{env, AccountId, serde_json, near};
 use serde::{Deserialize, Serialize};
 use crate::jwt::codec::{decode_jwt, decode_base64_bytes};
@@ -15,6 +14,7 @@ pub struct Claims {
 }
 
 #[near(serializers = [json, borsh])]
+#[derive(Clone)]
 pub struct JwtPublicKey {
     pub n: Vec<u8>,
     pub e: Vec<u8>,
@@ -27,7 +27,7 @@ pub trait JwtGuard {
     /// A tuple containing:
     /// * `Vec<u8>` - The modulus component as a byte vector
     /// * `Vec<u8>` - The exponent component as a byte vector
-    fn get_public_key(&self) -> JwtPublicKey;
+    fn get_public_keys(&self) -> Vec<JwtPublicKey>;
 
     /// Gets the current issuer of the contract
     ///
@@ -52,13 +52,15 @@ pub trait JwtGuard {
 
         let signature_bytes = decode_base64_bytes(signature);
 
-        let public_key = self.get_public_key();
-        // Verify the signature
-        verify_signature_from_components(
-            data_to_verify,
-            signature_bytes,
-            public_key.n.clone(),
-            public_key.e.clone(),
+        let public_keys = self.get_public_keys();
+        
+        public_keys.into_iter().any(|public_key| 
+            verify_signature_from_components(
+                data_to_verify.clone(),
+                signature_bytes.clone(),
+                public_key.n.clone(),
+                public_key.e.clone(),
+            )
         )
     }
 
