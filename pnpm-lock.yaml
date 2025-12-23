@@ -235,6 +235,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
 
+  contracts/attestation: {}
+
   contracts/auth0-guard: {}
 
   contracts/fa: {}

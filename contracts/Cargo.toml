@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "./attestation",
     "./auth0-guard",
     "./fa",
     "./jwt-guard-router",
