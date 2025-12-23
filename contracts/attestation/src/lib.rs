@@ -117,12 +117,12 @@ impl AttestationContract {
         // Initialize super admins and grant them DAO role
         for super_admin in super_admins.iter() {
             require!(
-                acl.add_super_admin_unchecked(&super_admin),
+                acl.add_super_admin_unchecked(super_admin),
                 "Failed to initialize super admin"
             );
             // Grant DAO role to super admins so they can manage the contract
             require!(
-                acl.grant_role_unchecked(Role::DAO, &super_admin),
+                acl.grant_role_unchecked(Role::DAO, super_admin),
                 "Failed to grant DAO role"
             );
         }
