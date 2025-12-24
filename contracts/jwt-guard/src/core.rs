@@ -1,4 +1,3 @@
-use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::{env, AccountId, serde_json, near};
 use serde::{Deserialize, Serialize};
 use crate::jwt::codec::{decode_jwt, decode_base64_bytes};
@@ -15,6 +14,7 @@ pub struct Claims {
 }
 
 #[near(serializers = [json, borsh])]
+#[derive(Clone)]
 pub struct JwtPublicKey {
     pub n: Vec<u8>,
     pub e: Vec<u8>,
@@ -27,13 +27,7 @@ pub trait JwtGuard {
     /// A tuple containing:
     /// * `Vec<u8>` - The modulus component as a byte vector
     /// * `Vec<u8>` - The exponent component as a byte vector
-    fn get_public_key(&self) -> JwtPublicKey;
-
-    /// Gets the current issuer of the contract
-    ///
-    /// # Returns
-    /// * `String` - The issuer of the contract
-    fn get_issuer(&self) -> String;
+    fn get_public_keys(&self) -> Vec<JwtPublicKey>;
 
     /// Internal function to verify a JWT token and return its payload
     ///
@@ -52,13 +46,15 @@ pub trait JwtGuard {
 
         let signature_bytes = decode_base64_bytes(signature);
 
-        let public_key = self.get_public_key();
-        // Verify the signature
-        verify_signature_from_components(
-            data_to_verify,
-            signature_bytes,
-            public_key.n.clone(),
-            public_key.e.clone(),
+        let public_keys = self.get_public_keys();
+        
+        public_keys.into_iter().any(|public_key| 
+            verify_signature_from_components(
+                data_to_verify.clone(),
+                signature_bytes.clone(),
+                public_key.n.clone(),
+                public_key.e.clone(),
+            )
         )
     }
 
@@ -73,7 +69,7 @@ pub trait JwtGuard {
     /// * Tuple containing:
     ///   * Boolean indicating if verification succeeded
     ///   * String containing either the subject claim or error message
-    fn verify_claims(&self, jwt_payload: Vec<u8>, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
+    fn verify_claims(&self, issuer: String, jwt_payload: Vec<u8>, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
         // Parse the payload into Claims
         let claims: Claims = match serde_json::from_slice(&jwt_payload) {
             Ok(claims) => claims,
@@ -92,7 +88,7 @@ pub trait JwtGuard {
         if claims.nbf.unwrap_or(0) > now {
             return (false, "Token not yet valid".to_string());
         }
-        if claims.iss != self.get_issuer() {
+        if claims.iss != issuer {
             return (false, "Invalid issuer".to_string());
         }
 
@@ -110,7 +106,7 @@ pub trait JwtGuard {
     /// * Tuple containing:
     ///   * Boolean indicating if verification succeeded
     ///   * String containing either the subject claim or error message
-    fn internal_verify(&self, jwt: String, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
+    fn internal_verify(&self, issuer: String, jwt: String, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
         // Check JWT size limit (7KB = 7168 bytes)
         if jwt.len() > MAX_JWT_SIZE as usize {
             return (false, "JWT token exceeds maximum size limit".to_string());
@@ -123,7 +119,7 @@ pub trait JwtGuard {
             let (_, payload, _) = decode_jwt(jwt);
             let payload_bytes = decode_base64_bytes(payload);
 
-            self.verify_claims(payload_bytes, sign_payload, predecessor)
+            self.verify_claims(issuer, payload_bytes, sign_payload, predecessor)
         }
     }
 }
