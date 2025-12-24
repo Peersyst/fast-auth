@@ -53,7 +53,6 @@ impl Auth0Guard {
     /// 
     /// # Panics
     /// Panics if the contract is already initialized
-    #[private]
     #[init]
     pub fn init(owner: AccountId, issuer: String, n_component: Vec<u8>, e_component: Vec<u8>) -> Self {
         if env::state_exists() {
