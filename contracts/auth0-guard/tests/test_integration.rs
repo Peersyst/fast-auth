@@ -1,4 +1,5 @@
 use near_sdk::serde_json::json;
+use jwt_guard::JwtPublicKey;
 
 #[tokio::test]
 async fn test_verify_signature_should_pass() -> Result<(), Box<dyn std::error::Error>> {
@@ -35,7 +36,8 @@ async fn test_verify_signature_should_pass() -> Result<(), Box<dyn std::error::E
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
             "jwt": token,
-            "sign_payload": sign_payload
+            "sign_payload": sign_payload,
+            "predecessor": user_account.id(),
         }))
         .transact()
         .await?;
@@ -81,7 +83,8 @@ async fn test_verify_signature_should_fail_invalid_pk() -> Result<(), Box<dyn st
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
             "jwt": token,
-            "sign_payload": sign_payload
+            "sign_payload": sign_payload,
+            "predecessor": user_account.id(),
         }))
         .transact()
         .await?;
@@ -127,7 +130,8 @@ async fn test_verify_signature_should_fail_invalid_token() -> Result<(), Box<dyn
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
             "jwt": token,
-            "sign_payload": sign_payload
+            "sign_payload": sign_payload,
+            "predecessor": user_account.id(),
         }))
         .transact()
         .await?;
@@ -312,9 +316,9 @@ async fn test_set_public_key_should_pass() -> Result<(), Box<dyn std::error::Err
         .view()
         .await?;
 
-    let result: (Vec<u8>, Vec<u8>) = outcome.json()?;
-    assert_eq!(result.0, new_n);
-    assert_eq!(result.1, vec![1, 0, 1]);
+    let result: JwtPublicKey = outcome.json()?;
+    assert_eq!(result.n, new_n);
+    assert_eq!(result.e, vec![1, 0, 1]);
 
     Ok(())
 }
@@ -397,8 +401,10 @@ async fn test_set_public_key_should_fail_invalid_modulus_length() -> Result<(), 
     let outcome = owner_account
         .call(contract.id(), "set_public_key")
         .args_json(json!({
-            "n": invalid_n,
-            "e": new_e
+            "public_key": {
+                "n": invalid_n,
+                "e": new_e
+            }
         }))
         .transact()
         .await?;
@@ -544,9 +550,9 @@ async fn test_set_public_key_should_pass_with_exponent_1_0_1() -> Result<(), Box
         .view()
         .await?;
 
-    let result: (Vec<u8>, Vec<u8>) = outcome.json()?;
-    assert_eq!(result.0, new_n);
-    assert_eq!(result.1, e_3);
+    let result: JwtPublicKey = outcome.json()?;
+    assert_eq!(result.n, new_n);
+    assert_eq!(result.e, e_3);
 
     Ok(())
 }
@@ -591,7 +597,8 @@ async fn test_verify_signature_should_fail_jwt_too_large() -> Result<(), Box<dyn
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
             "jwt": large_token,
-            "sign_payload": sign_payload
+            "sign_payload": sign_payload,
+            "predecessor": user_account.id(),
         }))
         .transact()
         .await?;

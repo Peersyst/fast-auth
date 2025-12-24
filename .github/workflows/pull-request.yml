@@ -25,3 +25,12 @@ jobs:
             target: integration
             push: false
             base_image: ${{ github.sha }}
+
+    build-attester:
+        needs: [build-base]
+        uses: ./.github/workflows/build-attester.yaml
+        secrets: inherit
+        with:
+            target: integration
+            push: false
+            base_image: ${{ github.sha }}
