@@ -57,7 +57,6 @@ impl Role {
 #[near(contract_state)]
 pub struct FirebaseGuard {
     public_keys: Vec<JwtPublicKey>,
-    issuer: String,
     jwt_claims: near_sdk::store::LookupMap<AccountId, Vec<u8>>,
     account_storage_usage: U128,
 }
@@ -87,7 +86,6 @@ impl FirebaseGuard {
         config.assert_valid();
         let mut this = Self {
             public_keys: config.public_keys,
-            issuer: config.issuer,
             jwt_claims: near_sdk::store::LookupMap::new(Prefix::JwtClaims),
             account_storage_usage: U128(JWT_CLAIM_STORAGE)
         };
@@ -166,18 +164,6 @@ impl FirebaseGuard {
         self.jwt_claims.get(account_id).cloned()
     }
 
-    /// Sets the issuer of the contract
-    /// 
-    /// # Arguments
-    /// * `issuer` - The issuer of the contract
-    /// 
-    /// # Panics
-    /// Panics if the caller is not the contract owner
-    #[access_control_any(roles(Role::DAO))]
-    pub fn set_issuer(&mut self, issuer: String) {
-        self.issuer = issuer;
-    }
-
     /// Sets the public keys of the contract
     /// # Arguments
     /// * `public_keys` - The public keys to set
@@ -218,8 +204,8 @@ impl FirebaseGuard {
     /// * Tuple containing:
     ///   * Boolean indicating if verification succeeded
     ///   * String containing either the subject claim or error message
-    pub fn verify(&self, jwt: String, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
-        self.internal_verify(jwt, sign_payload, predecessor)
+    pub fn verify(&self, issuer: String, jwt: String, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
+        self.internal_verify(issuer, jwt, sign_payload, predecessor)
     }
 
 }
@@ -234,15 +220,6 @@ impl JwtGuard for FirebaseGuard {
     fn get_public_keys(&self) -> Vec<JwtPublicKey> {
         self.public_keys.clone()
     }
-
-    /// Gets the current issuer of the contract
-    ///
-    /// # Returns
-    /// * `String` - The issuer of the contract
-    fn get_issuer(&self) -> String {
-        self.issuer.clone()
-    }
-
 
     /// Verifies custom claims in the JWT payload
     /// # Arguments

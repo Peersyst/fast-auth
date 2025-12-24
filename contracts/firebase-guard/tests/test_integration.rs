@@ -172,6 +172,7 @@ async fn test_verify_should_pass() -> Result<(), Box<dyn std::error::Error>> {
         .call(contract.id(), "verify")
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
+            "issuer": "https://dev-gb1h5yrepb85jstz.us.auth0.com/".to_string(),
             "jwt": token,
             "sign_payload": vec![0],
             "predecessor": user_account.id(),
@@ -197,6 +198,7 @@ async fn test_verify_unclaimed_token_should_fail() -> Result<(), Box<dyn std::er
         .call(contract.id(), "verify")
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
+            "issuer": "https://dev-gb1h5yrepb85jstz.us.auth0.com/".to_string(),
             "jwt": token,
             "sign_payload": vec![0],
             "predecessor": user_account.id(),

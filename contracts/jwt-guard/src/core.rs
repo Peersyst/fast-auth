@@ -29,12 +29,6 @@ pub trait JwtGuard {
     /// * `Vec<u8>` - The exponent component as a byte vector
     fn get_public_keys(&self) -> Vec<JwtPublicKey>;
 
-    /// Gets the current issuer of the contract
-    ///
-    /// # Returns
-    /// * `String` - The issuer of the contract
-    fn get_issuer(&self) -> String;
-
     /// Internal function to verify a JWT token and return its payload
     ///
     /// # Arguments
@@ -75,7 +69,7 @@ pub trait JwtGuard {
     /// * Tuple containing:
     ///   * Boolean indicating if verification succeeded
     ///   * String containing either the subject claim or error message
-    fn verify_claims(&self, jwt_payload: Vec<u8>, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
+    fn verify_claims(&self, issuer: String, jwt_payload: Vec<u8>, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
         // Parse the payload into Claims
         let claims: Claims = match serde_json::from_slice(&jwt_payload) {
             Ok(claims) => claims,
@@ -94,7 +88,7 @@ pub trait JwtGuard {
         if claims.nbf.unwrap_or(0) > now {
             return (false, "Token not yet valid".to_string());
         }
-        if claims.iss != self.get_issuer() {
+        if claims.iss != issuer {
             return (false, "Invalid issuer".to_string());
         }
 
@@ -112,7 +106,7 @@ pub trait JwtGuard {
     /// * Tuple containing:
     ///   * Boolean indicating if verification succeeded
     ///   * String containing either the subject claim or error message
-    fn internal_verify(&self, jwt: String, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
+    fn internal_verify(&self, issuer: String, jwt: String, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
         // Check JWT size limit (7KB = 7168 bytes)
         if jwt.len() > MAX_JWT_SIZE as usize {
             return (false, "JWT token exceeds maximum size limit".to_string());
@@ -125,7 +119,7 @@ pub trait JwtGuard {
             let (_, payload, _) = decode_jwt(jwt);
             let payload_bytes = decode_base64_bytes(payload);
 
-            self.verify_claims(payload_bytes, sign_payload, predecessor)
+            self.verify_claims(issuer, payload_bytes, sign_payload, predecessor)
         }
     }
 }
