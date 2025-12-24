@@ -81,7 +81,7 @@ async fn test_get_attesters() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tokio::test]
-async fn test_attest_keys_single_attester() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_attest_public_keys_single_attester() -> Result<(), Box<dyn std::error::Error>> {
     let (_sandbox, contract, _dao, attester1, _attester2) = setup_contract().await?;
     
     let public_keys = vec![
@@ -89,7 +89,7 @@ async fn test_attest_keys_single_attester() -> Result<(), Box<dyn std::error::Er
     ];
     
     let outcome = attester1
-        .call(contract.id(), "attest_keys")
+        .call(contract.id(), "attest_public_keys")
         .args_json(json!({
             "public_keys": public_keys
         }))
@@ -113,7 +113,7 @@ async fn test_attest_keys_single_attester() -> Result<(), Box<dyn std::error::Er
 }
 
 #[tokio::test]
-async fn test_attest_keys_reaches_quorum() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_attest_public_keys_reaches_quorum() -> Result<(), Box<dyn std::error::Error>> {
     let (_sandbox, contract, _dao, attester1, attester2) = setup_contract().await?;
     
     let public_keys = vec![
@@ -123,7 +123,7 @@ async fn test_attest_keys_reaches_quorum() -> Result<(), Box<dyn std::error::Err
     
     // First attester attests
     let outcome = attester1
-        .call(contract.id(), "attest_keys")
+        .call(contract.id(), "attest_public_keys")
         .args_json(json!({
             "public_keys": public_keys
         }))
@@ -133,7 +133,7 @@ async fn test_attest_keys_reaches_quorum() -> Result<(), Box<dyn std::error::Err
     
     // Second attester attests with same keys
     let outcome = attester2
-        .call(contract.id(), "attest_keys")
+        .call(contract.id(), "attest_public_keys")
         .args_json(json!({
             "public_keys": public_keys
         }))
@@ -157,7 +157,7 @@ async fn test_attest_keys_reaches_quorum() -> Result<(), Box<dyn std::error::Err
 }
 
 #[tokio::test]
-async fn test_attest_keys_different_hashes() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_attest_public_keys_different_hashes() -> Result<(), Box<dyn std::error::Error>> {
     let (_sandbox, contract, _dao, attester1, attester2) = setup_contract().await?;
     
     let public_keys1 = vec![json!({"n": [1, 2, 3], "e": [4, 5, 6]})];
@@ -165,14 +165,14 @@ async fn test_attest_keys_different_hashes() -> Result<(), Box<dyn std::error::E
     
     // First attester attests
     let _ = attester1
-        .call(contract.id(), "attest_keys")
+        .call(contract.id(), "attest_public_keys")
         .args_json(json!({"public_keys": public_keys1}))
         .transact()
         .await?;
     
     // Second attester attests with DIFFERENT keys
     let _ =attester2
-        .call(contract.id(), "attest_keys")
+        .call(contract.id(), "attest_public_keys")
         .args_json(json!({"public_keys": public_keys2}))
         .transact()
         .await?;
@@ -200,7 +200,7 @@ async fn test_attest_keys_different_hashes() -> Result<(), Box<dyn std::error::E
 }
 
 #[tokio::test]
-async fn test_attest_keys_without_role_fails() -> Result<(), Box<dyn std::error::Error>> {
+async fn test_attest_public_keys_without_role_fails() -> Result<(), Box<dyn std::error::Error>> {
     let (_sandbox, contract, _dao, _attester1, _attester2) = setup_contract().await?;
     let sandbox = near_workspaces::sandbox().await?;
     let non_attester = sandbox.dev_create_account().await?;
@@ -208,7 +208,7 @@ async fn test_attest_keys_without_role_fails() -> Result<(), Box<dyn std::error:
     let public_keys = vec![json!({"n": [1, 2, 3], "e": [4, 5, 6]})];
     
     let outcome = non_attester
-        .call(contract.id(), "attest_keys")
+        .call(contract.id(), "attest_public_keys")
         .args_json(json!({"public_keys": public_keys}))
         .transact()
         .await?;
@@ -320,7 +320,7 @@ async fn test_get_attestation() -> Result<(), Box<dyn std::error::Error>> {
     let public_keys = vec![json!({"n": [1, 2, 3], "e": [4, 5, 6]})];
     
     let _ = attester1
-        .call(contract.id(), "attest_keys")
+        .call(contract.id(), "attest_public_keys")
         .args_json(json!({"public_keys": public_keys}))
         .transact()
         .await?;
@@ -367,7 +367,7 @@ async fn test_quorum_of_one() -> Result<(), Box<dyn std::error::Error>> {
     let public_keys = vec![json!({"n": [1, 2, 3], "e": [4, 5, 6]})];
     
     let _ = attester
-        .call(contract.id(), "attest_keys")
+        .call(contract.id(), "attest_public_keys")
         .args_json(json!({"public_keys": public_keys}))
         .transact()
         .await?;

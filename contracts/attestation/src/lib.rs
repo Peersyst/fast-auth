@@ -145,7 +145,7 @@ impl AttestationContract {
     // Only accounts with Attester role can call this
     #[pause]
     #[access_control_any(roles(Role::Attester, Role::DAO))]
-    pub fn attest_keys(&mut self, public_keys: Vec<PublicKey>) {
+    pub fn attest_public_keys(&mut self, public_keys: Vec<PublicKey>) {
         require!(!public_keys.is_empty(), "Public keys cannot be empty");
         for pk in &public_keys {
             require!(!pk.n.is_empty() && !pk.e.is_empty(), "Public key components cannot be empty");
@@ -347,7 +347,7 @@ mod tests {
             e: vec![4, 5, 6],
         }];
         
-        contract.attest_keys(public_keys.clone());
+        contract.attest_public_keys(public_keys.clone());
         
         // Attestation should be stored
         assert!(contract.get_attestation(attester1.clone()).is_some());
@@ -374,7 +374,7 @@ mod tests {
         // First attester attests
         let context = get_context(attester1.clone());
         testing_env!(context.build());
-        contract.attest_keys(public_keys.clone());
+        contract.attest_public_keys(public_keys.clone());
         
         // Public keys should NOT be set yet
         assert_eq!(contract.get_public_keys().len(), 0);
@@ -382,7 +382,7 @@ mod tests {
         // Second attester attests with same keys
         let context = get_context(attester2.clone());
         testing_env!(context.build());
-        contract.attest_keys(public_keys.clone());
+        contract.attest_public_keys(public_keys.clone());
         
         // Now public keys SHOULD be set (quorum reached)
         assert_eq!(contract.get_public_keys().len(), 2);
@@ -411,12 +411,12 @@ mod tests {
         // First attester attests with keys1
         let context = get_context(attester1.clone());
         testing_env!(context.build());
-        contract.attest_keys(public_keys1);
+        contract.attest_public_keys(public_keys1);
         
         // Second attester attests with DIFFERENT keys
         let context = get_context(attester2.clone());
         testing_env!(context.build());
-        contract.attest_keys(public_keys2);
+        contract.attest_public_keys(public_keys2);
         
         // Public keys should NOT be set (different hashes)
         assert_eq!(contract.get_public_keys().len(), 0);
@@ -441,7 +441,7 @@ mod tests {
         }];
         
         // This should panic with insufficient permissions
-        contract.attest_keys(public_keys);
+        contract.attest_public_keys(public_keys);
     }
 
     #[test]
@@ -455,7 +455,7 @@ mod tests {
         
         let context = get_context(attester1.clone());
         testing_env!(context.build());
-        contract.attest_keys(public_keys);
+        contract.attest_public_keys(public_keys);
         
         // Should have attestation for attester1
         let attestation = contract.get_attestation(attester1);
@@ -548,11 +548,11 @@ mod tests {
         testing_env!(context.build());
         
         // First attestation
-        contract.attest_keys(public_keys1);
+        contract.attest_public_keys(public_keys1);
         let attestation1 = contract.get_attestation(attester1.clone()).unwrap();
         
         // Second attestation (should update)
-        contract.attest_keys(public_keys2);
+        contract.attest_public_keys(public_keys2);
         let attestation2 = contract.get_attestation(attester1.clone()).unwrap();
         
         // Hashes should be different
@@ -582,7 +582,7 @@ mod tests {
         testing_env!(context.build());
         
         // Should immediately set public keys with quorum of 1
-        contract.attest_keys(public_keys);
+        contract.attest_public_keys(public_keys);
         assert_eq!(contract.get_public_keys().len(), 1);
     }
 
