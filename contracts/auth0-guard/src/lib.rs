@@ -216,13 +216,14 @@ impl JwtGuard for Auth0Guard {
 
     /// Verifies custom claims in the JWT payload
     /// # Arguments
+    /// * `jwt` - JWT token
     /// * `jwt_payload` - Decoded JWT payload as bytes
     /// * `sign_payload` - Payload to verify against the JWT fatxn claim
     /// # Returns
     /// * Tuple containing:
     ///   * Boolean indicating if verification succeeded
     ///   * String containing either the subject claim or error message
-    fn verify_custom_claims(&self, jwt_payload: Vec<u8>, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
+    fn verify_custom_claims(&self, _jwt: String, jwt_payload: Vec<u8>, sign_payload: Vec<u8>, _predecessor: AccountId) -> (bool, String) {
         // Parse the payload into CustomClaims
         let claims: CustomClaims = match serde_json::from_slice(&jwt_payload) {
             Ok(claims) => claims,

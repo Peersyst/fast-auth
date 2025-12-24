@@ -147,26 +147,20 @@ async fn test_verify_should_pass() -> Result<(), Box<dyn std::error::Error>> {
     let (user_account, contract) = deploy_contract().await?;
     storage_deposit(&user_account, &contract).await?;
 
-    let token_payload = "eyJmYXAiOiJwZXJtaXNzaW9ucyIsImlzcyI6Imh0dHBzOi8vZGV2LWdiMWg1eXJlcGI4NWpzdHoudXMuYXV0aDAuY29tLyIsInN1YiI6Imdvb2dsZS1vYXV0aDJ8MTE1MjMxMDAyNzE0MDY3ODQ3MDI3IiwiYXVkIjpbImh0dHBzOi8vZmFzdC1hdXRoLXBvYy5jb20iLCJodHRwczovL2Rldi1nYjFoNXlyZXBiODVqc3R6LnVzLmF1dGgwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3NDQzNjU2NzAsImV4cCI6MTc0NDQ1MjA3MCwic2NvcGUiOiJvcGVuaWQgdHJhbnNhY3Rpb246c2VuZC10cmFuc2FjdGlvbiIsImF6cCI6IjdEbWhXdXVnVVZKRE5TSjRlZE5PVEZtMGM5OHhzOWhwIn0".to_string();
-    let token = format!("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.{}.bUbBnZxqfugUNv64wYt6kVmKuySbFrVO_Xlj8YrjsZk_N9fZw0-wCXfFkxVKmQUfbqqbgczqhHwPZVrC8_9COq21qwBtZCxMQOjLSRZhM0Y8CmDpugY8f5bFExoHeeXgvXWh0DCKmtU90PNKr4OxEqD25V71s8X2uiAqwClcxwIPYiIYTukK_MR7tuf9WR4ixc6eV-av5ui2XenQn_fIWITFfJfc5m_0WO3X5jWGD4JtO9dYFSJGMnYH3r5A6myHkj9vPNusTU92KXmMwhDi6U-CxYzWpY_pAfnV1Aj9BQE1Oo15ymrpaKMkqhzjMOehKS3MTomJin6pX1ujmis9TA", token_payload).to_string();
-
-    let token_payload_bytes = match base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(token_payload.as_bytes()) {
-        Ok(bytes) => bytes,
-        Err(_) => panic!("Failed to decode token payload"),
-    };
+    let token = format!("eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.eyJmYXAiOiJwZXJtaXNzaW9ucyIsImlzcyI6Imh0dHBzOi8vZGV2LWdiMWg1eXJlcGI4NWpzdHoudXMuYXV0aDAuY29tLyIsInN1YiI6Imdvb2dsZS1vYXV0aDJ8MTE1MjMxMDAyNzE0MDY3ODQ3MDI3IiwiYXVkIjpbImh0dHBzOi8vZmFzdC1hdXRoLXBvYy5jb20iLCJodHRwczovL2Rldi1nYjFoNXlyZXBiODVqc3R6LnVzLmF1dGgwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3NDQzNjU2NzAsImV4cCI6MTc0NDQ1MjA3MCwic2NvcGUiOiJvcGVuaWQgdHJhbnNhY3Rpb246c2VuZC10cmFuc2FjdGlvbiIsImF6cCI6IjdEbWhXdXVnVVZKRE5TSjRlZE5PVEZtMGM5OHhzOWhwIn0.bUbBnZxqfugUNv64wYt6kVmKuySbFrVO_Xlj8YrjsZk_N9fZw0-wCXfFkxVKmQUfbqqbgczqhHwPZVrC8_9COq21qwBtZCxMQOjLSRZhM0Y8CmDpugY8f5bFExoHeeXgvXWh0DCKmtU90PNKr4OxEqD25V71s8X2uiAqwClcxwIPYiIYTukK_MR7tuf9WR4ixc6eV-av5ui2XenQn_fIWITFfJfc5m_0WO3X5jWGD4JtO9dYFSJGMnYH3r5A6myHkj9vPNusTU92KXmMwhDi6U-CxYzWpY_pAfnV1Aj9BQE1Oo15ymrpaKMkqhzjMOehKS3MTomJin6pX1ujmis9TA").to_string();
 
     let outcome = user_account
         .call(contract.id(), "claim_oidc")
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
             "account_id": user_account.id(),
-            "oidc_token_hash": sha256(token_payload_bytes.clone())
+            "oidc_token_hash": sha256(token.clone())
         }))
         .transact()
         .await?;
 
     near_sdk::log!("outcome: {:?}", outcome);
-    near_sdk::log!("sha256: {:?}", sha256(token_payload_bytes));
+    near_sdk::log!("sha256: {:?}", sha256(token.clone()));
     assert!(outcome.is_success());
 
     let outcome = user_account
