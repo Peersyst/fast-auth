@@ -23,8 +23,7 @@ async fn test_verify_signature_should_pass() -> Result<(), Box<dyn std::error::E
         .args_json(json!({
             "owner": user_account.id(),
             "issuer": "https://dev-gb1h5yrp85jsty.us.auth0.com/",
-            "n_component": n,
-            "e_component": e
+            "public_keys": vec![json!({"n": n, "e": e})]
         }))
         .transact()
         .await?;
@@ -35,6 +34,7 @@ async fn test_verify_signature_should_pass() -> Result<(), Box<dyn std::error::E
         .call(contract.id(), "verify")
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "jwt": token,
             "sign_payload": sign_payload,
             "predecessor": user_account.id(),
@@ -70,8 +70,7 @@ async fn test_verify_signature_should_fail_invalid_pk() -> Result<(), Box<dyn st
         .args_json(json!({
             "owner": user_account.id(),
             "issuer": "https://dev-gb1h5yrp85jsty.us.auth0.com/",
-            "n_component": n,
-            "e_component": e
+            "public_keys": vec![json!({"n": n, "e": e})]
         }))
         .transact()
         .await?;
@@ -82,6 +81,7 @@ async fn test_verify_signature_should_fail_invalid_pk() -> Result<(), Box<dyn st
         .call(contract.id(), "verify")
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "jwt": token,
             "sign_payload": sign_payload,
             "predecessor": user_account.id(),
@@ -117,8 +117,7 @@ async fn test_verify_signature_should_fail_invalid_token() -> Result<(), Box<dyn
         .args_json(json!({
             "owner": user_account.id(),
             "issuer": "https://dev-gb1h5yrp85jsty.us.auth0.com/",
-            "n_component": n,
-            "e_component": e
+            "public_keys": vec![json!({"n": n, "e": e})]
         }))
         .transact()
         .await?;
@@ -129,6 +128,7 @@ async fn test_verify_signature_should_fail_invalid_token() -> Result<(), Box<dyn
         .call(contract.id(), "verify")
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "jwt": token,
             "sign_payload": sign_payload,
             "predecessor": user_account.id(),
@@ -156,8 +156,7 @@ async fn test_set_issuer_should_succeed() -> Result<(), Box<dyn std::error::Erro
         .args_json(json!({
             "owner": user_account.id(),
             "issuer": "https://old-issuer.com/",
-            "n_component": vec![1, 2, 3],
-            "e_component": vec![1, 0, 1]
+            "public_keys": vec![json!({"n": vec![183, 68, 77, 78, 175, 25, 252, 16, 216, 124, 221, 80, 120, 196, 71, 60, 217, 168, 127, 211, 193, 143, 212, 221, 57, 61, 224, 49, 146, 77, 41, 83, 74, 185, 254, 100, 120, 138, 37, 171, 214, 128, 143, 107, 242, 123, 27, 11, 186, 161, 231, 36, 239, 230, 18, 23, 244, 255, 255, 65, 242, 40, 250, 103, 235, 139, 53, 99, 79, 157, 218, 194, 243, 176, 11, 44, 126, 122, 36, 199, 226, 5, 166, 173, 251, 161, 100, 148, 19, 233, 97, 115, 206, 145, 122, 128, 11, 246, 62, 44, 131, 12, 182, 70, 33, 122, 16, 96, 118, 248, 163, 185, 204, 246, 108, 96, 214, 227, 25, 219, 46, 66, 15, 132, 109, 138, 184, 135, 104, 160, 237, 110, 124, 79, 193, 102, 202, 76, 90, 170, 147, 136, 184, 76, 84, 153, 195, 80, 186, 83, 225, 157, 87, 56, 150, 61, 48, 114, 73, 247, 217, 177, 237, 249, 121, 205, 58, 205, 78, 195, 4, 159, 50, 74, 224, 238, 224, 137, 151, 8, 248, 46, 80, 185, 9, 50, 162, 192, 195, 84, 97, 29, 64, 111, 54, 228, 219, 65, 21, 104, 154, 105, 84, 119, 148, 92, 251, 225, 201, 36, 36, 223, 157, 9, 178, 93, 235, 64, 201, 144, 56, 12, 222, 61, 236, 100, 118, 51, 51, 129, 231, 220, 16, 109, 180, 57, 192, 86, 91, 126, 162, 251, 204, 35, 79, 34, 0, 127, 134, 142, 192, 82, 222, 95, 162, 215], "e": vec![1, 0, 1]})]
         }))
         .transact()
         .await?;
@@ -202,8 +201,7 @@ async fn test_set_issuer_should_fail_non_owner() -> Result<(), Box<dyn std::erro
         .args_json(json!({
             "owner": owner_account.id(),
             "issuer": "https://old-issuer.com/",
-            "n_component": vec![1, 2, 3],
-            "e_component": vec![1, 0, 1]
+            "public_keys": vec![json!({"n": vec![183, 68, 77, 78, 175, 25, 252, 16, 216, 124, 221, 80, 120, 196, 71, 60, 217, 168, 127, 211, 193, 143, 212, 221, 57, 61, 224, 49, 146, 77, 41, 83, 74, 185, 254, 100, 120, 138, 37, 171, 214, 128, 143, 107, 242, 123, 27, 11, 186, 161, 231, 36, 239, 230, 18, 23, 244, 255, 255, 65, 242, 40, 250, 103, 235, 139, 53, 99, 79, 157, 218, 194, 243, 176, 11, 44, 126, 122, 36, 199, 226, 5, 166, 173, 251, 161, 100, 148, 19, 233, 97, 115, 206, 145, 122, 128, 11, 246, 62, 44, 131, 12, 182, 70, 33, 122, 16, 96, 118, 248, 163, 185, 204, 246, 108, 96, 214, 227, 25, 219, 46, 66, 15, 132, 109, 138, 184, 135, 104, 160, 237, 110, 124, 79, 193, 102, 202, 76, 90, 170, 147, 136, 184, 76, 84, 153, 195, 80, 186, 83, 225, 157, 87, 56, 150, 61, 48, 114, 73, 247, 217, 177, 237, 249, 121, 205, 58, 205, 78, 195, 4, 159, 50, 74, 224, 238, 224, 137, 151, 8, 248, 46, 80, 185, 9, 50, 162, 192, 195, 84, 97, 29, 64, 111, 54, 228, 219, 65, 21, 104, 154, 105, 84, 119, 148, 92, 251, 225, 201, 36, 36, 223, 157, 9, 178, 93, 235, 64, 201, 144, 56, 12, 222, 61, 236, 100, 118, 51, 51, 129, 231, 220, 16, 109, 180, 57, 192, 86, 91, 126, 162, 251, 204, 35, 79, 34, 0, 127, 134, 142, 192, 82, 222, 95, 162, 215], "e": vec![1, 0, 1]})]
         }))
         .transact()
         .await?;
@@ -249,8 +247,7 @@ async fn test_get_issuer_should_return_current_issuer() -> Result<(), Box<dyn st
         .args_json(json!({
             "owner": user_account.id(),
             "issuer": expected_issuer,
-            "n_component": vec![1, 2, 3],
-            "e_component": vec![1, 0, 1]
+            "public_keys": vec![json!({"n": vec![183, 68, 77, 78, 175, 25, 252, 16, 216, 124, 221, 80, 120, 196, 71, 60, 217, 168, 127, 211, 193, 143, 212, 221, 57, 61, 224, 49, 146, 77, 41, 83, 74, 185, 254, 100, 120, 138, 37, 171, 214, 128, 143, 107, 242, 123, 27, 11, 186, 161, 231, 36, 239, 230, 18, 23, 244, 255, 255, 65, 242, 40, 250, 103, 235, 139, 53, 99, 79, 157, 218, 194, 243, 176, 11, 44, 126, 122, 36, 199, 226, 5, 166, 173, 251, 161, 100, 148, 19, 233, 97, 115, 206, 145, 122, 128, 11, 246, 62, 44, 131, 12, 182, 70, 33, 122, 16, 96, 118, 248, 163, 185, 204, 246, 108, 96, 214, 227, 25, 219, 46, 66, 15, 132, 109, 138, 184, 135, 104, 160, 237, 110, 124, 79, 193, 102, 202, 76, 90, 170, 147, 136, 184, 76, 84, 153, 195, 80, 186, 83, 225, 157, 87, 56, 150, 61, 48, 114, 73, 247, 217, 177, 237, 249, 121, 205, 58, 205, 78, 195, 4, 159, 50, 74, 224, 238, 224, 137, 151, 8, 248, 46, 80, 185, 9, 50, 162, 192, 195, 84, 97, 29, 64, 111, 54, 228, 219, 65, 21, 104, 154, 105, 84, 119, 148, 92, 251, 225, 201, 36, 36, 223, 157, 9, 178, 93, 235, 64, 201, 144, 56, 12, 222, 61, 236, 100, 118, 51, 51, 129, 231, 220, 16, 109, 180, 57, 192, 86, 91, 126, 162, 251, 204, 35, 79, 34, 0, 127, 134, 142, 192, 82, 222, 95, 162, 215], "e": vec![1, 0, 1]})]
         }))
         .transact()
         .await?;
@@ -287,8 +284,7 @@ async fn test_set_public_key_should_pass() -> Result<(), Box<dyn std::error::Err
         .args_json(json!({
             "owner": owner_account.id(),
             "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n.clone(),
-            "e_component": e.clone()
+            "public_keys": vec![json!({"n": n.clone(), "e": e.clone()})]
         }))
         .transact()
         .await?;
@@ -302,8 +298,7 @@ async fn test_set_public_key_should_pass() -> Result<(), Box<dyn std::error::Err
     let outcome = owner_account
         .call(contract.id(), "set_public_key")
         .args_json(json!({
-            "n": new_n,
-            "e": new_e
+            "public_keys": vec![json!({"n": new_n, "e": new_e})]
         }))
         .transact()
         .await?;
@@ -312,13 +307,14 @@ async fn test_set_public_key_should_pass() -> Result<(), Box<dyn std::error::Err
 
     // Verify the public key was updated
     let outcome = owner_account
-        .call(contract.id(), "get_public_key")
+        .call(contract.id(), "get_public_keys")
         .view()
         .await?;
 
-    let result: JwtPublicKey = outcome.json()?;
-    assert_eq!(result.n, new_n);
-    assert_eq!(result.e, vec![1, 0, 1]);
+    let result: Vec<JwtPublicKey> = outcome.json()?;
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].n, new_n);
+    assert_eq!(result[0].e, vec![1, 0, 1]);
 
     Ok(())
 }
@@ -342,8 +338,7 @@ async fn test_set_public_key_should_fail_non_owner() -> Result<(), Box<dyn std::
         .args_json(json!({
             "owner": owner_account.id(),
             "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n.clone(),
-            "e_component": e.clone()
+            "public_keys": vec![json!({"n": n.clone(), "e": e.clone()})]
         }))
         .transact()
         .await?;
@@ -357,8 +352,7 @@ async fn test_set_public_key_should_fail_non_owner() -> Result<(), Box<dyn std::
     let outcome = non_owner_account
         .call(contract.id(), "set_public_key")
         .args_json(json!({
-            "n": new_n,
-            "e": new_e
+            "public_keys": vec![json!({"n": new_n, "e": new_e})]
         }))
         .transact()
         .await?;
@@ -386,8 +380,7 @@ async fn test_set_public_key_should_fail_invalid_modulus_length() -> Result<(), 
         .args_json(json!({
             "owner": owner_account.id(),
             "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n.clone(),
-            "e_component": e.clone()
+            "public_keys": vec![json!({"n": n.clone(), "e": e.clone()})]
         }))
         .transact()
         .await?;
@@ -401,10 +394,7 @@ async fn test_set_public_key_should_fail_invalid_modulus_length() -> Result<(), 
     let outcome = owner_account
         .call(contract.id(), "set_public_key")
         .args_json(json!({
-            "public_key": {
-                "n": invalid_n,
-                "e": new_e
-            }
+            "public_keys": vec![json!({"n": invalid_n, "e": new_e})]
         }))
         .transact()
         .await?;
@@ -432,8 +422,7 @@ async fn test_set_public_key_should_fail_even_modulus() -> Result<(), Box<dyn st
         .args_json(json!({
             "owner": owner_account.id(),
             "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n.clone(),
-            "e_component": e.clone()
+            "public_keys": vec![json!({"n": n.clone(), "e": e.clone()})]
         }))
         .transact()
         .await?;
@@ -448,8 +437,7 @@ async fn test_set_public_key_should_fail_even_modulus() -> Result<(), Box<dyn st
     let outcome = owner_account
         .call(contract.id(), "set_public_key")
         .args_json(json!({
-            "n": even_n,
-            "e": new_e
+            "public_keys": vec![json!({"n": even_n, "e": new_e})]
         }))
         .transact()
         .await?;
@@ -477,8 +465,7 @@ async fn test_set_public_key_should_fail_invalid_exponent() -> Result<(), Box<dy
         .args_json(json!({
             "owner": owner_account.id(),
             "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n.clone(),
-            "e_component": e.clone()
+            "public_keys": vec![json!({"n": n.clone(), "e": e.clone()})]
         }))
         .transact()
         .await?;
@@ -492,8 +479,7 @@ async fn test_set_public_key_should_fail_invalid_exponent() -> Result<(), Box<dy
     let outcome = owner_account
         .call(contract.id(), "set_public_key")
         .args_json(json!({
-            "n": new_n,
-            "e": invalid_e
+            "public_keys": vec![json!({"n": new_n, "e": invalid_e})]
         }))
         .transact()
         .await?;
@@ -521,8 +507,7 @@ async fn test_set_public_key_should_pass_with_exponent_1_0_1() -> Result<(), Box
         .args_json(json!({
             "owner": owner_account.id(),
             "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n.clone(),
-            "e_component": e.clone()
+            "public_keys": vec![json!({"n": n.clone(), "e": e.clone()})]
         }))
         .transact()
         .await?;
@@ -536,8 +521,7 @@ async fn test_set_public_key_should_pass_with_exponent_1_0_1() -> Result<(), Box
     let outcome = owner_account
         .call(contract.id(), "set_public_key")
         .args_json(json!({
-            "n": new_n.clone(),
-            "e": e_3.clone()
+            "public_keys": vec![json!({"n": new_n.clone(), "e": e_3.clone()})]
         }))
         .transact()
         .await?;
@@ -546,13 +530,14 @@ async fn test_set_public_key_should_pass_with_exponent_1_0_1() -> Result<(), Box
 
     // Verify the public key was updated correctly
     let outcome = owner_account
-        .call(contract.id(), "get_public_key")
+        .call(contract.id(), "get_public_keys")
         .view()
         .await?;
 
-    let result: JwtPublicKey = outcome.json()?;
-    assert_eq!(result.n, new_n);
-    assert_eq!(result.e, e_3);
+    let result: Vec<JwtPublicKey> = outcome.json()?;
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].n, new_n);
+    assert_eq!(result[0].e, e_3);
 
     Ok(())
 }
@@ -584,8 +569,7 @@ async fn test_verify_signature_should_fail_jwt_too_large() -> Result<(), Box<dyn
         .args_json(json!({
             "owner": user_account.id(),
             "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n,
-            "e_component": e
+            "public_keys": vec![json!({"n": n, "e": e})]
         }))
         .transact()
         .await?;
@@ -596,6 +580,7 @@ async fn test_verify_signature_should_fail_jwt_too_large() -> Result<(), Box<dyn
         .call(contract.id(), "verify")
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "jwt": large_token,
             "sign_payload": sign_payload,
             "predecessor": user_account.id(),
