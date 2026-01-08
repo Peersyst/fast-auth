@@ -212,11 +212,11 @@ impl JwtGuardRouter {
     /// * `sign_payload` - The payload to be signed by the MPC
     /// # Returns
     pub fn verify(&self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>, predecessor: AccountId) -> Promise {
-        let (_, guard_name) = self.assert_guard_name_format(guard_id);
+        let (_, guard_name) = self.assert_guard_name_format(guard_id.clone());
         let guard_account = self.get_guard(guard_name.clone());
 
         jwt_guard::ext(guard_account)
-            .verify(verify_payload, sign_payload, predecessor)
+            .verify(guard_id, verify_payload, sign_payload, predecessor)
             .then(Self::ext(env::current_account_id()).on_verify_callback(guard_name))
     }
 
