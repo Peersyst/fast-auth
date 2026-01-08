@@ -1,5 +1,5 @@
 {
-    "name": "@contracts/firebase-guard",
+    "name": "@contracts/attestation",
     "version": "0.0.0",
     "description": "",
     "scripts": {

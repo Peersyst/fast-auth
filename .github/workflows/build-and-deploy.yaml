@@ -28,8 +28,17 @@ jobs:
           target: release
           base_image: ${{ github.sha }}
 
+    build-attester:
+        needs: [build-base]
+        uses: ./.github/workflows/build-attester.yaml
+        secrets: inherit
+        with:
+          push: true
+          target: release
+          base_image: ${{ github.sha }}
+
     deploy:
-        needs: [build-relayer]
+        needs: [build-relayer, build-attester]
         uses: ./.github/workflows/deploy.yaml
         secrets: inherit
         with:
