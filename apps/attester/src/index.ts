@@ -87,12 +87,15 @@ async function main() {
     if (!shouldAttest) {
         Logger.log("main", "public keys are up to date, we don't need to attest.");
     }
-    if (apiPublicKeys) {
+    else if (apiPublicKeys) {
         Logger.log("main", "new public keys detected, doing attestation...");
         const result = await attestationService.attest(apiPublicKeys);
         Logger.log("main", `attestation done successfully ${JSON.stringify(result)}`);
     }
-    await attestationService.sync(contractPublicKeys);
+    const res = await attestationService.sync(contractPublicKeys);
+    if (res) {
+        Logger.log("main", `sync done successfully ${JSON.stringify(res)}`);
+    }
 }
 
 main();

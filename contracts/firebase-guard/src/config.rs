@@ -11,7 +11,6 @@ use super::Role;
 #[near(serializers = [json])]
 #[derive(Clone)]
 pub struct FirebaseGuardConfig {
-    pub issuer: String,
     pub public_keys: Vec<JwtPublicKey>,
     pub roles: RolesConfig,
 }

@@ -12,8 +12,8 @@ export class ContractPublicKeysService {
         private readonly nearProviderService: NearProviderService,
         private readonly nearTransactionService: NearTransactionService,
         private readonly nearSignerService: NearSignerService,
-        private readonly attestGas: bigint = 300000000000n,
-        private readonly syncGas: bigint = 300000000000n,
+        private readonly attestGas: bigint = 300000000000000n,
+        private readonly syncGas: bigint = 300000000000000n,
     ) {}
 
     /**
@@ -46,7 +46,7 @@ export class ContractPublicKeysService {
      * Get the current public keys from the guard contract.
      * @returns The current public keys.
      */
-    async syncPublicKeys(): Promise<void> {
+    async syncPublicKeys(): Promise<FinalExecutionOutcome> {
         const result = await this.nearTransactionService.signAndBroadcastTransaction({
             receiverId: this.guardContractId,
             actions: [functionCall("set_public_keys", {}, this.syncGas, 0n)],

@@ -1,10 +1,12 @@
 import { FinalExecutionOutcome } from "near-api-js/lib/providers";
 import { PublicKey } from "../types/attestation.types";
-import { publicKeysMatch } from "../utils/public-keys-match";
+import {publicKeysMatch, sortPublicKeys} from "../utils/public-keys-match";
 import { ContractPublicKeysService } from "./contract-public-keys.service";
 import { GooglePublicKeysService } from "./google-public-keys.service";
+import {LoggerService} from "./logger.service";
 
 export class AttestationService {
+    logger = new LoggerService();
     constructor(
         private readonly contractPublicKeysService: ContractPublicKeysService,
         private readonly googlePublicKeysService: GooglePublicKeysService,
@@ -15,13 +17,15 @@ export class AttestationService {
      * @returns The list of public keys.
      */
     async shouldAttest(): Promise<{ shouldAttest: boolean; contractPublicKeys: PublicKey[]; apiPublicKeys: PublicKey[] }> {
-        const apiPublicKeys = await this.googlePublicKeysService.getCurrentPublicKeys();
-        const contractPublicKeys = await this.contractPublicKeysService.getCurrentPublicKeys();
+        let apiPublicKeys = await this.googlePublicKeysService.getCurrentPublicKeys();
+        apiPublicKeys = sortPublicKeys(apiPublicKeys);
+        let contractPublicKeys = await this.contractPublicKeysService.getCurrentPublicKeys();
+        contractPublicKeys = sortPublicKeys(contractPublicKeys);
         if (publicKeysMatch(apiPublicKeys, contractPublicKeys)) return { shouldAttest: false, contractPublicKeys, apiPublicKeys };
 
         const currentAttestation = await this.contractPublicKeysService.getCurrentAttestation();
-        if (publicKeysMatch(currentAttestation.publicKeys, apiPublicKeys))
-            return { shouldAttest: false, contractPublicKeys, apiPublicKeys };
+        if (currentAttestation && publicKeysMatch(currentAttestation.public_keys, apiPublicKeys))
+            return { shouldAttest: true, contractPublicKeys, apiPublicKeys };
 
         return { shouldAttest: true, contractPublicKeys, apiPublicKeys };
     }
@@ -31,9 +35,13 @@ export class AttestationService {
      * @param publicKeys The public keys to sync.
      * @returns An empty promise.
      */
-    async sync(publicKeys: PublicKey[]): Promise<void> {
+    async sync(publicKeys: PublicKey[]): Promise<FinalExecutionOutcome | null> {
         const guardPublicKeys = await this.contractPublicKeysService.getGuardPublicKeys();
-        if (publicKeysMatch(guardPublicKeys, publicKeys)) return;
+        if (publicKeysMatch(guardPublicKeys, publicKeys)) {
+            this.logger.log("attestation-service", "guard public keys already up to date");
+            return null;
+        }
+        this.logger.log("attestation-service", "syncing guard public keys");
         return this.contractPublicKeysService.syncPublicKeys();
     }
 

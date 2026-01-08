@@ -280,6 +280,7 @@ impl FirebaseGuard {
 
 }
 
+#[near]
 impl JwtGuard for FirebaseGuard {
     /// Gets the current RSA public key components
     ///
@@ -300,6 +301,7 @@ impl JwtGuard for FirebaseGuard {
     /// * Tuple containing:
     ///   * Boolean indicating if verification succeeded
     ///   * String containing either the subject claim or error message
+    #[private]
     fn verify_custom_claims(&self, jwt: String, _jwt_payload: Vec<u8>, _sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
         // Parse the payload into CustomClaims
         let claim_hash = self.internal_unwrap_jwt_claim(&predecessor);

@@ -29,7 +29,6 @@ async fn deploy_contract() -> Result<(Account, Contract), Box<dyn std::error::Er
         .call(contract.id(), "init")
         .args_json(json!({
             "config": {
-                "issuer": "https://dev-gb1h5yrp85jsty.us.auth0.com/",
                 "public_keys": public_keys,
                 "roles": {
                     "super_admins": [user_account.id()],

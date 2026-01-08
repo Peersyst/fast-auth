@@ -4,6 +4,6 @@ export type PublicKey = {
 };
 
 export type Attestation = {
-    publicKeys: PublicKey[];
+    public_keys: PublicKey[];
     hash: string;
 };
