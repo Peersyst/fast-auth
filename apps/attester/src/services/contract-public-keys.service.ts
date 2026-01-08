@@ -8,10 +8,12 @@ import { FinalExecutionOutcome } from "near-api-js/lib/providers/provider";
 export class ContractPublicKeysService {
     constructor(
         private readonly contractId: string,
+        private readonly guardContractId: string,
         private readonly nearProviderService: NearProviderService,
         private readonly nearTransactionService: NearTransactionService,
         private readonly nearSignerService: NearSignerService,
         private readonly attestGas: bigint = 300000000000n,
+        private readonly syncGas: bigint = 300000000000n,
     ) {}
 
     /**
@@ -25,6 +27,34 @@ export class ContractPublicKeysService {
             args: {},
             finality: "final",
         });
+    }
+
+    /**
+     * Get the current public keys from the guard contract.
+     * @returns The current public keys.
+     */
+    async getGuardPublicKeys(): Promise<PublicKey[]> {
+        return this.nearProviderService.queryContract<PublicKey[], {}>({
+            contractId: this.guardContractId,
+            methodName: "get_public_keys",
+            args: {},
+            finality: "final",
+        });
+    }
+
+    /**
+     * Get the current public keys from the guard contract.
+     * @returns The current public keys.
+     */
+    async syncPublicKeys(): Promise<void> {
+        const result = await this.nearTransactionService.signAndBroadcastTransaction({
+            receiverId: this.guardContractId,
+            actions: [functionCall("set_public_keys", {}, this.syncGas, 0n)],
+        });
+        if (!this.nearTransactionService.isTransactionSuccessful(result)) {
+            throw new Error(`failed to sync ${JSON.stringify(result)}`);
+        }
+        return result;
     }
 
     /**

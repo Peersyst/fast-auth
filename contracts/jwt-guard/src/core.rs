@@ -47,8 +47,8 @@ pub trait JwtGuard {
         let signature_bytes = decode_base64_bytes(signature);
 
         let public_keys = self.get_public_keys();
-        
-        public_keys.into_iter().any(|public_key| 
+
+        public_keys.into_iter().any(|public_key|
             verify_signature_from_components(
                 data_to_verify.clone(),
                 signature_bytes.clone(),
@@ -59,7 +59,7 @@ pub trait JwtGuard {
     }
 
 
-    fn verify_custom_claims(&self, jwt_payload: Vec<u8>, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String);
+    fn verify_custom_claims(&self, jwt: String, jwt_payload: Vec<u8>, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String);
 
     /// Verifies custom claims in the JWT payload
     /// # Arguments
@@ -69,14 +69,16 @@ pub trait JwtGuard {
     /// * Tuple containing:
     ///   * Boolean indicating if verification succeeded
     ///   * String containing either the subject claim or error message
-    fn verify_claims(&self, issuer: String, jwt_payload: Vec<u8>, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
+    fn verify_claims(&self, issuer: String, jwt: String, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
+        let (_, payload, _) = decode_jwt(jwt.clone());
+        let payload_bytes = decode_base64_bytes(payload);
         // Parse the payload into Claims
-        let claims: Claims = match serde_json::from_slice(&jwt_payload) {
+        let claims: Claims = match serde_json::from_slice(&payload_bytes) {
             Ok(claims) => claims,
             Err(error) => return (false, error.to_string()),
         };
 
-        let (verified, reason) = self.verify_custom_claims(jwt_payload, sign_payload, predecessor);
+        let (verified, reason) = self.verify_custom_claims(jwt, payload_bytes, sign_payload, predecessor);
         if !verified {
             return (verified, reason)
         }
@@ -116,10 +118,7 @@ pub trait JwtGuard {
         if !valid {
             (false, "".to_string())
         } else {
-            let (_, payload, _) = decode_jwt(jwt);
-            let payload_bytes = decode_base64_bytes(payload);
-
-            self.verify_claims(issuer, payload_bytes, sign_payload, predecessor)
+            self.verify_claims(issuer, jwt, sign_payload, predecessor)
         }
     }
 }
