@@ -1,9 +1,9 @@
 import { FinalExecutionOutcome } from "near-api-js/lib/providers";
 import { PublicKey } from "../types/attestation.types";
-import {publicKeysMatch, sortPublicKeys} from "../utils/public-keys-match";
+import { publicKeysMatch, sortPublicKeys } from "../utils/public-keys-match";
 import { ContractPublicKeysService } from "./contract-public-keys.service";
 import { GooglePublicKeysService } from "./google-public-keys.service";
-import {LoggerService} from "./logger.service";
+import { LoggerService } from "./logger.service";
 
 export class AttestationService {
     logger = new LoggerService();

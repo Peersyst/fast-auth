@@ -86,8 +86,7 @@ async function main() {
     const { shouldAttest, apiPublicKeys, contractPublicKeys } = await attestationService.shouldAttest();
     if (!shouldAttest) {
         Logger.log("main", "public keys are up to date, we don't need to attest.");
-    }
-    else if (apiPublicKeys) {
+    } else if (apiPublicKeys) {
         Logger.log("main", "new public keys detected, doing attestation...");
         const result = await attestationService.attest(apiPublicKeys);
         Logger.log("main", `attestation done successfully ${JSON.stringify(result)}`);
