@@ -12,7 +12,7 @@ export class GooglePublicKeysService {
         const res = await fetch(this.certificatesUrl);
         if (res.status >= 300 && res.status < 200) throw new Error(`error fetching current public keys ${res.status} ${await res.text()}`);
 
-        const resJson = await res.json() as Record<string, string>;
+        const resJson = (await res.json()) as Record<string, string>;
 
         return Object.values(resJson).map((certificate) => parseRsaPublicKeyFromCertPem(certificate));
     }
