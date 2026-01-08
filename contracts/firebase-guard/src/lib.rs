@@ -39,17 +39,15 @@ pub enum Role {
     CodeStager,
     CodeDeployer,
     DurationManager,
-    PublicKeyManager,
 }
 
 impl Role {
     pub fn iterator() -> Iter<'static, Role> {
-        static ROLES: [Role; 5] = [
+        static ROLES: [Role; 4] = [
             Role::DAO,
             Role::CodeStager,
             Role::CodeDeployer,
             Role::DurationManager,
-            Role::PublicKeyManager,
         ];
         ROLES.iter()
     }
@@ -184,9 +182,6 @@ impl FirebaseGuard {
     /// Fetches public keys from the AttestationContract and sets them in a callback
     /// # Returns
     /// * `Promise` - A promise that resolves when the public keys are fetched and set
-    /// # Panics
-    /// Panics if the caller is not authorized (PublicKeyManager or DAO role)
-    #[access_control_any(roles(Role::PublicKeyManager, Role::DAO))]
     pub fn set_public_keys(&mut self) -> Promise {
         attestation_contract::ext(self.attestation_contract.clone())
             .with_static_gas(Gas::from_tgas(5))
