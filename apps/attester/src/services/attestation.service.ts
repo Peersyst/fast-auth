@@ -14,15 +14,27 @@ export class AttestationService {
      * Returns a list of public keys that needs to be attested.
      * @returns The list of public keys.
      */
-    async shouldAttest(): Promise<PublicKey[] | null> {
+    async shouldAttest(): Promise<{ shouldAttest: boolean; contractPublicKeys: PublicKey[]; apiPublicKeys: PublicKey[] }> {
         const apiPublicKeys = await this.googlePublicKeysService.getCurrentPublicKeys();
         const contractPublicKeys = await this.contractPublicKeysService.getCurrentPublicKeys();
-        if (publicKeysMatch(apiPublicKeys, contractPublicKeys)) return null;
+        if (publicKeysMatch(apiPublicKeys, contractPublicKeys)) return { shouldAttest: false, contractPublicKeys, apiPublicKeys };
 
         const currentAttestation = await this.contractPublicKeysService.getCurrentAttestation();
-        if (publicKeysMatch(currentAttestation.publicKeys, apiPublicKeys)) return null;
+        if (publicKeysMatch(currentAttestation.publicKeys, apiPublicKeys))
+            return { shouldAttest: false, contractPublicKeys, apiPublicKeys };
 
-        return apiPublicKeys;
+        return { shouldAttest: true, contractPublicKeys, apiPublicKeys };
+    }
+
+    /**
+     * Syncs the public keys with the guard contract.
+     * @param publicKeys The public keys to sync.
+     * @returns An empty promise.
+     */
+    async sync(publicKeys: PublicKey[]): Promise<void> {
+        const guardPublicKeys = await this.contractPublicKeysService.getGuardPublicKeys();
+        if (publicKeysMatch(guardPublicKeys, publicKeys)) return;
+        return this.contractPublicKeysService.syncPublicKeys();
     }
 
     /**

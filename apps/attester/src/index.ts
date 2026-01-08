@@ -16,6 +16,7 @@ type Config = {
     nodeUrl: string;
     googleCertificatesUrl: string;
     contractId: string;
+    guardContractId: string;
 };
 
 /**
@@ -47,12 +48,18 @@ function loadConfig(): Config {
         throw new Error("env CONTRACT_ID not found.");
     }
 
+    const guardContractId = process.env.GUARD_CONTRACT_ID;
+    if (!guardContractId) {
+        throw new Error("env GUARD_CONTRACT_ID not found.");
+    }
+
     return {
         privateKey,
         accountId,
         nodeUrl,
         googleCertificatesUrl,
         contractId,
+        guardContractId,
     };
 }
 
@@ -62,28 +69,30 @@ function loadConfig(): Config {
 async function main() {
     Logger.log("main", "loading config...");
     const config = loadConfig();
-    Logger.debug("main", `config loaded ${JSON.stringify({...config, privateKey: "***"})}`);
+    Logger.debug("main", `config loaded ${JSON.stringify({ ...config, privateKey: "***" })}`);
     const nearSignerService = new NearSignerService(config.privateKey, config.accountId);
     const nearProviderService = new NearProviderService(config.nodeUrl);
     const nearTransactionService = new NearTransactionService(nearProviderService, nearSignerService);
     const googlePublicKeysService = new GooglePublicKeysService(config.googleCertificatesUrl);
     const contractPublicKeysService = new ContractPublicKeysService(
         config.contractId,
+        config.guardContractId,
         nearProviderService,
         nearTransactionService,
         nearSignerService,
     );
     const attestationService = new AttestationService(contractPublicKeysService, googlePublicKeysService);
 
-    const publicKeys = await attestationService.shouldAttest();
-    if (!publicKeys) {
+    const { shouldAttest, apiPublicKeys, contractPublicKeys } = await attestationService.shouldAttest();
+    if (!shouldAttest) {
         Logger.log("main", "public keys are up to date, we don't need to attest.");
     }
-    if (publicKeys) {
+    if (apiPublicKeys) {
         Logger.log("main", "new public keys detected, doing attestation...");
-        const result = await attestationService.attest(publicKeys);
+        const result = await attestationService.attest(apiPublicKeys);
         Logger.log("main", `attestation done successfully ${JSON.stringify(result)}`);
     }
+    await attestationService.sync(contractPublicKeys);
 }
 
 main();
