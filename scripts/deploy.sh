@@ -111,8 +111,10 @@ near --quiet contract deploy "$AUTH0_JWT_ACCOUNT_ID" use-file contracts/auth0-gu
   with-init-call init \
   json-args '{
     "owner":"'"${OWNER}"'",
-    "n_component":'${AUTH0_N}',
-    "e_component":'${AUTH0_E}'
+    "public_keys": [{
+      "n":'${AUTH0_N}',
+      "e":'${AUTH0_E}'
+    }]
   }' \
   prepaid-gas '100 TGas' \
   attached-deposit '0 NEAR' \

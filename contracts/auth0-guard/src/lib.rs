@@ -21,7 +21,6 @@ pub struct CustomClaims {
 pub struct Auth0Guard {
     public_keys: Vec<JwtPublicKey>,
     owner: AccountId,
-    issuer: String,
 }
 
 
@@ -37,7 +36,6 @@ impl Default for Auth0Guard{
                 e: vec![],
             }],
             owner: env::current_account_id(),
-            issuer: "".to_string(),
         }
     }
 }
@@ -65,7 +63,6 @@ impl Auth0Guard {
         Self {
             public_keys,
             owner,
-            issuer,
         }
     }
 
@@ -104,7 +101,6 @@ impl Auth0Guard {
             let prev_state = env::state_read::<Self>().expect("Error: No previous state");
             Self {
                 owner: prev_state.owner,
-                issuer: prev_state.issuer,
                 public_keys: prev_state.public_keys,
             }
         } else {
@@ -151,33 +147,13 @@ impl Auth0Guard {
     /// 
     /// # Panics
     /// Panics if the caller is not the contract owner
-    pub fn set_public_key(&mut self, public_keys: Vec<JwtPublicKey>) {
+    pub fn set_public_keys(&mut self, public_keys: Vec<JwtPublicKey>) {
         self.only_owner();
 
         for public_key in public_keys.iter() {
             assert_valid_public_key(public_key.clone());
         }
         self.public_keys = public_keys;
-    }
-
-    /// Sets the issuer of the contract
-    /// 
-    /// # Arguments
-    /// * `issuer` - The issuer of the contract
-    /// 
-    /// # Panics
-    /// Panics if the caller is not the contract owner
-    pub fn set_issuer(&mut self, issuer: String) {
-        self.only_owner();
-        self.issuer = issuer;
-    }
-
-    /// Gets the current issuer of the contract
-    ///
-    /// # Returns
-    /// * `String` - The issuer of the contract
-    pub fn get_issuer(&self) -> String {
-        self.issuer.clone()
     }
 
     /// Verifies a JWT token and its custom claims
@@ -248,7 +224,6 @@ mod tests {
                 e: vec![1, 0, 1],
             }],
             owner: env::current_account_id(),
-            issuer: "https://dev-gb1h5yrepb85jstz.us.auth0.com/".to_string(),
         };
         let result = contract.verify("https://dev-gb1h5yrepb85jstz.us.auth0.com/".to_string(), "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.eyJmYXR4biI6WzE4LDAsMCwwLDEwMiw5Nyw0NSwxMDMsMTE3LDEwNSwxMDgsMTA4LDEwMSwxMDksNDYsMTE2LDEwMSwxMTUsMTE2LDExMCwxMDEsMTE2LDEsMzksMTIwLDIsNTAsNDIsMjQ3LDI0MywyMjMsMTUyLDk3LDI1MSwyOCwxNTMsMzgsMTU0LDEzMiwxODQsMTIzLDE1MiwxNTAsMjQ3LDIxNiw4Nyw1Myw3Niw0MiwxMjcsMTksMTI4LDgsMTgyLDIwOSwyNTEsMjcsMTgwLDIwLDM3LDE4NSwyNDcsMzUsNiw3MSwzMSw5NiwxMTAsNjYsMTIxLDEwNSwyMjgsMjUsMjUwLDIwNiwxODMsMTkxLDM2LDEwOSw3NSwxMDUsOTcsMjksNDAsMTQyLDgsMjQ0LDkyLDQxLDE4NiwxMjYsODYsMTExLDAsMCwyMCwwLDAsMCw5OCwxMTEsMTE1LDEwNSwxMTUsMTE2LDEwNCwxMDEsMTEwLDEwMSw5NywxMTQsNDYsMTE2LDEwMSwxMTUsMTE2LDExMCwxMDEsMTE2LDUyLDIxLDgzLDc1LDIyMCwxNzAsMTA0LDE3OSwxMzYsMjQ0LDE2OCwxMTgsMjUsOTIsMjI0LDY4LDEzMSwxNTIsMTUyLDQxLDI0NSwxOTMsMjI5LDE4Miw4LDEzNiw4NiwyMzcsMTQxLDIxNywxNTcsMTU1LDEsMCwwLDAsMywxMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMF0sImlzcyI6Imh0dHBzOi8vZGV2LWdiMWg1eXJlcGI4NWpzdHoudXMuYXV0aDAuY29tLyIsInN1YiI6Imdvb2dsZS1vYXV0aDJ8MTA1NDQ2OTI1MjM1NjMyNzc3Mzk3IiwiYXVkIjpbImh0dHBzOi8vZmFzdC1hdXRoLXBvYy5jb20iLCJodHRwczovL2Rldi1nYjFoNXlyZXBiODVqc3R6LnVzLmF1dGgwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3NDY2OTczODYsImV4cCI6MTc0Njc4Mzc4Niwic2NvcGUiOiJvcGVuaWQgdHJhbnNhY3Rpb246c2VuZC10cmFuc2FjdGlvbiIsImF6cCI6IjdEbWhXdXVnVVZKRE5TSjRlZE5PVEZtMGM5OHhzOWhwIn0.XChULVjx06hAGdBND54qFWr9KVdP95GXLc4Y8KzC9Fpj4Ky6E76ijbjE9ATVpSylKKMHrpVxjQHMoszyPbkHA759mf9x3gr5mOEkUy2WR8N35SYTZkbB77l8pA5o_zxOS9SKewBrGyZWpij0OyiM-Eqom3nwer3Aw3UPFyVB2ucpQkW-eJVrlNpKB80xhr1lCRBiHvPEnNH2Mk5Ok3x-uRzPTRq__hMjuY3F_udF4cEbeJGoWA2QGr1gTeUMKJyGvSThEk2xxq5xagXDA6FPq5DHi1Q9GxUlA3pPeb7zhNseUoGm1AdCTlqqGwgakUkuWj7I5miBjNu6qd-fQfkGXQ".to_string(), vec![18,0,0,0,102,97,45,103,117,105,108,108,101,109,46,116,101,115,116,110,101,116,1,39,120,2,50,42,247,243,223,152,97,251,28,153,38,154,132,184,123,152,150,247,216,87,53,76,42,127,19,128,8,182,209,251,27,180,20,37,185,247,35,6,71,31,96,110,66,121,105,228,25,250,206,183,191,36,109,75,105,97,29,40,142,8,244,92,41,186,126,86,111,0,0,20,0,0,0,98,111,115,105,115,116,104,101,110,101,97,114,46,116,101,115,116,110,101,116,52,21,83,75,220,170,104,179,136,244,168,118,25,92,224,68,131,152,152,41,245,193,229,182,8,136,86,237,141,217,157,155,1,0,0,0,3,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "pred".parse().unwrap());
         assert_eq!(result, (true, "google-oauth2|105446925235632777397".to_string()));
@@ -262,7 +237,6 @@ mod tests {
                 e: vec![1, 0, 1],
             }],
             owner: env::current_account_id(),
-            issuer: "https://dev-gb1h5yrepb85jstz.us.auth0.com/".to_string(),
         };
         let result = contract.verify("https://dev-gb1h5yrepb85jstz.us.auth0.com/".to_string(),"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.eyJwZXBlIjoicGVybWlzc2lvbnMiLCJpc3MiOiJodHRwczovL2Rldi1nYjFoNXlyZXBiODVqc3R6LnVzLmF1dGgwLmNvbS8iLCJzdWIiOiJnb29nbGUtb2F1dGgyfDExNTIzMTAwMjcxNDA2Nzg0NzAyNyIsImF1ZCI6WyJodHRwczovL2Zhc3QtYXV0aC1wb2MuY29tIiwiaHR0cHM6Ly9kZXYtZ2IxaDV5cmVwYjg1anN0ei51cy5hdXRoMC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNzQ0MTkwMDI5LCJleHAiOjE3NDQyNzY0MjksInNjb3BlIjoib3BlbmlkIHRyYW5zYWN0aW9uOnNlbmQtdHJhbnNhY3Rpb24iLCJhenAiOiI3RG1oV3V1Z1VWSkROU0o0ZWROT1RGbTBjOTh4czlocCJ9.oG403pM7mp_nrnzfr7KpYOm2f7DtoKgUQO3F83-UEH1OdI2oaQNa4fGsB_wePjkOBTXeL_H7-2mx7fDUhhvVvCb1sAyJsfL7y6tqTfBXY3u3l-qZdDPzFmDnzj-se5UU5N9qFM9sUQo8ZpvGbi0hF6APgO_0HQox1sverUvtnpnoJK1JxkrVd0q2njDV5ImB8XzUC9r0xh2GlRTXPOnKJYmX5H-n0i921cTUFRRB0IFSv_9dRyJUZpkfkCgmfMiTd_NVa-JWNwsTNzl-1ZTFynE8LJ4zEnTfaPRDCaucGYO5hIvfhpOg2zQf3BgXcnF3BGy3a8_iPypCpUb3f87oAQ".to_string(), vec![18,0,0,0,102,97,45,103,117,105,108,108,101,109,46,116,101,115,116,110,101,116,1,39,120,2,50,42,247,243,223,152,97,251,28,153,38,154,132,184,123,152,150,247,216,87,53,76,42,127,19,128,8,182,209,251,27,180,20,37,185,247,35,6,71,31,96,110,66,121,105,228,25,250,206,183,191,36,109,75,105,97,29,40,142,8,244,92,41,186,126,86,111,0,0,20,0,0,0,98,111,115,105,115,116,104,101,110,101,97,114,46,116,101,115,116,110,101,116,52,21,83,75,220,170,104,179,136,244,168,118,25,92,224,68,131,152,152,41,245,193,229,182,8,136,86,237,141,217,157,155,1,0,0,0,3,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "pred".parse().unwrap());
         assert_eq!(result, (false, "".to_string()));
@@ -276,7 +250,6 @@ mod tests {
                 e: vec![1, 0, 1],
             }],
             owner: env::current_account_id(),
-            issuer: "https://dev-gb1h5yrp85jsty.us.auth0.com/".to_string(),
         };
         let result = contract.verify("https://dev-gb1h5yrp85jsty.us.auth0.com/".to_string(), "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.eyJwZXBlIjoicGVybWlzc2lvbnMiLCJpc3MiOiJodHRwczovL2Rldi1nYjFoNXlyZXBiODVqc3R6LnVzLmF1dGgwLmNvbS8iLCJzdWIiOiJnb29nbGUtb2F1dGgyfDExNTIzMTAwMjcxNDA2Nzg0NzAyNyIsImF1ZCI6WyJodHRwczovL2Zhc3QtYXV0aC1wb2MuY29tIiwiaHR0cHM6Ly9kZXYtZ2IxaDV5cmVwYjg1anN0ei51cy5hdXRoMC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNzQ0MTkwMDI5LCJleHAiOjE3NDQyNzY0MjksInNjb3BlIjoib3BlbmlkIHRyYW5zYWN0aW9uOnNlbmQtdHJhbnNhY3Rpb24iLCJhenAiOiI3RG1oV3V1Z1VWSkROU0o0ZWROT1RGbTBjOTh4czlocCJ9.oG403pM7mp_nrnzfr7KpYOm2f7DtoKgUQO3F83-UEH1OdI2oaQNa4fGsB_wePjkOBTXeL_H7-2mx7fDUhhvVvCb1sAyJsfL7y6tqTfBXY3u3l-qZdDPzFmDnzj-se5UU5N9qFM9sUQo8ZpvGbi0hF6APgO_0HQox1sverUvtnpnoJK1JxkrVd0q2njDV5ImB8XzUC9r0xh2GlRTXPOnKJYmX5H-n0i921cTUFRRB0IFSv_9dRyJUZpkfkCgmfMiTd_NVa-JWNwsTNzl-1ZTFynE8LJ4zEnTfaPRDCaucGYO5hIvfhpOg2zQf3BgXcnF3BGy3a8_iPypCpUb3f87oAY".to_string(), vec![18,0,0,0,102,97,45,103,117,105,108,108,101,109,46,116,101,115,116,110,101,116,1,39,120,2,50,42,247,243,223,152,97,251,28,153,38,154,132,184,123,152,150,247,216,87,53,76,42,127,19,128,8,182,209,251,27,180,20,37,185,247,35,6,71,31,96,110,66,121,105,228,25,250,206,183,191,36,109,75,105,97,29,40,142,8,244,92,41,186,126,86,111,0,0,20,0,0,0,98,111,115,105,115,116,104,101,110,101,97,114,46,116,101,115,116,110,101,116,52,21,83,75,220,170,104,179,136,244,168,118,25,92,224,68,131,152,152,41,245,193,229,182,8,136,86,237,141,217,157,155,1,0,0,0,3,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "pred".parse().unwrap());
         assert_eq!(result, (false, "".to_string()));
@@ -290,7 +263,6 @@ mod tests {
                 e: vec![1, 0, 1],
             }],
             owner: env::current_account_id(),
-            issuer: "https://dev-gb1h5yrp85jsty.us.auth0.com/".to_string(),
         };
         let result = contract.verify("https://dev-gb1h5yrp85jsty.us.auth0.com/".to_string(), "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.eyJmYXR4biI6WzE4LDAsMCwwLDEwMiw5Nyw0NSwxMDMsMTE3LDEwNSwxMDgsMTA4LDEwMSwxMDksNDYsMTE2LDEwMSwxMTUsMTE2LDExMCwxMDEsMTE2LDEsMzksMTIwLDIsNTAsNDIsMjQ3LDI0MywyMjMsMTUyLDk3LDI1MSwyOCwxNTMsMzgsMTU0LDEzMiwxODQsMTIzLDE1MiwxNTAsMjQ3LDIxNiw4Nyw1Myw3Niw0MiwxMjcsMTksMTI4LDgsMTgyLDIwOSwyNTEsMjcsMTgwLDIwMzcsMTg1LDI0NywzNSw2LDcxLDMxLDk2LDExMCw2NiwxMjEsMTA1LDIyOCwyNSwyNTAyMDYsMTgzLDE5MSwzNiwxMDksNzUsMTA1LDk3LDI5LDQwLDE0Miw4LDI0NCw5Miw0MSwxODYsMTI2LDg2LDExMSwwLDAsMjAsMCwwLDAsOTgsMTEyLDExNSwxMDUsMTE1LDExNiwxMDQsMTAxLDExMCwxMDEsOTcsMTE0LDQ2LDExNiwxMDEsMTE1LDExNiwxMTAxMDEsMTE2LDUyLDIxLDgzLDc1LDIyMCwxNzAsMTA0LDE3OSwxMzYsMjQ0LDE2OCwxMTgsMjUsOTIsMjI0LDY4LDEzMSwxNTIsMTUyLDQxLDI0NSwxOTMsMjI5LDE4Miw4LDEzNiw4NiwyMzcsMTQxLDIxNywxNTcsMTU1LDEsMCwwLDAsMywxMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMF0sImlzcyI6Imh0dHBzOi8vZGV2LWdiMWg1eXJlcGI4NWpzdHoudXMuYXV0aDAuY29tLyIsInN1YiI6Imdvb2dsZS1vYXV0aDJ8MTA1NDQ2OTI1MjM1NjMyNzc3Mzk3IiwiYXVkIjpbImh0dHBzOi8vZmFzdC1hdXRoLXBvYy5jb20iLCJodHRwczovL2Rldi1nYjFoNXlyZXBiODVqc3R6LnVzLmF1dGgwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3NDY2OTczODYsImV4cCI6MTc0Njc4Mzc4Niwic2NvcGUiOiJvcGVuaWQgdHJhbnNhY3Rpb246c2VuZC10cmFuc2FjdGlvbiIsImF6cCI6IjdEbWhXdXVnVVZKRE5TSjRlZE5PVEZtMGM5OHhzOWhwIn0.XChULVjx06hAGdBND54qFWr9KVdP95GXLc4Y8KzC9Fpj4Ky6E76ijbjE9ATVpSylKKMHrpVxjQHMoszyPbkHA759mf9x3gr5mOEkUy2WR8N35SYTZkbB77l8pA5o_zxOS9SKewBrGyZWpij0OyiM-Eqom3nwer3Aw3UPFyVB2ucpQkW-eJVrlNpKB80xhr1lCRBiHvPEnNH2Mk5Ok3x-uRzPTRq__hMjuY3F_udF4cEbeJGoWA2QGr1gTeUMKJyGvSThEk2xxq5xagXDA6FPq5DHi1Q9GxUlA3pPeb7zhNseUoGm1AdCTlqqGwgakUkuWj7I5miBjNu6qd-fQfkGXQ".to_string(), vec![18,0,0,0,102,97,45,103,117,105,108,108,101,109,46,116,101,115,116,110,101,116,1,39,120,2,50,42,247,243,223,152,97,251,28,153,38,154,132,184,123,152,150,247,216,87,53,76,42,127,19,128,8,182,209,251,27,180,20,37,185,247,35,6,71,31,96,110,66,121,105,228,25,250,206,183,191,36,109,75,105,97,29,40,142,8,244,92,41,186,126,86,111,0,0,20,0,0,0,98,111,115,105,115,116,104,101,110,101,97,114,46,116,101,115,116,110,101,116,52,21,83,75,220,170,104,179,136,244,168,118,25,92,224,68,131,152,152,41,245,193,229,182,8,136,86,237,141,217,157,155,1,0,0,0,3,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "pred".parse().unwrap());
         assert_eq!(result, (false, "".to_string()));
@@ -315,7 +287,6 @@ mod tests {
                 e: vec![1, 0, 1],
             }],
             owner: owner.clone(),
-            issuer: "https://test.auth0.com/".to_string(),
         };
 
         // This should not panic for owner (input handling is tested in integration tests)
@@ -343,7 +314,6 @@ mod tests {
                 e: vec![1, 0, 1],
             }],
             owner: owner.clone(),
-            issuer: "https://test.auth0.com/".to_string(),
         };
 
         // This should panic because non-owner is calling
