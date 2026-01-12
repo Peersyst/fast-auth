@@ -52,7 +52,7 @@ impl Auth0Guard {
     /// # Panics
     /// Panics if the contract is already initialized
     #[init]
-    pub fn init(owner: AccountId, issuer: String, public_keys: Vec<JwtPublicKey>) -> Self {
+    pub fn init(owner: AccountId, public_keys: Vec<JwtPublicKey>) -> Self {
         if env::state_exists() {
             env::panic_str("Contract is already initialized");
         }

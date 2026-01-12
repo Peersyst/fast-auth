@@ -127,7 +127,7 @@ echo
 echo "🚧  Deploying contract to: $JWT_ACCOUNT_ID"
 near --quiet contract deploy "$JWT_ACCOUNT_ID" use-file contracts/jwt-guard-router/target/near/jwt_guard_router.wasm \
   with-init-call init \
-  json-args '{"owner":"'"${FAST_AUTH_ACCOUNT_ID}"'"}' \
+  json-args '{"owner":"'"${OWNER}"'"}' \
   prepaid-gas '100 TGas' \
   attached-deposit '0 NEAR' \
   network-config "$NETWORK" \
@@ -141,6 +141,7 @@ near --quiet contract deploy "$FAST_AUTH_ACCOUNT_ID" use-file contracts/fa/targe
   with-init-call init \
   json-args '{
     "owner":"'"${OWNER}"'",
+    "pauser":"'"${OWNER}"'",
     "init_guards":{
       "jwt": "'"${JWT_ACCOUNT_ID}"'"
     }
