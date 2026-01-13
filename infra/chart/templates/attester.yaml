@@ -47,7 +47,7 @@ spec:
                 - name: {{ $v }}
                   valueFrom:
                     secretKeyRef:
-                      name: {{ $.Values.attester.secretProviderClass.objectAlias }}
+                      name: {{ $.Values.attester.secretProviderClass.objectAlias }}-{{ $i }}
                       key: {{ $v }}
               {{ end }}
           imagePullSecrets:
