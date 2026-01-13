@@ -34,4 +34,4 @@ ENV NODE_ENV=production
 WORKDIR /app
 COPY --from=integration /artifacts/dist /app/dist
 COPY --from=integration /artifacts/node_modules /app/node_modules
-CMD [ "/app/dist" ]
+CMD [ "node", "/app/dist" ]
