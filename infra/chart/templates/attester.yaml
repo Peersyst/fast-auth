@@ -1,5 +1,5 @@
 {{- if .Values.attester.enabled }}
-{{- range $i := until .Values.attester.replicas }}
+{{- range $i := until (int .Values.attester.replicas) }}
 apiVersion: batch/v1
 kind: CronJob
 metadata:
