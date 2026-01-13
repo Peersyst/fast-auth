@@ -1,10 +1,11 @@
 [workspace]
 members = [
     "./attestation",
-    "./auth0-guard",
+    "./jwt-guards/base-jwt-guard",
+    "./jwt-guards/auth0-guard",
+    "./jwt-guards/firebase-guard",
+    "./jwt-guards/jwt-guard",
     "./fa",
-    "./firebase-guard",
-    "./jwt-guard",
     "./jwt-guard-router",
     "./mocks/external-guard",
     "./mocks/mpc",

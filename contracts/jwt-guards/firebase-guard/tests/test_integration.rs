@@ -1,9 +1,7 @@
-use near_sdk::base64;
-use near_sdk::base64::Engine;
 use near_sdk::env::sha256;
 use near_sdk::serde_json::json;
 use near_workspaces::{Account, Contract};
-use jwt_guard::JwtPublicKey;
+use base_jwt_guard::JwtPublicKey;
 
 async fn deploy_contract() -> Result<(Account, Contract), Box<dyn std::error::Error>> {
     let contract_wasm = near_workspaces::compile_project("./").await?;

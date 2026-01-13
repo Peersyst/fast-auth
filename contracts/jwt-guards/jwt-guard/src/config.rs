@@ -1,8 +1,8 @@
 use near_sdk::{near, AccountId};
 use std::collections::{HashMap, HashSet};
-use jwt_guard::{JwtPublicKey, assert_valid_public_key};
+use base_jwt_guard::{JwtPublicKey, assert_valid_public_key};
 use crate::{
-    error::FirebaseGuardError,
+    error::CustomIssuerGuardError,
     require_err,
     utils::{assert_valid_account_id},
 };
@@ -10,12 +10,12 @@ use super::Role;
 
 #[near(serializers = [json])]
 #[derive(Clone)]
-pub struct FirebaseGuardConfig {
+pub struct CustomIssuerGuardConfig {
     pub public_keys: Vec<JwtPublicKey>,
     pub roles: RolesConfig,
 }
 
-impl FirebaseGuardConfig {
+impl CustomIssuerGuardConfig {
     /// Asserts that the config is valid
     /// # Arguments
     /// * `config` - The config
@@ -48,19 +48,19 @@ impl RolesConfig {
     pub fn assert_valid(&self) {
         require_err!(
             !self.super_admins.is_empty(),
-            FirebaseGuardError::SuperAdminsMustBeNonEmpty
+            CustomIssuerGuardError::SuperAdminsMustBeNonEmpty
         );
         for super_admin in self.super_admins.iter() {
-            assert_valid_account_id(&super_admin);
+            assert_valid_account_id(super_admin);
         }
         for account_ids in self.admins.values() {
             for account_id in account_ids.iter() {
-                assert_valid_account_id(&account_id);
+                assert_valid_account_id(account_id);
             }
         }
         for account_ids in self.grantees.values() {
             for account_id in account_ids.iter() {
-                assert_valid_account_id(&account_id);
+                assert_valid_account_id(account_id);
             }
         }
     }

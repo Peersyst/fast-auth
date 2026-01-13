@@ -1,6 +1,4 @@
-use crypto_bigint::{BoxedUint, Odd};
 use near_sdk::{env, AccountId};
-use jwt_guard::JwtPublicKey;
 use crate::{error::FirebaseGuardError, require_err};
 
 /// Asserts that the account ID is valid

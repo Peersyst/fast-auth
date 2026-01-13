@@ -2,8 +2,8 @@
 use near_sdk::{near, AccountId, env, Promise, NearToken, Gas};
 use near_sdk::serde_json;
 use serde::{Deserialize, Serialize};
-use jwt_guard::{JwtGuard, JwtPublicKey};
-use jwt_guard::assert_valid_public_key;
+use base_jwt_guard::{JwtGuard, JwtPublicKey};
+use base_jwt_guard::assert_valid_public_key;
 const MIGRATION_TGAS: u64 = 10;
 
 /// Custom claims structure for FastAuth Auth0 JWT tokens

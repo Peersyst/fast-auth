@@ -377,11 +377,17 @@ importers:
 
   contracts/attestation: {}
 
-  contracts/auth0-guard: {}
-
   contracts/fa: {}
 
   contracts/jwt-guard-router: {}
+
+  contracts/jwt-guards/auth0-guard: {}
+
+  contracts/jwt-guards/base-jwt-guard: {}
+
+  contracts/jwt-guards/firebase-guard: {}
+
+  contracts/jwt-guards/jwt-guard: {}
 
   docs:
     dependencies:

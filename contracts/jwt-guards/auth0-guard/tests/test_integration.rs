@@ -1,5 +1,5 @@
 use near_sdk::serde_json::json;
-use jwt_guard::JwtPublicKey;
+use base_jwt_guard::JwtPublicKey;
 
 #[tokio::test]
 async fn test_verify_signature_should_pass() -> Result<(), Box<dyn std::error::Error>> {
@@ -304,7 +304,7 @@ async fn test_set_public_key_should_fail_even_modulus() -> Result<(), Box<dyn st
     let new_e = vec![3];
 
     let outcome = owner_account
-        .call(contract.id(), "set_public_key"s)
+        .call(contract.id(), "set_public_keys")
         .args_json(json!({
             "public_keys": vec![json!({"n": even_n, "e": new_e})]
         }))
