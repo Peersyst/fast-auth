@@ -1,5 +1,6 @@
 packages:
     - "apps/*"
+    - "contracts/attestation"
     - "contracts/auth0-guard"
     - "contracts/fa"
     - "contracts/jwt-guard-router"

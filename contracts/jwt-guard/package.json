@@ -1,0 +1,13 @@
+{
+    "name": "@contracts/jwt-guard",
+    "version": "0.0.0",
+    "description": "",
+    "scripts": {
+        "build": "cargo near build non-reproducible-wasm",
+        "test": "cargo test",
+        "lint": "cargo clippy -- -D warnings"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
+}

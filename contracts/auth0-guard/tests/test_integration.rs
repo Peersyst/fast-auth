@@ -1,4 +1,5 @@
 use near_sdk::serde_json::json;
+use jwt_guard::JwtPublicKey;
 
 #[tokio::test]
 async fn test_verify_signature_should_pass() -> Result<(), Box<dyn std::error::Error>> {
@@ -21,9 +22,7 @@ async fn test_verify_signature_should_pass() -> Result<(), Box<dyn std::error::E
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": user_account.id(),
-            "issuer": "https://dev-gb1h5yrp85jsty.us.auth0.com/",
-            "n_component": n,
-            "e_component": e
+            "public_keys": vec![json!({"n": n, "e": e})]
         }))
         .transact()
         .await?;
@@ -34,8 +33,10 @@ async fn test_verify_signature_should_pass() -> Result<(), Box<dyn std::error::E
         .call(contract.id(), "verify")
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "jwt": token,
-            "sign_payload": sign_payload
+            "sign_payload": sign_payload,
+            "predecessor": user_account.id(),
         }))
         .transact()
         .await?;
@@ -67,9 +68,7 @@ async fn test_verify_signature_should_fail_invalid_pk() -> Result<(), Box<dyn st
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": user_account.id(),
-            "issuer": "https://dev-gb1h5yrp85jsty.us.auth0.com/",
-            "n_component": n,
-            "e_component": e
+            "public_keys": vec![json!({"n": n, "e": e})]
         }))
         .transact()
         .await?;
@@ -80,8 +79,10 @@ async fn test_verify_signature_should_fail_invalid_pk() -> Result<(), Box<dyn st
         .call(contract.id(), "verify")
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "jwt": token,
-            "sign_payload": sign_payload
+            "sign_payload": sign_payload,
+            "predecessor": user_account.id(),
         }))
         .transact()
         .await?;
@@ -113,9 +114,7 @@ async fn test_verify_signature_should_fail_invalid_token() -> Result<(), Box<dyn
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": user_account.id(),
-            "issuer": "https://dev-gb1h5yrp85jsty.us.auth0.com/",
-            "n_component": n,
-            "e_component": e
+            "public_keys": vec![json!({"n": n, "e": e})]
         }))
         .transact()
         .await?;
@@ -126,141 +125,16 @@ async fn test_verify_signature_should_fail_invalid_token() -> Result<(), Box<dyn
         .call(contract.id(), "verify")
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "jwt": token,
-            "sign_payload": sign_payload
+            "sign_payload": sign_payload,
+            "predecessor": user_account.id(),
         }))
         .transact()
         .await?;
 
     near_sdk::log!("outcome: {:?}", outcome);
     assert!(outcome.is_success());
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_set_issuer_should_succeed() -> Result<(), Box<dyn std::error::Error>> {
-    let contract_wasm = near_workspaces::compile_project("./").await?;
-    let sandbox = near_workspaces::sandbox().await?;
-    let contract = sandbox.dev_deploy(&contract_wasm).await?;
-
-    let user_account = sandbox.dev_create_account().await?;
-
-    // Initialize contract
-    let outcome = user_account
-        .call(contract.id(), "init")
-        .args_json(json!({
-            "owner": user_account.id(),
-            "issuer": "https://old-issuer.com/",
-            "n_component": vec![1, 2, 3],
-            "e_component": vec![1, 0, 1]
-        }))
-        .transact()
-        .await?;
-
-    assert!(outcome.is_success());
-
-    // Set new issuer
-    let outcome = user_account
-        .call(contract.id(), "set_issuer")
-        .args_json(json!({
-            "issuer": "https://new-issuer.com/"
-        }))
-        .transact()
-        .await?;
-
-    assert!(outcome.is_success());
-
-    // Verify the issuer was updated
-    let result = user_account
-        .view(contract.id(), "get_issuer")
-        .args_json(json!({}))
-        .await?;
-
-    let issuer: String = result.json()?;
-    assert_eq!(issuer, "https://new-issuer.com/");
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_set_issuer_should_fail_non_owner() -> Result<(), Box<dyn std::error::Error>> {
-    let contract_wasm = near_workspaces::compile_project("./").await?;
-    let sandbox = near_workspaces::sandbox().await?;
-    let contract = sandbox.dev_deploy(&contract_wasm).await?;
-
-    let owner_account = sandbox.dev_create_account().await?;
-    let non_owner_account = sandbox.dev_create_account().await?;
-
-    // Initialize contract with owner
-    let outcome = owner_account
-        .call(contract.id(), "init")
-        .args_json(json!({
-            "owner": owner_account.id(),
-            "issuer": "https://old-issuer.com/",
-            "n_component": vec![1, 2, 3],
-            "e_component": vec![1, 0, 1]
-        }))
-        .transact()
-        .await?;
-
-    assert!(outcome.is_success());
-
-    // Try to set issuer with non-owner account
-    let outcome = non_owner_account
-        .call(contract.id(), "set_issuer")
-        .args_json(json!({
-            "issuer": "https://new-issuer.com/"
-        }))
-        .transact()
-        .await?;
-
-    // Should fail because non-owner cannot call set_issuer
-    assert!(!outcome.is_success());
-
-    // Verify the issuer was not changed
-    let result = owner_account
-        .view(contract.id(), "get_issuer")
-        .args_json(json!({}))
-        .await?;
-
-    let issuer: String = result.json()?;
-    assert_eq!(issuer, "https://old-issuer.com/");
-
-    Ok(())
-}
-
-#[tokio::test]
-async fn test_get_issuer_should_return_current_issuer() -> Result<(), Box<dyn std::error::Error>> {
-    let contract_wasm = near_workspaces::compile_project("./").await?;
-    let sandbox = near_workspaces::sandbox().await?;
-    let contract = sandbox.dev_deploy(&contract_wasm).await?;
-
-    let user_account = sandbox.dev_create_account().await?;
-    let expected_issuer = "https://test-issuer.com/";
-
-    // Initialize contract
-    let outcome = user_account
-        .call(contract.id(), "init")
-        .args_json(json!({
-            "owner": user_account.id(),
-            "issuer": expected_issuer,
-            "n_component": vec![1, 2, 3],
-            "e_component": vec![1, 0, 1]
-        }))
-        .transact()
-        .await?;
-
-    assert!(outcome.is_success());
-
-    // Get the issuer
-    let result = user_account
-        .view(contract.id(), "get_issuer")
-        .args_json(json!({}))
-        .await?;
-
-    let issuer: String = result.json()?;
-    assert_eq!(issuer, expected_issuer);
 
     Ok(())
 }
@@ -282,9 +156,7 @@ async fn test_set_public_key_should_pass() -> Result<(), Box<dyn std::error::Err
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": owner_account.id(),
-            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n.clone(),
-            "e_component": e.clone()
+            "public_keys": vec![json!({"n": n.clone(), "e": e.clone()})]
         }))
         .transact()
         .await?;
@@ -298,8 +170,7 @@ async fn test_set_public_key_should_pass() -> Result<(), Box<dyn std::error::Err
     let outcome = owner_account
         .call(contract.id(), "set_public_key")
         .args_json(json!({
-            "n": new_n,
-            "e": new_e
+            "public_keys": vec![json!({"n": new_n, "e": new_e})]
         }))
         .transact()
         .await?;
@@ -308,13 +179,14 @@ async fn test_set_public_key_should_pass() -> Result<(), Box<dyn std::error::Err
 
     // Verify the public key was updated
     let outcome = owner_account
-        .call(contract.id(), "get_public_key")
+        .call(contract.id(), "get_public_keys")
         .view()
         .await?;
 
-    let result: (Vec<u8>, Vec<u8>) = outcome.json()?;
-    assert_eq!(result.0, new_n);
-    assert_eq!(result.1, vec![1, 0, 1]);
+    let result: Vec<JwtPublicKey> = outcome.json()?;
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].n, new_n);
+    assert_eq!(result[0].e, vec![1, 0, 1]);
 
     Ok(())
 }
@@ -337,9 +209,7 @@ async fn test_set_public_key_should_fail_non_owner() -> Result<(), Box<dyn std::
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": owner_account.id(),
-            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n.clone(),
-            "e_component": e.clone()
+            "public_keys": vec![json!({"n": n.clone(), "e": e.clone()})]
         }))
         .transact()
         .await?;
@@ -353,8 +223,7 @@ async fn test_set_public_key_should_fail_non_owner() -> Result<(), Box<dyn std::
     let outcome = non_owner_account
         .call(contract.id(), "set_public_key")
         .args_json(json!({
-            "n": new_n,
-            "e": new_e
+            "public_keys": vec![json!({"n": new_n, "e": new_e})]
         }))
         .transact()
         .await?;
@@ -381,9 +250,7 @@ async fn test_set_public_key_should_fail_invalid_modulus_length() -> Result<(), 
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": owner_account.id(),
-            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n.clone(),
-            "e_component": e.clone()
+            "public_keys": vec![json!({"n": n.clone(), "e": e.clone()})]
         }))
         .transact()
         .await?;
@@ -395,10 +262,9 @@ async fn test_set_public_key_should_fail_invalid_modulus_length() -> Result<(), 
     let new_e = vec![3];
 
     let outcome = owner_account
-        .call(contract.id(), "set_public_key")
+        .call(contract.id(), "set_public_keys")
         .args_json(json!({
-            "n": invalid_n,
-            "e": new_e
+            "public_keys": vec![json!({"n": invalid_n, "e": new_e})]
         }))
         .transact()
         .await?;
@@ -425,9 +291,7 @@ async fn test_set_public_key_should_fail_even_modulus() -> Result<(), Box<dyn st
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": owner_account.id(),
-            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n.clone(),
-            "e_component": e.clone()
+            "public_keys": vec![json!({"n": n.clone(), "e": e.clone()})]
         }))
         .transact()
         .await?;
@@ -440,10 +304,9 @@ async fn test_set_public_key_should_fail_even_modulus() -> Result<(), Box<dyn st
     let new_e = vec![3];
 
     let outcome = owner_account
-        .call(contract.id(), "set_public_key")
+        .call(contract.id(), "set_public_key"s)
         .args_json(json!({
-            "n": even_n,
-            "e": new_e
+            "public_keys": vec![json!({"n": even_n, "e": new_e})]
         }))
         .transact()
         .await?;
@@ -470,9 +333,7 @@ async fn test_set_public_key_should_fail_invalid_exponent() -> Result<(), Box<dy
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": owner_account.id(),
-            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n.clone(),
-            "e_component": e.clone()
+            "public_keys": vec![json!({"n": n.clone(), "e": e.clone()})]
         }))
         .transact()
         .await?;
@@ -484,10 +345,9 @@ async fn test_set_public_key_should_fail_invalid_exponent() -> Result<(), Box<dy
     let invalid_e = vec![5]; // Invalid exponent
 
     let outcome = owner_account
-        .call(contract.id(), "set_public_key")
+        .call(contract.id(), "set_public_keys")
         .args_json(json!({
-            "n": new_n,
-            "e": invalid_e
+            "public_keys": vec![json!({"n": new_n, "e": invalid_e})]
         }))
         .transact()
         .await?;
@@ -514,9 +374,7 @@ async fn test_set_public_key_should_pass_with_exponent_1_0_1() -> Result<(), Box
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": owner_account.id(),
-            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n.clone(),
-            "e_component": e.clone()
+            "public_keys": vec![json!({"n": n.clone(), "e": e.clone()})]
         }))
         .transact()
         .await?;
@@ -528,10 +386,9 @@ async fn test_set_public_key_should_pass_with_exponent_1_0_1() -> Result<(), Box
     let e_3 = vec![1, 0, 1];
 
     let outcome = owner_account
-        .call(contract.id(), "set_public_key")
+        .call(contract.id(), "set_public_keys")
         .args_json(json!({
-            "n": new_n.clone(),
-            "e": e_3.clone()
+            "public_keys": vec![json!({"n": new_n.clone(), "e": e_3.clone()})]
         }))
         .transact()
         .await?;
@@ -540,13 +397,14 @@ async fn test_set_public_key_should_pass_with_exponent_1_0_1() -> Result<(), Box
 
     // Verify the public key was updated correctly
     let outcome = owner_account
-        .call(contract.id(), "get_public_key")
+        .call(contract.id(), "get_public_keys")
         .view()
         .await?;
 
-    let result: (Vec<u8>, Vec<u8>) = outcome.json()?;
-    assert_eq!(result.0, new_n);
-    assert_eq!(result.1, e_3);
+    let result: Vec<JwtPublicKey> = outcome.json()?;
+    assert_eq!(result.len(), 1);
+    assert_eq!(result[0].n, new_n);
+    assert_eq!(result[0].e, e_3);
 
     Ok(())
 }
@@ -577,9 +435,7 @@ async fn test_verify_signature_should_fail_jwt_too_large() -> Result<(), Box<dyn
         .call(contract.id(), "init")
         .args_json(json!({
             "owner": user_account.id(),
-            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
-            "n_component": n,
-            "e_component": e
+            "public_keys": vec![json!({"n": n, "e": e})]
         }))
         .transact()
         .await?;
@@ -590,8 +446,10 @@ async fn test_verify_signature_should_fail_jwt_too_large() -> Result<(), Box<dyn
         .call(contract.id(), "verify")
         .gas(near_sdk::Gas::from_tgas(300))
         .args_json(json!({
+            "issuer": "https://dev-gb1h5yrep85jstz.us.auth0.com/",
             "jwt": large_token,
-            "sign_payload": sign_payload
+            "sign_payload": sign_payload,
+            "predecessor": user_account.id(),
         }))
         .transact()
         .await?;
