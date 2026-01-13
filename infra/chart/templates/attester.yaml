@@ -3,10 +3,10 @@
 apiVersion: batch/v1
 kind: CronJob
 metadata:
-  name: {{ .Values.attester.cronjob.name }}-{{ .Values.environment }}-{{ $i }}
-  namespace: {{ .Values.namespace }}
+  name: {{ $.Values.attester.cronjob.name }}-{{ $.Values.environment }}-{{ $i }}
+  namespace: {{ $.Values.namespace }}
   labels:
-    app: {{ .Values.attester.cronjob.name }}-{{ .Values.environment }}-{{ $i }}
+    app: {{ $.Values.attester.cronjob.name }}-{{ $.Values.environment }}-{{ $i }}
 spec:
   schedule: "*/5 * * * *"
   timeZone: "Europe/Madrid"
@@ -15,9 +15,9 @@ spec:
       template:
         metadata:
           annotations:
-            timestamp: {{ .Values.timestamp }}
+            timestamp: {{ $.Values.timestamp }}
           labels:
-            app: {{ .Values.attester.cronjob.name }}-{{ .Values.environment }}-{{ $i }}
+            app: {{ $.Values.attester.cronjob.name }}-{{ $.Values.environment }}-{{ $i }}
         spec:
           serviceAccountName: peersyst-secrets-iamserviceaccount
           restartPolicy: Never
@@ -27,23 +27,23 @@ spec:
                 driver: secrets-store.csi.k8s.io
                 readOnly: true
                 volumeAttributes:
-                  secretProviderClass: attester-{{ .Values.environment }}-secrets-{{ $i }}
+                  secretProviderClass: attester-{{ $.Values.environment }}-secrets-{{ $i }}
           containers:
             - name: attester
-              image: peersyst/fast-auth-attester:{{ .Values.tagAttester }}
+              image: peersyst/fast-auth-attester:{{ $.Values.tagAttester }}
               resources:
                 requests:
-                  memory: {{ .Values.attester.cronjob.memoryRequest }}
-                  cpu: {{ .Values.attester.cronjob.cpuRequest }}
+                  memory: {{ $.Values.attester.cronjob.memoryRequest }}
+                  cpu: {{ $.Values.attester.cronjob.cpuRequest }}
                 limits:
-                  memory: {{ .Values.attester.cronjob.memoryLimit }}
-                  cpu: {{ .Values.attester.cronjob.cpuLimit }}
+                  memory: {{ $.Values.attester.cronjob.memoryLimit }}
+                  cpu: {{ $.Values.attester.cronjob.cpuLimit }}
               volumeMounts:
-                - name: {{ .Values.attester.cronjob.name }}-secrets
+                - name: {{ $.Values.attester.cronjob.name }}-secrets
                   mountPath: "/mnt/secrets"
                   readOnly: true
               env:
-              {{- range $k, $v := .Values.attester.secretProviderClass.secrets }}
+              {{- range $k, $v := $.Values.attester.secretProviderClass.secrets }}
                 - name: {{ $v }}
                   valueFrom:
                     secretKeyRef:
@@ -56,7 +56,7 @@ spec:
 apiVersion: secrets-store.csi.x-k8s.io/v1
 kind: SecretProviderClass
 metadata:
-  name: attester-{{ .Values.environment }}-secrets-{{ $i }}
+  name: attester-{{ $.Values.environment }}-secrets-{{ $i }}
   namespace: {{ $.Values.namespace }}
 spec:
   provider: aws
@@ -66,7 +66,7 @@ spec:
       - objectName: {{ $.Values.attester.secretProviderClass.objectName }}-{{ $i }}
         objectType: secretsmanager
         jmesPath:
-        {{- range $k, $v := .Values.attester.secretProviderClass.secrets }}
+        {{- range $k, $v := $.Values.attester.secretProviderClass.secrets }}
           - path: {{ $v }}
             objectAlias: {{ $k }}
         {{ end }}
@@ -74,7 +74,7 @@ spec:
     - secretName: {{ $.Values.attester.secretProviderClass.objectAlias }}-{{ $i }}
       type: Opaque
       data:
-    {{- range $k, $v := .Values.attester.secretProviderClass.secrets }}
+    {{- range $k, $v := $.Values.attester.secretProviderClass.secrets }}
         - objectName: {{ $k }}
           key: {{ $v }}
     {{ end }}
