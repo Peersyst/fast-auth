@@ -599,7 +599,7 @@ impl FastAuth {
         if call_result.is_err() {
             env::log_str("MPC signing failed");
             // Return the deposit to the caller
-            Promise::new(caller).transfer(original_deposit);
+            let _ = Promise::new(caller).transfer(original_deposit);
             return None;
         } 
 
@@ -607,7 +607,7 @@ impl FastAuth {
         env::log_str(&format!("MPC signing successful: {:?}", sign_response));
         
         // Return the refunded deposit to the original caller
-        Promise::new(caller).transfer(original_deposit);
+        let _ = Promise::new(caller).transfer(original_deposit);
         
         Some(sign_response)
     }
