@@ -96,6 +96,7 @@ jobs:
           --values values/${{ inputs.environment }}.yaml \
           --set-string timestamp="${{ env.NOW }}" \
           --set-string tagRelayer="${{ env.TAG }}" \
+          --set-string tagAttester="${{ env.TAG }}" \
           --debug
           
       # Send final Slack message if any previous step has failed
