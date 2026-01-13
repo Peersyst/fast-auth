@@ -7,11 +7,6 @@ pub enum FirebaseGuardError {
     ContractAlreadyInitialized,
     InvalidAccountId,
 
-    // PublicKey
-    InvalidPublicKeyNLength,
-    InvalidPublicKeyNOdd,
-    InvalidPublicKeyELength,
-
     // ACL
     SuperAdminsMustBeNonEmpty,
     FailedToInitializeSuperAdmin,
@@ -27,24 +22,12 @@ impl fmt::Display for FirebaseGuardError {
             ContractAlreadyInitialized => write!(f, "Contract is already initialized"),
             InvalidAccountId => write!(f, "The account ID is invalid"),
 
-            // Amount
-            InvalidPublicKeyNLength => write!(f, "The n factor of the public key must be 2048 bits"),
-            InvalidPublicKeyNOdd => write!(f, "The n factor of the public key must be odd"),
-            InvalidPublicKeyELength => write!(f, "The e factor of the public key must be 3 bytes long"),
-
             // ACL
             SuperAdminsMustBeNonEmpty => write!(f, "The super admins must be a non-empty set"),
             FailedToInitializeSuperAdmin => write!(f, "Failed to initialize super admin"),
             FailedToAddAdmin => write!(f, "Failed to add admin"),
             FailedToGrantRole => write!(f, "Failed to grant role"),
         }
-    }
-}
-
-impl FirebaseGuardError {
-    #[inline]
-    pub fn msg(&self) -> String {
-        self.to_string()
     }
 }
 

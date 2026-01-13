@@ -51,16 +51,16 @@ impl RolesConfig {
             FirebaseGuardError::SuperAdminsMustBeNonEmpty
         );
         for super_admin in self.super_admins.iter() {
-            assert_valid_account_id(&super_admin);
+            assert_valid_account_id(super_admin);
         }
         for account_ids in self.admins.values() {
             for account_id in account_ids.iter() {
-                assert_valid_account_id(&account_id);
+                assert_valid_account_id(account_id);
             }
         }
         for account_ids in self.grantees.values() {
             for account_id in account_ids.iter() {
-                assert_valid_account_id(&account_id);
+                assert_valid_account_id(account_id);
             }
         }
     }

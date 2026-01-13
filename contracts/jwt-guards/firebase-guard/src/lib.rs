@@ -6,7 +6,7 @@ use base_jwt_guard::{JwtGuard, JwtPublicKey};
 use base_jwt_guard::assert_valid_public_key;
 use near_contract_standards::storage_management::{StorageBalance, StorageBalanceBounds, StorageManagement};
 use near_sdk::json_types::{U128};
-use near_plugins::{access_control, access_control_any, AccessControlRole, AccessControllable, Pausable, Upgradable};
+use near_plugins::{access_control, access_control_any, AccessControlRole, AccessControllable, Upgradable};
 use schemars::JsonSchema;
 use crate::config::{FirebaseGuardConfig, RolesConfig};
 use crate::error::FirebaseGuardError;
@@ -116,7 +116,7 @@ impl FirebaseGuard {
 
         for super_admin in roles.super_admins.iter() {
             require_err!(
-                acl.add_super_admin_unchecked(&super_admin),
+                acl.add_super_admin_unchecked(super_admin),
                 FirebaseGuardError::FailedToInitializeSuperAdmin
             );
         }
@@ -144,7 +144,7 @@ impl FirebaseGuard {
     /// * `U128` - The current storage usage of the contract in bytes
     ///
     pub fn get_account_storage_usage(&self) -> U128 {
-        self.account_storage_usage.clone()
+        self.account_storage_usage
     }
 
     /// Claims an OIDC token by storing its hash for the caller.
@@ -330,7 +330,7 @@ impl StorageManagement for FirebaseGuard {
     fn storage_deposit(
         &mut self,
         account_id: Option<AccountId>,
-        registration_only: Option<bool>,
+        _registration_only: Option<bool>,
     ) -> StorageBalance {
         self.internal_storage_deposit(account_id)
     }
@@ -361,7 +361,7 @@ impl StorageManagement for FirebaseGuard {
     /// # Panics
     /// Panics if the account is not registered.
     #[payable]
-    fn storage_unregister(&mut self, force: Option<bool>) -> bool {
+    fn storage_unregister(&mut self, _force: Option<bool>) -> bool {
         self.internal_storage_unregister()
     }
 
