@@ -22,7 +22,7 @@ spec:
           serviceAccountName: peersyst-secrets-iamserviceaccount
           restartPolicy: Never
           volumes:
-            - name: attester-secrets-{{ $i }}
+            - name: {{ $.Values.attester.cronjob.name }}-secrets-{{ $i }}
               csi:
                 driver: secrets-store.csi.k8s.io
                 readOnly: true
@@ -39,7 +39,7 @@ spec:
                   memory: {{ $.Values.attester.cronjob.memoryLimit }}
                   cpu: {{ $.Values.attester.cronjob.cpuLimit }}
               volumeMounts:
-                - name: {{ $.Values.attester.cronjob.name }}-secrets
+                - name: {{ $.Values.attester.cronjob.name }}-secrets-{{ $i }}
                   mountPath: "/mnt/secrets"
                   readOnly: true
               env:
