@@ -216,7 +216,7 @@ impl JwtGuardRouter {
         let guard_account = self.get_guard(guard_name.clone());
 
         jwt_guard::ext(guard_account)
-            .verify(guard_id, verify_payload, sign_payload, predecessor)
+            .verify(guard_name.clone(), verify_payload, sign_payload, predecessor)
             .then(Self::ext(env::current_account_id()).on_verify_callback(guard_name))
     }
 
