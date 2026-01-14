@@ -22,15 +22,16 @@
     "@nestjs/platform-express": "^11.0.1",
     "class-transformer": "0.5.1",
     "class-validator": "0.14.0",
+    "express": "^5.2.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
   "devDependencies": {
-    "@shared/eslint": "workspace:*",
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
-    "@types/express": "^5.0.0",
+    "@shared/eslint": "workspace:*",
+    "@types/express": "^5.0.3",
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^22.10.7",
