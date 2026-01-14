@@ -171,13 +171,13 @@ impl CustomIssuerGuard {
         self.jwt_claims.get(account_id).cloned()
     }
 
-    /// Gets the JWT claim of an account
+    /// Gets the account that claimed a JWT claim by its hash
     ///
     /// # Arguments
-    /// * `account_id` - The account ID of the account for which to get the JWT claim
+    /// * `hash` - The hash of the JWT claim for which to get the account
     ///
     /// # Returns
-    /// * `Option<Vec<u8>>` - The JWT claim of the account, if it exists, or `None` otherwise
+    /// * `Option<AccountId>` - The account ID of the account that claimed the JWT claim, if it exists, or `None` otherwise
     ///
     pub fn jwt_hash_claim_of(&self, hash: &Vec<u8>) -> Option<AccountId> {
         self.jwt_hash_claims.get(hash).cloned()
