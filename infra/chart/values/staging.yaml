@@ -44,7 +44,7 @@ customIssuer:
         objectName: "fast-auth/staging/custom-issuer"
         objectAlias: fast-auth-staging-custom-issuer
         secrets:
-            keyBase64: KEY_BASE_64
+            keyBase64: KEY_BASE64
             validationPublicKeyUrl: VALIDATION_PUBLIC_KEY_URL
             validationIssuerUrl: VALIDATION_ISSUER_URL
             issuerUrl: ISSUER_URL
