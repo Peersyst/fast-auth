@@ -88,7 +88,7 @@ export class JavascriptProvider implements IFastAuthProvider {
 
         await this.client.loginWithRedirect({
             authorizationParams: {
-                imageUrl,
+                image_url: imageUrl,
                 name,
                 redirect_uri: redirectUri ?? this.options.redirectUri,
                 transaction: encodeTransaction(transaction),
@@ -106,7 +106,7 @@ export class JavascriptProvider implements IFastAuthProvider {
 
         await this.client.loginWithRedirect({
             authorizationParams: {
-                imageUrl,
+                image_url: imageUrl,
                 name,
                 redirect_uri: redirectUri ?? this.options.redirectUri,
                 delegateAction: encodeDelegateAction(delegateAction),

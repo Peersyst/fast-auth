@@ -262,7 +262,7 @@ describe("JavascriptProvider", () => {
 
             expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                 authorizationParams: {
-                    imageUrl: mockRequestOptions.imageUrl,
+                    image_url: mockRequestOptions.imageUrl,
                     name: mockRequestOptions.name,
                     redirect_uri: mockRequestOptions.redirectUri,
                     transaction: mockEncodedTransaction,
@@ -285,7 +285,7 @@ describe("JavascriptProvider", () => {
 
             expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                 authorizationParams: {
-                    imageUrl: optionsWithoutRedirectUri.imageUrl,
+                    image_url: optionsWithoutRedirectUri.imageUrl,
                     name: optionsWithoutRedirectUri.name,
                     redirect_uri: mockOptions.redirectUri,
                     transaction: mockEncodedTransaction,
@@ -335,7 +335,7 @@ describe("JavascriptProvider", () => {
 
             expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                 authorizationParams: {
-                    imageUrl: mockRequestOptions.imageUrl,
+                    image_url: mockRequestOptions.imageUrl,
                     name: mockRequestOptions.name,
                     redirect_uri: mockRequestOptions.redirectUri,
                     delegateAction: mockEncodedDelegateAction,
@@ -358,7 +358,7 @@ describe("JavascriptProvider", () => {
 
             expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                 authorizationParams: {
-                    imageUrl: optionsWithoutRedirectUri.imageUrl,
+                    image_url: optionsWithoutRedirectUri.imageUrl,
                     name: optionsWithoutRedirectUri.name,
                     redirect_uri: mockOptions.redirectUri,
                     delegateAction: mockEncodedDelegateAction,
