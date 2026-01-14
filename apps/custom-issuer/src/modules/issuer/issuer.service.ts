@@ -10,21 +10,33 @@ import { Config } from '../../config';
 @Injectable()
 export class IssuerService {
   private readonly issuerUrl: string;
+  private readonly validationIssuerUrl: string;
 
   constructor(
     private readonly keyService: KeyService,
     private readonly configService: ConfigService<Config>,
   ) {
-    // Get issuer URL from typed configuration
+    // Get issuer configuration from typed configuration
     const issuerConfig = this.configService.get<Config['issuer']>('issuer');
 
-    if (!issuerConfig || !issuerConfig.issuerUrl) {
+    if (!issuerConfig) {
+      throw new Error('Issuer configuration is missing');
+    }
+
+    if (!issuerConfig.issuerUrl) {
       throw new Error(
         'Missing issuer URL in configuration. Please set ISSUER_URL environment variable.',
       );
     }
 
+    if (!issuerConfig.validationIssuerUrl) {
+      throw new Error(
+        'Missing validation issuer URL in configuration. Please set VALIDATION_ISSUER_URL environment variable.',
+      );
+    }
+
     this.issuerUrl = issuerConfig.issuerUrl;
+    this.validationIssuerUrl = issuerConfig.validationIssuerUrl;
   }
 
   async issueToken(inputJwt: string): Promise<string> {
@@ -34,21 +46,32 @@ export class IssuerService {
   }
 
   private verifyAndDecodeToken(inputJwt: string): jwt.JwtPayload {
-    const validationPublicKey = this.keyService.getValidationPublicKey();
+    const validationPublicKeys = this.keyService.getValidationPublicKeys();
 
-    try {
-      return jwt.verify(inputJwt, validationPublicKey, {
-        algorithms: [JWT_ALGORITHM],
-      }) as jwt.JwtPayload;
-    } catch (error) {
-      throw new UnauthorizedException(ErrorMessage.INVALID_TOKEN);
+    // Try each public key until one succeeds (early exit)
+    let lastError: Error | null = null;
+    
+    for (const publicKey of validationPublicKeys) {
+      try {
+        return jwt.verify(inputJwt, publicKey, {
+          algorithms: [JWT_ALGORITHM],
+        }) as jwt.JwtPayload;
+      } catch (error) {
+        // Store the error but continue to next key
+        lastError = error instanceof Error ? error : new Error(String(error));
+        continue;
+      }
     }
+
+    // If we get here, none of the keys worked
+    throw new UnauthorizedException(ErrorMessage.INVALID_TOKEN);
   }
 
   private extractAndValidateClaims(decoded: jwt.JwtPayload): TokenClaims {
-    const { sub, exp, nbf } = decoded;
+    const { sub, exp, nbf, iss } = decoded;
 
     this.validateSubject(sub);
+    this.validateIssuer(iss);
     this.validateTimeClaims(exp, nbf);
 
     return { sub, exp, nbf };
@@ -57,6 +80,16 @@ export class IssuerService {
   private validateSubject(sub: unknown): asserts sub is string {
     if (!sub || typeof sub !== 'string') {
       throw new UnauthorizedException(ErrorMessage.MISSING_SUB);
+    }
+  }
+
+  private validateIssuer(iss: unknown): void {
+    if (!iss || typeof iss !== 'string') {
+      throw new UnauthorizedException(ErrorMessage.INVALID_ISSUER);
+    }
+
+    if (iss !== this.validationIssuerUrl) {
+      throw new UnauthorizedException(ErrorMessage.INVALID_ISSUER);
     }
   }
 

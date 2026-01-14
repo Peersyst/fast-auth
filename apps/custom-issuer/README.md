@@ -30,14 +30,14 @@ cp .env.example .env
 ```
 
 Required variables:
-- `KEY_PATH` - Path to the RSA private key for signing tokens
-- `VALIDATION_PUBLIC_KEY_PATH` - Path to the RSA public key for validating input JWTs
+- `KEY_BASE64` - Base64-encoded RSA private key for signing tokens (encode with: `cat signing-key.pem | base64`)
+- `VALIDATION_PUBLIC_KEY_URL` - Firebase URL where the validation public key can be retrieved (e.g., `https://www.googleapis.com/robot/v1/metadata/x509/{service-account-email}`)
+- `VALIDATION_ISSUER_URL` - Expected issuer URL that incoming JWTs must have in their `iss` claim (e.g., `https://securetoken.google.com/{project-id}`)
 - `ISSUER_URL` - URL of the issuer service (e.g., `http://localhost:3000`)
 
 Optional variables:
 - `PORT` - Server port (default: 3000)
 - `ALLOWED_ORIGINS` - Comma-separated CORS origins
-- `KEYS_BASE_PATH` - Base directory for key files (default: current directory)
 
 ### 4. Start the Service
 
