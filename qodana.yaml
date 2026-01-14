@@ -5,7 +5,7 @@
 version: "1.0"
 
 # Rust image scan
-image: jetbrains/qodana-rust:2025.2
+linter: jetbrains/qodana-js:2025.2
 
 profile:
   name: qodana.recommended
