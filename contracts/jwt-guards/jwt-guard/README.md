@@ -1,4 +1,4 @@
-# contracts/custom-issuer-guard
+# contracts/jwt-guard
 
 A NEAR contract that verifies JWT tokens signed with RS256 algorithm.
 

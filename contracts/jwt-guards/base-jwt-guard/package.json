@@ -3,7 +3,7 @@
     "version": "0.0.0",
     "description": "",
     "scripts": {
-        "build": "cargo build",
+        "build": "cargo near build non-reproducible-wasm",
         "test": "cargo test",
         "lint": "cargo clippy -- -D warnings"
     },
