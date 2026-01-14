@@ -13,6 +13,10 @@ metadata:
     alb.ingress.kubernetes.io/actions.api-{{ .Values.environment }}: >
       {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"relayer-{{ .Values.environment }}","servicePort":"api","weight":20}]}}
     {{- end }}
+    {{- if .Values.customIssuer.enabled }}
+    alb.ingress.kubernetes.io/actions.custom-issuer-{{ .Values.environment }}: >
+      {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"custom-issuer-{{ .Values.environment }}","servicePort":"api","weight":20}]}}
+    {{- end }}
   name: {{ .Values.namespace }}-{{ .Values.environment }}
   namespace: {{ .Values.namespace }}
 spec:
@@ -26,6 +30,15 @@ spec:
             backend:
               service:
                 name: api-{{ .Values.environment }}
+                port:
+                  name: use-annotation
+          {{- end }}
+          {{- if .Values.customIssuer.enabled }}
+          - path: /issuer
+            pathType: Prefix
+            backend:
+              service:
+                name: custom-issuer-{{ .Values.environment }}
                 port:
                   name: use-annotation
           {{- end }}

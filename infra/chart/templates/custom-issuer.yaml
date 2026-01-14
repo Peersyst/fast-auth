@@ -1,0 +1,101 @@
+{{- if .Values.customIssuer.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/port: {{ .Values.customIssuer.service.targetPort | quote }}
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/api/metrics"
+  name: custom-issuer-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+  - name: api
+    port: {{ .Values.customIssuer.service.port }}
+    targetPort: {{ .Values.customIssuer.service.targetPort }}
+  selector:
+    app: custom-issuer-{{ .Values.environment }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.customIssuer.deployment.name }}-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.customIssuer.deployment.name }}-{{ .Values.environment }}
+spec:
+  replicas: {{ .Values.customIssuer.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.customIssuer.deployment.name }}-{{ .Values.environment }}
+  template:
+    metadata:
+      annotations:
+        timestamp: {{ .Values.timestamp }}
+      labels:
+        app: {{ .Values.customIssuer.deployment.name }}-{{ .Values.environment }}
+    spec:
+      serviceAccountName: peersyst-secrets-iamserviceaccount
+      volumes:
+      - name: custom-issuer-secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: custom-issuer-{{ .Values.environment }}-secrets
+      containers:
+      - name: custom-issuer
+        image: peersyst/fast-auth-custom-issuer:{{ .Values.tagCustomIssuer }}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: {{ .Values.customIssuer.deployment.memoryRequest }}
+            cpu: {{ .Values.customIssuer.deployment.cpuRequest }}
+          limits:
+            memory: {{ .Values.customIssuer.deployment.memoryLimit }}
+            cpu: {{ .Values.customIssuer.deployment.cpuLimit }}
+        ports:
+        - containerPort: {{ .Values.customIssuer.deployment.port }}
+        volumeMounts:
+        - name: custom-issuer-secrets
+          mountPath: "/mnt/secrets"
+          readOnly: true
+        env:
+        - name: CONFIG_ENV
+          value: {{ .Values.environment }}
+        {{- range $k, $v := .Values.customIssuer.secretProviderClass.secrets }}
+        - name: {{ $v }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Values.customIssuer.secretProviderClass.objectAlias }}
+              key: {{ $v }}
+        {{ end }}
+      imagePullSecrets:
+      - name: regcred
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: custom-issuer-{{ .Values.environment }}-secrets
+  namespace: {{ $.Values.namespace }}
+spec:
+  provider: aws
+  parameters:
+    region: us-east-1
+    objects: |
+      - objectName: {{ $.Values.customIssuer.secretProviderClass.objectName }}
+        objectType: secretsmanager
+        jmesPath:
+        {{- range $k, $v := .Values.customIssuer.secretProviderClass.secrets }}
+          - path: {{ $v }}
+            objectAlias: {{ $k }}
+        {{ end }}
+  secretObjects:
+  - secretName: {{ $.Values.customIssuer.secretProviderClass.objectAlias }}
+    type: Opaque
+    data:
+    {{- range $k, $v := .Values.customIssuer.secretProviderClass.secrets }}
+    - objectName: {{ $k }}
+      key: {{ $v }}
+    {{ end }}
+{{- end }}
