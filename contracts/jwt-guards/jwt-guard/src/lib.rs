@@ -1,3 +1,4 @@
+use std::ptr::hash;
 use std::slice::Iter;
 use borsh::{BorshDeserialize};
 use near_sdk::{near, AccountId, env, NearToken, PanicOnDefault};
@@ -15,7 +16,7 @@ mod config;
 mod error;
 mod utils;
 
-const JWT_CLAIM_STORAGE: u128 = 128;
+const JWT_CLAIM_STORAGE: u128 = 256;
 
 #[near(serializers = [json])]
 #[derive(AccessControlRole, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -56,6 +57,7 @@ impl Role {
 pub struct CustomIssuerGuard {
     public_keys: Vec<JwtPublicKey>,
     jwt_claims: near_sdk::store::LookupMap<AccountId, Vec<u8>>,
+    jwt_hash_claims: near_sdk::store::LookupMap<Vec<u8>, AccountId>,
     account_storage_usage: U128,
 }
 
@@ -63,6 +65,7 @@ pub struct CustomIssuerGuard {
 #[near(serializers = [borsh])]
 pub enum Prefix {
     JwtClaims,
+    JwtHashClaims,
 }
 
 #[near(serializers = [json, borsh])]
@@ -85,6 +88,7 @@ impl CustomIssuerGuard {
         let mut this = Self {
             public_keys: config.public_keys,
             jwt_claims: near_sdk::store::LookupMap::new(Prefix::JwtClaims),
+            jwt_hash_claims: near_sdk::store::LookupMap::new(Prefix::JwtHashClaims),
             account_storage_usage: U128(JWT_CLAIM_STORAGE),
         };
         this.init_acl(config.roles);
@@ -146,8 +150,14 @@ impl CustomIssuerGuard {
     pub fn claim_oidc(&mut self, oidc_token_hash: Vec<u8>) {
         assert_eq!(oidc_token_hash.len(), 32, "OIDC token hash must be 32 bytes");
         let account_id = env::predecessor_account_id();
-        self.internal_unwrap_jwt_claim(&account_id);
-        self.jwt_claims.insert(account_id, oidc_token_hash);
+
+        assert_eq!(self.exist_jwt_hash_claim(&oidc_token_hash), false, "OIDC token hash already claimed");
+
+        let hash = self.internal_unwrap_jwt_claim(&account_id);
+        self.jwt_hash_claims.remove(&hash.clone());
+
+        self.jwt_claims.insert(account_id.clone(), oidc_token_hash.clone());
+        self.jwt_hash_claims.insert(oidc_token_hash, account_id);
     }
 
     /// Gets the JWT claim of an account
@@ -160,6 +170,18 @@ impl CustomIssuerGuard {
     ///
     pub fn jwt_claim_of(&self, account_id: &AccountId) -> Option<Vec<u8>> {
         self.jwt_claims.get(account_id).cloned()
+    }
+
+    /// Gets the JWT claim of an account
+    ///
+    /// # Arguments
+    /// * `account_id` - The account ID of the account for which to get the JWT claim
+    ///
+    /// # Returns
+    /// * `Option<Vec<u8>>` - The JWT claim of the account, if it exists, or `None` otherwise
+    ///
+    pub fn jwt_hash_claim_of(&self, hash: &Vec<u8>) -> Option<AccountId> {
+        self.jwt_hash_claims.get(hash).cloned()
     }
 
     /// Updates the public keys used for JWT verification
@@ -188,6 +210,20 @@ impl CustomIssuerGuard {
             None => {
                 env::panic_str(format!("The account {} is not registered", &account_id).as_str())
             }
+        }
+    }
+
+    ///
+    /// # Arguments
+    /// * `hash` - The hash of the jwt claim to check for
+    ///
+    /// # Returns
+    /// * `bool` - True if jwt hash claim exists, false otherwise
+    ///
+    fn exist_jwt_hash_claim(&self, hash: &Vec<u8>) -> bool {
+        match self.jwt_hash_claims.get(hash) {
+            Some(_) => true,
+            None => false
         }
     }
 
