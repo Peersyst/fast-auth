@@ -1,4 +1,3 @@
-use std::ptr::hash;
 use std::slice::Iter;
 use borsh::{BorshDeserialize};
 use near_sdk::{near, AccountId, env, NearToken, PanicOnDefault};
@@ -151,7 +150,7 @@ impl CustomIssuerGuard {
         assert_eq!(oidc_token_hash.len(), 32, "OIDC token hash must be 32 bytes");
         let account_id = env::predecessor_account_id();
 
-        assert_eq!(self.exist_jwt_hash_claim(&oidc_token_hash), false, "OIDC token hash already claimed");
+        assert!(!self.exist_jwt_hash_claim(&oidc_token_hash), "OIDC token hash already claimed");
 
         let hash = self.internal_unwrap_jwt_claim(&account_id);
         self.jwt_hash_claims.remove(&hash.clone());
@@ -221,10 +220,7 @@ impl CustomIssuerGuard {
     /// * `bool` - True if jwt hash claim exists, false otherwise
     ///
     fn exist_jwt_hash_claim(&self, hash: &Vec<u8>) -> bool {
-        match self.jwt_hash_claims.get(hash) {
-            Some(_) => true,
-            None => false
-        }
+        self.jwt_hash_claims.get(hash).is_some()
     }
 
     /// Verifies a JWT token and its custom claims
