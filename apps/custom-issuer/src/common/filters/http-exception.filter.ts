@@ -110,7 +110,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
                     exception: exception instanceof Error ? exception.stack : String(exception),
                 });
             } else {
-                this.logger.warn("Request failed", errorDetails);
+                this.logger.warn("Request failed", errorDetails.error);
             }
         }
 
