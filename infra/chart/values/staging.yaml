@@ -27,6 +27,29 @@ relayer:
             nearGuardId: NEAR_GUARD_ID
             nearIssuer: NEAR_ISSUER
 
+customIssuer:
+    enabled: true
+    service:
+        port: 3000
+        targetPort: 3000
+    deployment:
+        name: custom-issuer
+        replicas: 1
+        port: 3000
+        memoryRequest: 256Mi
+        cpuRequest: 100m
+        memoryLimit: 256Mi
+        cpuLimit: 100m
+    secretProviderClass:
+        objectName: "fast-auth/staging/custom-issuer"
+        objectAlias: fast-auth-staging-custom-issuer
+        secrets:
+            keyBase64: KEY_BASE_64
+            validationPublicKeyUrl: VALIDATION_PUBLIC_KEY_URL
+            validationIssuerUrl: VALIDATION_ISSUER_URL
+            issuerUrl: ISSUER_URL
+            allowedOrigins: ALLOWED_ORIGINS
+
 attester:
     enabled: true
     replicas: 2

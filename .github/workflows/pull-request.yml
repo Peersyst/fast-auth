@@ -34,3 +34,12 @@ jobs:
             target: integration
             push: false
             base_image: ${{ github.sha }}
+
+    build-custom-issuer:
+        needs: [build-base]
+        uses: ./.github/workflows/build-custom-issuer.yaml
+        secrets: inherit
+        with:
+            target: integration
+            push: false
+            base_image: ${{ github.sha }}

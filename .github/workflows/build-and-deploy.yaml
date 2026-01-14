@@ -37,8 +37,17 @@ jobs:
           target: release
           base_image: ${{ github.sha }}
 
+    build-custom-issuer:
+        needs: [build-base]
+        uses: ./.github/workflows/build-custom-issuer.yaml
+        secrets: inherit
+        with:
+          push: true
+          target: release
+          base_image: ${{ github.sha }}
+
     deploy:
-        needs: [build-relayer, build-attester]
+        needs: [build-relayer, build-attester, build-custom-issuer]
         uses: ./.github/workflows/deploy.yaml
         secrets: inherit
         with:
