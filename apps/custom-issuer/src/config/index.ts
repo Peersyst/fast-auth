@@ -1,11 +1,11 @@
-import issuerConfig, { IssuerConfig } from './issuer.config';
+import issuerConfig, { IssuerConfig } from "./issuer.config";
 
 export type Config = {
-  issuer: IssuerConfig;
+    issuer: IssuerConfig;
 };
 
 export default (): Config => {
-  return {
-    issuer: issuerConfig(),
-  };
+    return {
+        issuer: issuerConfig(),
+    };
 };

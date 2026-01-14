@@ -6,5 +6,6 @@ module.exports = {
         "jsdoc/require-param": "off",
         "jsdoc/require-returns": "off",
         "jsdoc/match-description": "off",
-    }
+        "no-console": "off",
+    },
 };
