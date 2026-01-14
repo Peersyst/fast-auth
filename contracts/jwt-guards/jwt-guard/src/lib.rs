@@ -1,34 +1,19 @@
 use std::slice::Iter;
 use borsh::{BorshDeserialize};
-use near_sdk::{near, AccountId, env, NearToken, PanicOnDefault, Promise, Gas, ext_contract};
+use near_sdk::{near, AccountId, env, NearToken, PanicOnDefault};
 use near_sdk::env::sha256;
-use jwt_guard::{JwtGuard, JwtPublicKey};
-use jwt_guard::assert_valid_public_key;
+use base_jwt_guard::{JwtGuard, JwtPublicKey};
+use base_jwt_guard::assert_valid_public_key;
 use near_contract_standards::storage_management::{StorageBalance, StorageBalanceBounds, StorageManagement};
 use near_sdk::json_types::{U128};
-use near_plugins::{access_control, access_control_any, AccessControlRole, AccessControllable, Pausable, Upgradable};
-use schemars::JsonSchema;
-use crate::config::{FirebaseGuardConfig, RolesConfig};
-use crate::error::FirebaseGuardError;
+use near_plugins::{access_control, access_control_any, AccessControlRole, AccessControllable, Upgradable};
+use crate::config::{CustomIssuerGuardConfig, RolesConfig};
+use crate::error::CustomIssuerGuardError;
 
 mod storage_impl;
 mod config;
 mod error;
 mod utils;
-
-// External contract interface for AttestationContract
-#[ext_contract(attestation_contract)]
-pub trait AttestationContract {
-    fn get_public_keys(&self) -> Vec<AttestationPublicKey>;
-}
-
-// PublicKey structure from AttestationContract
-#[derive(near_sdk::serde::Deserialize, near_sdk::serde::Serialize, JsonSchema)]
-#[serde(crate = "near_sdk::serde")]
-pub struct AttestationPublicKey {
-    pub n: Vec<u8>,
-    pub e: Vec<u8>,
-}
 
 const JWT_CLAIM_STORAGE: u128 = 128;
 
@@ -68,11 +53,10 @@ impl Role {
     duration_update_appliers(Role::DurationManager, Role::DAO),
 ))]
 #[near(contract_state)]
-pub struct FirebaseGuard {
+pub struct CustomIssuerGuard {
     public_keys: Vec<JwtPublicKey>,
     jwt_claims: near_sdk::store::LookupMap<AccountId, Vec<u8>>,
     account_storage_usage: U128,
-    attestation_contract: AccountId,
 }
 
 #[derive(near_sdk::BorshStorageKey)]
@@ -82,7 +66,7 @@ pub enum Prefix {
 }
 
 #[near(serializers = [json, borsh])]
-impl FirebaseGuard {
+impl CustomIssuerGuard {
     /// Initializes the contract with an owner and RSA public key components
     ///
     /// # Arguments
@@ -92,17 +76,16 @@ impl FirebaseGuard {
     /// # Panics
     /// Panics if the contract is already initialized
     #[init]
-    pub fn init(config: FirebaseGuardConfig, attestation_contract: AccountId) -> Self {
+    pub fn init(config: CustomIssuerGuardConfig) -> Self {
         require_err!(
             !env::state_exists(),
-            FirebaseGuardError::ContractAlreadyInitialized
+            CustomIssuerGuardError::ContractAlreadyInitialized
         );
         config.assert_valid();
         let mut this = Self {
             public_keys: config.public_keys,
             jwt_claims: near_sdk::store::LookupMap::new(Prefix::JwtClaims),
             account_storage_usage: U128(JWT_CLAIM_STORAGE),
-            attestation_contract,
         };
         this.init_acl(config.roles);
         this
@@ -116,15 +99,15 @@ impl FirebaseGuard {
 
         for super_admin in roles.super_admins.iter() {
             require_err!(
-                acl.add_super_admin_unchecked(&super_admin),
-                FirebaseGuardError::FailedToInitializeSuperAdmin
+                acl.add_super_admin_unchecked(super_admin),
+                CustomIssuerGuardError::FailedToInitializeSuperAdmin
             );
         }
         for (role, account_ids) in roles.admins.into_iter() {
             for account_id in account_ids {
                 require_err!(
                     acl.add_admin_unchecked(role, &account_id),
-                    FirebaseGuardError::FailedToAddAdmin
+                    CustomIssuerGuardError::FailedToAddAdmin
                 );
             }
         }
@@ -132,7 +115,7 @@ impl FirebaseGuard {
             for account_id in account_ids {
                 require_err!(
                     acl.grant_role_unchecked(role, &account_id),
-                    FirebaseGuardError::FailedToGrantRole
+                    CustomIssuerGuardError::FailedToGrantRole
                 );
             }
         }
@@ -144,7 +127,7 @@ impl FirebaseGuard {
     /// * `U128` - The current storage usage of the contract in bytes
     ///
     pub fn get_account_storage_usage(&self) -> U128 {
-        self.account_storage_usage.clone()
+        self.account_storage_usage
     }
 
     /// Claims an OIDC token by storing its hash for the caller.
@@ -179,72 +162,16 @@ impl FirebaseGuard {
         self.jwt_claims.get(account_id).cloned()
     }
 
-    /// Fetches public keys from the AttestationContract and sets them in a callback
-    /// # Returns
-    /// * `Promise` - A promise that resolves when the public keys are fetched and set
-    pub fn set_public_keys(&mut self) -> Promise {
-        attestation_contract::ext(self.attestation_contract.clone())
-            .with_static_gas(Gas::from_tgas(5))
-            .get_public_keys()
-            .then(
-                Self::ext(env::current_account_id())
-                    .with_static_gas(Gas::from_tgas(5))
-                    .on_set_public_keys_callback()
-            )
-    }
-
-    /// Callback to handle the public keys fetched from AttestationContract
+    /// Updates the public keys used for JWT verification
     /// # Arguments
-    /// * `public_keys` - The public keys fetched from the AttestationContract
-    /// # Panics
-    /// Panics if the callback result is an error or if public key validation fails
-    #[private]
-    pub fn on_set_public_keys_callback(
-        &mut self,
-        #[callback_result] public_keys_result: Result<Vec<AttestationPublicKey>, near_sdk::PromiseError>,
-    ) {
-        match public_keys_result {
-            Ok(attestation_keys) => {
-                // Convert AttestationPublicKey to JwtPublicKey
-                let jwt_public_keys: Vec<JwtPublicKey> = attestation_keys
-                    .into_iter()
-                    .map(|key| JwtPublicKey {
-                        n: key.n,
-                        e: key.e,
-                    })
-                    .collect();
-
-                // Validate all public keys
-                for public_key in jwt_public_keys.iter() {
-                    assert_valid_public_key(public_key.clone());
-                }
-
-                // Set the public keys
-                self.public_keys = jwt_public_keys;
-                env::log_str("Public keys successfully updated from AttestationContract");
-            }
-            Err(e) => {
-                env::panic_str(&format!("Failed to fetch public keys from AttestationContract: {:?}", e));
-            }
-        }
-    }
-
-    /// Sets the attestation contract address
-    /// # Arguments
-    /// * `attestation_contract` - The new attestation contract account ID
-    /// # Panics
-    /// Panics if the caller is not authorized (DAO role)
+    /// * `public_keys` - The new RSA public key components to use for verification
+    ///
     #[access_control_any(roles(Role::DAO))]
-    pub fn set_attestation_contract(&mut self, attestation_contract: AccountId) {
-        self.attestation_contract = attestation_contract;
-        env::log_str("Attestation contract address updated");
-    }
-
-    /// Gets the current attestation contract address
-    /// # Returns
-    /// * `AccountId` - The current attestation contract account ID
-    pub fn get_attestation_contract(&self) -> AccountId {
-        self.attestation_contract.clone()
+    pub fn set_public_keys(&mut self, public_keys: Vec<JwtPublicKey>) {
+        for public_key in public_keys.iter() {
+            assert_valid_public_key(public_key.clone());
+        }
+        self.public_keys = public_keys;
     }
 
     /// Unwraps the JWT claim of an account
@@ -281,7 +208,7 @@ impl FirebaseGuard {
 }
 
 #[near]
-impl JwtGuard for FirebaseGuard {
+impl JwtGuard for CustomIssuerGuard {
     /// Gets the current RSA public key components
     ///
     /// # Returns
@@ -315,7 +242,7 @@ impl JwtGuard for FirebaseGuard {
 
 
 #[near]
-impl StorageManagement for FirebaseGuard {
+impl StorageManagement for CustomIssuerGuard {
     /// Registers an account with the contract.
     ///
     /// This method allows the caller to register an account with the contract. The account must be
@@ -330,7 +257,7 @@ impl StorageManagement for FirebaseGuard {
     fn storage_deposit(
         &mut self,
         account_id: Option<AccountId>,
-        registration_only: Option<bool>,
+        _registration_only: Option<bool>,
     ) -> StorageBalance {
         self.internal_storage_deposit(account_id)
     }
@@ -361,7 +288,7 @@ impl StorageManagement for FirebaseGuard {
     /// # Panics
     /// Panics if the account is not registered.
     #[payable]
-    fn storage_unregister(&mut self, force: Option<bool>) -> bool {
+    fn storage_unregister(&mut self, _force: Option<bool>) -> bool {
         self.internal_storage_unregister()
     }
 

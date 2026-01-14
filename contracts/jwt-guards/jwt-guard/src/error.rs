@@ -1,16 +1,11 @@
 use std::fmt;
 
-/// Typed errors for Staking Distributor
+/// Typed errors for CustomIssuerGuard
 #[derive(Debug)]
-pub enum FirebaseGuardError {
+pub enum CustomIssuerGuardError {
     // Generic
     ContractAlreadyInitialized,
     InvalidAccountId,
-
-    // PublicKey
-    InvalidPublicKeyNLength,
-    InvalidPublicKeyNOdd,
-    InvalidPublicKeyELength,
 
     // ACL
     SuperAdminsMustBeNonEmpty,
@@ -19,18 +14,13 @@ pub enum FirebaseGuardError {
     FailedToGrantRole,
 }
 
-impl fmt::Display for FirebaseGuardError {
+impl fmt::Display for CustomIssuerGuardError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use FirebaseGuardError::*;
+        use CustomIssuerGuardError::*;
         match self {
             // Generic
             ContractAlreadyInitialized => write!(f, "Contract is already initialized"),
             InvalidAccountId => write!(f, "The account ID is invalid"),
-
-            // Amount
-            InvalidPublicKeyNLength => write!(f, "The n factor of the public key must be 2048 bits"),
-            InvalidPublicKeyNOdd => write!(f, "The n factor of the public key must be odd"),
-            InvalidPublicKeyELength => write!(f, "The e factor of the public key must be 3 bytes long"),
 
             // ACL
             SuperAdminsMustBeNonEmpty => write!(f, "The super admins must be a non-empty set"),
@@ -38,13 +28,6 @@ impl fmt::Display for FirebaseGuardError {
             FailedToAddAdmin => write!(f, "Failed to add admin"),
             FailedToGrantRole => write!(f, "Failed to grant role"),
         }
-    }
-}
-
-impl FirebaseGuardError {
-    #[inline]
-    pub fn msg(&self) -> String {
-        self.to_string()
     }
 }
 

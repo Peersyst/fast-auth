@@ -1,6 +1,6 @@
 use crate::{FirebaseGuard};
-use near_contract_standards::storage_management::{StorageBalance, StorageBalanceBounds, StorageManagement};
-use near_sdk::{assert_one_yocto, env, log, near, AccountId, NearToken, Promise, StorageUsage};
+use near_contract_standards::storage_management::{StorageBalance, StorageBalanceBounds};
+use near_sdk::{assert_one_yocto, env, log, AccountId, NearToken, Promise};
 
 impl FirebaseGuard {
     /// Internal method that returns the Account ID and the balance in case the account was
@@ -12,7 +12,7 @@ impl FirebaseGuard {
         let account_id = env::predecessor_account_id();
         if let Some(_jwt_hash) = self.jwt_claims.get(&account_id) {
             self.jwt_claims.remove(&account_id);
-            Promise::new(account_id.clone()).transfer(
+            let _ = Promise::new(account_id.clone()).transfer(
                 self.internal_storage_balance_bounds().min.saturating_add(NearToken::from_yoctonear(1)),
             );
             true
@@ -51,7 +51,7 @@ impl FirebaseGuard {
         if self.jwt_claims.contains_key(&account_id) {
             log!("The account is already registered, refunding the deposit");
             if amount > NearToken::from_near(0) {
-                Promise::new(env::predecessor_account_id()).transfer(amount);
+                let _ = Promise::new(env::predecessor_account_id()).transfer(amount);
             }
         } else {
             let min_balance = self.internal_storage_balance_bounds().min;
@@ -62,7 +62,7 @@ impl FirebaseGuard {
             self.internal_register_account(&account_id);
             let refund = amount.saturating_sub(min_balance);
             if refund > NearToken::from_near(0) {
-                Promise::new(env::predecessor_account_id()).transfer(refund);
+                let _ = Promise::new(env::predecessor_account_id()).transfer(refund);
             }
         }
         self.internal_storage_balance_of(&account_id).unwrap()
