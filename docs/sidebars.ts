@@ -99,21 +99,8 @@ const sidebars: SidebarsConfig = {
         "sdk/react/providers",
         "sdk/react/signer",
     ],
-    integrationsSidebar: [
-        "integrations/overview",
-        {
-            type: "html",
-            value: "Guides",
-            className: "sidebar-label",
-        },
-        "integrations/auth0",
-        "integrations/custom-backend",
-        {
-            type: "html",
-            value: "Examples",
-            className: "sidebar-label",
-        },
-        "integrations/custom-backend-express",
+    guidesSidebar: [
+        "guides/integrate-with-your-dapp",
     ],
     javascriptProviderSidebar: [
         {

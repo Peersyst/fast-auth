@@ -78,9 +78,9 @@ const config: Config = {
                 },
                 {
                     type: "docSidebar",
-                    sidebarId: "integrationsSidebar",
+                    sidebarId: "guidesSidebar",
                     position: "left",
-                    label: "Integrations",
+                    label: "Guides",
                 },
                 {
                     type: "dropdown",
