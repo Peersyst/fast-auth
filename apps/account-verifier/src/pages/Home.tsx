@@ -5,11 +5,12 @@ import { useFastAuthWorkflow } from "../hooks/use-fast-auth-workflow";
 import { useAccessKeys } from "../hooks/use-access-keys";
 
 const Home: React.FC = () => {
-    const { error: fastAuthError, client, isClientInitialized, network, setNetwork } = useFastAuth();
-    const { loggedIn, publicKey } = useFastAuthWorkflow();
+    const { error: fastAuthError, client, isClientInitialized, network, setNetwork, provider, setProvider } = useFastAuth();
+    const { loggedIn, publicKey, fetchPublicKey } = useFastAuthWorkflow();
     const { accessKeys, accountIds, loading, error: accessKeysError, hasFetched, fetchAccessKeys } = useAccessKeys();
     const [isLoggingIn, setIsLoggingIn] = useState(false);
     const [isSwitchingNetwork, setIsSwitchingNetwork] = useState(false);
+    const [isSwitchingProvider, setIsSwitchingProvider] = useState(false);
 
     const handleFetchAccessKeys = async () => {
         if (publicKey) {
@@ -23,7 +24,8 @@ const Home: React.FC = () => {
         }
         setIsLoggingIn(true);
         try {
-            await client.login();
+            await client.login(provider === "firebase-google" ? "google" : "apple");
+            await fetchPublicKey();
         } catch (error) {
             console.error("Login error:", error);
         } finally {
@@ -45,6 +47,20 @@ const Home: React.FC = () => {
         }
     };
 
+    const handleProviderChange = async (newProvider: "auth0" | "firebase-google" | "firebase-apple") => {
+        if (newProvider === provider || isSwitchingProvider) {
+            return;
+        }
+        setIsSwitchingProvider(true);
+        try {
+            await setProvider(newProvider);
+        } catch (error) {
+            console.error("Provider switch error:", error);
+        } finally {
+            setIsSwitchingProvider(false);
+        }
+    };
+
     return (
         <div className="home-page">
             <h1>FastAuth Access Keys Viewer</h1>
@@ -53,10 +69,42 @@ const Home: React.FC = () => {
             </p>
 
             <section>
-                <h2>Network</h2>
+                <h2>Configuration</h2>
                 <div style={{ marginBottom: "1rem" }}>
                     <label className="info-label">
-                        Select Network:
+                        Auth Provider:
+                        <select
+                            value={provider}
+                            onChange={(e) => handleProviderChange(e.target.value as "auth0" | "firebase-google" | "firebase-apple")}
+                            disabled={isSwitchingProvider}
+                            style={{
+                                marginTop: "0.5rem",
+                                padding: "0.5rem",
+                                backgroundColor: "#181a20",
+                                color: "#e0e0e0",
+                                border: "1px solid #222",
+                                borderRadius: "4px",
+                                fontSize: "1rem",
+                                cursor: isSwitchingProvider ? "not-allowed" : "pointer",
+                                opacity: isSwitchingProvider ? 0.6 : 1,
+                            }}
+                        >
+                            <option value="auth0">Auth0</option>
+                            <option value="firebase-google">
+                                Firebase (Google)
+                            </option>
+                            <option value="firebase-apple">
+                                Firebase (Apple)
+                            </option>
+                        </select>
+                    </label>
+                    {isSwitchingProvider && (
+                        <div style={{ color: "#4ade80", marginTop: "0.5rem" }}>Switching provider...</div>
+                    )}
+                </div>
+                <div style={{ marginBottom: "1rem" }}>
+                    <label className="info-label">
+                        Network:
                         <select
                             value={network}
                             onChange={(e) => handleNetworkChange(e.target.value as "testnet" | "mainnet")}
@@ -118,7 +166,7 @@ const Home: React.FC = () => {
                                 fontWeight: "500",
                             }}
                         >
-                            {isLoggingIn ? "Logging in..." : isClientInitialized ? "Log in with FastAuth" : "Initializing..."}
+                            {isLoggingIn ? "Logging in..." : isClientInitialized ? `Log in with ${provider === "auth0" ? "Auth0" : "Firebase"}` : "Initializing..."}
                         </button>
                     </div>
                 )}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useFastAuth } from "./use-fast-auth-relayer";
-import { FastAuthSigner, FastAuthSignature, SignatureRequest } from "@fast-auth/browser-sdk";
+import { FastAuthSigner, FastAuthSignature, SignatureRequest, FirebaseProvider } from "@fast-auth/browser-sdk";
 import { JavascriptProvider } from "@fast-auth/javascript-provider";
 import { PublicKey } from "near-api-js/lib/utils";
 import { Transaction } from "near-api-js/lib/transaction";
@@ -9,7 +9,7 @@ import { parseNearAmount } from "near-api-js/lib/utils/format";
 export interface WorkflowState {
     loggedIn: boolean;
     publicKey: string | null;
-    signer: FastAuthSigner<JavascriptProvider> | null;
+    signer: FastAuthSigner<JavascriptProvider | FirebaseProvider> | null;
     signatureRequest: SignatureRequest | null;
     result: any;
     accountCreated: boolean;
@@ -28,14 +28,15 @@ export interface WorkflowActions {
     requestTransactionSignature: (accountId: string, receiverId: string, amount: string) => Promise<void>;
     handleSignTransaction: () => Promise<void>;
     handleSendTransaction: () => Promise<void>;
+    fetchPublicKey: () => Promise<void>;
 }
 
 export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
-    const { isClientInitialized, client, relayer, network } = useFastAuth();
+    const { isClientInitialized, client, relayer, network, provider } = useFastAuth();
 
     const [loggedIn, setLoggedIn] = useState(false);
     const [publicKey, setPublicKey] = useState<string | null>(null);
-    const [signer, setSigner] = useState<FastAuthSigner<JavascriptProvider> | null>(null);
+    const [signer, setSigner] = useState<FastAuthSigner<JavascriptProvider | FirebaseProvider> | null>(null);
     const [signatureRequest, setSignatureRequest] = useState<SignatureRequest | null>(null);
     const [result, setResult] = useState(null);
     const [accountCreated, setAccountCreated] = useState(false);
@@ -61,7 +62,7 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
                 const publicKeyValue = await signerInstance.getPublicKey();
                 setPublicKey(publicKeyValue.toString());
                 setLoggedIn(true);
-                
+
                 signerInstance
                     ?.getSignatureRequest()
                     .then((signatureRequest) => {
@@ -80,7 +81,7 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
             setSigner(null);
             console.error(error);
         }
-    }, [isClientInitialized, client, relayer, network]);
+    }, [isClientInitialized, client, relayer, network, provider]);
 
     useEffect(() => {
         fetchPublicKey();
@@ -171,5 +172,6 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
         requestTransactionSignature,
         handleSignTransaction,
         handleSendTransaction,
+        fetchPublicKey,
     };
 };
