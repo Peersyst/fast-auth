@@ -17,6 +17,7 @@ export function getConfig() {
     return {
         domain: configJson.domain,
         clientId: configJson.clientId,
+        firebase: configJson.firebase,
         ...(audience ? { audience } : null),
     };
 }

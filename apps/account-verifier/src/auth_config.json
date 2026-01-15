@@ -4,5 +4,11 @@
     "audience": "fast-auth-api-test-0.com",
     "appOrigin": "https://fast-auth-account-verifier.vercel.app",
     "mpcContractId": "v1.signer-prod.testnet",
-    "fastAuthContractId": "fast-auth-beta-001.testnet"
+    "fastAuthContractId": "fast-auth-beta-001.testnet",
+    "firebase": {
+        "apiKey": "",
+        "authDomain": "near-mobile-99e38.firebaseapp.com",
+        "projectId": "near-mobile-99e38",
+        "issuerUrl": "https://fast-auth.testnet.swe.at"
+    }
 }

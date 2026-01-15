@@ -16,6 +16,7 @@
         "bignumber.js": "^9.2.1",
         "buffer": "^6.0.3",
         "elliptic": "^6.6.1",
+        "firebase": "^11.1.0",
         "history": "5.3.0",
         "jose": "^6.0.11",
         "near-api-js": "^5.1.1",
