@@ -95,9 +95,9 @@ export function FastAuthProvider({ children, initialNetwork }: { children: React
                 apiKey: firebaseConfig.apiKey,
                 authDomain: firebaseConfig.authDomain,
                 projectId: firebaseConfig.projectId,
-                storageBucket: firebaseConfig.storageBucket,
-                messagingSenderId: firebaseConfig.messagingSenderId,
-                appId: firebaseConfig.appId,
+                storageBucket: "",
+                messagingSenderId: "",
+                appId: "",
                 redirectUri: APP_ORIGIN,
                 issuerUrl: firebaseConfig.issuerUrl,
             });
