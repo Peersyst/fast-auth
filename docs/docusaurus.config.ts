@@ -78,9 +78,9 @@ const config: Config = {
                 },
                 {
                     type: "docSidebar",
-                    sidebarId: "integrationsSidebar",
+                    sidebarId: "guidesSidebar",
                     position: "left",
-                    label: "Integrations",
+                    label: "Guides",
                 },
                 {
                     type: "dropdown",
@@ -155,15 +155,15 @@ const config: Config = {
                     items: [
                         {
                             label: "Overview",
-                            to: "/docs/integrations/overview",
+                            to: "/docs/guides/overview",
                         },
                         {
-                            label: "Auth0",
-                            to: "/docs/integrations/auth0",
+                            label: "Select SDK",
+                            to: "/docs/guides/select-your-sdk",
                         },
                         {
-                            label: "Custom Backend",
-                            to: "/docs/integrations/custom-backend",
+                            label: "Select Provider",
+                            to: "/docs/guides/select-your-provider",
                         },
                     ],
                 },

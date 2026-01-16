@@ -99,21 +99,28 @@ const sidebars: SidebarsConfig = {
         "sdk/react/providers",
         "sdk/react/signer",
     ],
-    integrationsSidebar: [
-        "integrations/overview",
+    guidesSidebar: [
+        "guides/overview",
         {
             type: "html",
-            value: "Guides",
+            value: "Choosing dependencies",
             className: "sidebar-label",
         },
-        "integrations/auth0",
-        "integrations/custom-backend",
+        "guides/select-your-sdk",
+        "guides/select-your-provider",
         {
             type: "html",
-            value: "Examples",
+            value: "Integrate",
             className: "sidebar-label",
         },
-        "integrations/custom-backend-express",
+        "guides/authenticate-your-users",
+        "guides/sign-transactions-and-delegate-actions",
+        {
+            type: "html",
+            value: "Going to production",
+            className: "sidebar-label",
+        },
+        "guides/submit-your-application",
     ],
     javascriptProviderSidebar: [
         {
