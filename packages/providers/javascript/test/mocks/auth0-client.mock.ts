@@ -5,8 +5,10 @@ export const Auth0ClientMock = createMock({
     handleRedirectCallback: new MethodMock("mockResolvedValue", undefined),
     isAuthenticated: new MethodMock("mockResolvedValue", false),
     loginWithRedirect: new MethodMock("mockResolvedValue", undefined),
+    loginWithPopup: new MethodMock("mockResolvedValue", undefined),
     logout: new MethodMock("mockResolvedValue", undefined),
     getTokenSilently: new MethodMock("mockResolvedValue", undefined),
+    checkSession: new MethodMock("mockResolvedValue", undefined),
 });
 
 // Provide a shared instance for module factory consumption

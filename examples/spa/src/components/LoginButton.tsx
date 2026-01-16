@@ -9,7 +9,7 @@ export default function LoginButton() {
     const handleLogin = async () => {
         setIsLoading(true);
         try {
-            await client?.login();
+            client?.login();
         } finally {
             setIsLoading(false);
         }

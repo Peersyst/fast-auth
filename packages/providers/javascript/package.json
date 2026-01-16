@@ -13,7 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-      "@auth0/auth0-spa-js": "^2.2.0",
+      "@auth0/auth0-spa-js": "^2.11.3",
       "@near-js/accounts": "^2.0.2",
       "@near-js/transactions": "^2.0.2",
       "elliptic": "^6.6.1",

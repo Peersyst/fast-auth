@@ -46,40 +46,65 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
     const [sending, setSending] = useState(false);
     const [txHash, setTxHash] = useState<string | null>(null);
 
+    // Check for existing login state and signature requests (popup-based, no redirect handling)
     useEffect(() => {
-        if (isClientInitialized) {
-            client?.getSigner().then((signer: FastAuthSigner<JavascriptProvider>) => {
-                setSigner(signer);
-                if (signer) {
-                    signer
-                        .getPublicKey()
-                        .then((publicKey) => {
-                            setPublicKey(publicKey.toString());
-                            setLoggedIn(true);
-                        })
-                        .catch((error) => {
-                            setLoggedIn(false);
-                            console.error(error);
-                        });
+        if (isClientInitialized && client) {
+            const checkAuthState = async () => {
+                try {
+                    const signer = await client.getSigner();
+                    setSigner(signer);
                     
-                    signer
-                        ?.getSignatureRequest()
-                        .then((signatureRequest) => {
-                            if ("signPayload" in signatureRequest && signatureRequest.signPayload) {
-                                setSignatureRequest(signatureRequest);
-                                setExpandedStep(3);
-                            }
-                        })
-                        .catch((error) => {
-                            console.error(error);
-                        });
+                    const publicKey = await signer.getPublicKey();
+                    setPublicKey(publicKey.toString());
+                    setLoggedIn(true);
+                    
+                    // Check for pending signature request
+                    try {
+                        const signatureRequest = await signer.getSignatureRequest();
+                        if ("signPayload" in signatureRequest && signatureRequest.signPayload) {
+                            setSignatureRequest(signatureRequest);
+                            setExpandedStep(3);
+                        }
+                    } catch (error) {
+                        // No signature request pending
+                        console.debug("No signature request found");
+                    }
+                } catch (error) {
+                    // User not logged in - this is expected for popup flows
+                    setLoggedIn(false);
+                    setSigner(null);
                 }
-            });
+            };
+            
+            checkAuthState();
         }
-    }, [isClientInitialized, client, relayer]);
+    }, [isClientInitialized, client]);
 
     const handleLogin = async () => {
-        setExpandedStep(1);
+        if (!client) {
+            throw new Error("Client not initialized");
+        }
+        
+        try {
+            // Call login with popup (no redirectUri means popup flow)
+            // The promise resolves when the popup completes
+            await client.login();
+
+            console.log("login successful");
+            
+            // After popup closes, check if login was successful
+            // The login promise resolves when authentication is complete
+            const signer = await client.getSigner();
+            setSigner(signer);
+            const publicKey = await signer.getPublicKey();
+            setPublicKey(publicKey.toString());
+            setLoggedIn(true);
+            setExpandedStep(1);
+        } catch (error) {
+            console.error("Login failed:", error);
+            setLoggedIn(false);
+            throw error;
+        }
     };
 
     const handleCreateAccount = async (accountId: string) => {
@@ -93,17 +118,37 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
     };
 
     const requestTransactionSignature = async (accountId: string, receiverId: string, amount: string) => {
-        const tx = await relayer?.createTransfer(accountId, PublicKey.fromString(publicKey!), receiverId, amount);
+        if (!signer || !relayer) {
+            throw new Error("Signer or relayer not initialized");
+        }
+        
+        const tx = await relayer.createTransfer(accountId, PublicKey.fromString(publicKey!), receiverId, amount);
         if (!tx) {
             throw new Error("Transaction not created");
         }
-        await signer?.requestTransactionSignature({
+        
+        // Request signature via popup (no redirectUri means popup flow)
+        // The promise resolves when the popup completes
+        await signer.requestTransactionSignature({
             imageUrl:
                 "https://media.licdn.com/dms/image/v2/D4D0BAQH5KL-Ge_0iug/company-logo_200_200/company-logo_200_200/0/1696280807541/peersyst_technology_logo?e=2147483647&v=beta&t=uFYvQ5g6HDoIprYhNNV_zC7tzlBkvmPRkWzuLuDpHtc",
             name: "Peersyst Technology",
             transaction: tx,
         });
+        
         setTransferRequested(true);
+        
+        // After popup closes, check for signature request
+        // The requestTransactionSignature promise resolves when signature is complete
+        try {
+            const signatureRequest = await signer.getSignatureRequest();
+            if ("signPayload" in signatureRequest && signatureRequest.signPayload) {
+                setSignatureRequest(signatureRequest);
+                setExpandedStep(3);
+            }
+        } catch (error) {
+            console.error("Failed to get signature request:", error);
+        }
     };
 
     const handleSignTransaction = async () => {
