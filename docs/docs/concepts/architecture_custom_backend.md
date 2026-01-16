@@ -77,9 +77,7 @@ For custom guards, consider:
 
 ## Example
 
-If you want to integrate a custom backend, you can follow this [integration guide](../integrations/custom-backend.md). It will guide you through the process of integrating a custom backend with FastAuth.
-
-If you are looking for an example of a custom backend, you can check out the [Express](../integrations/custom-backend-express.md) example. It shows how to develop a custom backend using [Express.js](https://expressjs.com/), taking care of the authentication and authorization logic.
+For implementing a custom backend with FastAuth, see the [Custom Issuer Service](../concepts/architecture_custom_issuer_service) documentation, which provides a complete example of an off-chain service that validates and re-issues JWTs for use with the `CustomIssuerGuard`.
 
 ## Guard Interface
 

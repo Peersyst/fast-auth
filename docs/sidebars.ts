@@ -100,7 +100,27 @@ const sidebars: SidebarsConfig = {
         "sdk/react/signer",
     ],
     guidesSidebar: [
-        "guides/integrate-with-your-dapp",
+        "guides/overview",
+        {
+            type: "html",
+            value: "Choosing dependencies",
+            className: "sidebar-label",
+        },
+        "guides/select-your-sdk",
+        "guides/select-your-provider",
+        {
+            type: "html",
+            value: "Integrate",
+            className: "sidebar-label",
+        },
+        "guides/authenticate-your-users",
+        "guides/sign-transactions-and-delegate-actions",
+        {
+            type: "html",
+            value: "Going to production",
+            className: "sidebar-label",
+        },
+        "guides/submit-your-application",
     ],
     javascriptProviderSidebar: [
         {
