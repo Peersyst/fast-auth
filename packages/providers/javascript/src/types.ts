@@ -27,18 +27,26 @@ export type JavascriptBaseRequestTransactionSignatureOptions = JavascriptBaseReq
     transaction: Transaction;
 };
 
-export type JavascriptRequestTransactionSignatureWithRedirectOptions = JavascriptBaseRequestTransactionSignatureOptions & Omit<RedirectLoginOptions, "authorizationParams">
+export type JavascriptRequestTransactionSignatureWithRedirectOptions = JavascriptBaseRequestTransactionSignatureOptions &
+    Omit<RedirectLoginOptions, "authorizationParams">;
 
-export type JavascriptRequestTransactionSignatureWithPopupOptions = JavascriptBaseRequestTransactionSignatureOptions & Omit<PopupLoginOptions, "authorizationParams">
+export type JavascriptRequestTransactionSignatureWithPopupOptions = JavascriptBaseRequestTransactionSignatureOptions &
+    Omit<PopupLoginOptions, "authorizationParams">;
 
-export type JavascriptRequestTransactionSignatureOptions = JavascriptRequestTransactionSignatureWithRedirectOptions | JavascriptRequestTransactionSignatureWithPopupOptions;
+export type JavascriptRequestTransactionSignatureOptions =
+    | JavascriptRequestTransactionSignatureWithRedirectOptions
+    | JavascriptRequestTransactionSignatureWithPopupOptions;
 
 export type JavascriptBaseRequestDelegateActionSignatureOptions = JavascriptBaseRequestSignatureOptions & {
     delegateAction: DelegateAction;
 };
 
-export type JavascriptRequestDelegateActionSignatureWithRedirectOptions = JavascriptBaseRequestDelegateActionSignatureOptions & Omit<RedirectLoginOptions, "authorizationParams">
+export type JavascriptRequestDelegateActionSignatureWithRedirectOptions = JavascriptBaseRequestDelegateActionSignatureOptions &
+    Omit<RedirectLoginOptions, "authorizationParams">;
 
-export type JavascriptRequestDelegateActionSignatureWithPopupOptions = JavascriptBaseRequestDelegateActionSignatureOptions & Omit<PopupLoginOptions, "authorizationParams">
+export type JavascriptRequestDelegateActionSignatureWithPopupOptions = JavascriptBaseRequestDelegateActionSignatureOptions &
+    Omit<PopupLoginOptions, "authorizationParams">;
 
-export type JavascriptRequestDelegateActionSignatureOptions = JavascriptRequestDelegateActionSignatureWithRedirectOptions | JavascriptRequestDelegateActionSignatureWithPopupOptions
+export type JavascriptRequestDelegateActionSignatureOptions =
+    | JavascriptRequestDelegateActionSignatureWithRedirectOptions
+    | JavascriptRequestDelegateActionSignatureWithPopupOptions;
