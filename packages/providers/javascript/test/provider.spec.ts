@@ -54,7 +54,6 @@ describe("JavascriptProvider", () => {
         mockOptions = {
             domain: "test-domain.auth0.com",
             clientId: "test-client-id",
-            redirectUri: "http://localhost:3000/callback",
             audience: "test-audience",
         };
 
@@ -234,7 +233,11 @@ describe("JavascriptProvider", () => {
 
                 await provider.login(loginOptions);
 
-                expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith(loginOptions);
+                expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
+                    authorizationParams: {
+                        redirect_uri: loginOptions.redirectUri,
+                    },
+                });
                 expect(mockAuth0Client.loginWithPopup).not.toHaveBeenCalled();
             });
 

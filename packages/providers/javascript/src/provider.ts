@@ -93,7 +93,13 @@ export class JavascriptProvider implements IFastAuthProvider {
      * @returns The void.
      */
     private async loginWithRedirect(options: JavascriptLoginWithRedirectOptions): Promise<void> {
-        await this.client.loginWithRedirect(options);
+        const { redirectUri, ...opts } = options;
+        await this.client.loginWithRedirect({
+            ...opts,
+            authorizationParams: {
+                redirect_uri: redirectUri,
+            },
+        });
     }
 
     /**
@@ -152,7 +158,7 @@ export class JavascriptProvider implements IFastAuthProvider {
                 image_url: imageUrl,
                 name,
                 transaction: encodeTransaction(transaction),
-                redirect_uri: redirectUri ?? this.options.redirectUri,
+                redirect_uri: redirectUri,
             },
             ...opts,
         });
@@ -203,7 +209,7 @@ export class JavascriptProvider implements IFastAuthProvider {
             authorizationParams: {
                 image_url: imageUrl,
                 name,
-                redirect_uri: redirectUri ?? this.options.redirectUri,
+                redirect_uri: redirectUri,
                 delegateAction: encodeDelegateAction(delegateAction),
             },
             ...opts,

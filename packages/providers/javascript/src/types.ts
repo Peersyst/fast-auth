@@ -5,7 +5,6 @@ import { PopupLoginOptions, RedirectLoginOptions } from "@auth0/auth0-spa-js";
 export type JavascriptProviderOptions = {
     domain: string;
     clientId: string;
-    redirectUri: string;
     audience: string;
 };
 
