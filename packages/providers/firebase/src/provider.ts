@@ -114,7 +114,7 @@ export class FirebaseProvider implements IFastAuthProvider {
             }),
             headers: {
                 "Content-Type": "application/json",
-            }
+            },
         });
         if (!response.ok) {
             throw new FirebaseProviderError(FirebaseProviderErrorCodes.REQUEST_TRANSACTION_SIGNATURE_FAILED);
