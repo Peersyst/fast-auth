@@ -9,7 +9,7 @@ export class IssuerController {
     @Post("issue")
     @HttpCode(HttpStatus.OK)
     async issue(@Body() body: IssueRequestDto): Promise<{ token: string }> {
-        const token = await this.issuerService.issueToken(body.jwt);
+        const token = await this.issuerService.issueToken(body.jwt, body.signPayload);
         return { token };
     }
 }
