@@ -109,6 +109,7 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
         if (!tx) {
             throw new Error("Transaction not created");
         }
+        console.log("going to request signature", tx);
         await signer?.requestTransactionSignature({
             imageUrl:
                 "https://media.licdn.com/dms/image/v2/D4D0BAQH5KL-Ge_0iug/company-logo_200_200/company-logo_200_200/0/1696280807541/peersyst_technology_logo?e=2147483647&v=beta&t=uFYvQ5g6HDoIprYhNNV_zC7tzlBkvmPRkWzuLuDpHtc",
@@ -116,6 +117,16 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
             transaction: tx,
         });
         setTransferRequested(true);
+        signer?.getSignatureRequest()
+            .then((signatureRequest) => {
+                if ("signPayload" in signatureRequest && signatureRequest.signPayload) {
+                    setSignatureRequest(signatureRequest);
+                    setExpandedStep(3);
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+            });
     };
 
     const handleSignTransaction = async () => {
@@ -129,6 +140,7 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
                 throw new Error("Action not created");
             }
             const result = await relayer?.relaySignAction(action);
+            console.log("result: ", result);
             setResult(result);
             setTransactionSigned(true);
             setExpandedStep(4);

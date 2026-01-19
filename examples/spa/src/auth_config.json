@@ -4,7 +4,7 @@
     "audience": "fast-auth-api-test-0.com",
     "appOrigin": "http://localhost:3000",
     "mpcContractId": "v1.signer-prod.testnet",
-    "fastAuthContractId": "fast-auth-beta-001.testnet",
+    "fastAuthContractId": "fast-auth.testnet",
     "firebase": {
         "apiKey": "",
         "authDomain": "",

@@ -63,20 +63,20 @@ const CreateAccountStep: React.FC<CreateAccountStepProps> = ({
             onClick={() => canToggle && onToggle()}
         >
             <div>
-                <h3>Your Accounts</h3>
-                {loading && <p><Spinner size={18} /> Loading accounts...</p>}
-                {accessKeysError && <p style={{ color: "red" }}>Error loading accounts: {accessKeysError.message}</p>}
+                <h3 style={{ color: "#ffffff", fontSize: "1.2rem", marginBottom: "1rem" }}>Your Accounts</h3>
+                {loading && <p style={{ color: "rgba(255, 255, 255, 0.8)" }}><Spinner size={18} /> Loading accounts...</p>}
+                {accessKeysError && <p style={{ color: "#ff6b6b", backgroundColor: "rgba(255, 107, 107, 0.1)", padding: "0.75rem", borderRadius: "8px" }}>Error loading accounts: {accessKeysError.message}</p>}
                 {!loading && !accessKeysError && accountIds.length > 0 && (
-                    <div>
-                        <p>Associated accounts ({accountIds.length}):</p>
-                        <ul style={{ listStyle: "none", padding: 0 }}>
+                    <div style={{ marginBottom: "2rem" }}>
+                        <p style={{ color: "rgba(255, 255, 255, 0.8)", marginBottom: "1rem" }}>Associated accounts ({accountIds.length}):</p>
+                        <ul className="accounts-list">
                             {accountIds.map((accountId) => (
-                                <li key={accountId} style={{ marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-                                    <span>{accountId}</span>
+                                <li key={accountId} className="account-item">
+                                    <span className="account-id">{accountId}</span>
                                     <button
                                         type="button"
                                         onClick={() => onAccountSelect(accountId)}
-                                        style={{ padding: "4px 8px", fontSize: "12px" }}
+                                        className="account-use-btn"
                                     >
                                         Use Account
                                     </button>
@@ -86,10 +86,10 @@ const CreateAccountStep: React.FC<CreateAccountStepProps> = ({
                     </div>
                 )}
                 {!loading && !accessKeysError && accountIds.length === 0 && (
-                    <p>No accounts found for this public key.</p>
+                    <p style={{ color: "rgba(255, 255, 255, 0.6)", fontStyle: "italic", marginBottom: "2rem" }}>No accounts found for this public key.</p>
                 )}
 
-                <h3>Create New Account</h3>
+                <h3 style={{ color: "#ffffff", fontSize: "1.2rem", marginBottom: "1rem" }}>Create New Account</h3>
                 <form onSubmit={handleSubmit}>
                     <div className="info-row">
                         <input
