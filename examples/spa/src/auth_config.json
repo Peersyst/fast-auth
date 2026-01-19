@@ -4,5 +4,15 @@
     "audience": "fast-auth-api-test-0.com",
     "appOrigin": "http://localhost:3000",
     "mpcContractId": "v1.signer-prod.testnet",
-    "fastAuthContractId": "fast-auth-beta-001.testnet"
+    "fastAuthContractId": "fast-auth-beta-001.testnet",
+    "firebase": {
+        "apiKey": "",
+        "authDomain": "",
+        "projectId": "",
+        "storageBucket": "",
+        "messagingSenderId": "",
+        "appId": "",
+        "issuerUrl": "https://fast-auth.testnet.swe.at",
+        "customJwtIssuerUrl": "https://fast-auth-staging.aws.peersyst.tech/issuer/issue"
+    }
 }

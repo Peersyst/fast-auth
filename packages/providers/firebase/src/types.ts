@@ -6,7 +6,6 @@ import { Store } from "./store/store";
 export type FirebaseProviderOptions = FirebaseOptions & {
     issuerUrl: string;
     customJwtIssuerUrl: string;
-    nearRpcUrl: string;
     store?: Store;
 };
 

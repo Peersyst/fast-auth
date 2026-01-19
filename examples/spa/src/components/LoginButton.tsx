@@ -1,23 +1,45 @@
-import { useState } from "react";
-import { useFastAuth } from "../hooks/use-fast-auth-relayer";
+import React, { useState } from "react";
+import { useFastAuth, ProviderType } from "../hooks/use-fast-auth-relayer";
 import Spinner from "./Spinner";
 
-export default function LoginButton() {
-    const { client } = useFastAuth();
+
+interface LoginButtonProps {
+    handleLogin: () => Promise<void>;
+}
+
+const LoginButton: React.FC<LoginButtonProps> = ({handleLogin}) => {
+    const { client, providerType, setProviderType } = useFastAuth();
     const [isLoading, setIsLoading] = useState(false);
 
-    const handleLogin = async () => {
+    const onClick = async () => {
+
         setIsLoading(true);
         try {
-            await client?.login();
+            if (providerType === "auth0") {
+                await client?.login();
+            } else {
+                const firebaseProviderType = providerType === "firebase-google" ? "google" : "apple";
+                await client?.login(firebaseProviderType);
+                console.log("Firebase provider initialized");
+                await handleLogin();
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
     return (
-        <button onClick={handleLogin} disabled={isLoading}>
-            {isLoading ? <Spinner size={18} /> : "Log in"}
-        </button>
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
+            <select value={providerType as ProviderType} onChange={(v) => setProviderType(v.target.value as ProviderType)} disabled={isLoading}>
+                <option value="auth0">Auth0</option>
+                <option value="firebase-google">Firebase Google</option>
+                <option value="firebase-apple">Firebase Apple</option>
+            </select>
+            <button onClick={onClick} disabled={isLoading}>
+                {isLoading ? <Spinner size={18} /> : "Log in"}
+            </button>
+        </div>
     );
 }
+export default LoginButton;
+

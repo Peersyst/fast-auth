@@ -45,7 +45,7 @@ const LoginStep: React.FC<LoginStepProps> = ({
                     </button>
                 </div>
             ) : (
-                <LoginButton />
+                <LoginButton handleLogin={handleLogin}/>
             )}
         </Accordion>
     );

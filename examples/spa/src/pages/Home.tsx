@@ -18,6 +18,7 @@ const Home: React.FC = () => {
         signatureRequest,
         result,
         accountCreated,
+        selectedAccountId,
         transferRequested,
         transactionSigned,
         expandedStep,
@@ -27,11 +28,12 @@ const Home: React.FC = () => {
         setExpandedStep,
         handleLogin,
         handleCreateAccount,
+        handleSelectAccount,
         requestTransactionSignature,
         handleSignTransaction,
         handleSendTransaction,
     } = useFastAuthWorkflow();
-
+    console.log("loggedin", loggedIn);
     return (
         <div className="home-page">
             <h1>FastAuth integration</h1>
@@ -44,13 +46,15 @@ const Home: React.FC = () => {
                 loggedIn={loggedIn}
                 publicKey={publicKey}
                 onLogin={handleLogin}
-                expanded={expandedStep === 0}
-                onToggle={() => setExpandedStep(0)}
+                expanded={loggedIn || expandedStep === 0}
+                onToggle={() => {}}
             />
             
             <CreateAccountStep
                 accountCreated={accountCreated}
+                publicKey={publicKey}
                 onAccountCreate={handleCreateAccount}
+                onAccountSelect={handleSelectAccount}
                 onSkip={() => setExpandedStep(2)}
                 expanded={expandedStep === 1}
                 onToggle={() => setExpandedStep(1)}
@@ -59,10 +63,11 @@ const Home: React.FC = () => {
             
             <RequestTransactionStep
                 transferRequested={transferRequested}
+                selectedAccountId={selectedAccountId}
                 onRequestTransaction={requestTransactionSignature}
                 expanded={expandedStep === 2}
                 onToggle={() => setExpandedStep(2)}
-                canToggle={accountCreated}
+                canToggle={accountCreated || selectedAccountId !== null}
             />
             
             <SignTransactionStep

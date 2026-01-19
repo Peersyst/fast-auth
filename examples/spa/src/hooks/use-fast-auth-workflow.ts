@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import {useEffect, useState} from "react";
 import { useFastAuth } from "./use-fast-auth-relayer";
 import { FastAuthSigner, FastAuthSignature, SignatureRequest } from "@fast-auth/browser-sdk";
 import { JavascriptProvider } from "@fast-auth/javascript-provider";
+import { FirebaseProvider } from "@fast-auth/firebase-provider";
 import { PublicKey } from "near-api-js/lib/utils";
 import { Transaction } from "near-api-js/lib/transaction";
 import { parseNearAmount } from "near-api-js/lib/utils/format";
@@ -9,10 +10,11 @@ import { parseNearAmount } from "near-api-js/lib/utils/format";
 export interface WorkflowState {
     loggedIn: boolean;
     publicKey: string | null;
-    signer: FastAuthSigner<JavascriptProvider> | null;
+    signer: FastAuthSigner<JavascriptProvider | FirebaseProvider> | null;
     signatureRequest: SignatureRequest | null;
     result: any;
     accountCreated: boolean;
+    selectedAccountId: string | null;
     transferRequested: boolean;
     transactionSigned: boolean;
     expandedStep: number;
@@ -25,6 +27,7 @@ export interface WorkflowActions {
     setExpandedStep: (step: number) => void;
     handleLogin: () => Promise<void>;
     handleCreateAccount: (accountId: string) => Promise<void>;
+    handleSelectAccount: (accountId: string) => void;
     requestTransactionSignature: (accountId: string, receiverId: string, amount: string) => Promise<void>;
     handleSignTransaction: () => Promise<void>;
     handleSendTransaction: () => Promise<void>;
@@ -35,10 +38,11 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
 
     const [loggedIn, setLoggedIn] = useState(false);
     const [publicKey, setPublicKey] = useState<string | null>(null);
-    const [signer, setSigner] = useState<FastAuthSigner<JavascriptProvider> | null>(null);
+    const [signer, setSigner] = useState<FastAuthSigner<JavascriptProvider | FirebaseProvider> | null>(null);
     const [signatureRequest, setSignatureRequest] = useState<SignatureRequest | null>(null);
     const [result, setResult] = useState(null);
     const [accountCreated, setAccountCreated] = useState(false);
+    const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null);
     const [transferRequested, setTransferRequested] = useState(false);
     const [transactionSigned, setTransactionSigned] = useState(false);
     const [expandedStep, setExpandedStep] = useState(0);
@@ -47,21 +51,27 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
     const [txHash, setTxHash] = useState<string | null>(null);
 
     useEffect(() => {
+        handleLogin();
+    }, [isClientInitialized, client, relayer]);
+
+    const handleLogin = async () => {
         if (isClientInitialized) {
-            client?.getSigner().then((signer: FastAuthSigner<JavascriptProvider>) => {
+            client?.getSigner().then((signer: FastAuthSigner<JavascriptProvider | FirebaseProvider>) => {
+                console.log("signer: ", signer)
                 setSigner(signer);
                 if (signer) {
                     signer
                         .getPublicKey()
                         .then((publicKey) => {
                             setPublicKey(publicKey.toString());
+                            console.log("Setting logged in to true!!!!!")
                             setLoggedIn(true);
+                            setExpandedStep(1);
                         })
                         .catch((error) => {
                             setLoggedIn(false);
                             console.error(error);
                         });
-                    
                     signer
                         ?.getSignatureRequest()
                         .then((signatureRequest) => {
@@ -76,10 +86,6 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
                 }
             });
         }
-    }, [isClientInitialized, client, relayer]);
-
-    const handleLogin = async () => {
-        setExpandedStep(1);
     };
 
     const handleCreateAccount = async (accountId: string) => {
@@ -89,6 +95,12 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
         }
         await relayer?.createAccount(action);
         setAccountCreated(true);
+        setSelectedAccountId(accountId);
+        setExpandedStep(2);
+    };
+
+    const handleSelectAccount = (accountId: string) => {
+        setSelectedAccountId(accountId);
         setExpandedStep(2);
     };
 
@@ -150,6 +162,7 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
         signatureRequest,
         result,
         accountCreated,
+        selectedAccountId,
         transferRequested,
         transactionSigned,
         expandedStep,
@@ -160,6 +173,7 @@ export const useFastAuthWorkflow = (): WorkflowState & WorkflowActions => {
         setExpandedStep,
         handleLogin,
         handleCreateAccount,
+        handleSelectAccount,
         requestTransactionSignature,
         handleSignTransaction,
         handleSendTransaction,
