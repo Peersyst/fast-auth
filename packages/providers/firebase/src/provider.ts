@@ -3,20 +3,16 @@ import { SignatureRequest } from "./core/signer/types";
 import { FirebaseProviderError, FirebaseProviderErrorCodes } from "./errors";
 import { IFastAuthProvider } from "./core/provider/types";
 import {
-    FirebaseProviderOptions, FirebaseRequestDelegateActionSignatureOptions,
+    FirebaseProviderOptions,
+    FirebaseProviderType,
+    FirebaseRequestDelegateActionSignatureOptions,
     FirebaseRequestTransactionSignatureOptions,
-    FirebaseProviderType
 } from "./types";
-import {
-    getAuth,
-    signInWithPopup,
-    GoogleAuthProvider,
-    OAuthProvider,
-    type Auth,
-    type User,
-    AuthProvider,
-} from "firebase/auth";
+import { type Auth, AuthProvider, getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, type User } from "firebase/auth";
 import { FirebaseApp, initializeApp } from "firebase/app";
+import { Store } from "./store/store";
+import { BrowserStore } from "./store/browser-store";
+import { encodeTransaction, encodeDelegateAction } from "./utils";
 
 export class FirebaseProvider implements IFastAuthProvider {
     private readonly options: FirebaseProviderOptions;
@@ -25,6 +21,7 @@ export class FirebaseProvider implements IFastAuthProvider {
     private currentUser: User | null = null;
     private googleProvider: GoogleAuthProvider;
     private appleProvider: OAuthProvider;
+    private store: Store;
 
     constructor(options: FirebaseProviderOptions) {
         this.options = options;
@@ -34,6 +31,7 @@ export class FirebaseProvider implements IFastAuthProvider {
         this.appleProvider = new OAuthProvider("apple.com");
         this.appleProvider.addScope("email");
         this.appleProvider.addScope("name");
+        this.store = options.store ?? new BrowserStore();
 
         // Set up auth state listener
         this.auth.onAuthStateChanged((user) => {
@@ -51,6 +49,7 @@ export class FirebaseProvider implements IFastAuthProvider {
 
     /**
      * Sign in to the client using Google.
+     * @param providerType The provider type.
      * @returns The void.
      */
     async login(providerType: FirebaseProviderType): Promise<void> {
@@ -69,6 +68,7 @@ export class FirebaseProvider implements IFastAuthProvider {
                 throw new FirebaseProviderError(FirebaseProviderErrorCodes.INVALID_PROVIDER);
         }
         const result = await signInWithPopup(this.auth, provider);
+        this.store.clear();
         this.currentUser = result.user;
     }
 
@@ -101,22 +101,54 @@ export class FirebaseProvider implements IFastAuthProvider {
 
     /**
      * Request a signature from the client.
-     * @param _ The options for the request signature.
+     * @param opts The options for the request signature.
      * @returns The signature.
      */
-    async requestTransactionSignature(_: FirebaseRequestTransactionSignatureOptions): Promise<void> {
-        // TODO: This would request a jwt for the custom issuer backend, claim the token hash, store the custom jwt
-        throw new Error("Method not implemented.");
+    async requestTransactionSignature(opts: FirebaseRequestTransactionSignatureOptions): Promise<void> {
+        const signPayload = encodeTransaction(opts.transaction);
+        const response = await fetch(`${this.options.customJwtIssuerUrl}`, {
+            method: "POST",
+            body: JSON.stringify({
+                jwt: await this.currentUser?.getIdToken(),
+                signPayload: signPayload,
+            }),
+        });
+        if (!response.ok) {
+            throw new FirebaseProviderError(FirebaseProviderErrorCodes.REQUEST_TRANSACTION_SIGNATURE_FAILED);
+        }
+        const { token } = await response.json();
+
+        this.store.setSignatureRequest({
+            guardId: `jwt#${this.options.issuerUrl}`,
+            verifyPayload: token,
+            signPayload: Uint8Array.from(signPayload),
+        });
     }
 
     /**
      * Request a delegate action signature from the client.
-     * @param _ The options for the request delegate action signature.
+     * @param opts The options for the request delegate action signature.
      * @returns The void.
      */
-    async requestDelegateActionSignature(_: FirebaseRequestDelegateActionSignatureOptions): Promise<void> {
-        // TODO: This would request a jwt for the custom issuer backend, claim the token hash, store the custom jwt
-        throw new Error("Method not implemented.");
+    async requestDelegateActionSignature(opts: FirebaseRequestDelegateActionSignatureOptions): Promise<void> {
+        const signPayload = encodeDelegateAction(opts.delegateAction);
+        const response = await fetch(`${this.options.customJwtIssuerUrl}`, {
+            method: "POST",
+            body: JSON.stringify({
+                jwt: await this.currentUser?.getIdToken(),
+                signPayload: signPayload,
+            }),
+        });
+        if (!response.ok) {
+            throw new FirebaseProviderError(FirebaseProviderErrorCodes.REQUEST_DELEGATE_TRANSACTION_SIGNATURE_FAILED);
+        }
+        const { token } = await response.json();
+
+        this.store.setSignatureRequest({
+            guardId: `jwt#${this.options.issuerUrl}`,
+            verifyPayload: token,
+            signPayload: Uint8Array.from(signPayload),
+        });
     }
 
     /**
@@ -124,7 +156,11 @@ export class FirebaseProvider implements IFastAuthProvider {
      * @returns The signature request.
      */
     async getSignatureRequest(): Promise<SignatureRequest> {
-        // TODO: This would recover the custom jwt, and prepare the signature request
-        throw new Error("Method not implemented.");
+        const request = this.store.getSignatureRequest();
+        if (!request) {
+            throw new FirebaseProviderError(FirebaseProviderErrorCodes.SIGNATURE_REQUEST_NOT_FOUND);
+        }
+
+        return request;
     }
 }

@@ -553,6 +553,9 @@ importers:
       '@fast-auth/browser-sdk':
         specifier: workspace:*
         version: link:../../packages/sdks/browser
+      '@fast-auth/firebase-provider':
+        specifier: workspace:*
+        version: link:../../packages/providers/firebase
       '@fast-auth/javascript-provider':
         specifier: workspace:*
         version: link:../../packages/providers/javascript
