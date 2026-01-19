@@ -1,8 +1,15 @@
 import { Auth0Client } from "@auth0/auth0-spa-js";
 import {
     JavascriptProviderOptions,
-    JavascriptRequestDelegateActionSignatureOptions,
+    JavascriptBaseRequestDelegateActionSignatureOptions,
+    JavascriptRequestTransactionSignatureWithPopupOptions,
+    JavascriptRequestTransactionSignatureWithRedirectOptions,
     JavascriptRequestTransactionSignatureOptions,
+    JavascriptRequestDelegateActionSignatureWithRedirectOptions,
+    JavascriptRequestDelegateActionSignatureWithPopupOptions,
+    JavascriptLoginOptions,
+    JavascriptLoginWithRedirectOptions,
+    JavascriptLoginWithPopupOptions,
 } from "./types";
 import { encodeDelegateAction, encodeTransaction } from "./utils";
 import { decodeJwt } from "jose";
@@ -21,9 +28,37 @@ export class JavascriptProvider implements IFastAuthProvider {
             clientId: this.options.clientId,
             authorizationParams: {
                 audience: this.options.audience,
-                redirect_uri: this.options.redirectUri,
             },
         });
+    }
+
+    /**
+     * Check if the user is redirected to the callback URL.
+     * @returns True if the user is redirected to the callback URL, false otherwise.
+     */
+    private async checkRedirectCallback(): Promise<boolean> {
+        const query = new URLSearchParams(globalThis.location.search);
+        const code = query.get("code");
+        const state = query.get("state");
+
+        if (code && state) {
+            await this.client.handleRedirectCallback();
+            return await this.client.isAuthenticated();
+        }
+        return false;
+    }
+
+    /**
+     * Check if the user has a token.
+     * @returns True if the user has a token, false otherwise.
+     */
+    private async checkToken(): Promise<boolean> {
+        await this.client.checkSession();
+        const token = await this.client.getTokenSilently();
+        if (token) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -32,30 +67,61 @@ export class JavascriptProvider implements IFastAuthProvider {
      */
     async isLoggedIn(): Promise<boolean> {
         try {
-            const query = new URLSearchParams(globalThis.location.search);
-            const code = query.get("code");
-            const state = query.get("state");
-
-            if (code && state) {
-                await this.client.handleRedirectCallback();
-                return await this.client.isAuthenticated();
+            const isAuthenticated = await this.checkRedirectCallback();
+            if (isAuthenticated) {
+                return true;
             }
-            return false;
-        } catch (_: unknown) {
-            return false;
+        } catch {
+            // If redirect callback fails, continue to check token
         }
+
+        try {
+            const tokenExists = await this.checkToken();
+            if (tokenExists) {
+                return true;
+            }
+        } catch {
+            // If token check fails, user is not logged in
+        }
+
+        return false;
+    }
+
+    /**
+     * Login with redirect.
+     * @param options The options for the login with redirect.
+     * @returns The void.
+     */
+    private async loginWithRedirect(options: JavascriptLoginWithRedirectOptions): Promise<void> {
+        const { redirectUri, ...opts } = options;
+        await this.client.loginWithRedirect({
+            ...opts,
+            authorizationParams: {
+                redirect_uri: redirectUri,
+            },
+        });
+    }
+
+    /**
+     * Login with popup.
+     * @param options The options for the login with popup.
+     * @returns The void.
+     */
+    private async loginWithPopup(options?: JavascriptLoginWithPopupOptions): Promise<void> {
+        await this.client.loginWithPopup(options);
     }
 
     /**
      * Sign in to the client.
+     * @param options The options for the login.
      * @returns The void.
      */
-    async login(): Promise<void> {
-        await this.client.loginWithRedirect({
-            authorizationParams: {
-                redirect_uri: this.options.redirectUri,
-            },
-        });
+    async login(options?: JavascriptLoginOptions): Promise<void> {
+        if (options && "redirectUri" in options) {
+            await this.loginWithRedirect(options);
+        } else {
+            await this.loginWithPopup(options);
+        }
     }
 
     /**
@@ -79,20 +145,93 @@ export class JavascriptProvider implements IFastAuthProvider {
     }
 
     /**
+     * Request a transaction signature with redirect.
+     * @param requestSignatureOptions The options for the request transaction signature with redirect.
+     * @returns The void.
+     */
+    private async requestTransactionSignatureWithRedirect(
+        requestSignatureOptions: JavascriptRequestTransactionSignatureWithRedirectOptions,
+    ): Promise<void> {
+        const { redirectUri, imageUrl, name, transaction, ...opts } = requestSignatureOptions;
+        await this.client.loginWithRedirect({
+            authorizationParams: {
+                image_url: imageUrl,
+                name,
+                transaction: encodeTransaction(transaction),
+                redirect_uri: redirectUri,
+            },
+            ...opts,
+        });
+    }
+
+    /**
+     * Request a transaction signature with popup.
+     * @param requestSignatureOptions The options for the request transaction signature with popup.
+     * @returns The void.
+     */
+    private async requestTransactionSignatureWithPopup(
+        requestSignatureOptions: JavascriptRequestTransactionSignatureWithPopupOptions,
+    ): Promise<void> {
+        const { imageUrl, name, transaction, ...opts } = requestSignatureOptions;
+        await this.client.loginWithPopup({
+            authorizationParams: {
+                image_url: imageUrl,
+                name,
+                transaction: encodeTransaction(transaction),
+            },
+            ...opts,
+        });
+    }
+
+    /**
      * Request a signature from the client.
      * @param requestSignatureOptions The options for the request signature.
      * @returns The signature.
      */
     async requestTransactionSignature(requestSignatureOptions: JavascriptRequestTransactionSignatureOptions): Promise<void> {
-        const { redirectUri, imageUrl, name, transaction } = requestSignatureOptions;
+        if (requestSignatureOptions.redirectUri) {
+            await this.requestTransactionSignatureWithRedirect(requestSignatureOptions);
+        } else {
+            await this.requestTransactionSignatureWithPopup(requestSignatureOptions);
+        }
+    }
 
+    /**
+     * Request a delegate action signature with redirect.
+     * @param requestSignatureOptions The options for the request delegate action signature with redirect.
+     * @returns The void.
+     */
+    private async requestDelegateActionSignatureWithRedirect(
+        requestSignatureOptions: JavascriptRequestDelegateActionSignatureWithRedirectOptions,
+    ): Promise<void> {
+        const { redirectUri, imageUrl, name, delegateAction, ...opts } = requestSignatureOptions;
         await this.client.loginWithRedirect({
             authorizationParams: {
                 image_url: imageUrl,
                 name,
-                redirect_uri: redirectUri ?? this.options.redirectUri,
-                transaction: encodeTransaction(transaction),
+                redirect_uri: redirectUri,
+                delegateAction: encodeDelegateAction(delegateAction),
             },
+            ...opts,
+        });
+    }
+
+    /**
+     * Request a delegate action signature with popup.
+     * @param requestSignatureOptions The options for the request delegate action signature with popup.
+     * @returns The void.
+     */
+    private async requestDelegateActionSignatureWithPopup(
+        requestSignatureOptions: JavascriptRequestDelegateActionSignatureWithPopupOptions,
+    ): Promise<void> {
+        const { imageUrl, name, delegateAction, ...opts } = requestSignatureOptions;
+        await this.client.loginWithPopup({
+            authorizationParams: {
+                image_url: imageUrl,
+                name,
+                delegateAction: encodeDelegateAction(delegateAction),
+            },
+            ...opts,
         });
     }
 
@@ -101,17 +240,12 @@ export class JavascriptProvider implements IFastAuthProvider {
      * @param options The options for the request delegate action signature.
      * @returns The void.
      */
-    async requestDelegateActionSignature(options: JavascriptRequestDelegateActionSignatureOptions): Promise<void> {
-        const { redirectUri, imageUrl, name, delegateAction } = options;
-
-        await this.client.loginWithRedirect({
-            authorizationParams: {
-                image_url: imageUrl,
-                name,
-                redirect_uri: redirectUri ?? this.options.redirectUri,
-                delegateAction: encodeDelegateAction(delegateAction),
-            },
-        });
+    async requestDelegateActionSignature(options: JavascriptBaseRequestDelegateActionSignatureOptions): Promise<void> {
+        if (options.redirectUri) {
+            await this.requestDelegateActionSignatureWithRedirect(options);
+        } else {
+            await this.requestDelegateActionSignatureWithPopup(options);
+        }
     }
 
     /**
