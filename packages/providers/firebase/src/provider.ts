@@ -163,6 +163,7 @@ export class FirebaseProvider implements IFastAuthProvider {
         if (!request) {
             throw new FirebaseProviderError(FirebaseProviderErrorCodes.SIGNATURE_REQUEST_NOT_FOUND);
         }
+        this.store.clear();
 
         return request;
     }

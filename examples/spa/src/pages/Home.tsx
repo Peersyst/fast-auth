@@ -33,7 +33,6 @@ const Home: React.FC = () => {
         handleSignTransaction,
         handleSendTransaction,
     } = useFastAuthWorkflow();
-    console.log("loggedin", loggedIn);
     return (
         <div className="home-page">
             <h1>FastAuth integration</h1>

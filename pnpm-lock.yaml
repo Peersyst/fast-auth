@@ -27,88 +27,6 @@ importers:
         specifier: ^2.5.4
         version: 2.5.4
 
-  apps/account-verifier:
-    dependencies:
-      '@fast-auth/browser-sdk':
-        specifier: workspace:*
-        version: link:../../packages/sdks/browser
-      '@fast-auth/javascript-provider':
-        specifier: workspace:*
-        version: link:../../packages/providers/javascript
-      '@noble/hashes':
-        specifier: ^1.8.0
-        version: 1.8.0
-      '@scure/base':
-        specifier: ^1.2.6
-        version: 1.2.6
-      bignumber.js:
-        specifier: ^9.2.1
-        version: 9.3.1
-      buffer:
-        specifier: ^6.0.3
-        version: 6.0.3
-      elliptic:
-        specifier: ^6.6.1
-        version: 6.6.1
-      history:
-        specifier: 5.3.0
-        version: 5.3.0
-      jose:
-        specifier: ^6.0.11
-        version: 6.0.12
-      near-api-js:
-        specifier: ^5.1.1
-        version: 5.1.1
-      react:
-        specifier: 19.2.0
-        version: 19.2.0
-      react-dom:
-        specifier: 19.2.0
-        version: 19.2.0(react@19.2.0)
-      react-router-dom:
-        specifier: ^7.5.0
-        version: 7.7.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-    devDependencies:
-      '@eslint/js':
-        specifier: ^9.22.0
-        version: 9.38.0
-      '@types/elliptic':
-        specifier: ^6.4.18
-        version: 6.4.18
-      '@types/react':
-        specifier: ^19.0.10
-        version: 19.2.2
-      '@types/react-dom':
-        specifier: ^19.0.4
-        version: 19.1.6(@types/react@19.2.2)
-      '@vitejs/plugin-react':
-        specifier: ^4.3.4
-        version: 4.7.0(vite@6.4.1(@types/node@25.0.8)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.1))
-      eslint:
-        specifier: ^8.26.1
-        version: 8.57.0
-      eslint-plugin-react-hooks:
-        specifier: ^5.2.0
-        version: 5.2.0(eslint@8.57.0)
-      eslint-plugin-react-refresh:
-        specifier: ^0.4.19
-        version: 0.4.20(eslint@8.57.0)
-      globals:
-        specifier: ^16.0.0
-        version: 16.3.0
-      typescript:
-        specifier: ~5.7.2
-        version: 5.7.3
-      typescript-eslint:
-        specifier: ^8.26.1
-        version: 8.38.0(eslint@8.57.0)(typescript@5.7.3)
-      vite:
-        specifier: ^6.3.7
-        version: 6.4.1(@types/node@25.0.8)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.1)
-      vite-plugin-node-polyfills:
-        specifier: 0.17.0
-        version: 0.17.0(rollup@4.44.1)(vite@6.4.1(@types/node@25.0.8)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.1))
-
   apps/attester:
     dependencies:
       '@near-js/accounts':
@@ -10406,11 +10324,6 @@ packages:
     peerDependencies:
       react: ^19.1.0
 
-  react-dom@19.2.0:
-    resolution: {integrity: sha512-UlbRu4cAiGaIewkPyiRGJk0imDN2T3JjieT6spoL2UeSf5od4n5LB/mQ4ejmxhCFT1tYe8IvaFulzynWovsEFQ==}
-    peerDependencies:
-      react: ^19.2.0
-
   react-error-overlay@6.1.0:
     resolution: {integrity: sha512-SN/U6Ytxf1QGkw/9ve5Y+NxBbZM6Ht95tuXNMKs8EJyFa/Vy/+Co3stop3KBHARfn/giv+Lj1uUnTfOJ3moFEQ==}
 
@@ -10778,9 +10691,6 @@ packages:
 
   scheduler@0.26.0:
     resolution: {integrity: sha512-NlHwttCI/l5gCPR3D1nNXtWABUmBwvZpEQiD4IXSbIDq8BzLIK/7Ir5gTFSGZDUu37K5cMNp0hFtzO38sC7gWA==}
-
-  scheduler@0.27.0:
-    resolution: {integrity: sha512-eNv+WrVbKu1f3vbYJT/xtiF5syA5HPIMtf9IgY/nKg0sWqzAUEvqY/xm7OcZc/qafLx/iO9FgOmeSAp4v5ti/Q==}
 
   schema-utils@2.7.0:
     resolution: {integrity: sha512-0ilKFI6QQF5nxDZLFn2dMjvc4hjg/Wkg7rHd3jK6/A4a1Hl9VFdQWvgB1UMGoU94pad1P/8N7fMcEnLnSiju8A==}
@@ -11869,11 +11779,6 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
-  vite-plugin-node-polyfills@0.17.0:
-    resolution: {integrity: sha512-iPmPn7376e5u6QvoTSJa16hf5Q0DFwHFXJk2uYpsNlmI3JdPms7hWyh55o+OysJ5jo9J5XPhLC9sMOYifwFd1w==}
-    peerDependencies:
-      vite: ^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0
-
   vite-plugin-node-polyfills@0.24.0:
     resolution: {integrity: sha512-GA9QKLH+vIM8NPaGA+o2t8PDfFUl32J8rUp1zQfMKVJQiNkOX4unE51tR6ppl6iKw5yOrDAdSH7r/UIFLCVhLw==}
     peerDependencies:
@@ -11881,46 +11786,6 @@ packages:
 
   vite@6.3.5:
     resolution: {integrity: sha512-cZn6NDFE7wdTpINgs++ZJ4N49W2vRp8LCKrn3Ob1kYNtOo21vfDoaV5GzBfLU4MovSAB8uNRm4jgzVQZ+mBzPQ==}
-    engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
-    hasBin: true
-    peerDependencies:
-      '@types/node': ^18.0.0 || ^20.0.0 || >=22.0.0
-      jiti: '>=1.21.0'
-      less: '*'
-      lightningcss: ^1.21.0
-      sass: '*'
-      sass-embedded: '*'
-      stylus: '*'
-      sugarss: '*'
-      terser: ^5.16.0
-      tsx: ^4.8.1
-      yaml: ^2.4.2
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-      jiti:
-        optional: true
-      less:
-        optional: true
-      lightningcss:
-        optional: true
-      sass:
-        optional: true
-      sass-embedded:
-        optional: true
-      stylus:
-        optional: true
-      sugarss:
-        optional: true
-      terser:
-        optional: true
-      tsx:
-        optional: true
-      yaml:
-        optional: true
-
-  vite@6.4.1:
-    resolution: {integrity: sha512-+Oxm7q9hDoLMyJOYfUYBuHQo+dkAloi33apOPP56pzj+vsdJDzr+j1NISE5pyaAuKL4A3UD34qd0lx5+kfKp2g==}
     engines: {node: ^18.0.0 || ^20.0.0 || >=22.0.0}
     hasBin: true
     peerDependencies:
@@ -15136,7 +15001,8 @@ snapshots:
 
   '@eslint/js@9.31.0': {}
 
-  '@eslint/js@9.38.0': {}
+  '@eslint/js@9.38.0':
+    optional: true
 
   '@eslint/object-schema@2.1.7':
     optional: true
@@ -17838,10 +17704,6 @@ snapshots:
     dependencies:
       '@types/react': 19.1.8
 
-  '@types/react-dom@19.1.6(@types/react@19.2.2)':
-    dependencies:
-      '@types/react': 19.2.2
-
   '@types/react-router-config@5.0.11':
     dependencies:
       '@types/history': 4.7.11
@@ -18176,18 +18038,6 @@ snapshots:
       '@types/babel__core': 7.20.5
       react-refresh: 0.17.0
       vite: 6.3.5(@types/node@25.0.8)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.1)
-    transitivePeerDependencies:
-      - supports-color
-
-  '@vitejs/plugin-react@4.7.0(vite@6.4.1(@types/node@25.0.8)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.1))':
-    dependencies:
-      '@babel/core': 7.28.0
-      '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.28.0)
-      '@babel/plugin-transform-react-jsx-source': 7.27.1(@babel/core@7.28.0)
-      '@rolldown/pluginutils': 1.0.0-beta.27
-      '@types/babel__core': 7.20.5
-      react-refresh: 0.17.0
-      vite: 6.4.1(@types/node@25.0.8)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.1)
     transitivePeerDependencies:
       - supports-color
 
@@ -25185,11 +25035,6 @@ snapshots:
       react: 19.1.0
       scheduler: 0.26.0
 
-  react-dom@19.2.0(react@19.2.0):
-    dependencies:
-      react: 19.2.0
-      scheduler: 0.27.0
-
   react-error-overlay@6.1.0: {}
 
   react-fast-compare@3.2.2: {}
@@ -25349,12 +25194,6 @@ snapshots:
       react-dom: 19.1.0(react@19.1.0)
       react-router: 7.7.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
 
-  react-router-dom@7.7.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
-    dependencies:
-      react: 19.2.0
-      react-dom: 19.2.0(react@19.2.0)
-      react-router: 7.7.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-
   react-router@5.3.4(react@19.1.0):
     dependencies:
       '@babel/runtime': 7.27.6
@@ -25375,14 +25214,6 @@ snapshots:
       set-cookie-parser: 2.7.1
     optionalDependencies:
       react-dom: 19.1.0(react@19.1.0)
-
-  react-router@7.7.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
-    dependencies:
-      cookie: 1.0.2
-      react: 19.2.0
-      set-cookie-parser: 2.7.1
-    optionalDependencies:
-      react-dom: 19.2.0(react@19.2.0)
 
   react@19.1.0: {}
 
@@ -25762,8 +25593,6 @@ snapshots:
   sax@1.4.1: {}
 
   scheduler@0.26.0: {}
-
-  scheduler@0.27.0: {}
 
   schema-utils@2.7.0:
     dependencies:
@@ -27074,16 +26903,6 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.2
 
-  vite-plugin-node-polyfills@0.17.0(rollup@4.44.1)(vite@6.4.1(@types/node@25.0.8)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.1)):
-    dependencies:
-      '@rollup/plugin-inject': 5.0.5(rollup@4.44.1)
-      buffer-polyfill: buffer@6.0.3
-      node-stdlib-browser: 1.3.1
-      process: 0.11.10
-      vite: 6.4.1(@types/node@25.0.8)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.1)
-    transitivePeerDependencies:
-      - rollup
-
   vite-plugin-node-polyfills@0.24.0(rollup@4.44.1)(vite@6.3.5(@types/node@25.0.8)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.1)):
     dependencies:
       '@rollup/plugin-inject': 5.0.5(rollup@4.44.1)
@@ -27093,23 +26912,6 @@ snapshots:
       - rollup
 
   vite@6.3.5(@types/node@25.0.8)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.1):
-    dependencies:
-      esbuild: 0.25.8
-      fdir: 6.4.6(picomatch@4.0.3)
-      picomatch: 4.0.3
-      postcss: 8.5.6
-      rollup: 4.44.1
-      tinyglobby: 0.2.14
-    optionalDependencies:
-      '@types/node': 25.0.8
-      fsevents: 2.3.3
-      jiti: 1.21.7
-      lightningcss: 1.30.2
-      terser: 5.43.1
-      tsx: 4.21.0
-      yaml: 2.8.1
-
-  vite@6.4.1(@types/node@25.0.8)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.1):
     dependencies:
       esbuild: 0.25.8
       fdir: 6.4.6(picomatch@4.0.3)

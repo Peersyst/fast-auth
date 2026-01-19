@@ -30,7 +30,6 @@ export function FastAuthProvider({children}: { children: ReactNode }) {
 
     useEffect(() => {
         const initializeClient = async (connection: Connection) => {
-            console.log("Initializing FastAuthClient...");
             try {
                 let provider: JavascriptProvider | FirebaseProvider;
 

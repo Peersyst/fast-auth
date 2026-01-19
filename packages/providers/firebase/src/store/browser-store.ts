@@ -44,6 +44,6 @@ export class BrowserStore implements Store {
      * Clear the signature request from local storage.
      */
     clear(): void {
-        localStorage.removeItem("fast-auth-keypair");
+        localStorage.removeItem("fast-auth-signature-request");
     }
 }

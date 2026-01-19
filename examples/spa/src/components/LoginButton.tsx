@@ -20,7 +20,6 @@ const LoginButton: React.FC<LoginButtonProps> = ({handleLogin}) => {
             } else {
                 const firebaseProviderType = providerType === "firebase-google" ? "google" : "apple";
                 await client?.login(firebaseProviderType);
-                console.log("Firebase provider initialized");
                 await handleLogin();
             }
         } finally {
