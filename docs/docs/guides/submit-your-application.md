@@ -19,6 +19,10 @@ Before going to production, your application must be whitelisted to use FastAuth
 
 For information about the production contracts, see the [FastAuth Contract architecture](../concepts/architecture_contracts_fa).
 
+## Submit your application
+
+You can submit your application via this [form](https://docs.google.com/forms/d/e/1FAIpQLSftBL_EKeu02gYSTPg4luCpnGLsRyp6Fcbqxl0tKDK9T11aIg/viewform?usp=publish-editor).
+
 ## Development vs. Production
 
 | Environment | Purpose | Credentials |
