@@ -748,8 +748,8 @@ importers:
   packages/providers/javascript:
     dependencies:
       '@auth0/auth0-spa-js':
-        specifier: ^2.2.0
-        version: 2.3.0
+        specifier: ^2.11.3
+        version: 2.11.3
       '@near-js/accounts':
         specifier: ^2.0.2
         version: 2.2.3(@near-js/crypto@1.4.2)(@near-js/providers@1.0.3)(@near-js/signers@0.2.2)(@near-js/tokens@2.2.3)(@near-js/transactions@2.2.3(@near-js/crypto@1.4.2)(@near-js/types@0.3.1)(@near-js/utils@1.1.0))(@near-js/types@0.3.1)(@near-js/utils@1.1.0)
@@ -1272,6 +1272,9 @@ packages:
     engines: {node: '>= 20'}
     peerDependencies:
       '@types/json-schema': ^7.0.15
+
+  '@auth0/auth0-spa-js@2.11.3':
+    resolution: {integrity: sha512-gdivWytvbatuJ2MVWw2VouqV+dT975yJQXVwdap9d8Sa8KHsybjKoc5TbMqrECwZbXU+nCRIaaBRhL0aiKYA2A==}
 
   '@auth0/auth0-spa-js@2.3.0':
     resolution: {integrity: sha512-zAW6w79UO+G1+3AxboVQIUIZy05xluSOb1ymGg2dqG0pIi0JxEtZGec05BOf2LJ9SehzW4WeCYUQsYD9BjrVpQ==}
@@ -5741,6 +5744,9 @@ packages:
   browser-resolve@2.0.0:
     resolution: {integrity: sha512-7sWsQlYL2rGLy2IWm8WL8DCTJvYLc/qlOnsakDac87SOoCd16WLsaAMdCiAqsTNHIe+SXfaqyxyo6THoWqs8WQ==}
 
+  browser-tabs-lock@1.3.0:
+    resolution: {integrity: sha512-g6nHaobTiT0eMZ7jh16YpD2kcjAp+PInbiVq3M1x6KKaEIVhT4v9oURNIpZLOZ3LQbQ3XYfNhMAb/9hzNLIWrw==}
+
   browserify-aes@1.2.0:
     resolution: {integrity: sha512-+7CHXqGuspUn/Sl5aO7Ea0xWGAtETPXNSAjHo48JfLdPWcMng33Xe4znFvQweqc/uzk5zSOI3H52CYnjCfb5hA==}
 
@@ -6673,6 +6679,9 @@ packages:
     resolution: {integrity: sha512-JVUnt+DUIzu87TABbhPmNfVdBDt18BLOWjMUFJMSi/Qqg7NTYtabbvSNJGOJ7afbRuv9D/lngizHtP7QyLQ+9w==}
     engines: {node: '>=12'}
 
+  dpop@2.1.1:
+    resolution: {integrity: sha512-J0Of2JTiM4h5si0tlbPQ/lkqfZ5wAEVkKYBhkwyyANnPJfWH4VsR5uIkZ+T+OSPIwDYUg1fbd5Mmodd25HjY1w==}
+
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
@@ -6779,6 +6788,9 @@ packages:
   es-abstract@1.24.0:
     resolution: {integrity: sha512-WSzPgsdLtTcQwm4CROfS5ju2Wa1QQcVeT37jFjYzdFz1r9ahadC8B8/a4qxJxM+09F18iumCdRmlr96ZYkQvEg==}
     engines: {node: '>= 0.4'}
+
+  es-cookie@1.3.2:
+    resolution: {integrity: sha512-UTlYYhXGLOy05P/vKVT2Ui7WtC7NiRzGtJyAKKn32g5Gvcjn7KAClLPWlipCtxIus934dFg9o9jXiBL0nP+t9Q==}
 
   es-define-property@1.0.1:
     resolution: {integrity: sha512-e3nRfgfUZ4rNGL232gUgX06QNyyez04KdjFrF+LTRoOXmrOgFKDg4BCdsjW8EnT69eqdYGmRpJwiPVYNrCaW3g==}
@@ -12465,6 +12477,12 @@ snapshots:
     dependencies:
       '@types/json-schema': 7.0.15
       js-yaml: 4.1.0
+
+  '@auth0/auth0-spa-js@2.11.3':
+    dependencies:
+      browser-tabs-lock: 1.3.0
+      dpop: 2.1.1
+      es-cookie: 1.3.2
 
   '@auth0/auth0-spa-js@2.3.0': {}
 
@@ -18886,6 +18904,10 @@ snapshots:
     dependencies:
       resolve: 1.22.10
 
+  browser-tabs-lock@1.3.0:
+    dependencies:
+      lodash: 4.17.21
+
   browserify-aes@1.2.0:
     dependencies:
       buffer-xor: 1.0.3
@@ -19918,6 +19940,8 @@ snapshots:
 
   dotenv@17.2.3: {}
 
+  dpop@2.1.1: {}
+
   dunder-proto@1.0.1:
     dependencies:
       call-bind-apply-helpers: 1.0.2
@@ -20067,6 +20091,8 @@ snapshots:
       typed-array-length: 1.0.7
       unbox-primitive: 1.1.0
       which-typed-array: 1.1.19
+
+  es-cookie@1.3.2: {}
 
   es-define-property@1.0.1: {}
 

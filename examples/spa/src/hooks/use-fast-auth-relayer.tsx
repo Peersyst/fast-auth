@@ -20,8 +20,6 @@ interface FastAuthContextType {
 
 const FastAuthContext = createContext<FastAuthContextType | null>(null);
 
-const APP_ORIGIN = import.meta.env.VITE_APP_ORIGIN || config.appOrigin;
-
 export function FastAuthProvider({children}: { children: ReactNode }) {
     const [relayer, setRelayer] = useState<FastAuthRelayer | null>(null);
     const [client, setClient] = useState<FastAuthClient<JavascriptProvider | FirebaseProvider> | null>(null);
@@ -40,7 +38,7 @@ export function FastAuthProvider({children}: { children: ReactNode }) {
                     provider = new JavascriptProvider({
                         domain: config.domain,
                         clientId: config.clientId,
-                        redirectUri: APP_ORIGIN,
+
                         audience: config.audience,
                     });
                 } else {

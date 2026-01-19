@@ -1,8 +1,0 @@
-{
-    "domain": "auth0.aws.peersyst.tech",
-    "clientId": "qOfA3FaWedmD9LjFS9uRvQVJ0U3XhsgA",
-    "audience": "fast-auth-api-test-0.com",
-    "appOrigin": "https://fast-auth-account-verifier.vercel.app",
-    "mpcContractId": "v1.signer-prod.testnet",
-    "fastAuthContractId": "fast-auth-beta-001.testnet"
-}
