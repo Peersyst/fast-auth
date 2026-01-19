@@ -129,7 +129,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
             {
                 guard_id: guardId,
                 verify_payload: verifyPayload,
-                sign_payload: signPayload,
+                sign_payload: Array.from(signPayload),
                 algorithm: algorithm,
             },
             gas,

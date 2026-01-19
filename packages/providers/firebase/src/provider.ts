@@ -112,6 +112,9 @@ export class FirebaseProvider implements IFastAuthProvider {
                 jwt: await this.currentUser?.getIdToken(),
                 signPayload: signPayload,
             }),
+            headers: {
+                "Content-Type": "application/json",
+            }
         });
         if (!response.ok) {
             throw new FirebaseProviderError(FirebaseProviderErrorCodes.REQUEST_TRANSACTION_SIGNATURE_FAILED);
