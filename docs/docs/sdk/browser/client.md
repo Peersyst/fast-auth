@@ -63,16 +63,18 @@ Creates and returns a configured signer instance for transaction operations.
 
 ```typescript
 interface IFastAuthProvider {
-    // Base signer provider methods
+    // Authentication methods
+    login(...args: any[]): void | Promise<void>;
+    logout(): void | Promise<void>;
     isLoggedIn(): Promise<boolean>;
+
+    // Transaction signing methods
     requestTransactionSignature(...args: any[]): Promise<void>;
     requestDelegateActionSignature(...args: any[]): Promise<void>;
+
+    // Utility methods
     getSignatureRequest(): Promise<SignatureRequest>;
     getPath(): Promise<string>;
-
-    // Client-specific methods
-    login(...args: any[]): void;
-    logout(): void;
 }
 ```
 
@@ -81,19 +83,22 @@ interface IFastAuthProvider {
 ### Client instantiation
 
 ```typescript
-import { FastAuthClient } from "@near/fast-auth-sdk";
-import { connect } from "near-api-js";
+import { FastAuthClient } from "@fast-auth/browser-sdk";
+import { Connection } from "near-api-js";
 
 // 1. Set up NEAR connection
-const connection = await connect(nearConfig);
+const connection = new Connection({
+    networkId: "testnet",
+    provider: { type: "JsonRpcProvider", args: { url: "https://rpc.testnet.near.org" } },
+});
 
 // 2. Create provider instance
 const provider = new SomeAuthProvider(config);
 
 // 3. Initialize client
 const client = new FastAuthClient(provider, connection, {
-    mpcContractId: "mpc.contract.near",
-    fastAuthContractId: "fastauth.contract.near",
+    mpcContractId: "v1.signer-prod.testnet",
+    fastAuthContractId: "fast-auth-beta-001.testnet",
 });
 
 // 4. Authenticate

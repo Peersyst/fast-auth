@@ -1,186 +1,432 @@
 # API Reference
 
-Complete API reference for the FastAuth JavaScript Provider.
+Complete API reference for the FastAuth React Native Provider.
 
-## FastAuthProvider
+## ReactNativeProvider
 
-The main class for interacting with the FastAuth service.
+The main class for interacting with FastAuth using Auth0 authentication in React Native applications.
 
 ### Constructor
 
 ```typescript
-new FastAuthProvider(config: FastAuthProviderConfig)
+new ReactNativeProvider(options: ReactNativeProviderOptions)
 ```
 
 #### Parameters
 
-- `config` - Configuration object for the provider
+- `options` - Configuration object with Auth0 credentials and app metadata
 
 #### Example
 
 ```javascript
-const provider = new FastAuthProvider({
-    network: 'testnet',
-    authServiceUrl: 'https://your-auth-service.com',
+import { ReactNativeProvider } from '@fast-auth/react-native-provider';
+
+const provider = new ReactNativeProvider({
+    domain: 'your-auth0-domain.auth0.com',
+    clientId: 'your-auth0-client-id',
+    audience: 'your-auth0-audience', // Optional
+    imageUrl: 'https://example.com/icon.png',
+    name: 'My dApp',
 });
 ```
 
 ## Methods
 
-### signIn
+### login
 
-Authenticates a user and creates a new session.
+Authenticates the user using Web Authentication (system browser).
 
 ```typescript
-signIn(options: SignInOptions): Promise<Session>
+login(): Promise<void>
+```
+
+#### Returns
+
+Promise that resolves when authentication is complete. Credentials are automatically saved.
+
+#### Example
+
+```javascript
+await provider.login();
+// User will be redirected to Auth0 login via system browser
+```
+
+---
+
+### logout
+
+Logs out the current user and clears stored credentials.
+
+```typescript
+logout(): Promise<void>
+```
+
+#### Behavior
+
+- Clears the session on Auth0's servers
+- Clears local credentials
+- Throws error if clearing remote session fails, but still clears local credentials
+
+#### Example
+
+```javascript
+await provider.logout();
+```
+
+---
+
+### isLoggedIn
+
+Checks if the user is currently authenticated by verifying if valid credentials exist.
+
+```typescript
+isLoggedIn(): Promise<boolean>
+```
+
+#### Returns
+
+Promise that resolves to `true` if authenticated, `false` otherwise.
+
+#### Example
+
+```javascript
+const isLoggedIn = await provider.isLoggedIn();
+if (isLoggedIn) {
+    console.log('User is authenticated');
+}
+```
+
+---
+
+### getPath
+
+Gets the NEAR path identifier for the authenticated user.
+
+```typescript
+getPath(): Promise<string>
+```
+
+#### Returns
+
+Promise that resolves to a path string in the format: `jwt#https://{domain}/#${sub}`.
+
+#### Throws
+
+- `ReactNativeProviderError` with code `CREDENTIALS_NOT_FOUND` if credentials are not found
+- `ReactNativeProviderError` with code `INVALID_TOKEN` if the token is invalid
+
+#### Example
+
+```javascript
+try {
+    const path = await provider.getPath();
+    console.log('User path:', path);
+} catch (error) {
+    console.error('Failed to get path:', error);
+}
+```
+
+---
+
+### requestTransactionSignature
+
+Requests a signature for a NEAR transaction by initiating a new authorization flow.
+
+```typescript
+requestTransactionSignature(
+    options: ReactNativeRequestTransactionSignatureOptions
+): Promise<void>
 ```
 
 #### Parameters
 
-- `options.email` - User's email address
-- `options.redirectUrl` (optional) - URL to redirect after authentication
+- `options.transaction` - The NEAR transaction to sign
+- `options.imageUrl` - URL of the dApp icon/logo
+- `options.name` - Name of the dApp
 
 #### Returns
 
-Promise that resolves to a `Session` object.
+Promise that resolves when the authorization flow is initiated. Credentials are automatically saved after approval.
 
 #### Example
 
 ```javascript
-const session = await provider.signIn({
-    email: 'user@example.com',
+import { Transaction } from 'near-api-js/lib/transaction';
+
+await provider.requestTransactionSignature({
+    transaction: myTransaction,
+    imageUrl: 'https://example.com/logo.png',
+    name: 'My dApp',
 });
 ```
 
 ---
 
-### signOut
+### requestDelegateActionSignature
 
-Signs out the current user and clears the session.
+Requests a signature for a NEAR delegate action by initiating a new authorization flow.
 
 ```typescript
-signOut(): Promise<void>
+requestDelegateActionSignature(
+    options: ReactNativeRequestDelegateActionSignatureOptions
+): Promise<void>
 ```
+
+#### Parameters
+
+- `options.delegateAction` - The delegate action to sign
+- `options.imageUrl` - URL of the dApp icon/logo
+- `options.name` - Name of the dApp
+
+#### Returns
+
+Promise that resolves when the authorization flow is initiated. Credentials are automatically saved after approval.
 
 #### Example
 
 ```javascript
-await provider.signOut();
+import { DelegateAction } from '@near-js/transactions';
+
+await provider.requestDelegateActionSignature({
+    delegateAction: myDelegateAction,
+    imageUrl: 'https://example.com/logo.png',
+    name: 'My dApp',
+});
 ```
 
 ---
 
-### getSession
+### getSignatureRequest
 
-Retrieves the current user session.
+Retrieves the signature request from the current session.
 
 ```typescript
-getSession(): Promise<Session | null>
+getSignatureRequest(): Promise<SignatureRequest>
 ```
 
 #### Returns
 
-Promise that resolves to a `Session` object if authenticated, or `null` if not authenticated.
+Promise that resolves to a `SignatureRequest` object containing:
+- `guardId` - The JWT guard identifier
+- `verifyPayload` - The access token (used for verification)
+- `signPayload` - The transaction/delegate action payload to sign
+
+#### Throws
+
+`ReactNativeProviderError` with code `CREDENTIALS_NOT_FOUND` if credentials are not found.
 
 #### Example
 
 ```javascript
-const session = await provider.getSession();
-if (session) {
-    console.log('User:', session.user);
-}
+const signatureRequest = await provider.getSignatureRequest();
+console.log('Guard ID:', signatureRequest.guardId);
+console.log('Verify Payload:', signatureRequest.verifyPayload);
 ```
 
----
+## Helper Functions
 
-### getAccountId
+### reactNativeProviderConfig
 
-Gets the NEAR account ID for the current session.
+Helper function to configure the provider for use with the React SDK.
 
 ```typescript
-getAccountId(): Promise<string | null>
+reactNativeProviderConfig(
+    opts: ReactNativeProviderOptions
+): FastAuthProviderConfig
 ```
+
+#### Parameters
+
+- `opts` - ReactNativeProvider options
 
 #### Returns
 
-Promise that resolves to the account ID string, or `null` if not authenticated.
+Configuration object with `provider` and `reactProvider` for use with `FastAuthProvider`.
 
 #### Example
 
 ```javascript
-const accountId = await provider.getAccountId();
+import { reactNativeProviderConfig } from '@fast-auth/react-native-provider';
+import { FastAuthProvider } from '@fast-auth/react-sdk';
+
+const providerConfig = reactNativeProviderConfig({
+    domain: 'your-auth0-domain.auth0.com',
+    clientId: 'your-auth0-client-id',
+    audience: 'your-auth0-audience',
+    imageUrl: 'https://example.com/icon.png',
+    name: 'My dApp',
+});
+
+<FastAuthProvider providerConfig={providerConfig} ...>
+    <YourApp />
+</FastAuthProvider>
 ```
 
 ## Types
 
-### FastAuthProviderConfig
+### ReactNativeProviderOptions
 
 Configuration options for the provider.
 
 ```typescript
-interface FastAuthProviderConfig {
-    network: 'testnet' | 'mainnet';
-    authServiceUrl: string;
-    storage?: Storage;
-}
+type ReactNativeProviderOptions = AppOptions & Auth0Options & {
+    audience?: string;
+};
+
+type AppOptions = {
+    imageUrl: string;
+    name: string;
+};
 ```
 
-### Session
+**Properties:**
 
-Represents an authenticated user session.
+- `domain` - Your Auth0 domain (e.g., 'your-app.auth0.com')
+- `clientId` - Your Auth0 application client ID
+- `audience` - (Optional) Auth0 API audience identifier
+- `imageUrl` - URL of the dApp icon/logo
+- `name` - Name of the dApp
+- Other `Auth0Options` from `react-native-auth0`
+
+---
+
+### ReactNativeRequestTransactionSignatureOptions
+
+Options for requesting a transaction signature.
 
 ```typescript
-interface Session {
-    user: User;
-    accountId: string;
-    accessToken: string;
-}
+type ReactNativeRequestTransactionSignatureOptions = ReactNativeBaseRequestSignatureOptions & {
+    transaction: Transaction;
+};
+
+type ReactNativeBaseRequestSignatureOptions = {
+    imageUrl: string;
+    name: string;
+};
 ```
 
-### User
+**Properties:**
 
-User information.
+- `transaction` - NEAR transaction object to sign
+- `imageUrl` - URL of the dApp icon/logo
+- `name` - Name of the dApp
+
+---
+
+### ReactNativeRequestDelegateActionSignatureOptions
+
+Options for requesting a delegate action signature.
 
 ```typescript
-interface User {
-    email: string;
-    name?: string;
-    picture?: string;
-}
+type ReactNativeRequestDelegateActionSignatureOptions = ReactNativeBaseRequestSignatureOptions & {
+    delegateAction: DelegateAction;
+};
 ```
 
-### SignInOptions
+**Properties:**
 
-Options for the sign-in method.
+- `delegateAction` - NEAR delegate action to sign
+- `imageUrl` - URL of the dApp icon/logo
+- `name` - Name of the dApp
+
+---
+
+### SignatureRequest
+
+Represents a signature request returned after authentication.
 
 ```typescript
-interface SignInOptions {
-    email: string;
-    redirectUrl?: string;
+interface SignatureRequest {
+    guardId: string;
+    verifyPayload: string;
+    signPayload: Uint8Array;
+    algorithm?: MPCContractAlgorithm;
 }
 ```
 
-## Events
+**Properties:**
 
-The provider emits the following events:
+- `guardId` - The guard identifier
+- `verifyPayload` - JWT token for verification
+- `signPayload` - The payload to be signed
+- `algorithm` - (Optional) The signing algorithm
 
-### sessionChanged
+---
 
-Fired when the user session changes (sign in, sign out, or session refresh).
+### MPCContractAlgorithm
+
+Supported signing algorithms.
+
+```typescript
+type MPCContractAlgorithm = "secp256k1" | "eddsa" | "ecdsa";
+```
+
+## Error Handling
+
+### ReactNativeProviderError
+
+Custom error class thrown by the provider.
+
+```typescript
+class ReactNativeProviderError extends Error {
+    constructor(code: ReactNativeProviderErrorCodes)
+}
+```
+
+### ReactNativeProviderErrorCodes
+
+Error codes used by the provider.
+
+```typescript
+enum ReactNativeProviderErrorCodes {
+    USER_NOT_LOGGED_IN = "USER_NOT_LOGGED_IN",
+    CREDENTIALS_NOT_FOUND = "CREDENTIALS_NOT_FOUND",
+    INVALID_TOKEN = "INVALID_TOKEN"
+}
+```
+
+**Error Codes:**
+
+- `USER_NOT_LOGGED_IN` - Thrown when attempting to access user data without being authenticated
+- `CREDENTIALS_NOT_FOUND` - Thrown when credentials are not found in storage
+- `INVALID_TOKEN` - Thrown when the token is invalid or malformed
+
+#### Example
 
 ```javascript
-provider.on('sessionChanged', (session) => {
-    console.log('Session changed:', session);
-});
+import { 
+    ReactNativeProviderError, 
+    ReactNativeProviderErrorCodes 
+} from '@fast-auth/react-native-provider';
+
+try {
+    const path = await provider.getPath();
+} catch (error) {
+    if (error instanceof ReactNativeProviderError) {
+        switch (error.code) {
+            case ReactNativeProviderErrorCodes.USER_NOT_LOGGED_IN:
+                console.log('Please log in first');
+                break;
+            case ReactNativeProviderErrorCodes.CREDENTIALS_NOT_FOUND:
+                console.log('Credentials not found');
+                break;
+            case ReactNativeProviderErrorCodes.INVALID_TOKEN:
+                console.log('Invalid token');
+                break;
+        }
+    }
+}
 ```
 
-### error
+## Re-exports
 
-Fired when an error occurs.
+The package also re-exports the following from `react-native-auth0`:
+
+- `Auth0Provider` - React component for Auth0 context
+- `Auth0Options` - Type definitions for Auth0 options
+
+These can be used directly if needed:
 
 ```javascript
-provider.on('error', (error) => {
-    console.error('Provider error:', error);
-});
+import { Auth0Provider } from '@fast-auth/react-native-provider';
 ```
-

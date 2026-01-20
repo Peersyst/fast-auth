@@ -2,9 +2,34 @@
 
 Learn how to use the FastAuth JavaScript Provider in your application.
 
+## Overview
+
+The JavaScript Provider is designed to be used with FastAuth SDKs. It implements the `IFastAuthProvider` interface and must be injected into a `FastAuthClient` from one of the FastAuth SDKs. The provider handles Auth0 authentication and transaction signing, while the SDK handles NEAR blockchain interactions.
+
+## SDK Compatibility
+
+The JavaScript Provider is compatible with the following FastAuth SDKs:
+
+| SDK | Package | Compatibility | Notes |
+|-----|---------|--------------|-------|
+| Browser SDK | `@fast-auth/browser-sdk` | ✅ Fully Compatible | Designed for browser/web applications |
+| React SDK | `@fast-auth/react-sdk` | ✅ Fully Compatible | Can be used with React applications |
+
 ## Basic Setup
 
-First, import and initialize the JavaScript Provider with your Auth0 configuration:
+First, install both the JavaScript Provider and your chosen SDK:
+
+```bash
+# Install the JavaScript Provider
+npm install @fast-auth/javascript-provider
+
+# Install your chosen SDK
+npm install @fast-auth/browser-sdk
+# or
+npm install @fast-auth/react-sdk
+```
+
+Then, import and initialize the JavaScript Provider with your Auth0 configuration:
 
 ```javascript
 import { JavascriptProvider } from '@fast-auth/javascript-provider';
@@ -12,107 +37,165 @@ import { JavascriptProvider } from '@fast-auth/javascript-provider';
 const provider = new JavascriptProvider({
     domain: 'your-auth0-domain.auth0.com',
     clientId: 'your-auth0-client-id',
-    redirectUri: window.location.origin,
     audience: 'your-auth0-audience',
 });
 ```
 
-## Authentication Flow
+## Integration with Browser SDK
 
-### Login
-
-To authenticate a user, redirect them to the Auth0 login page:
+### Setup
 
 ```javascript
-async function login() {
-    await provider.login();
-    // User will be redirected to Auth0 login page
+import { FastAuthClient } from '@fast-auth/browser-sdk';
+import { JavascriptProvider } from '@fast-auth/javascript-provider';
+import { Connection } from 'near-api-js';
+
+// 1. Set up NEAR connection
+const connection = new Connection({
+    networkId: 'testnet',
+    provider: { type: 'JsonRpcProvider', args: { url: 'https://rpc.testnet.near.org' } },
+});
+
+// 2. Create JavaScript Provider instance
+const provider = new JavascriptProvider({
+    domain: 'your-auth0-domain.auth0.com',
+    clientId: 'your-auth0-client-id',
+    audience: 'your-auth0-audience',
+});
+
+// 3. Initialize FastAuthClient with the provider
+const client = new FastAuthClient(provider, connection, {
+    mpcContractId: 'v1.signer-prod.testnet',
+    fastAuthContractId: 'fast-auth-beta-001.testnet',
+});
+```
+
+### Authentication
+
+```javascript
+// Login with popup (default - no redirectUri provided)
+await client.login();
+
+// Login with redirect (redirectUri provided)
+await client.login({
+    redirectUri: window.location.origin,
+});
+
+// Check authentication status
+const isLoggedIn = await client.isLoggedIn();
+
+// Logout
+await client.logout();
+```
+
+### Transaction Signing
+
+```javascript
+// Get signer
+const signer = await client.getSigner();
+
+// Request transaction signature
+await signer.requestTransactionSignature({
+    transaction: myTransaction,
+    imageUrl: 'https://example.com/icon.png',
+    name: 'My dApp',
+    redirectUri: window.location.origin + '/callback', // Optional
+});
+
+// Get signature request after callback
+const signatureRequest = await signer.getSignatureRequest();
+```
+
+## Integration with React SDK
+
+### Setup
+
+```javascript
+import { FastAuthProvider } from '@fast-auth/react-sdk';
+import { JavascriptProvider } from '@fast-auth/javascript-provider';
+import { Connection } from 'near-api-js';
+
+const connection = new Connection({
+    networkId: 'testnet',
+    provider: { type: 'JsonRpcProvider', args: { url: 'https://rpc.testnet.near.org' } },
+});
+
+function App() {
+    const providerConfig = {
+        provider: new JavascriptProvider({
+            domain: 'your-auth0-domain.auth0.com',
+            clientId: 'your-auth0-client-id',
+            audience: 'your-auth0-audience',
+        }),
+    };
+
+    return (
+        <FastAuthProvider
+            providerConfig={providerConfig}
+            connection={connection}
+            network="testnet"
+        >
+            <YourApp />
+        </FastAuthProvider>
+    );
 }
 ```
 
-### Check Authentication Status
-
-After the redirect callback, check if the user is logged in:
+### Using Hooks
 
 ```javascript
-async function checkAuth() {
-    const isLoggedIn = await provider.isLoggedIn();
-    
-    if (isLoggedIn) {
-        console.log('User is authenticated');
-        const path = await provider.getPath();
-        console.log('User path:', path);
-    } else {
-        console.log('User is not authenticated');
-    }
+import { useFastAuth, useSigner } from '@fast-auth/react-sdk';
+
+function MyComponent() {
+    const { client, isReady } = useFastAuth();
+    const { signer } = useSigner();
+
+    const handleLogin = async () => {
+        if (client) {
+            // Login with popup (default)
+            await client.login();
+            
+            // Or login with redirect
+            await client.login({
+                redirectUri: window.location.origin,
+            });
+        }
+    };
+
+    const handleSignTransaction = async (transaction) => {
+        if (signer) {
+            await signer.requestTransactionSignature({
+                transaction,
+                imageUrl: 'https://example.com/icon.png',
+                name: 'My dApp',
+            });
+        }
+    };
+
+    return (
+        <div>
+            <button onClick={handleLogin}>Login</button>
+            <button onClick={() => client?.logout()}>Logout</button>
+        </div>
+    );
 }
 ```
 
-### Logout
+## Login Flow Selection
 
-To sign out the current user:
+The JavaScript Provider automatically chooses between redirect and popup flow based on the options provided to `login()`:
 
-```javascript
-async function logout() {
-    await provider.logout();
-    console.log('User logged out');
-}
-```
-
-## Transaction Signing
-
-### Sign a Transaction
-
-Request a signature for a NEAR transaction:
+- **Popup Flow (Default)**: If no `redirectUri` is provided, the popup flow is used
+- **Redirect Flow**: If `redirectUri` is provided in the options, the redirect flow is used
 
 ```javascript
-import { Transaction } from 'near-api-js/lib/transaction';
+// Popup flow (default)
+await client.login();
 
-async function signTransaction(transaction) {
-    await provider.requestTransactionSignature({
-        transaction: transaction,
-        imageUrl: 'https://example.com/icon.png',
-        name: 'My dApp',
-        redirectUri: window.location.origin + '/callback', // Optional
-    });
-    // User will be redirected to approve the transaction
-}
-```
-
-### Sign a Delegate Action
-
-Request a signature for a delegate action:
-
-```javascript
-import { DelegateAction } from '@near-js/transactions';
-
-async function signDelegateAction(delegateAction) {
-    await provider.requestDelegateActionSignature({
-        delegateAction: delegateAction,
-        imageUrl: 'https://example.com/icon.png',
-        name: 'My dApp',
-        redirectUri: window.location.origin + '/callback', // Optional
-    });
-    // User will be redirected to approve the delegate action
-}
-```
-
-### Get Signature Request
-
-After the redirect callback, retrieve the signature request:
-
-```javascript
-async function getSignature() {
-    try {
-        const signatureRequest = await provider.getSignatureRequest();
-        console.log('Guard ID:', signatureRequest.guardId);
-        console.log('Verify Payload:', signatureRequest.verifyPayload);
-        console.log('Sign Payload:', signatureRequest.signPayload);
-        return signatureRequest;
-    } catch (error) {
-        console.error('Failed to get signature:', error);
-    }
-}
+// Redirect flow
+await client.login({
+    redirectUri: window.location.origin,
+});
 ```
 
 ## Configuration Options
@@ -123,91 +206,6 @@ The JavaScript Provider accepts the following configuration options:
 |--------|------|-------------|----------|
 | `domain` | `string` | Your Auth0 domain (e.g., 'your-app.auth0.com') | Yes |
 | `clientId` | `string` | Your Auth0 application client ID | Yes |
-| `redirectUri` | `string` | URL to redirect after authentication | Yes |
 | `audience` | `string` | Auth0 API audience identifier | Yes |
 
-## Complete Example
-
-Here's a complete example of integrating the JavaScript Provider in a web application:
-
-```javascript
-import { JavascriptProvider } from '@fast-auth/javascript-provider';
-import { Transaction } from 'near-api-js/lib/transaction';
-
-// Initialize the provider
-const provider = new JavascriptProvider({
-    domain: 'your-auth0-domain.auth0.com',
-    clientId: 'your-auth0-client-id',
-    redirectUri: window.location.origin,
-    audience: 'your-auth0-audience',
-});
-
-// Handle authentication on page load
-async function handleAuthCallback() {
-    const isLoggedIn = await provider.isLoggedIn();
-    
-    if (isLoggedIn) {
-        const path = await provider.getPath();
-        console.log('User authenticated with path:', path);
-        return true;
-    }
-    return false;
-}
-
-// Login handler
-async function handleLogin() {
-    try {
-        await provider.login();
-    } catch (error) {
-        console.error('Login failed:', error);
-    }
-}
-
-// Logout handler
-async function handleLogout() {
-    try {
-        await provider.logout();
-        console.log('Logged out successfully');
-    } catch (error) {
-        console.error('Logout failed:', error);
-    }
-}
-
-// Transaction signing handler
-async function handleSignTransaction(transaction) {
-    try {
-        await provider.requestTransactionSignature({
-            transaction,
-            imageUrl: 'https://example.com/logo.png',
-            name: 'My NEAR dApp',
-        });
-    } catch (error) {
-        console.error('Transaction signing failed:', error);
-    }
-}
-
-// Initialize app
-handleAuthCallback();
-```
-
-## Error Handling
-
-The provider throws `JavascriptProviderError` when errors occur:
-
-```javascript
-import { JavascriptProviderError } from '@fast-auth/javascript-provider';
-
-try {
-    const path = await provider.getPath();
-} catch (error) {
-    if (error instanceof JavascriptProviderError) {
-        console.error('Provider error:', error.message);
-        // Handle USER_NOT_LOGGED_IN error
-    }
-}
-```
-
-## Next Steps
-
-- [API Reference](./api) - Explore the complete API documentation
-
+Note: `redirectUri` is not part of the constructor options. It should be provided when calling `login()` with redirect flow.

@@ -1,42 +1,29 @@
 # Getting Started
 
-Welcome to the FastAuth JavaScript Provider documentation. This provider enables seamless authentication and transaction signing for web applications using Auth0 and NEAR Protocol.
+Welcome to the FastAuth JavaScript Provider documentation! This section provides comprehensive guides and references for integrating the JavaScript Provider into your web applications.
 
-## What is the JavaScript Provider?
+## Documentation Overview
 
-The JavaScript Provider is a browser-based authentication library that integrates Auth0 authentication with NEAR Protocol's FastAuth service. It allows you to:
+The FastAuth JavaScript Provider documentation is organized into the following sections:
 
-- Authenticate users via Auth0
-- Sign NEAR transactions and delegate actions
-- Integrate FastAuth into any web application
+### Core Documentation
 
-## Key Features
+- **[Installation](./installation.md)** - Learn how to install the provider using npm, yarn, or pnpm
+- **[Usage](./usage.md)** - Learn how to use the provider in your application
 
-- 🔐 Auth0-based authentication with OAuth 2.0
-- ✍️ Transaction and delegate action signing
-- 🌐 Browser-focused implementation
-- 🎯 Full TypeScript support
-- 📦 Built on Auth0 SPA SDK
-- ⚡ Redirect-based authentication flow
+### API Reference
 
-## Prerequisites
+- **[API Reference](./api.md)** - Complete reference for the `JavascriptProvider` class
 
-- A web application running in a browser environment
-- An Auth0 account and application configured
-- Basic knowledge of Auth0 and NEAR Protocol
+## Quick Navigation
 
-## Quick Start
+### For New Users
 
-To get started with the JavaScript Provider, follow these steps:
+1. Start with **[Installation](./installation.md)** to set up the provider
+2. Read **[Usage](./usage.md)** to learn how to integrate it
+3. Explore **[API Reference](./api.md)** for complete method documentation
 
-1. **Install the package** - See the [Installation](./installation) guide
-2. **Configure Auth0** - Set up your Auth0 application
-3. **Initialize the provider** - Configure the provider with your Auth0 credentials
-4. **Implement authentication** - Add login/logout functionality
+### For API Reference
 
-## Next Steps
-
-- [Installation](./installation) - Install the JavaScript Provider
-- [Usage](./usage) - Learn how to use the provider in your application
-- [API Reference](./api) - Explore the complete API documentation
+- **[API Reference](./api.md)** - JavascriptProvider methods and configuration
 

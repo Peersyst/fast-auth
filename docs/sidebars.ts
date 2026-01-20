@@ -29,9 +29,20 @@ const sidebars: SidebarsConfig = {
                 "concepts/architecture_contracts_architecture",
                 "concepts/architecture_contracts_fa",
                 "concepts/architecture_contracts_jwt-guard-router",
-                "concepts/architecture_contracts_auth0-guard",
+                {
+                    type: "category",
+                    label: "Guards",
+                    items: [
+                        "concepts/architecture_contracts_auth0-guard",
+                        "concepts/architecture_contracts_firebase-guard",
+                        "concepts/architecture_contracts_custom-issuer-guard",
+                    ],
+                },
+                "concepts/architecture_contracts_attestation",
             ],
         },
+        "concepts/architecture_mpc",
+        "concepts/architecture_custom_issuer_service",
         {
             type: "html",
             value: "Authentication",
@@ -48,7 +59,6 @@ const sidebars: SidebarsConfig = {
         },
         "sdk/browser/getting-started",
         "sdk/browser/installation",
-        "sdk/browser/concepts",
         // {
         //     type: "html",
         //     value: "Guides",
@@ -72,7 +82,6 @@ const sidebars: SidebarsConfig = {
         },
         "sdk/react/getting-started",
         "sdk/react/installation",
-        "sdk/react/concepts",
         // {
         //     type: "html",
         //     value: "Guides",
@@ -87,22 +96,30 @@ const sidebars: SidebarsConfig = {
         "sdk/react/client",
         "sdk/react/providers",
         "sdk/react/signer",
+        "sdk/react/hooks",
     ],
-    integrationsSidebar: [
-        "integrations/overview",
+    guidesSidebar: [
+        "guides/overview",
         {
             type: "html",
-            value: "Guides",
+            value: "Choosing dependencies",
             className: "sidebar-label",
         },
-        "integrations/auth0",
-        "integrations/custom-backend",
+        "guides/select-your-sdk",
+        "guides/select-your-provider",
         {
             type: "html",
-            value: "Examples",
+            value: "Integrate",
             className: "sidebar-label",
         },
-        "integrations/custom-backend-express",
+        "guides/authenticate-your-users",
+        "guides/sign-transactions-and-delegate-actions",
+        {
+            type: "html",
+            value: "Going to production",
+            className: "sidebar-label",
+        },
+        "guides/submit-your-application",
     ],
     javascriptProviderSidebar: [
         {

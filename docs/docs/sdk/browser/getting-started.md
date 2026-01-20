@@ -9,7 +9,6 @@ The FastAuth Browser SDK documentation is organized into the following sections:
 ### Core Documentation
 
 - **[Installation](./installation.md)** - Learn how to install the SDK using npm, yarn, or pnpm
-- **[Concepts](./concepts.md)** - Understand the SDK architecture and how components interact
 
 ### API Reference
 
@@ -22,9 +21,9 @@ The FastAuth Browser SDK documentation is organized into the following sections:
 ### For New Users
 
 1. Start with **[Installation](./installation.md)** to set up the SDK
-2. Read **[Concepts](./concepts.md)** to understand the architecture
-3. Use **[Client](./client.md)** to learn about the main entry point
-4. Explore **[Signer](./signer.md)** for transaction operations
+2. Use **[Client](./client.md)** to learn about the main entry point
+3. Explore **[Signer](./signer.md)** for transaction operations
+4. Check **[Providers](./providers.md)** for authentication provider interfaces
 
 ### For API Reference
 
