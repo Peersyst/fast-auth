@@ -145,6 +145,7 @@ export class IssuerService {
         const payload: jwt.JwtPayload = {
             sub: claims.sub,
             iss: this.issuerUrl,
+            fatxn: claims.fatxn,
         };
 
         if (claims.exp !== undefined) {
