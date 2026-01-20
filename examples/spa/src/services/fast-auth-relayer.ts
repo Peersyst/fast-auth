@@ -12,7 +12,7 @@ import { base_decode } from "near-api-js/lib/utils/serialize";
 // Environment variables for relayer configuration
 const RELAYER_PRIVATE_KEY = import.meta.env.VITE_RELAYER_PRIVATE_KEY;
 const RELAYER_ACCOUNT_ID = import.meta.env.VITE_RELAYER_ACCOUNT_ID;
-const FAST_AUTH_CONTRACT_ID = "fast-auth-beta-001.testnet";
+const FAST_AUTH_CONTRACT_ID = "fast-auth.testnet";
 
 // Validate required environment variables
 if (!RELAYER_PRIVATE_KEY) {

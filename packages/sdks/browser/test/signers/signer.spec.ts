@@ -120,7 +120,7 @@ describe("FastAuthSigner", () => {
                 expect.objectContaining({
                     guard_id: request.guardId,
                     verify_payload: request.verifyPayload,
-                    sign_payload: request.signPayload,
+                    sign_payload: Array.from(request.signPayload),
                     algorithm: request.algorithm,
                 }),
                 300000000000000n,

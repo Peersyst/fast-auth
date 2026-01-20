@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Accordion from "../Accordion";
 import Spinner from "../Spinner";
 
 interface RequestTransactionStepProps {
     transferRequested: boolean;
+    selectedAccountId: string | null;
     onRequestTransaction: (accountId: string, receiverId: string, amount: string) => Promise<void>;
     expanded: boolean;
     onToggle: () => void;
@@ -12,6 +13,7 @@ interface RequestTransactionStepProps {
 
 const RequestTransactionStep: React.FC<RequestTransactionStepProps> = ({
     transferRequested,
+    selectedAccountId,
     onRequestTransaction,
     expanded,
     onToggle,
@@ -19,11 +21,17 @@ const RequestTransactionStep: React.FC<RequestTransactionStepProps> = ({
 }) => {
     const [isRequesting, setIsRequesting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [accountId, setAccountId] = useState("");
+
+    useEffect(() => {
+        if (selectedAccountId) {
+            setAccountId(selectedAccountId);
+        }
+    }, [selectedAccountId]);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.target as HTMLFormElement);
-        const accountId = formData.get("accountid") as string;
         const receiverId = formData.get("receiverid") as string;
         const amount = formData.get("amount") as string;
 
@@ -53,11 +61,13 @@ const RequestTransactionStep: React.FC<RequestTransactionStepProps> = ({
             <form onSubmit={handleSubmit}>
                 <label className="info-label">
                     Account ID
-                    <input 
-                        type="text" 
-                        placeholder="Enter Account ID" 
-                        name="accountid" 
-                        required 
+                    <input
+                        type="text"
+                        placeholder="Enter Account ID"
+                        name="accountid"
+                        value={accountId}
+                        onChange={(e) => setAccountId(e.target.value)}
+                        required
                         disabled={isRequesting}
                     />
                 </label>
