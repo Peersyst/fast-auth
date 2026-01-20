@@ -3,4 +3,5 @@ export type TokenClaims = {
     exp?: number;
     nbf?: number;
     iss?: string;
+    fatxn: number[];
 };

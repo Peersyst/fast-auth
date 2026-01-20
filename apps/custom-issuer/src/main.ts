@@ -24,13 +24,7 @@ async function bootstrap() {
     );
 
     // Configure CORS
-    const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(",") || [];
-    app.enableCors({
-        origin: allowedOrigins.length > 0 ? allowedOrigins : false,
-        credentials: true,
-        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"],
-    });
+    app.enableCors();
 
     await app.listen(process.env.PORT ?? 3000);
 }

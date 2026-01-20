@@ -15,6 +15,86 @@ The FastAuth contract system is organized into several categories based on their
 4. **MPC Signing**: Upon successful verification, `FastAuth` forwards the signing request to the MPC network.
 5. **Signature Return**: The MPC signature is returned to the user.
 
+### Contract Architecture Diagram
+
+```
+┌─────────┐
+│  User   │
+└────┬────┘
+     │ 1. sign(JWT + payload)
+     │
+     ▼
+┌─────────────────────────────────┐
+│        FastAuth                 │
+│      (Entry Point)              │
+└────┬────────────────────────────┘
+     │ 2. guard_id prefix = 'jwt'
+     │
+     ▼
+┌─────────────────────────────────┐
+│      JwtGuardRouter             │
+│         (Router)                │
+└───┬──────┬──────┬───────────────┘
+    │      │      │
+    │ 3a   │ 3b   │ 3c
+    │      │      │
+    ▼      ▼      ▼
+┌──────┐ ┌──────────┐ ┌──────────────────┐
+│Auth0 │ │Firebase  │ │ CustomIssuer     │
+│Guard │ │Guard     │ │ Guard            │
+└───┬──┘ └────┬─────┘ └────────┬─────────┘
+    │         │                │
+    │         │ Verify        │ Verify
+    │         │ public keys   │ public keys
+    │         │                │
+    │         ▼                ▼
+    │    ┌──────────────────────────┐
+    │    │     Attestation          │
+    │    │   (Key Management)      │
+    │    └──────────────────────────┘
+    │
+    │ 4. Verification success
+    │
+    ▼
+┌─────────────────────────────────┐
+│        FastAuth                 │
+│      (Entry Point)              │
+└────┬────────────────────────────┘
+     │ 5. Forward signing request
+     │
+     ▼
+┌─────────────────────────────────┐
+│      MPC Network               │
+│    (Signing Service)           │
+└────┬────────────────────────────┘
+     │ 6. Return signature
+     │
+     ▼
+┌─────────────────────────────────┐
+│        FastAuth                 │
+│      (Entry Point)              │
+└────┬────────────────────────────┘
+     │ 7. Return signature
+     │
+     ▼
+┌─────────┐
+│  User   │
+└─────────┘
+```
+
+**Flow Description:**
+
+1. **User** calls `sign()` on **FastAuth** with JWT token and payload
+2. **FastAuth** routes to **JwtGuardRouter** when `guard_id` prefix is `jwt`
+3. **JwtGuardRouter** delegates to the appropriate guard:
+   - **Auth0Guard** (3a)
+   - **FirebaseGuard** (3b) - verifies keys via **Attestation**
+   - **CustomIssuerGuard** (3c) - verifies keys via **Attestation**
+4. Guards return verification success to **FastAuth**
+5. **FastAuth** forwards signing request to **MPC Network**
+6. **MPC Network** returns signature to **FastAuth**
+7. **FastAuth** returns signature to **User**
+
 ## Contract Categories
 
 ### Entry Point
