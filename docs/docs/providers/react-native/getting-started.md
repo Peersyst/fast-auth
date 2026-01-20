@@ -1,30 +1,28 @@
 # Getting Started
 
-Welcome to the FastAuth JavaScript Provider documentation. This provider enables seamless authentication integration for JavaScript applications.
+Welcome to the FastAuth React Native Provider documentation! This section provides comprehensive guides and references for integrating the React Native Provider into your React Native applications.
 
-## What is the JavaScript Provider?
+## Documentation Overview
 
-The JavaScript Provider is a lightweight authentication library that allows you to integrate FastAuth into any JavaScript application, whether it's a vanilla JavaScript project, Node.js application, or any other JavaScript environment.
+The FastAuth React Native Provider documentation is organized into the following sections:
 
-## Key Features
+### Core Documentation
 
-- 🚀 Easy integration with any JavaScript project
-- 🔐 Secure authentication flow
-- 📦 Minimal dependencies
-- 🎯 TypeScript support
-- ⚡ Lightweight and fast
+- **[Installation](./installation.md)** - Learn how to install the provider using npm, yarn, or pnpm
+- **[Usage](./usage.md)** - Learn how to use the provider in your application
 
-## Quick Start
+### API Reference
 
-To get started with the JavaScript Provider, follow these steps:
+- **[API Reference](./api.md)** - Complete reference for the `ReactNativeProvider` class
 
-1. **Install the package** - See the [Installation](./installation) guide
-2. **Configure the provider** - Set up your authentication configuration
-3. **Use the provider** - Integrate authentication into your application
+## Quick Navigation
 
-## Next Steps
+### For New Users
 
-- [Installation](./installation) - Install the JavaScript Provider
-- [Usage](./usage) - Learn how to use the provider in your application
-- [API Reference](./api) - Explore the complete API documentation
+1. Start with **[Installation](./installation.md)** to set up the provider
+2. Read **[Usage](./usage.md)** to learn how to integrate it
+3. Explore **[API Reference](./api.md)** for complete method documentation
 
+### For API Reference
+
+- **[API Reference](./api.md)** - ReactNativeProvider methods and configuration
