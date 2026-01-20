@@ -35,9 +35,9 @@ export class IssuerService {
         this.validationIssuerUrl = issuerConfig.validationIssuerUrl;
     }
 
-    async issueToken(inputJwt: string): Promise<string> {
+    async issueToken(inputJwt: string, signPayload: number[]): Promise<string> {
         const decoded = this.verifyAndDecodeToken(inputJwt);
-        const claims = this.extractAndValidateClaims(decoded);
+        const claims = this.extractAndValidateClaims(decoded, signPayload);
         return this.createSignedToken(claims);
     }
 
@@ -56,14 +56,15 @@ export class IssuerService {
         throw new UnauthorizedException(ErrorMessage.INVALID_TOKEN);
     }
 
-    private extractAndValidateClaims(decoded: jwt.JwtPayload): TokenClaims {
+    private extractAndValidateClaims(decoded: jwt.JwtPayload, signPayload: number[]): TokenClaims {
         const { sub, exp, nbf, iss } = decoded;
 
         this.validateSubject(sub);
         this.validateIssuer(iss);
         this.validateTimeClaims(exp, nbf);
+        this.validateSignPayload(signPayload);
 
-        return { sub, exp, nbf };
+        return { sub, exp, nbf, fatxn: signPayload };
     }
 
     private validateSubject(sub: unknown): asserts sub is string {
@@ -121,6 +122,15 @@ export class IssuerService {
     private validateTimeClaimConsistency(exp: number, nbf: number): void {
         if (exp <= nbf) {
             throw new UnauthorizedException(ErrorMessage.EXP_BEFORE_NBF);
+        }
+    }
+
+    private validateSignPayload(signPayload: unknown): asserts signPayload is number[] {
+        if (!Array.isArray(signPayload) || new Uint8Array(signPayload)) {
+            throw new UnauthorizedException(ErrorMessage.INVALID_SIGN_PAYLOAD_TYPE);
+        }
+        if (!signPayload.every((num) => Number.isInteger(num) && num >= 0 && num <= 255)) {
+            throw new UnauthorizedException(ErrorMessage.INVALID_SIGN_PAYLOAD_VALUES);
         }
     }
 
