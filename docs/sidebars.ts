@@ -29,9 +29,20 @@ const sidebars: SidebarsConfig = {
                 "concepts/architecture_contracts_architecture",
                 "concepts/architecture_contracts_fa",
                 "concepts/architecture_contracts_jwt-guard-router",
-                "concepts/architecture_contracts_auth0-guard",
+                {
+                    type: "category",
+                    label: "Guards",
+                    items: [
+                        "concepts/architecture_contracts_auth0-guard",
+                        "concepts/architecture_contracts_firebase-guard",
+                        "concepts/architecture_contracts_custom-issuer-guard",
+                    ],
+                },
+                "concepts/architecture_contracts_attestation",
             ],
         },
+        "concepts/architecture_mpc",
+        "concepts/architecture_custom_issuer_service",
         {
             type: "html",
             value: "Authentication",
@@ -96,7 +107,6 @@ const sidebars: SidebarsConfig = {
             className: "sidebar-label",
         },
         "integrations/auth0",
-        "integrations/custom-backend",
         {
             type: "html",
             value: "Examples",

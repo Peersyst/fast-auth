@@ -12,7 +12,7 @@ Integrate with Auth0 to leverage their authentication infrastructure for secure 
 
 Build your own authentication backend with full control over the JWT signing and validation process. This integration gives you the flexibility to implement custom authentication logic while still benefiting from FastAuth's transaction signing capabilities.
 
-[Learn more about Custom Backend integration →](./custom-backend.md)
+[Learn more about Custom Backend integration →](./custom-backend)
 
 ## Next Steps
 

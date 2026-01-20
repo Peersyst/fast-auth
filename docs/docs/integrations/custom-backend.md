@@ -1,188 +1,49 @@
-# Custom Backend
+# Custom Backend Integration
 
-## Introduction
+Build your own authentication backend with full control over the JWT signing and validation process. This integration gives you the flexibility to implement custom authentication logic while still benefiting from FastAuth's transaction signing capabilities.
 
-This guide provides comprehensive instructions for integrating FastAuth into your application using a custom authentication backend. A custom backend integration gives you complete control over the JWT signing and validation process while still benefiting from FastAuth's transaction signing capabilities on the NEAR blockchain.
+## Overview
 
-Custom backend integration is ideal for organizations that need to implement custom authentication logic, integrate with existing authentication systems, or require specific JWT claim structures. Through this integration, your application maintains full ownership of the authentication process while leveraging FastAuth's robust transaction signing infrastructure.
+A custom backend integration allows you to:
 
-The custom backend approach requires deploying and managing your own JWT verification contract (guard contract) and implementing a custom authentication provider that generates properly formatted JWT tokens for transaction signing.
+- **Full Control**: Implement your own authentication and authorization logic
+- **Custom JWT Signing**: Generate JWT tokens with your own signing keys
+- **Flexibility**: Choose your preferred backend framework and architecture
+- **Security**: Maintain complete control over your authentication flow
 
-## Requirements
+## How It Works
 
-Successfully integrating a custom backend with FastAuth requires three essential components: properly structured JWT tokens with required claims, a deployed guard contract for JWT verification, and registration of your guard in the FastAuth router system.
+1. **Generate JWT Tokens**: Your backend generates JWT tokens containing the transaction payload
+2. **Sign Transactions**: The JWT includes a `fatxn` claim with the hex-encoded transaction data
+3. **Verify Tokens**: FastAuth contracts verify the JWT signatures using your public key
+4. **Sign Transactions**: Users sign transactions through the FastAuth MPC service
 
-### Specify custom claims
+## Implementation Steps
 
-Your custom backend must generate JWT tokens that include specific claims required by the FastAuth system. These claims ensure proper transaction verification and user identification.
+1. **Generate RSA Key Pair**: Create a public/private key pair for JWT signing
+2. **Set Up Backend**: Create your backend server with JWT generation endpoint
+3. **Implement Authentication**: Add your authentication logic
+4. **Deploy Guard Contract**: Deploy a JWT guard contract with your public key
+5. **Register Guard**: Register your guard in the JwtGuardRouter contract
+6. **Test Integration**: Verify the complete authentication and signing flow
 
-#### Required JWT Claims Structure
+## Example Implementation
 
-```typescript
-interface FastAuthJWTClaims {
-    // Standard JWT claims
-    iss: string; // Issuer - your backend domain
-    sub: string; // Subject - unique user identifier
-    aud?: string; // Audience (optional)
-    exp: number; // Expiration timestamp
-    iat: number; // Issued at timestamp
+For a complete example implementation using Express.js, see the [Express Backend Guide](./custom-backend-express). It provides step-by-step instructions for:
 
-    // FastAuth specific claims
-    fatxn: number[]; // Transaction payload (binary-encoded)
-}
-```
+- Setting up an Express.js server
+- Generating JWT tokens with transaction payloads
+- Configuring the JWT guard contract
+- Testing the integration
 
-#### Mandatory Claims
+## Next Steps
 
-**`sub` (Subject)**: A unique identifier for the user. This claim is used by FastAuth to derive the user's account path and must remain consistent for the same user across authentication sessions.
+1. Review the [Express Backend example](./custom-backend-express) for implementation details
+2. Check out the [JWT RS256 Guard integration](./jwt-rs256-guard) for contract setup
+3. Explore the [examples repository](https://github.com/Peersyst/fast-auth/tree/main/examples/custom-backend) for complete code
 
-**`fatxn` (FastAuth Transaction)**: The transaction payload that will be signed, encoded as a binary array. This claim contains the actual transaction data that needs to be verified against the signing request.
+## Related Documentation
 
-#### Additional Custom Claims
-
-You can extend the JWT with additional custom claims for your specific use case:
-
-```typescript
-interface ExtendedFastAuthJWTClaims extends FastAuthJWTClaims {
-    // Your custom claims
-    role?: string;
-    permissions?: string[];
-    organizationId?: string;
-}
-```
-
-### Customize your guard contract
-
-The guard contract is responsible for verifying JWT tokens generated by your custom backend. FastAuth provides a template contract that you can customize for your specific verification requirements, such as JWT algorithm, claims, and more.
-
-#### Using the JWT RS256 Guard Template
-
-:::info
-
-The JWT RS256 Guard Template is a good starting point for implementing your custom JWT verification logic. It supports only RS256 algorithm, but you can easily extend it or replace it to support other algorithms.
-
-:::
-
-The [**jwt-rs256-guard**](https://github.com/Peersyst/fast-auth/blob/main/examples/jwt-rs256-guard/src/lib.rs) example contract provides a foundation for implementing your custom JWT verification logic.
-
-**Step 1: Customize the Guard Contract**
-
-To add custom claims to the guard contract, you need to extend the `CustomClaims` struct.
-
-:::warning
-
-`sub` and `fatxn` claims are mandatory and must be present in the JWT token. Removing them will break the guard contract.
-
-:::
-
-```rust
-#[derive(Serialize, Deserialize)]
-pub struct CustomClaims {
-    /// The subject identifier claim that uniquely identifies the user
-    pub sub: String,
-    /// The FastAuth claim that specifies the signed payload
-    pub fatxn: Vec<u8>,
-
-    // Add your custom claims here
-    pub role: Option<String>,
-    pub permissions: Option<Vec<String>>,
-}
-```
-
-**Step 2: Customize Verification Logic**
-
-Once you have extended the `CustomClaims` struct, you can implement your custom verification logic (if needed) in the `verify_custom_claims` function.
-
-```rust
-fn verify_custom_claims(&self, jwt_payload: Vec<u8>, sign_payload: Vec<u8>) -> (bool, String) {
-    let claims: CustomClaims = match serde_json::from_slice(&jwt_payload) {
-        Ok(claims) => claims,
-        Err(error) => return (false, error.to_string()),
-    };
-
-    // Verify fatxn claim (mandatory)
-    if claims.fatxn != sign_payload {
-        return (false, "Transaction payload mismatch".to_string());
-    }
-
-    // Add your custom verification logic here
-    if let Some(role) = &claims.role {
-        if !self.is_valid_role(role) {
-            return (false, "Invalid user role".to_string());
-        }
-    }
-
-    // Return success with subject claim
-    (true, claims.sub)
-}
-```
-
-**Step 3: Deploy the Guard Contract**
-
-Once the contract is customized and tested, you can deploy it to the NEAR blockchain.
-
-:::warning
-
-We encourage you to deploy a testnet guard contract first to test your custom logic. Once you are satisfied with the results, you can deploy the contract to the mainnet.
-
-:::
-
-### Register your guard
-
-After deploying your custom guard contract, you must register it with the FastAuth JWT Guard Router to make it available for transaction verification.
-
-#### Registration Process
-
-**Step 1: Prepare Registration Information**
-
--   **Guard Name**: A unique identifier for your guard (without the "jwt#" prefix). **Must match your issuer JWT claim.**
--   **Guard Account**: The NEAR account ID where your guard contract is deployed.
-
-**Step 2: Register Your Guard**
-
-```bash
-near call jwt-guard-router.testnet add_guard '{
-    "guard_name": "your-custom-backend",
-    "guard_account": "your-guard.testnet"
-}' --accountId your-account.testnet --deposit 1.03
-```
-
-#### Verification of Registration
-
-Confirm your guard is properly registered:
-
-```bash
-near view jwt-guard-router.testnet get_guard '{"guard_name": "your-custom-backend"}'
-```
-
-## Choose an SDK
-
-FastAuth provides SDKs for integrating custom backend authentication into your applications. Currently, the Browser SDK is the primary option for web-based integrations.
-
-### Browser SDK
-
-The [**FastAuth Browser SDK**](../sdk/browser/getting-started.md) (`@fast-auth/browser`) supports custom backend integration through the implementation of a custom provider that communicates with your authentication backend.
-
-## Implement your custom backend provider
-
-To be able to use your custom backend solution with any SDK, you must implement the `IFastAuthProvider` interface that handles communication between the SDK and your authentication system.
-
-```typescript
-import { IFastAuthProvider } from "@fast-auth/browser";
-import { SignatureRequest } from "@fast-auth/browser";
-
-interface IFastAuthProvider {
-    // Authentication state management
-    isLoggedIn(): Promise<boolean>;
-    login(...args: any[]): void;
-    logout(): void;
-
-    // Transaction signing requests
-    requestTransactionSignature(...args: any[]): Promise<void>;
-    requestDelegateActionSignature(...args: any[]): Promise<void>;
-
-    // Signature data retrieval
-    getSignatureRequest(): Promise<SignatureRequest>;
-    getPath(): Promise<string>;
-}
-```
+- [Architecture: Custom Backend](../concepts/architecture_custom_backend) - Learn about the custom backend architecture
+- [JWT RS256 Guard](./jwt-rs256-guard) - Set up your JWT guard contract
+- [Auth0 Integration](./auth0) - Alternative integration using Auth0
