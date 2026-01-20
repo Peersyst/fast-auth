@@ -3,7 +3,7 @@ import FastAuthRelayer from "../services/fast-auth-relayer";
 import { FastAuthClient } from "@fast-auth/browser-sdk";
 import { JavascriptProvider } from "@fast-auth/javascript-provider";
 import { FirebaseProvider } from "@fast-auth/firebase-provider";
-import config from "../auth_config.json";
+import config from "../config";
 import { Connection } from "near-api-js";
 
 export type ProviderType = "auth0" | "firebase-google" | "firebase-apple";

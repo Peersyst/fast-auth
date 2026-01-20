@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useFastAuth } from "./use-fast-auth-relayer";
 import { AccessKeyView } from "near-api-js/lib/providers/provider";
-import config from "../auth_config.json";
+import config from "../config";
 
 export interface AccessKeyInfo {
     publicKey: string;
