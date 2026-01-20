@@ -83,20 +83,14 @@ const config: Config = {
                     label: "Guides",
                 },
                 {
-                    type: "dropdown",
-                    label: "Tools",
+                    type: "docSidebar",
+                    sidebarId: "resourcesSidebar",
                     position: "left",
-                    items: [
-                        {
-                            label: "Resources",
-                            to: "/docs/resources/overview",
-                            sidebarId: "resourcesSidebar",
-                        },
-                    ],
+                    label: "Resources",
                 },
                 {
                     type: "dropdown",
-                    label: "SDKs",
+                    label: "Tools",
                     position: "left",
                     items: [
                         {
