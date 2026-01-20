@@ -1,4 +1,4 @@
-import {IsString, IsNotEmpty, MaxLength, IsNumber, Max, Min} from "class-validator";
+import { IsString, IsNotEmpty, MaxLength, IsNumber, Max, Min } from "class-validator";
 
 export class IssueRequestDto {
     @IsString()
