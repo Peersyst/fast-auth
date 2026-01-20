@@ -1,29 +1,24 @@
 # Installation
 
-Learn how to install the FastAuth JavaScript Provider in your project.
+To start using the FastAuth JavaScript Provider, you need to install it first. You can install the latest version or a specific version.
 
-## Prerequisites
+## Latest version
 
-- Node.js 16 or higher
-- npm, yarn, or pnpm package manager
-- A browser environment (this provider is designed for web applications)
-- An Auth0 account with an application configured
+To install the latest version, you can use the following commands:
 
-## Installation
-
-Install the JavaScript Provider using your preferred package manager:
+### Using npm
 
 ```bash
 npm install @fast-auth/javascript-provider
 ```
 
-Or with yarn:
+### Using yarn
 
 ```bash
 yarn add @fast-auth/javascript-provider
 ```
 
-Or with pnpm:
+### Using pnpm
 
 ```bash
 pnpm add @fast-auth/javascript-provider
@@ -31,7 +26,7 @@ pnpm add @fast-auth/javascript-provider
 
 ## Dependencies
 
-The JavaScript Provider includes the following key dependencies:
+The JavaScript Provider includes the following dependencies:
 
 - `@auth0/auth0-spa-js` - Auth0 authentication
 - `near-api-js` - NEAR Protocol integration
@@ -40,18 +35,25 @@ The JavaScript Provider includes the following key dependencies:
 
 These will be automatically installed with the provider.
 
-## Verify Installation
+## Specific version
 
-After installation, you can verify that the package is installed correctly by importing it in your project:
+If you want to install a specific version, you can find all the available versions in the Changelog page.
 
-```javascript
-import { JavascriptProvider } from '@fast-auth/javascript-provider';
+### Using npm
 
-console.log('FastAuth JavaScript Provider installed successfully!');
+```bash
+npm install @fast-auth/javascript-provider@<version>
 ```
 
-## Next Steps
+### Using yarn
 
-- [Usage](./usage) - Learn how to use the provider
-- [API Reference](./api) - Explore the API documentation
+```bash
+yarn add @fast-auth/javascript-provider@<version>
+```
+
+### Using pnpm
+
+```bash
+pnpm add @fast-auth/javascript-provider@<version>
+```
 

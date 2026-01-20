@@ -59,7 +59,6 @@ const sidebars: SidebarsConfig = {
         },
         "sdk/browser/getting-started",
         "sdk/browser/installation",
-        "sdk/browser/concepts",
         // {
         //     type: "html",
         //     value: "Guides",
@@ -83,7 +82,6 @@ const sidebars: SidebarsConfig = {
         },
         "sdk/react/getting-started",
         "sdk/react/installation",
-        "sdk/react/concepts",
         // {
         //     type: "html",
         //     value: "Guides",
@@ -98,21 +96,30 @@ const sidebars: SidebarsConfig = {
         "sdk/react/client",
         "sdk/react/providers",
         "sdk/react/signer",
+        "sdk/react/hooks",
     ],
-    integrationsSidebar: [
-        "integrations/overview",
+    guidesSidebar: [
+        "guides/overview",
         {
             type: "html",
-            value: "Guides",
+            value: "Choosing dependencies",
             className: "sidebar-label",
         },
-        "integrations/auth0",
+        "guides/select-your-sdk",
+        "guides/select-your-provider",
         {
             type: "html",
-            value: "Examples",
+            value: "Integrate",
             className: "sidebar-label",
         },
-        "integrations/custom-backend-express",
+        "guides/authenticate-your-users",
+        "guides/sign-transactions-and-delegate-actions",
+        {
+            type: "html",
+            value: "Going to production",
+            className: "sidebar-label",
+        },
+        "guides/submit-your-application",
     ],
     javascriptProviderSidebar: [
         {
