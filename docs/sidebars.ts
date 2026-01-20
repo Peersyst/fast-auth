@@ -59,7 +59,6 @@ const sidebars: SidebarsConfig = {
         },
         "sdk/browser/getting-started",
         "sdk/browser/installation",
-        "sdk/browser/concepts",
         // {
         //     type: "html",
         //     value: "Guides",
@@ -83,7 +82,6 @@ const sidebars: SidebarsConfig = {
         },
         "sdk/react/getting-started",
         "sdk/react/installation",
-        "sdk/react/concepts",
         // {
         //     type: "html",
         //     value: "Guides",
