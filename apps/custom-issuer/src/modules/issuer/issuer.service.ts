@@ -62,7 +62,6 @@ export class IssuerService {
         this.validateSubject(sub);
         this.validateIssuer(iss);
         this.validateTimeClaims(exp, nbf);
-        this.validateSignPayload(signPayload);
 
         return { sub, exp, nbf, fatxn: signPayload };
     }
@@ -122,15 +121,6 @@ export class IssuerService {
     private validateTimeClaimConsistency(exp: number, nbf: number): void {
         if (exp <= nbf) {
             throw new UnauthorizedException(ErrorMessage.EXP_BEFORE_NBF);
-        }
-    }
-
-    private validateSignPayload(signPayload: unknown): asserts signPayload is number[] {
-        if (!Array.isArray(signPayload) || new Uint8Array(signPayload)) {
-            throw new UnauthorizedException(ErrorMessage.INVALID_SIGN_PAYLOAD_TYPE);
-        }
-        if (!signPayload.every((num) => Number.isInteger(num) && num >= 0 && num <= 255)) {
-            throw new UnauthorizedException(ErrorMessage.INVALID_SIGN_PAYLOAD_VALUES);
         }
     }
 

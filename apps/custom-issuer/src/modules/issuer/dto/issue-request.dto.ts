@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, MaxLength, IsNumber } from "class-validator";
+import {IsString, IsNotEmpty, MaxLength, IsNumber, Max, Min} from "class-validator";
 
 export class IssueRequestDto {
     @IsString()
@@ -8,5 +8,7 @@ export class IssueRequestDto {
 
     @IsNotEmpty()
     @IsNumber({ allowNaN: false, allowInfinity: false, maxDecimalPlaces: 0 }, { each: true })
+    @Max(255, { each: true })
+    @Min(0, { each: true })
     signPayload!: number[];
 }
