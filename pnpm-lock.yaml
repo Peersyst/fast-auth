@@ -524,10 +524,6 @@ importers:
         version: 0.17.0(rollup@4.44.1)(vite@6.3.5(@types/node@25.0.9)(jiti@1.21.7)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.21.0)(yaml@2.8.1))
 
   packages/backend/config:
-    dependencies:
-      buffer:
-        specifier: ^6.0.3
-        version: 6.0.3
     devDependencies:
       '@aws-sdk/client-secrets-manager':
         specifier: 3.449.0
@@ -592,9 +588,6 @@ importers:
       '@near-js/transactions':
         specifier: ^2.0.2
         version: 2.2.3(@near-js/crypto@1.4.2)(@near-js/types@0.3.1)(@near-js/utils@1.1.0)
-      buffer:
-        specifier: ^6.0.3
-        version: 6.0.3
       elliptic:
         specifier: ^6.6.1
         version: 6.6.1
@@ -760,9 +753,6 @@ importers:
       '@near-js/transactions':
         specifier: ^2.0.2
         version: 2.2.3(@near-js/crypto@1.4.2)(@near-js/types@0.3.1)(@near-js/utils@1.1.0)
-      buffer:
-        specifier: ^6.0.3
-        version: 6.0.3
       elliptic:
         specifier: ^6.6.1
         version: 6.6.1
@@ -812,9 +802,6 @@ importers:
       '@near-js/accounts':
         specifier: ^2.0.2
         version: 2.2.3(@near-js/crypto@1.4.2)(@near-js/providers@1.0.3)(@near-js/signers@0.2.2)(@near-js/tokens@2.2.3)(@near-js/transactions@2.2.3(@near-js/crypto@1.4.2)(@near-js/types@0.3.1)(@near-js/utils@1.1.0))(@near-js/types@0.3.1)(@near-js/utils@1.1.0)
-      buffer:
-        specifier: ^6.0.3
-        version: 6.0.3
       elliptic:
         specifier: ^6.6.1
         version: 6.6.1
@@ -1007,9 +994,6 @@ importers:
       '@noble/hashes':
         specifier: ^1.7.1
         version: 1.8.0
-      buffer:
-        specifier: ^6.0.3
-        version: 6.0.3
     devDependencies:
       '@shared/eslint':
         specifier: workspace:*
