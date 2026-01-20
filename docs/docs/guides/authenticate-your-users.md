@@ -105,4 +105,4 @@ function AuthenticatedApp() {
 }
 ```
 
-For more information on React hooks, see the [React SDK Concepts](../sdk/react/concepts) documentation. For provider configuration, see the [JavaScript Provider API](../providers/javascript/api).
+For more information on React hooks, see the [React SDK Hooks](../sdk/react/hooks) documentation. For provider configuration, see the [JavaScript Provider API](../providers/javascript/api).

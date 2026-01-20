@@ -33,4 +33,4 @@ The React SDK wraps the Browser SDK with React-specific features like hooks and 
 npm install @fast-auth/react-sdk
 ```
 
-For detailed documentation, see the [React SDK Getting Started](../sdk/react/getting-started), [React SDK Client API](../sdk/react/client), and [React SDK Concepts](../sdk/react/concepts) for hooks usage.
+For detailed documentation, see the [React SDK Getting Started](../sdk/react/getting-started), [React SDK Client API](../sdk/react/client), and [React SDK Hooks](../sdk/react/hooks) for hooks usage.
