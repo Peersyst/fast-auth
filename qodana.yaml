@@ -1,0 +1,29 @@
+####################################################################################################################
+# WARNING: Do not store sensitive information in this file, as its contents will be included in the Qodana report. #
+####################################################################################################################
+
+version: "1.0"
+
+# Rust image scan
+linter: jetbrains/qodana-js:2025.2
+
+profile:
+  name: qodana.recommended
+
+# Disable ESLint inspections
+exclude:
+  - name: ESLintInspection
+  - name: Eslint
+  - name: EslintInspection
+  - paths:
+      - "**/eslintrc*"
+      - "**/eslint.config.*"
+      - "**/package-lock.json"
+
+# Enable license checks and specific Docker inspections
+include:
+  - name: CheckDependencyLicenses
+  - name: DockerfileOptimization
+  - name: DockerfilePostInstallClean
+  - name: DockerfileMissingCommand
+  - name: DockerfileMiddleInstruction
