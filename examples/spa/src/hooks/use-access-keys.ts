@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useFastAuth } from "./use-fast-auth-relayer";
 import { AccessKeyView } from "near-api-js/lib/providers/provider";
+import config from "../auth_config.json";
 
 export interface AccessKeyInfo {
     publicKey: string;
@@ -13,16 +14,12 @@ interface FastNearApiResponse {
     public_key: string;
 }
 
-const TESTNET_FASTNEAR_API_BASE = "https://test.api.fastnear.com/v0";
-const MAINNET_FASTNEAR_API_BASE = "https://api.fastnear.com/v0";
-
 /**
  * Query FastNear API to get all account IDs associated with a public key
  */
-async function getAccountIdsByPublicKey(publicKey: string, network: "testnet" | "mainnet"): Promise<string[]> {
-    const apiBase = network === "mainnet" ? MAINNET_FASTNEAR_API_BASE : TESTNET_FASTNEAR_API_BASE;
+async function getAccountIdsByPublicKey(publicKey: string): Promise<string[]> {
     try {
-        const response = await fetch(`${apiBase}/public_key/${encodeURIComponent(publicKey)}/all`);
+        const response = await fetch(`${config.near.fastNearApiBaseUrl}/public_key/${encodeURIComponent(publicKey)}/all`);
         if (!response.ok) {
             throw new Error(`Failed to fetch account IDs: ${response.statusText}`);
         }
@@ -64,7 +61,7 @@ export function useAccessKeys() {
 
             try {
                 // Step 1: Get account IDs from FastNear API
-                const accountIdsList = await getAccountIdsByPublicKey(publicKey, "testnet");
+                const accountIdsList = await getAccountIdsByPublicKey(publicKey);
                 setAccountIds(accountIdsList);
 
                 setHasFetched(true);
@@ -88,6 +85,7 @@ export function useAccessKeys() {
                         });
 
                         // The result contains an array of access keys with public_key and access_key
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const keys: AccessKeyInfo[] = (result as any).keys.map((item: any) => ({
                             publicKey: item.public_key,
                             accessKey: item.access_key,

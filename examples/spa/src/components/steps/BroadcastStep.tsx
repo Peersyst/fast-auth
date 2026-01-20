@@ -3,10 +3,12 @@ import Accordion from "../Accordion";
 import Spinner from "../Spinner";
 
 interface BroadcastStepProps {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     result: any;
     txHash: string | null;
     sending: boolean;
-    onSendTransaction: () => Promise<void>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onSendTransaction: () => Promise<any>;
     expanded: boolean;
     onToggle: () => void;
     canToggle: boolean;

@@ -1,10 +1,14 @@
 {
-    "domain": "auth0.aws.peersyst.tech",
-    "clientId": "qOfA3FaWedmD9LjFS9uRvQVJ0U3XhsgA",
-    "audience": "fast-auth-api-test-0.com",
-    "appOrigin": "http://localhost:3000",
-    "mpcContractId": "v1.signer-prod.testnet",
-    "fastAuthContractId": "fast-auth.testnet",
+    "auth0": {
+        "domain": "auth0.aws.peersyst.tech",
+        "clientId": "qOfA3FaWedmD9LjFS9uRvQVJ0U3XhsgA",
+        "audience": "fast-auth-api-test-0.com"
+    },
+    "near": {
+        "mpcContractId": "v1.signer-prod.testnet",
+        "fastAuthContractId": "fast-auth.testnet",
+        "fastNearApiBaseUrl": "https://test.api.fastnear.com/v0"
+    },
     "firebase": {
         "apiKey": "",
         "authDomain": "",
