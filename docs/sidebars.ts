@@ -107,7 +107,6 @@ const sidebars: SidebarsConfig = {
             className: "sidebar-label",
         },
         "integrations/auth0",
-        "integrations/custom-backend",
         {
             type: "html",
             value: "Examples",
