@@ -1,19 +1,19 @@
 import { Action, functionCall, Signature, SignedTransaction, Transaction } from "near-api-js/lib/transaction";
-import { CreateAccountOptions, FastAuthSignerOptions, SignatureRequest } from "./signer.types";
-import { KeyType } from "near-api-js/lib/utils/key_pair";
+import { CreateAccountOptions, CreateSignActionOptions, FastAuthSignerOptions, SignatureRequest } from "./signer.types";
 import { IFastAuthProvider } from "./providers/fast-auth.provider";
 import { Connection } from "near-api-js";
 import { CodeResult } from "near-api-js/lib/providers/provider";
-import { bytesJsonStringify } from "./utils";
 import { ViewFunctionCallOptions } from "@near-js/accounts";
 import { PublicKey } from "near-api-js/lib/utils";
-import { parseNearAmount } from "near-api-js/lib/utils/format";
 import { FastAuthSignature } from "../common/signature/signature";
 import { FastAuthSignerError } from "./signer.errors";
 import { FastAuthSignerErrorCodes } from "./signer.error-codes";
+import { Algorithm } from "../common/signature/types";
+import { getDomainIdOrFail } from "./utils";
+import { getKeyTypeOrFail } from "./utils";
 
 export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
-    private path: string;
+    private path: string | undefined;
     constructor(
         private readonly fastAuthProvider: P,
         private readonly connection: Connection,
@@ -37,14 +37,14 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
 
     /**
      * View a function.
-     * @param connection The connection to the network.
      * @param options The options for the view function.
      * @returns The result of the view function.
      */
-    private async viewFunction({ contractId, methodName, args, blockQuery }: ViewFunctionCallOptions) {
+    private async viewFunction(options: ViewFunctionCallOptions) {
+        const { contractId, methodName, args, blockQuery } = options;
         this.validateArgs(args);
 
-        const encodedArgs = bytesJsonStringify(args);
+        const encodedArgs = Buffer.from(JSON.stringify(args));
 
         const result = await this.connection.provider.query<CodeResult>({
             request_type: "call_function",
@@ -58,6 +58,9 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
         return JSON.parse(Buffer.from(result.result).toString());
     }
 
+    /**
+     * Initialize the signer.
+     */
     async init() {
         this.path = await this.fastAuthProvider.getPath();
     }
@@ -69,8 +72,8 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
      * @returns The action to create the account.
      */
     async createAccount(accountId: string, options?: CreateAccountOptions): Promise<Action> {
-        const { gas = 300000000000000n, deposit = 0n } = options ?? {};
-        const publicKey = await this.getPublicKey();
+        const { gas = 300000000000000n, deposit = 0n, algorithm = "ed25519" } = options ?? {};
+        const publicKey = await this.getPublicKey(algorithm);
         return functionCall(
             "create_account",
             {
@@ -84,7 +87,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
 
     /**
      * Request a signature from the user.
-     * @param options The options for the request signature.
+     * @param args The arguments to request a signature.
      * @returns The signed transaction.
      */
     async requestTransactionSignature(...args: Parameters<P["requestTransactionSignature"]>) {
@@ -94,7 +97,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
 
     /**
      * Request a delegate action signature from the user.
-     * @param options The options for the request delegate action signature.
+     * @param args The arguments to request a delegate action signature.
      * @returns The signed delegate action.
      */
     async requestDelegateActionSignature(...args: Parameters<P["requestDelegateActionSignature"]>) {
@@ -114,31 +117,39 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     /**
      * Sign a message.
      * @param request The request to sign.
+     * @param options The options for the sign action.
      * @returns The signed message.
      */
-    async createSignAction(request: SignatureRequest): Promise<Action> {
+    async createSignAction(request: SignatureRequest, options?: CreateSignActionOptions): Promise<Action> {
+        const { gas = 300000000000000n, deposit = 0n } = options ?? {};
+        const { guardId, verifyPayload, signPayload, algorithm = "eddsa" } = request;
+
         return functionCall(
             "sign",
             {
-                guard_id: request.guardId,
-                verify_payload: request.verifyPayload,
-                sign_payload: request.signPayload,
-                algorithm: "ecdsa",
+                guard_id: guardId,
+                verify_payload: verifyPayload,
+                sign_payload: Array.from(signPayload),
+                algorithm: algorithm,
             },
-            300000000000000n,
-            BigInt(parseNearAmount("1")!),
+            gas,
+            deposit,
         );
     }
 
     /**
      * Sign a message and send it to the network.
+     * @param transaction The transaction to sign.
+     * @param signature The signature to use.
+     * @param algorithm The algorithm to use.
+     * @returns The provider result.
      */
-    async sendTransaction(transaction: Transaction, signature: FastAuthSignature) {
-        const sig = signature.recover();
+    async sendTransaction(transaction: Transaction, signature: FastAuthSignature, algorithm: Algorithm = "ed25519") {
+        const sig = signature.recover(algorithm);
         const signedTransaction = new SignedTransaction({
             transaction: transaction,
             signature: new Signature({
-                keyType: KeyType.SECP256K1,
+                keyType: getKeyTypeOrFail(algorithm),
                 data: sig,
             }),
         });
@@ -148,15 +159,15 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
 
     /**
      * Get the public key of the account.
-     * @param connection The connection to the network.
+     * @param algorithm The algorithm to use.
      * @returns The public key.
      */
-    async getPublicKey(): Promise<PublicKey> {
+    async getPublicKey(algorithm: Algorithm = "ed25519"): Promise<PublicKey> {
         // Call the fast auth contract with the path
         const publicKey = await this.viewFunction({
             contractId: this.options.mpcContractId,
             methodName: "derived_public_key",
-            args: { path: this.path, predecessor: this.options.fastAuthContractId },
+            args: { path: this.path, predecessor: this.options.fastAuthContractId, domain_id: getDomainIdOrFail(algorithm) },
         });
 
         return publicKey;

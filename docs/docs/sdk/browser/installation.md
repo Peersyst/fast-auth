@@ -1,11 +1,5 @@
 # Installation
 
-:::caution
-
-This page is under construction.
-
-:::
-
 To start using the FastAuth Browser SDK, you need to install it first. You can install the latest version or a specific version.
 
 ## Latest version
@@ -28,6 +22,26 @@ yarn add @fast-auth/browser-sdk
 
 ```bash
 pnpm add @fast-auth/browser-sdk
+```
+
+## Dependencies
+
+The Browser SDK requires the following peer dependencies:
+
+- `near-api-js` - For NEAR blockchain interactions
+- `@auth0/auth0-spa-js` - If using Auth0Provider (optional)
+
+### Installing dependencies
+
+```bash
+# Using npm
+npm install near-api-js
+
+# Using yarn
+yarn add near-api-js
+
+# Using pnpm
+pnpm add near-api-js
 ```
 
 ## Specific version

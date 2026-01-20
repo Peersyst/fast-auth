@@ -3,6 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "genesys": "genesys",
         "build": "npx turbo run build && echo '🚀 Build completed'",
         "build:packages": "npx turbo run build --filter=\"./packages/**/*\" && echo '🚀 Build packages completed'",
         "build:contracts": "npx turbo run build --filter=\"./contracts/**/*\" && echo '🚀 Build contracts completed'",
@@ -19,6 +20,7 @@
     },
     "devDependencies": {
         "@antfu/ni": "^0.23.0",
+        "@shared/cli": "workspace:*",
         "prettier": "^3.3.3",
         "rimraf": "^6.0.1",
         "turbo": "^2.5.4",

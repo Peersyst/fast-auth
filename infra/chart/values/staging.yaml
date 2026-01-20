@@ -1,0 +1,74 @@
+environment: staging
+namespace: fast-auth
+
+relayer:
+    enabled: true
+    service:
+        port: 3000
+        targetPort: 3000
+    deployment:
+        name: relayer
+        replicas: 1
+        port: 3000
+        memoryRequest: 256Mi
+        cpuRequest: 100m
+        memoryLimit: 256Mi
+        cpuLimit: 100m
+    secretProviderClass:
+        objectName: "fast-auth/staging/relayer"
+        objectAlias: fast-auth-staging-relayer
+        secrets:
+            appPort: APP_PORT
+            nearPrivateKeys: NEAR_PRIVATE_KEYS
+            nearRpcUrls: NEAR_RPC_URLS
+            nearFastAuthContractId: NEAR_FAST_AUTH_CONTRACT_ID
+            nearMpcContractId: NEAR_MPC_CONTRACT_ID
+            nearAccountContractId: NEAR_ACCOUNT_CONTRACT_ID
+            nearGuardId: NEAR_GUARD_ID
+            nearIssuer: NEAR_ISSUER
+
+customIssuer:
+    enabled: true
+    service:
+        port: 3000
+        targetPort: 3000
+    deployment:
+        name: custom-issuer
+        replicas: 1
+        port: 3000
+        memoryRequest: 256Mi
+        cpuRequest: 100m
+        memoryLimit: 256Mi
+        cpuLimit: 100m
+    secretProviderClass:
+        objectName: "fast-auth/staging/custom-issuer"
+        objectAlias: fast-auth-staging-custom-issuer
+        secrets:
+            keyBase64: KEY_BASE64
+            validationPublicKeyUrl: VALIDATION_PUBLIC_KEY_URL
+            validationIssuerUrl: VALIDATION_ISSUER_URL
+            issuerUrl: ISSUER_URL
+            allowedOrigins: ALLOWED_ORIGINS
+
+attester:
+    enabled: true
+    replicas: 2
+    cronjob:
+        name: attester
+        memoryRequest: 256Mi
+        cpuRequest: 100m
+        memoryLimit: 256Mi
+        cpuLimit: 100m
+    secretProviderClass:
+        objectName: "fast-auth/staging/attester"
+        objectAlias: fast-auth-staging-attester
+        secrets:
+            nodeUrl: NODE_URL
+            contractId: CONTRACT_ID
+            guardContractId: GUARD_CONTRACT_ID
+            accountId: ACCOUNT_ID
+            privateKey: PRIVATE_KEY
+
+ingress:
+    enabled: true
+    certificate: "arn:aws:acm:us-east-1:291847425310:certificate/b183b365-4363-4245-9966-7e990bf7b3d4"

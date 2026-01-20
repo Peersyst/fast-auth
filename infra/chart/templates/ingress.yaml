@@ -1,0 +1,45 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    alb.ingress.kubernetes.io/certificate-arn: {{ .Values.ingress.certificate }}
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/actions.ssl-redirect: '443'
+    alb.ingress.kubernetes.io/load-balancer-name: {{ .Values.namespace }}-{{ .Values.environment }}
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    {{- if .Values.relayer.enabled }}
+    alb.ingress.kubernetes.io/actions.api-{{ .Values.environment }}: >
+      {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"relayer-{{ .Values.environment }}","servicePort":"api","weight":20}]}}
+    {{- end }}
+    {{- if .Values.customIssuer.enabled }}
+    alb.ingress.kubernetes.io/actions.custom-issuer-{{ .Values.environment }}: >
+      {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"custom-issuer-{{ .Values.environment }}","servicePort":"api","weight":20}]}}
+    {{- end }}
+  name: {{ .Values.namespace }}-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          {{- if .Values.relayer.enabled }}
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-{{ .Values.environment }}
+                port:
+                  name: use-annotation
+          {{- end }}
+          {{- if .Values.customIssuer.enabled }}
+          - path: /issuer
+            pathType: Prefix
+            backend:
+              service:
+                name: custom-issuer-{{ .Values.environment }}
+                port:
+                  name: use-annotation
+          {{- end }}
+{{- end }}

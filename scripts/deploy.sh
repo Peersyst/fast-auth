@@ -111,8 +111,10 @@ near --quiet contract deploy "$AUTH0_JWT_ACCOUNT_ID" use-file contracts/auth0-gu
   with-init-call init \
   json-args '{
     "owner":"'"${OWNER}"'",
-    "n_component":'${AUTH0_N}',
-    "e_component":'${AUTH0_E}'
+    "public_keys": [{
+      "n":'${AUTH0_N}',
+      "e":'${AUTH0_E}'
+    }]
   }' \
   prepaid-gas '100 TGas' \
   attached-deposit '0 NEAR' \
@@ -125,7 +127,7 @@ echo
 echo "🚧  Deploying contract to: $JWT_ACCOUNT_ID"
 near --quiet contract deploy "$JWT_ACCOUNT_ID" use-file contracts/jwt-guard-router/target/near/jwt_guard_router.wasm \
   with-init-call init \
-  json-args '{"owner":"'"${FAST_AUTH_ACCOUNT_ID}"'"}' \
+  json-args '{"owner":"'"${OWNER}"'"}' \
   prepaid-gas '100 TGas' \
   attached-deposit '0 NEAR' \
   network-config "$NETWORK" \
@@ -139,6 +141,7 @@ near --quiet contract deploy "$FAST_AUTH_ACCOUNT_ID" use-file contracts/fa/targe
   with-init-call init \
   json-args '{
     "owner":"'"${OWNER}"'",
+    "pauser":"'"${OWNER}"'",
     "init_guards":{
       "jwt": "'"${JWT_ACCOUNT_ID}"'"
     }

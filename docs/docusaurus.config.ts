@@ -78,9 +78,9 @@ const config: Config = {
                 },
                 {
                     type: "docSidebar",
-                    sidebarId: "integrationsSidebar",
+                    sidebarId: "guidesSidebar",
                     position: "left",
-                    label: "Integrations",
+                    label: "Guides",
                 },
                 {
                     type: "dropdown",
@@ -100,9 +100,34 @@ const config: Config = {
                     position: "left",
                     items: [
                         {
+                            type: "html",
+                            value: "<strong>SDKs</strong>",
+                            className: "dropdown-section-label",
+                        },
+                        {
                             label: "Browser",
                             to: "/docs/sdk/browser/getting-started",
                             sidebarId: "browserSdkSidebar",
+                        },
+                        {
+                            label: "React",
+                            to: "/docs/sdk/react/getting-started",
+                            sidebarId: "reactSdkSidebar",
+                        },
+                        {
+                            type: "html",
+                            value: "<strong>Providers</strong>",
+                            className: "dropdown-section-label",
+                        },
+                        {
+                            label: "JavaScript",
+                            to: "/docs/providers/javascript/getting-started",
+                            sidebarId: "javascriptProviderSidebar",
+                        },
+                        {
+                            label: "React Native",
+                            to: "/docs/providers/react-native/getting-started",
+                            sidebarId: "reactNativeProviderSidebar",
                         },
                     ],
                 },
@@ -142,15 +167,15 @@ const config: Config = {
                     items: [
                         {
                             label: "Overview",
-                            to: "/docs/integrations/overview",
+                            to: "/docs/guides/overview",
                         },
                         {
-                            label: "Auth0",
-                            to: "/docs/integrations/auth0",
+                            label: "Select SDK",
+                            to: "/docs/guides/select-your-sdk",
                         },
                         {
-                            label: "Custom Backend",
-                            to: "/docs/integrations/custom-backend",
+                            label: "Select Provider",
+                            to: "/docs/guides/select-your-provider",
                         },
                     ],
                 },

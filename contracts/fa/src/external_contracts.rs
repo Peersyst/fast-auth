@@ -1,4 +1,4 @@
-use near_sdk::{near, ext_contract, PromiseOrValue};
+use near_sdk::{near, ext_contract, PromiseOrValue, AccountId};
 use near_sdk::borsh::{BorshDeserialize, BorshSerialize};
 use near_sdk::serde::{Deserialize, Serialize};
 use schemars::JsonSchema;
@@ -7,7 +7,7 @@ use std::fmt::Debug;
 // Guard interface, for cross-contract calls
 #[ext_contract(external_guard)]
 pub trait ExternalGuard {
-    fn verify(&self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>) -> (bool, String);
+    fn verify(&self, guard_id: String, verify_payload: String, sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String);
 }
 
 #[derive(Serialize, Deserialize, JsonSchema, BorshDeserialize, BorshSerialize, Debug, Clone)]

@@ -1,0 +1,32 @@
+environment: production
+namespace: fast-auth
+
+relayer:
+    enabled: true
+    service:
+        port: 3000
+        targetPort: 3000
+    deployment:
+        name: relayer
+        replicas: 1
+        port: 3000
+        memoryRequest: 256Mi
+        cpuRequest: 100m
+        memoryLimit: 256Mi
+        cpuLimit: 100m
+    secretProviderClass:
+        objectName: "fast-auth/prod/relayer"
+        objectAlias: fast-auth-prod-relayer
+        secrets:
+            appPort: APP_PORT
+            nearPrivateKeys: NEAR_PRIVATE_KEYS
+            nearRpcUrls: NEAR_RPC_URLS
+            nearFastAuthContractId: NEAR_FAST_AUTH_CONTRACT_ID
+            nearMpcContractId: NEAR_MPC_CONTRACT_ID
+            nearAccountContractId: NEAR_ACCOUNT_CONTRACT_ID
+            nearGuardId: NEAR_GUARD_ID
+            nearIssuer: NEAR_ISSUER
+
+ingress:
+    enabled: true
+    certificate: "arn:aws:acm:us-east-1:291847425310:certificate/b183b365-4363-4245-9966-7e990bf7b3d4,arn:aws:acm:us-east-1:291847425310:certificate/3446ab94-39e4-4efe-8b54-e09e15ede9d2"
