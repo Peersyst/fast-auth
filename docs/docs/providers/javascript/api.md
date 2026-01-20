@@ -24,7 +24,6 @@ import { JavascriptProvider } from '@fast-auth/javascript-provider';
 const provider = new JavascriptProvider({
     domain: 'your-auth0-domain.auth0.com',
     clientId: 'your-auth0-client-id',
-    redirectUri: window.location.origin,
     audience: 'your-auth0-audience',
 });
 ```
@@ -33,21 +32,35 @@ const provider = new JavascriptProvider({
 
 ### login
 
-Redirects the user to the Auth0 login page for authentication.
+Authenticates the user using either redirect or popup flow.
 
 ```typescript
-login(): Promise<void>
+login(options?: JavascriptLoginOptions): Promise<void>
 ```
+
+#### Parameters
+
+- `options` (optional) - Login options:
+  - If `redirectUri` is provided, uses redirect flow
+  - If `redirectUri` is not provided, uses popup flow
+  - Can include other Auth0 redirect/popup options
 
 #### Returns
 
-Promise that resolves when the redirect is initiated.
+Promise that resolves when authentication is initiated.
 
 #### Example
 
 ```javascript
-await provider.login();
+// Redirect flow
+await provider.login({
+    redirectUri: window.location.origin,
+});
 // User will be redirected to Auth0 login
+
+// Popup flow
+await provider.login();
+// User will see a popup for authentication
 ```
 
 ---
@@ -213,7 +226,6 @@ Configuration options for the provider.
 interface JavascriptProviderOptions {
     domain: string;
     clientId: string;
-    redirectUri: string;
     audience: string;
 }
 ```
@@ -222,52 +234,61 @@ interface JavascriptProviderOptions {
 
 - `domain` - Your Auth0 domain (e.g., 'your-app.auth0.com')
 - `clientId` - Your Auth0 application client ID
-- `redirectUri` - URL to redirect after authentication
 - `audience` - Auth0 API audience identifier
 
 ---
 
 ### JavascriptRequestTransactionSignatureOptions
 
-Options for requesting a transaction signature.
+Options for requesting a transaction signature. This is a union type that can be either redirect or popup options.
 
 ```typescript
-interface JavascriptRequestTransactionSignatureOptions {
-    transaction: Transaction;
-    imageUrl: string;
-    name: string;
-    redirectUri?: string;
-}
+type JavascriptRequestTransactionSignatureOptions =
+    | JavascriptRequestTransactionSignatureWithRedirectOptions
+    | JavascriptRequestTransactionSignatureWithPopupOptions;
 ```
 
-**Properties:**
-
+**Redirect Options:**
 - `transaction` - NEAR transaction object to sign
 - `imageUrl` - URL of the dApp icon/logo
 - `name` - Name of the dApp
-- `redirectUri` - (Optional) Custom redirect URI
+- `redirectUri` - Redirect URI (required for redirect flow)
+- Other Auth0 `RedirectLoginOptions` (except `authorizationParams`)
+
+**Popup Options:**
+- `transaction` - NEAR transaction object to sign
+- `imageUrl` - URL of the dApp icon/logo
+- `name` - Name of the dApp
+- Other Auth0 `PopupLoginOptions` (except `authorizationParams`)
+
+If `redirectUri` is provided, redirect flow is used. Otherwise, popup flow is used.
 
 ---
 
 ### JavascriptRequestDelegateActionSignatureOptions
 
-Options for requesting a delegate action signature.
+Options for requesting a delegate action signature. This is a union type that can be either redirect or popup options.
 
 ```typescript
-interface JavascriptRequestDelegateActionSignatureOptions {
-    delegateAction: DelegateAction;
-    imageUrl: string;
-    name: string;
-    redirectUri?: string;
-}
+type JavascriptRequestDelegateActionSignatureOptions =
+    | JavascriptRequestDelegateActionSignatureWithRedirectOptions
+    | JavascriptRequestDelegateActionSignatureWithPopupOptions;
 ```
 
-**Properties:**
-
+**Redirect Options:**
 - `delegateAction` - NEAR delegate action to sign
 - `imageUrl` - URL of the dApp icon/logo
 - `name` - Name of the dApp
-- `redirectUri` - (Optional) Custom redirect URI
+- `redirectUri` - Redirect URI (required for redirect flow)
+- Other Auth0 `RedirectLoginOptions` (except `authorizationParams`)
+
+**Popup Options:**
+- `delegateAction` - NEAR delegate action to sign
+- `imageUrl` - URL of the dApp icon/logo
+- `name` - Name of the dApp
+- Other Auth0 `PopupLoginOptions` (except `authorizationParams`)
+
+If `redirectUri` is provided, redirect flow is used. Otherwise, popup flow is used.
 
 ---
 
@@ -322,6 +343,10 @@ enum JavascriptProviderErrorCodes {
     USER_NOT_LOGGED_IN = "USER_NOT_LOGGED_IN"
 }
 ```
+
+**Error Codes:**
+
+- `USER_NOT_LOGGED_IN` - Thrown when attempting to access user data without being authenticated
 
 #### Example
 

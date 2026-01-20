@@ -1,44 +1,78 @@
 # Installation
 
-Learn how to install the FastAuth JavaScript Provider in your project.
+To start using the FastAuth React Native Provider, you need to install it first. You can install the latest version or a specific version.
 
-## Prerequisites
+## Latest version
 
-- Node.js 16 or higher
-- npm, yarn, or pnpm package manager
+To install the latest version, you can use the following commands:
 
-## Installation
-
-Install the JavaScript Provider using your preferred package manager:
+### Using npm
 
 ```bash
-npm install @peersyst/fast-auth-provider-javascript
+npm install @fast-auth/react-native-provider
 ```
 
-Or with yarn:
+### Using yarn
 
 ```bash
-yarn add @peersyst/fast-auth-provider-javascript
+yarn add @fast-auth/react-native-provider
 ```
 
-Or with pnpm:
+### Using pnpm
 
 ```bash
-pnpm add @peersyst/fast-auth-provider-javascript
+pnpm add @fast-auth/react-native-provider
 ```
 
-## Verify Installation
+## Dependencies
 
-After installation, you can verify that the package is installed correctly by importing it in your project:
+The React Native Provider includes the following dependencies:
 
-```javascript
-import { FastAuthProvider } from '@peersyst/fast-auth-provider-javascript';
+- `react-native-auth0` - Auth0 authentication for React Native
+- `near-api-js` - NEAR Protocol integration
+- `@near-js/transactions` - NEAR transaction handling
+- `jose` - JWT handling
 
-console.log('FastAuth Provider installed successfully!');
+These will be automatically installed with the provider.
+
+## Peer Dependencies
+
+The React Native Provider requires the following peer dependencies:
+
+- `react` (>=16.8.0)
+- `react-native` (>=0.60.0)
+
+### Installing peer dependencies
+
+```bash
+# Using npm
+npm install react react-native
+
+# Using yarn
+yarn add react react-native
+
+# Using pnpm
+pnpm add react react-native
 ```
 
-## Next Steps
+## Specific version
 
-- [Usage](./usage) - Learn how to use the provider
-- [API Reference](./api) - Explore the API documentation
+If you want to install a specific version, you can find all the available versions in the Changelog page.
 
+### Using npm
+
+```bash
+npm install @fast-auth/react-native-provider@<version>
+```
+
+### Using yarn
+
+```bash
+yarn add @fast-auth/react-native-provider@<version>
+```
+
+### Using pnpm
+
+```bash
+pnpm add @fast-auth/react-native-provider@<version>
+```

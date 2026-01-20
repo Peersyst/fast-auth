@@ -98,6 +98,7 @@ const sidebars: SidebarsConfig = {
         "sdk/react/client",
         "sdk/react/providers",
         "sdk/react/signer",
+        "sdk/react/hooks",
     ],
     guidesSidebar: [
         "guides/overview",

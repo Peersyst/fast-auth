@@ -19,13 +19,18 @@ type FastAuthSignerOptions = {
 type CreateAccountOptions = {
     gas?: bigint; // Gas limit for account creation
     deposit?: bigint; // NEAR deposit amount
+    algorithm?: Algorithm; // Algorithm to use (default: "ed25519")
 };
 
 type SignatureRequest = {
     guardId: string; // Guard identifier
     verifyPayload: string; // Verification payload
     signPayload: Uint8Array; // Signing payload
+    algorithm?: MPCContractAlgorithm; // Optional algorithm specification
 };
+
+type Algorithm = "secp256k1" | "ed25519";
+type MPCContractAlgorithm = "secp256k1" | "eddsa" | "ecdsa";
 ```
 
 ## Constructor
@@ -76,14 +81,17 @@ async createAccount(accountId: string, options?: CreateAccountOptions): Promise<
 Retrieves the derived public key for the authenticated user.
 
 ```typescript
-async getPublicKey(): Promise<PublicKey>
+async getPublicKey(algorithm?: Algorithm): Promise<PublicKey>
 ```
 
+- **Parameters**:
+    - `algorithm`: Optional algorithm to use (default: "ed25519")
 - **Returns**: Promise resolving to the user's derived public key
 - **Process**:
     1. Calls MPC contract's `derived_public_key` method
     2. Uses the signer's path and FastAuth contract as predecessor
-    3. Returns the computed public key
+    3. Uses the specified algorithm's domain ID for key derivation
+    4. Returns the computed public key
 
 ## Transaction Operations
 
@@ -130,28 +138,32 @@ getSignatureRequest(): Promise<SignatureRequest>
 Creates a NEAR action for signing operations on the FastAuth contract.
 
 ```typescript
-async createSignAction(request: SignatureRequest): Promise<Action>
+async createSignAction(request: SignatureRequest, options?: CreateSignActionOptions): Promise<Action>
 ```
 
-- **Parameters**: Signature request with guard ID and payloads
+- **Parameters**:
+    - `request`: Signature request with guard ID, payloads, and optional algorithm
+    - `options`: Optional gas and deposit configuration
 - **Returns**: Promise resolving to a function call action
 - **Contract Method**: Calls `sign` method on FastAuth contract
-- **Cost**: 300TGas, 1 NEAR deposit
+- **Default Values**: 300TGas, 0 NEAR deposit
+- **Algorithm**: Defaults to "eddsa" if not specified in the request
 
 ### `sendTransaction`
 
 Signs and submits a transaction to the NEAR network.
 
 ```typescript
-async sendTransaction(transaction: Transaction, signature: FastAuthSignature)
+async sendTransaction(transaction: Transaction, signature: FastAuthSignature, algorithm?: Algorithm): Promise<FinalExecutionOutcome>
 ```
 
 - **Parameters**:
     - `transaction`: The transaction to be signed and sent
     - `signature`: FastAuth MPC signature
+    - `algorithm`: Optional algorithm to use for signature recovery (default: "ed25519")
 - **Process**:
-    1. Recovers the signature using elliptic curve cryptography
-    2. Creates a signed transaction with SECP256K1 signature
+    1. Recovers the signature using the specified algorithm (ed25519 or secp256k1)
+    2. Creates a signed transaction with the appropriate key type
     3. Submits to the NEAR network via the connection provider
 - **Returns**: Transaction result from the network
 
@@ -165,65 +177,3 @@ Executes read-only contract function calls.
 - **Validation**: Ensures arguments are properly formatted
 - **Encoding**: Converts arguments to base64-encoded JSON
 - **Usage**: Internal method for contract queries
-
-## Error Handling
-
-The signer implements structured error handling:
-
-### Error Types
-
-- **`FastAuthSignerError`**: Base error class for signer operations
-- **Error Codes**:
-    - `INVALID_ARGUMENTS`: Thrown when function arguments are malformed
-
-### Argument Validation
-
-The signer validates function call arguments to ensure:
-
-- Uint8Array types are preserved for binary data
-- Object arguments are properly structured (not arrays or primitives)
-- Invalid argument types trigger appropriate errors
-
-## Usage Patterns
-
-### Basic Transaction Flow
-
-```typescript
-// 1. Get signer from client (automatically initialized)
-const signer = await client.getSigner();
-
-// 2. Request transaction signature
-await signer.requestTransactionSignature(transactionData);
-
-// 3. Get signature request
-const signatureRequest = await signer.getSignatureRequest();
-
-// 4. Create sign action
-const signAction = await signer.createSignAction(signatureRequest);
-
-// 5. Build and send transaction
-const transaction = buildTransaction(signAction);
-const signature = FastAuthSignature.fromBase64(signatureData);
-await signer.sendTransaction(transaction, signature);
-```
-
-### Account Creation Flow
-
-```typescript
-const signer = await client.getSigner();
-
-// Create account action with custom options
-const createAccountAction = await signer.createAccount("newuser.near", { gas: 100000000000000n, deposit: BigInt(parseNearAmount("0.1")!) });
-
-// Include in transaction and submit
-const transaction = buildTransactionWithActions([createAccountAction]);
-await submitTransaction(transaction);
-```
-
-### Public Key Retrieval
-
-```typescript
-const signer = await client.getSigner();
-const publicKey = await signer.getPublicKey();
-console.log(`User's public key: ${publicKey.toString()}`);
-```
