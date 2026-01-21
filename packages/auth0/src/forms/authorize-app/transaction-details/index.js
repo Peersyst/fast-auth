@@ -28,6 +28,42 @@ function AuthorizeAppTransactionDetails(context) {
         return result;
     }
 
+    /**
+     * Converts a BigInt string to a formatted string with 10^-24 exponent
+     * @param {string} bigIntStr - BigInt in string format (e.g., "123456789012345678901234567890")
+     * @returns {string} Formatted string with 4 decimals (e.g., "123456.7890")
+     */
+    function yoctoToNear(bigIntStr) {
+        // Remove any leading zeros but keep at least one digit
+        const trimmed = bigIntStr.replace(/^0+/, '') || '0';
+
+        const length = trimmed.length;
+
+        // If length <= 24, the result would be less than 1
+        if (length <= 24) {
+            const zerosNeeded = 24 - length;
+            const withZeros = '0'.repeat(zerosNeeded) + trimmed;
+            // Take first 8 digits after decimal point
+            const decimals = withZeros.slice(0, 8).replace(/0+$/, '') || '0';
+            return `0.${decimals}`;
+        }
+
+        // Split at position (length - 24) to apply 10^-24
+        const splitPos = length - 24;
+        const integerPart = trimmed.slice(0, splitPos);
+        const decimalPart = trimmed.slice(splitPos, splitPos + 8);
+
+        // Remove trailing zeros from decimal part
+        const trimmedDecimals = decimalPart.replace(/0+$/, '');
+
+        // Return without decimal point if no decimals remain
+        if (trimmedDecimals === '') {
+            return integerPart;
+        }
+
+        return `${integerPart}.${trimmedDecimals}`;
+    }
+
     const formatPublicKey = (publicKey) => {
         if (publicKey.secp256k1Key !== undefined) {
             return `secp256k1:${base58Encode(Buffer.from(publicKey.secp256k1Key.data))}`;
@@ -77,7 +113,13 @@ function AuthorizeAppTransactionDetails(context) {
         const text = document.createElement("p");
         text.textContent = "By approving this request, the following amount will be transferred to the receiver.";
 
-        const fields = createTextContent("Deposit", `${action.transfer.deposit?.toString()} yoctoNEAR`);
+        let fields;
+        if (BigInt(action.transfer.deposit) < 10n**16n) {
+            fields = createTextContent("Deposit", `${action.transfer.deposit?.toString()} yoctoNEAR`);
+        } else {
+            const near = yoctoToNear(action.transfer.deposit ?? "0");
+            fields = createTextContent("Deposit", `${near?.toString()} NEAR`);
+        }
         transferContent.appendChild(text);
         transferContent.appendChild(fields);
         return transferContent;
