@@ -28,10 +28,11 @@ export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider> {
 
     /**
      * Log out of the client.
+     * @param args The arguments for the logout.
      * @returns The signature request.
      */
-    logout() {
-        return this.provider.logout();
+    logout(...args: Parameters<P["logout"]>) {
+        return this.provider.logout(args);
     }
 
     /**

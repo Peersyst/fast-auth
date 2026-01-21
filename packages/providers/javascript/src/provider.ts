@@ -1,4 +1,4 @@
-import { Auth0Client } from "@auth0/auth0-spa-js";
+import { Auth0Client, LogoutOptions } from "@auth0/auth0-spa-js";
 import {
     JavascriptProviderOptions,
     JavascriptBaseRequestDelegateActionSignatureOptions,
@@ -126,9 +126,10 @@ export class JavascriptProvider implements IFastAuthProvider {
 
     /**
      * Log out of the client.
+     * @param options
      */
-    async logout(): Promise<void> {
-        await this.client.logout();
+    async logout(options?: LogoutOptions): Promise<void> {
+        await this.client.logout(options);
     }
 
     /**

@@ -2,5 +2,5 @@ import { IFastAuthProvider as ISignerFastAuthProvider } from "../../signers/prov
 
 export interface IFastAuthProvider extends ISignerFastAuthProvider {
     login(...args: any[]): void;
-    logout(): void;
+    logout(...args: any[]): void;
 }
