@@ -53,7 +53,7 @@ jobs:
           push: ${{ inputs.push }}
           tags: ${{ env.DOCKER_IMAGE_NAME }}
           build-args: |
-            BASE_IMAGE=docker.io/${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}-base:${{ inputs.base_image }}
+            BASE_IMAGE=ghcr.io/peersyst/${{ github.event.repository.name }}-base:${{ inputs.base_image }}
             TURBO_TEAM=peersyst
           secrets: |
             turbo_token=${{ secrets.TURBO_TOKEN }}
