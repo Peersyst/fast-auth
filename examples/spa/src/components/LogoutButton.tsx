@@ -3,6 +3,7 @@ import { useFastAuth } from "../hooks/use-fast-auth-relayer";
 import Spinner from "./Spinner";
 import {FastAuthClient} from "@fast-auth/browser-sdk";
 import {JavascriptProvider} from "@fast-auth/javascript-provider";
+import config from "../config.ts";
 
 export function LogoutButton() {
     const { client } = useFastAuth();
@@ -12,6 +13,7 @@ export function LogoutButton() {
         setIsLoading(true);
         try {
             await (client as FastAuthClient<JavascriptProvider>)?.logout({
+                clientId: config.auth0.clientId,
                 logoutParams: {
                     returnTo: window.location.origin,
                 }

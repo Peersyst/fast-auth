@@ -63,7 +63,7 @@ export const useTransactionSigner = ({ signer, publicKey }: UseTransactionSigner
 
                 await signer.requestTransactionSignature({
                     imageUrl:
-                        "https://media.licdn.com/dms/image/v2/D4D0BAQH5KL-Ge_0iug/company-logo_200_200/company-logo_200_200/0/1696280807541/peersyst_technology_logo?e=2147483647&v=beta&t=uFYvQ5g6HDoIprYhNNV_zC7tzlBkvmPRkWzuLuDpHtc",
+                        "https://example.fast-auth.com/near-logo.png",
                     name: "Peersyst Technology",
                     transaction,
                 });

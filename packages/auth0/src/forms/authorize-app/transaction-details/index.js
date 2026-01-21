@@ -3,6 +3,22 @@
  * Add "symbol" param using a value like "€" to see the difference
  */
 function AuthorizeAppTransactionDetails(context) {
+    // Buffer polyfill for browser environment
+    if (typeof Buffer === 'undefined') {
+        window.Buffer = {
+            from: function(data) {
+                if (Array.isArray(data)) {
+                    return new Uint8Array(data);
+                }
+                if (typeof data === 'string') {
+                    const encoder = new TextEncoder();
+                    return encoder.encode(data);
+                }
+                return data;
+            }
+        };
+    }
+
     const ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
     function base58Encode(bytes) {
         let result = "";
@@ -384,24 +400,6 @@ function AuthorizeAppTransactionDetails(context) {
             valueElement.setAttribute("href", link);
             valueElement.setAttribute("target", "_blank");
         }
-
-        textContent.appendChild(labelElement);
-        textContent.appendChild(valueElement);
-
-        return textContent;
-    };
-
-    const createJsonContent = (label, value) => {
-        const textContent = document.createElement("div");
-        textContent.classList.add("text-content");
-
-        const labelElement = document.createElement("div");
-        labelElement.classList.add("label");
-        labelElement.textContent = label;
-
-        const valueElement = document.createElement("div");
-        valueElement.classList.add("json-content");
-        valueElement.textContent = value;
 
         textContent.appendChild(labelElement);
         textContent.appendChild(valueElement);

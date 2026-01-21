@@ -4,7 +4,7 @@ const { deserialize } = require("borsh");
 // KEYS
 
 const TRANSACTION_KEY = "transaction";
-const IMAGE_URL_KEY = "imageUrl";
+const IMAGE_URL_KEY = "image_url";
 const NAME_KEY = "name";
 const DELEGATE_ACTION_KEY = "delegateAction";
 
@@ -235,9 +235,10 @@ exports.onExecutePostLogin = async (event, api) => {
 
     if (hasKeys(query, [TRANSACTION_KEY, IMAGE_URL_KEY, NAME_KEY])) {
         const transaction = parseTransaction(event.request.query.transaction);
+        console.log(event.request.query.imageUrl);
         api.prompt.render(event.secrets.authorize_app_modal, {
             fields: {
-                imageUrl: event.request.query.imageUrl,
+                imageUrl: event.request.query.image_url,
                 name: event.request.query.name,
                 receiverId: transaction.receiverId,
                 signerId: transaction.signerId,
@@ -252,7 +253,7 @@ exports.onExecutePostLogin = async (event, api) => {
         const delegateAction = decodeDelegateAction(event.request.query.delegateAction);
         api.prompt.render(event.secrets.delegate_action_modal, {
             fields: {
-                imageUrl: event.request.query.imageUrl,
+                imageUrl: event.request.query.image_url,
                 name: event.request.query.name,
                 receiverId: delegateAction.receiverId,
                 senderId: delegateAction.senderId,
