@@ -7,4 +7,6 @@ export const FastAuthProviderMock = createMock<IFastAuthProvider>({
     requestDelegateActionSignature: new MethodMock("mockReturnValue", undefined),
     getSignatureRequest: new MethodMock("mockReturnValue", undefined),
     getPath: new MethodMock("mockReturnValue", undefined),
+    logout: new MethodMock("mockReturnValue", undefined),
+    login: new MethodMock("mockReturnValue", undefined),
 });
