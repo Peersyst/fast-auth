@@ -41,7 +41,7 @@ jobs:
       # Configure tag name
       - name: Sets env vars
         run: |
-          echo "DOCKER_IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}-custom-issuer:${GITHUB_SHA:0:8}" >> $GITHUB_ENV
+          echo "DOCKER_IMAGE_NAME=ghcr.io/peersyst/${{ github.event.repository.name }}-custom-issuer:${GITHUB_SHA:0:8}" >> $GITHUB_ENV
 
       # Build docker image
       - name: Build docker image
