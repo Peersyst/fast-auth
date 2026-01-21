@@ -1,0 +1,68 @@
+name: Release
+
+on:
+    workflow_dispatch:
+        inputs:
+            package:
+                type: choice
+                description: Package
+                options:
+                    - attester
+                    - custom-issuer
+                    - relayer
+            commit_branch:
+                description: The branch or the commit sha to push tag to
+                required: true
+            tag:
+                description: The tag of the release
+                required: true
+
+jobs:
+    build-base:
+        uses: ./.github/workflows/build-base.yaml
+        secrets: inherit
+        with:
+            tag: ${{ github.event.inputs.tag }}
+            push: true
+
+    build-attester:
+        if: ${{ github.event.inputs.package == 'attester' }}
+        needs: [build-base]
+        uses: ./.github/workflows/build-attester.yaml
+        secrets: inherit
+        with:
+            push: false
+            target: release
+            base_image: ${{ github.event.inputs.tag }}
+
+    build-custom-issuer:
+        if: ${{ github.event.inputs.package == 'custom-issuer' }}
+        needs: [build-base]
+        uses: ./.github/workflows/build-custom-issuer.yaml
+        secrets: inherit
+        with:
+            push: false
+            target: release
+            base_image: ${{ github.event.inputs.tag }}
+
+    build-relayer:
+        if: ${{ github.event.inputs.package == 'relayer' }}
+        needs: [build-base]
+        uses: ./.github/workflows/build-relayer.yaml
+        secrets: inherit
+        with:
+            push: false
+            target: release
+            base_image: ${{ github.event.inputs.tag }}
+
+    release:
+        needs: [build-attester, build-custom-issuer, build-relayer]
+        name: Github release
+        runs-on: ubuntu-latest
+        steps:
+            - name: Generate Github release
+              uses: softprops/action-gh-release@v1
+              with:
+                  name: ${{ github.event.inputs.package }}@${{ github.event.inputs.tag }}
+                  tag_name: ${{ github.event.inputs.package }}@${{ github.event.inputs.tag }}
+                  target_commitish: ${{ github.event.inputs.commit_branch }}

@@ -41,7 +41,7 @@ spec:
             secretProviderClass: custom-issuer-{{ .Values.environment }}-secrets
       containers:
       - name: custom-issuer
-        image: peersyst/fast-auth-custom-issuer:{{ .Values.tagCustomIssuer }}
+        image: ghcr.io/peersyst/fast-auth-custom-issuer:{{ .Values.tagCustomIssuer }}
         imagePullPolicy: Always
         resources:
           requests:

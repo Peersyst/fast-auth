@@ -126,7 +126,7 @@ export class JavascriptProvider implements IFastAuthProvider {
 
     /**
      * Log out of the client.
-     * @param options
+     * @param options The options for the logout.
      */
     async logout(options?: LogoutOptions): Promise<void> {
         await this.client.logout(options);
