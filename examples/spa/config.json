@@ -1,8 +1,8 @@
 {
     "auth0": {
-        "domain": "auth0.aws.peersyst.tech",
-        "clientId": "qOfA3FaWedmD9LjFS9uRvQVJ0U3XhsgA",
-        "audience": "fast-auth-api-test-0.com"
+        "domain": "login.testnet.fast-auth.com",
+        "clientId": "np8paqIpMWmNbzT4xAvOOapZBjsOpptl",
+        "audience": "https://api.testnet.fast-auth.com"
     },
     "near": {
         "mpcContractId": "v1.signer-prod.testnet",
