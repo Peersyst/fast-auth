@@ -27,7 +27,7 @@ const connection = await connect({
 
 // Create the FastAuth client
 const client = new FastAuthClient(provider, connection.connection, {
-  fastAuthContractId: "fastauth.testnet",
+  fastAuthContractId: "fast-auth.testnet",
   mpcContractId: "mpc.testnet",
 });
 ```

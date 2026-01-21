@@ -83,6 +83,12 @@ const config: Config = {
                     label: "Guides",
                 },
                 {
+                    type: "docSidebar",
+                    sidebarId: "resourcesSidebar",
+                    position: "left",
+                    label: "Resources",
+                },
+                {
                     type: "dropdown",
                     label: "Tools",
                     position: "left",
