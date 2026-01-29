@@ -1,5 +1,6 @@
 {
     "name": "@shared/test",
+    "private": true,
     "author": "Peersyst",
     "version": "0.0.0",
     "license": "UNLICENSED",

@@ -1,5 +1,6 @@
 {
   "name": "@contracts/jwt-guard-router",
+  "private": true,
   "version": "0.0.0",
   "description": "",
   "main": "index.js",
