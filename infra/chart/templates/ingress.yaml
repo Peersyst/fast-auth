@@ -3,10 +3,11 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
+    alb.ingress.kubernetes.io/group.name: peersyst-privatenet-alb
+    alb.ingress.kubernetes.io/load-balancer-name: peersyst-privatenet-alb
     alb.ingress.kubernetes.io/certificate-arn: {{ .Values.ingress.certificate }}
     alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
     alb.ingress.kubernetes.io/actions.ssl-redirect: '443'
-    alb.ingress.kubernetes.io/load-balancer-name: {{ .Values.namespace }}-{{ .Values.environment }}
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/target-type: ip
     {{- if .Values.relayer.enabled }}
@@ -22,7 +23,8 @@ metadata:
 spec:
   ingressClassName: alb
   rules:
-    - http:
+    - host: fast-auth-{{ .Values.environment }}.aws.peersyst.tech
+      http:
         paths:
           {{- if .Values.relayer.enabled }}
           - path: /api
