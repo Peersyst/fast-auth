@@ -100,7 +100,7 @@ type FastAuthProviderConfig<P extends IFastAuthProvider = IFastAuthProvider> = {
 ### Usage
 
 ```typescript
-import { FastAuthProvider } from "@fast-auth/react-sdk";
+import { FastAuthProvider } from "@fast-auth-near/react-sdk";
 import { Connection } from "near-api-js";
 import { YourAuthProvider } from "@your-auth/provider";
 
@@ -142,7 +142,7 @@ interface IFastAuthContext<P extends IFastAuthProvider = IFastAuthProvider> {
 Access the context using the `useFastAuth` hook:
 
 ```typescript
-import { useFastAuth } from "@fast-auth/react-sdk";
+import { useFastAuth } from "@fast-auth-near/react-sdk";
 
 function MyComponent() {
     const { client, isReady } = useFastAuth();

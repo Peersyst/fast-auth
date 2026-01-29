@@ -1,6 +1,6 @@
 {
-  "name": "@fast-auth/react-native-provider",
-  "version": "1.0.0",
+  "name": "@fast-auth-near/react-native-provider",
+  "version": "0.0.0",
   "description": "React Native provider for FastAuth - Adapts react-native-auth0 to the FastAuth provider interface",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -42,5 +42,8 @@
   },
   "exports": {
     ".": "./src/index.ts"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

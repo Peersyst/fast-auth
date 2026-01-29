@@ -4,8 +4,8 @@
 
 | Provider | Package | Platform |
 |----------|---------|----------|
-| **[JavaScript Provider](../providers/javascript/getting-started)** | `@fast-auth/javascript-provider` | Web browsers |
-| **[React Native Provider](../providers/react-native/getting-started)** | `@fast-auth/react-native-provider` | iOS and Android apps |
+| **[JavaScript Provider](../providers/javascript/getting-started)** | `@fast-auth-near/javascript-provider` | Web browsers |
+| **[React Native Provider](../providers/react-native/getting-started)** | `@fast-auth-near/react-native-provider` | iOS and Android apps |
 
 ## How SDKs and Providers work together
 
@@ -43,17 +43,17 @@ For detailed documentation, see the [React Native Provider Getting Started](../p
 For web applications:
 
 ```bash
-npm install @fast-auth/browser-sdk @fast-auth/javascript-provider
+npm install @fast-auth-near/browser-sdk @fast-auth-near/javascript-provider
 ```
 
 For React web applications:
 
 ```bash
-npm install @fast-auth/react-sdk @fast-auth/javascript-provider
+npm install @fast-auth-near/react-sdk @fast-auth-near/javascript-provider
 ```
 
 For React Native applications:
 
 ```bash
-npm install @fast-auth/react-sdk @fast-auth/react-native-provider
+npm install @fast-auth-near/react-sdk @fast-auth-near/react-native-provider
 ```

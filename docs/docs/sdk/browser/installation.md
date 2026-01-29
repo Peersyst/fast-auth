@@ -9,19 +9,19 @@ To install the latest version, you can use the following commands:
 ### Using npm
 
 ```bash
-npm install @fast-auth/browser-sdk
+npm install @fast-auth-near/browser-sdk
 ```
 
 ### Using yarn
 
 ```bash
-yarn add @fast-auth/browser-sdk
+yarn add @fast-auth-near/browser-sdk
 ```
 
 ### Using pnpm
 
 ```bash
-pnpm add @fast-auth/browser-sdk
+pnpm add @fast-auth-near/browser-sdk
 ```
 
 ## Dependencies
@@ -51,17 +51,17 @@ If you want to install a specific version, you can find all the available versio
 ### Using npm
 
 ```bash
-npm install @fast-auth/browser-sdk@<version>
+npm install @fast-auth-near/browser-sdk@<version>
 ```
 
 ### Using yarn
 
 ```bash
-yarn add @fast-auth/browser-sdk@<version>
+yarn add @fast-auth-near/browser-sdk@<version>
 ```
 
 ### Using pnpm
 
 ```bash
-pnpm add @fast-auth/browser-sdk@<version>
+pnpm add @fast-auth-near/browser-sdk@<version>
 ```

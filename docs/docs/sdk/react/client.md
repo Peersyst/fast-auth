@@ -93,7 +93,7 @@ interface IFastAuthProvider {
 ### Client instantiation
 
 ```typescript
-import { FastAuthClient } from "@fast-auth/react-sdk";
+import { FastAuthClient } from "@fast-auth-near/react-sdk";
 import { Connection } from "near-api-js";
 
 // 1. Set up NEAR connection

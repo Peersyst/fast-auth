@@ -21,7 +21,7 @@ export const FastAuthContext = createContext<IFastAuthContext | null>(null);
  * @example
  * ```tsx
  * import { FastAuthProvider } from '@fast-auth/react';
- * import { JavascriptProvider } from '@fast-auth/javascript-provider';
+ * import { JavascriptProvider } from '@fast-auth-near/javascript-provider';
  *
  * function App() {
  *   const providerConfig = {

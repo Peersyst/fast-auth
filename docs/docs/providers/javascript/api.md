@@ -19,7 +19,7 @@ new JavascriptProvider(options: JavascriptProviderOptions)
 #### Example
 
 ```javascript
-import { JavascriptProvider } from '@fast-auth/javascript-provider';
+import { JavascriptProvider } from '@fast-auth-near/javascript-provider';
 
 const provider = new JavascriptProvider({
     domain: 'your-auth0-domain.auth0.com',
@@ -354,7 +354,7 @@ enum JavascriptProviderErrorCodes {
 import { 
     JavascriptProviderError, 
     JavascriptProviderErrorCodes 
-} from '@fast-auth/javascript-provider';
+} from '@fast-auth-near/javascript-provider';
 
 try {
     const path = await provider.getPath();

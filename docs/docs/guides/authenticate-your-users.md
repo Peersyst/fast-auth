@@ -7,8 +7,8 @@ This section covers implementing user authentication in your application. For de
 First, create a FastAuth client with your provider and configuration:
 
 ```typescript
-import { FastAuthClient } from "@fast-auth/browser-sdk";
-import { JavascriptProvider } from "@fast-auth/javascript-provider";
+import { FastAuthClient } from "@fast-auth-near/browser-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
 import { connect } from "near-api-js";
 
 // Initialize the provider with your Auth0 credentials
@@ -68,8 +68,8 @@ await client.logout();
 Using the React SDK with hooks:
 
 ```tsx
-import { FastAuthProvider, useFastAuth, useIsLoggedIn } from "@fast-auth/react-sdk";
-import { JavascriptProvider } from "@fast-auth/javascript-provider";
+import { FastAuthProvider, useFastAuth, useIsLoggedIn } from "@fast-auth-near/react-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
 
 // Wrap your app with the provider
 function App() {

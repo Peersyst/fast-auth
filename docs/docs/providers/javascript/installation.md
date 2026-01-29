@@ -9,19 +9,19 @@ To install the latest version, you can use the following commands:
 ### Using npm
 
 ```bash
-npm install @fast-auth/javascript-provider
+npm install @fast-auth-near/javascript-provider
 ```
 
 ### Using yarn
 
 ```bash
-yarn add @fast-auth/javascript-provider
+yarn add @fast-auth-near/javascript-provider
 ```
 
 ### Using pnpm
 
 ```bash
-pnpm add @fast-auth/javascript-provider
+pnpm add @fast-auth-near/javascript-provider
 ```
 
 ## Dependencies
@@ -42,18 +42,18 @@ If you want to install a specific version, you can find all the available versio
 ### Using npm
 
 ```bash
-npm install @fast-auth/javascript-provider@<version>
+npm install @fast-auth-near/javascript-provider@<version>
 ```
 
 ### Using yarn
 
 ```bash
-yarn add @fast-auth/javascript-provider@<version>
+yarn add @fast-auth-near/javascript-provider@<version>
 ```
 
 ### Using pnpm
 
 ```bash
-pnpm add @fast-auth/javascript-provider@<version>
+pnpm add @fast-auth-near/javascript-provider@<version>
 ```
 

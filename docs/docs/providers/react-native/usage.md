@@ -12,7 +12,7 @@ The React Native Provider is compatible with the following FastAuth SDK:
 
 | SDK | Package | Compatibility | Notes |
 |-----|---------|--------------|-------|
-| React SDK | `@fast-auth/react-sdk` | ✅ Fully Compatible | Designed for React Native applications |
+| React SDK | `@fast-auth-near/react-sdk` | ✅ Fully Compatible | Designed for React Native applications |
 
 ## Basic Setup
 
@@ -20,16 +20,16 @@ First, install both the React Native Provider and the React SDK:
 
 ```bash
 # Install the React Native Provider
-npm install @fast-auth/react-native-provider
+npm install @fast-auth-near/react-native-provider
 
 # Install the React SDK
-npm install @fast-auth/react-sdk near-api-js
+npm install @fast-auth-near/react-sdk near-api-js
 ```
 
 Then, import and initialize the React Native Provider with your Auth0 configuration:
 
 ```javascript
-import { ReactNativeProvider } from '@fast-auth/react-native-provider';
+import { ReactNativeProvider } from '@fast-auth-near/react-native-provider';
 
 const provider = new ReactNativeProvider({
     domain: 'your-auth0-domain.auth0.com',
@@ -47,8 +47,8 @@ const provider = new ReactNativeProvider({
 The React Native Provider includes a helper function `reactNativeProviderConfig` that automatically configures the provider with the required `Auth0Provider` wrapper:
 
 ```javascript
-import { FastAuthProvider } from '@fast-auth/react-sdk';
-import { reactNativeProviderConfig } from '@fast-auth/react-native-provider';
+import { FastAuthProvider } from '@fast-auth-near/react-sdk';
+import { reactNativeProviderConfig } from '@fast-auth-near/react-native-provider';
 import { Connection } from 'near-api-js';
 
 const connection = new Connection({
@@ -82,7 +82,7 @@ function App() {
 Use the React hooks to access authentication functionality:
 
 ```javascript
-import { useFastAuth, useIsLoggedIn } from '@fast-auth/react-sdk';
+import { useFastAuth, useIsLoggedIn } from '@fast-auth-near/react-sdk';
 
 function LoginComponent() {
     const { client, isReady } = useFastAuth();
@@ -123,7 +123,7 @@ function LoginComponent() {
 Use the signer hook to request transaction signatures:
 
 ```javascript
-import { useSigner } from '@fast-auth/react-sdk';
+import { useSigner } from '@fast-auth-near/react-sdk';
 import { Transaction } from 'near-api-js/lib/transaction';
 
 function TransactionSigner() {
@@ -161,7 +161,7 @@ function TransactionSigner() {
 ### Delegate Action Signing
 
 ```javascript
-import { useSigner } from '@fast-auth/react-sdk';
+import { useSigner } from '@fast-auth-near/react-sdk';
 import { DelegateAction } from '@near-js/transactions';
 
 function DelegateActionSigner() {
@@ -197,7 +197,7 @@ function DelegateActionSigner() {
 After authentication, retrieve the signature request:
 
 ```javascript
-import { useSigner } from '@fast-auth/react-sdk';
+import { useSigner } from '@fast-auth-near/react-sdk';
 
 function SignatureComponent() {
     const { signer } = useSigner();
@@ -243,7 +243,7 @@ Additional Auth0 options from `react-native-auth0` can also be provided.
 The `reactNativeProviderConfig` helper function automatically configures the provider with the required `Auth0Provider` wrapper from `react-native-auth0`:
 
 ```javascript
-import { reactNativeProviderConfig } from '@fast-auth/react-native-provider';
+import { reactNativeProviderConfig } from '@fast-auth-near/react-native-provider';
 
 const providerConfig = reactNativeProviderConfig({
     domain: 'your-auth0-domain.auth0.com',

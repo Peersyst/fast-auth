@@ -1,6 +1,6 @@
 {
-  "name": "@fast-auth/firebase-provider",
-  "version": "1.0.0",
+  "name": "@fast-auth-near/firebase-provider",
+  "version": "0.0.0",
   "description": "",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -35,5 +35,8 @@
   },
   "exports": {
     ".": "./src/index.ts"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

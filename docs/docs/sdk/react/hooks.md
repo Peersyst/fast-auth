@@ -31,7 +31,7 @@ interface IFastAuthContext<P extends IFastAuthProvider = IFastAuthProvider> {
 ### Usage
 
 ```tsx
-import { useFastAuth } from "@fast-auth/react-sdk";
+import { useFastAuth } from "@fast-auth-near/react-sdk";
 
 function MyComponent() {
     const { client, isReady } = useFastAuth();
@@ -111,7 +111,7 @@ function useIsLoggedIn<P extends IFastAuthProvider = IFastAuthProvider>(
 ### Usage
 
 ```tsx
-import { useIsLoggedIn } from "@fast-auth/react-sdk";
+import { useIsLoggedIn } from "@fast-auth-near/react-sdk";
 
 function LoginButton() {
     const { isLoggedIn, isLoading, error, refetch } = useIsLoggedIn();
@@ -194,7 +194,7 @@ function usePublicKey<P extends IFastAuthProvider = IFastAuthProvider>(
 ### Usage
 
 ```tsx
-import { usePublicKey } from "@fast-auth/react-sdk";
+import { usePublicKey } from "@fast-auth-near/react-sdk";
 
 function PublicKeyDisplay() {
     const { publicKey, isLoading, error } = usePublicKey("ed25519");
@@ -240,7 +240,7 @@ function PublicKeysDisplay() {
 All hooks support TypeScript generics for better type inference:
 
 ```tsx
-import { useFastAuth } from "@fast-auth/react-sdk";
+import { useFastAuth } from "@fast-auth-near/react-sdk";
 import { MyCustomProvider } from "./my-provider";
 
 function MyComponent() {

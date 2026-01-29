@@ -10,9 +10,9 @@
         "preview": "vite preview"
     },
     "dependencies": {
-        "@fast-auth/browser-sdk": "workspace:*",
-        "@fast-auth/javascript-provider": "workspace:*",
-        "@fast-auth/firebase-provider": "workspace:*",
+        "@fast-auth-near/browser-sdk": "workspace:*",
+        "@fast-auth-near/javascript-provider": "workspace:*",
+        "@fast-auth-near/firebase-provider": "workspace:*",
         "@noble/hashes": "^1.8.0",
         "@scure/base": "^1.2.6",
         "bignumber.js": "^9.2.1",

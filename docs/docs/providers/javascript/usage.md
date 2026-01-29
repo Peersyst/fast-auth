@@ -12,8 +12,8 @@ The JavaScript Provider is compatible with the following FastAuth SDKs:
 
 | SDK | Package | Compatibility | Notes |
 |-----|---------|--------------|-------|
-| Browser SDK | `@fast-auth/browser-sdk` | ✅ Fully Compatible | Designed for browser/web applications |
-| React SDK | `@fast-auth/react-sdk` | ✅ Fully Compatible | Can be used with React applications |
+| Browser SDK | `@fast-auth-near/browser-sdk` | ✅ Fully Compatible | Designed for browser/web applications |
+| React SDK | `@fast-auth-near/react-sdk` | ✅ Fully Compatible | Can be used with React applications |
 
 ## Basic Setup
 
@@ -21,18 +21,18 @@ First, install both the JavaScript Provider and your chosen SDK:
 
 ```bash
 # Install the JavaScript Provider
-npm install @fast-auth/javascript-provider
+npm install @fast-auth-near/javascript-provider
 
 # Install your chosen SDK
-npm install @fast-auth/browser-sdk
+npm install @fast-auth-near/browser-sdk
 # or
-npm install @fast-auth/react-sdk
+npm install @fast-auth-near/react-sdk
 ```
 
 Then, import and initialize the JavaScript Provider with your Auth0 configuration:
 
 ```javascript
-import { JavascriptProvider } from '@fast-auth/javascript-provider';
+import { JavascriptProvider } from '@fast-auth-near/javascript-provider';
 
 const provider = new JavascriptProvider({
     domain: 'your-auth0-domain.auth0.com',
@@ -46,8 +46,8 @@ const provider = new JavascriptProvider({
 ### Setup
 
 ```javascript
-import { FastAuthClient } from '@fast-auth/browser-sdk';
-import { JavascriptProvider } from '@fast-auth/javascript-provider';
+import { FastAuthClient } from '@fast-auth-near/browser-sdk';
+import { JavascriptProvider } from '@fast-auth-near/javascript-provider';
 import { Connection } from 'near-api-js';
 
 // 1. Set up NEAR connection
@@ -111,8 +111,8 @@ const signatureRequest = await signer.getSignatureRequest();
 ### Setup
 
 ```javascript
-import { FastAuthProvider } from '@fast-auth/react-sdk';
-import { JavascriptProvider } from '@fast-auth/javascript-provider';
+import { FastAuthProvider } from '@fast-auth-near/react-sdk';
+import { JavascriptProvider } from '@fast-auth-near/javascript-provider';
 import { Connection } from 'near-api-js';
 
 const connection = new Connection({
@@ -144,7 +144,7 @@ function App() {
 ### Using Hooks
 
 ```javascript
-import { useFastAuth, useSigner } from '@fast-auth/react-sdk';
+import { useFastAuth, useSigner } from '@fast-auth-near/react-sdk';
 
 function MyComponent() {
     const { client, isReady } = useFastAuth();

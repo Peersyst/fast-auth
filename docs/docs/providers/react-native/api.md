@@ -19,7 +19,7 @@ new ReactNativeProvider(options: ReactNativeProviderOptions)
 #### Example
 
 ```javascript
-import { ReactNativeProvider } from '@fast-auth/react-native-provider';
+import { ReactNativeProvider } from '@fast-auth-near/react-native-provider';
 
 const provider = new ReactNativeProvider({
     domain: 'your-auth0-domain.auth0.com',
@@ -246,8 +246,8 @@ Configuration object with `provider` and `reactProvider` for use with `FastAuthP
 #### Example
 
 ```javascript
-import { reactNativeProviderConfig } from '@fast-auth/react-native-provider';
-import { FastAuthProvider } from '@fast-auth/react-sdk';
+import { reactNativeProviderConfig } from '@fast-auth-near/react-native-provider';
+import { FastAuthProvider } from '@fast-auth-near/react-sdk';
 
 const providerConfig = reactNativeProviderConfig({
     domain: 'your-auth0-domain.auth0.com',
@@ -397,7 +397,7 @@ enum ReactNativeProviderErrorCodes {
 import { 
     ReactNativeProviderError, 
     ReactNativeProviderErrorCodes 
-} from '@fast-auth/react-native-provider';
+} from '@fast-auth-near/react-native-provider';
 
 try {
     const path = await provider.getPath();
@@ -428,5 +428,5 @@ The package also re-exports the following from `react-native-auth0`:
 These can be used directly if needed:
 
 ```javascript
-import { Auth0Provider } from '@fast-auth/react-native-provider';
+import { Auth0Provider } from '@fast-auth-near/react-native-provider';
 ```

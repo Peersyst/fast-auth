@@ -9,19 +9,19 @@ To install the latest version, you can use the following commands:
 ### Using npm
 
 ```bash
-npm install @fast-auth/react-native-provider
+npm install @fast-auth-near/react-native-provider
 ```
 
 ### Using yarn
 
 ```bash
-yarn add @fast-auth/react-native-provider
+yarn add @fast-auth-near/react-native-provider
 ```
 
 ### Using pnpm
 
 ```bash
-pnpm add @fast-auth/react-native-provider
+pnpm add @fast-auth-near/react-native-provider
 ```
 
 ## Dependencies
@@ -62,17 +62,17 @@ If you want to install a specific version, you can find all the available versio
 ### Using npm
 
 ```bash
-npm install @fast-auth/react-native-provider@<version>
+npm install @fast-auth-near/react-native-provider@<version>
 ```
 
 ### Using yarn
 
 ```bash
-yarn add @fast-auth/react-native-provider@<version>
+yarn add @fast-auth-near/react-native-provider@<version>
 ```
 
 ### Using pnpm
 
 ```bash
-pnpm add @fast-auth/react-native-provider@<version>
+pnpm add @fast-auth-near/react-native-provider@<version>
 ```

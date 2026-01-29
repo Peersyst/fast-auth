@@ -9,19 +9,19 @@ To install the latest version, you can use the following commands:
 ### Using npm
 
 ```bash
-npm install @fast-auth/react-sdk near-api-js
+npm install @fast-auth-near/react-sdk near-api-js
 ```
 
 ### Using yarn
 
 ```bash
-yarn add @fast-auth/react-sdk near-api-js
+yarn add @fast-auth-near/react-sdk near-api-js
 ```
 
 ### Using pnpm
 
 ```bash
-pnpm add @fast-auth/react-sdk near-api-js
+pnpm add @fast-auth-near/react-sdk near-api-js
 ```
 
 ## Dependencies
@@ -51,17 +51,17 @@ If you want to install a specific version, you can find all the available versio
 ### Using npm
 
 ```bash
-npm install @fast-auth/react-sdk@<version>
+npm install @fast-auth-near/react-sdk@<version>
 ```
 
 ### Using yarn
 
 ```bash
-yarn add @fast-auth/react-sdk@<version>
+yarn add @fast-auth-near/react-sdk@<version>
 ```
 
 ### Using pnpm
 
 ```bash
-pnpm add @fast-auth/react-sdk@<version>
+pnpm add @fast-auth-near/react-sdk@<version>
 ```

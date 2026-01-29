@@ -4,8 +4,8 @@ FastAuth provides two SDKs tailored for different frontend frameworks:
 
 | SDK | Package | Use Case |
 |-----|---------|----------|
-| **[Browser SDK](../sdk/browser/getting-started)** | `@fast-auth/browser-sdk` | Vanilla JavaScript, Vue, Svelte, or any web framework |
-| **[React SDK](../sdk/react/getting-started)** | `@fast-auth/react-sdk` | React applications with hooks and context providers |
+| **[Browser SDK](../sdk/browser/getting-started)** | `@fast-auth-near/browser-sdk` | Vanilla JavaScript, Vue, Svelte, or any web framework |
+| **[React SDK](../sdk/react/getting-started)** | `@fast-auth-near/react-sdk` | React applications with hooks and context providers |
 
 ## Browser SDK
 
@@ -16,7 +16,7 @@ The Browser SDK provides a framework-agnostic `FastAuthClient` class that works 
 - You prefer a class-based API.
 
 ```bash
-npm install @fast-auth/browser-sdk
+npm install @fast-auth-near/browser-sdk
 ```
 
 For detailed documentation, see the [Browser SDK Getting Started](../sdk/browser/getting-started) and [Browser SDK Client API](../sdk/browser/client).
@@ -30,7 +30,7 @@ The React SDK wraps the Browser SDK with React-specific features like hooks and 
 - You prefer declarative state management.
 
 ```bash
-npm install @fast-auth/react-sdk
+npm install @fast-auth-near/react-sdk
 ```
 
 For detailed documentation, see the [React SDK Getting Started](../sdk/react/getting-started), [React SDK Client API](../sdk/react/client), and [React SDK Hooks](../sdk/react/hooks) for hooks usage.
