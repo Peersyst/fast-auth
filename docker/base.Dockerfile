@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1
 FROM node:20.9.0 as base
 ARG PNPM_VERSION=9.7.0
 ARG TURBO_TEAM=peersyst
