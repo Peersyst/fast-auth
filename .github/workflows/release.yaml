@@ -33,7 +33,7 @@ jobs:
         with:
             push: false
             target: release
-            base_image: ${{ github.event.inputs.tag }}
+            tag: ${{ github.event.inputs.tag }}
 
     build-custom-issuer:
         if: ${{ github.event.inputs.package == 'custom-issuer' }}
@@ -43,7 +43,7 @@ jobs:
         with:
             push: false
             target: release
-            base_image: ${{ github.event.inputs.tag }}
+            tag: ${{ github.event.inputs.tag }}
 
     build-relayer:
         if: ${{ github.event.inputs.package == 'relayer' }}
@@ -53,7 +53,7 @@ jobs:
         with:
             push: false
             target: release
-            base_image: ${{ github.event.inputs.tag }}
+            tag: ${{ github.event.inputs.tag }}
 
     release:
         needs: [build-attester, build-custom-issuer, build-relayer]

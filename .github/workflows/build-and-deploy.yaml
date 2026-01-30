@@ -1,54 +1,53 @@
 name: "Build and deploy"
 
 on:
-    push:
-        branches:
-            - main
+  push:
+    branches:
+    - main
 
 concurrency:
-    # Cancel old runs if there is a new commit in the same branch
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
+  # Cancel old runs if there is a new commit in the same branch
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  build-base:
+    uses: ./.github/workflows/build-base.yaml
+    secrets: inherit
+    with:
+      push: true
+      tag: ${{ github.sha }}
 
-    build-base:
-        uses: ./.github/workflows/build-base.yaml
-        secrets: inherit
-        with:
-            push: true
-            tag: ${{ github.sha }}
+  build-relayer:
+    needs: [build-base]
+    uses: ./.github/workflows/build-relayer.yaml
+    secrets: inherit
+    with:
+      push: true
+      target: release
+      tag: ${{ github.sha }}
 
-    build-relayer:
-        needs: [build-base]
-        uses: ./.github/workflows/build-relayer.yaml
-        secrets: inherit
-        with:
-          push: true
-          target: release
-          base_image: ${{ github.sha }}
+  build-attester:
+    needs: [build-base]
+    uses: ./.github/workflows/build-attester.yaml
+    secrets: inherit
+    with:
+      push: true
+      target: release
+      tag: ${{ github.sha }}
 
-    build-attester:
-        needs: [build-base]
-        uses: ./.github/workflows/build-attester.yaml
-        secrets: inherit
-        with:
-          push: true
-          target: release
-          base_image: ${{ github.sha }}
+  build-custom-issuer:
+    needs: [build-base]
+    uses: ./.github/workflows/build-custom-issuer.yaml
+    secrets: inherit
+    with:
+      push: true
+      target: release
+      tag: ${{ github.sha }}
 
-    build-custom-issuer:
-        needs: [build-base]
-        uses: ./.github/workflows/build-custom-issuer.yaml
-        secrets: inherit
-        with:
-          push: true
-          target: release
-          base_image: ${{ github.sha }}
-
-    deploy:
-        needs: [build-relayer, build-attester, build-custom-issuer]
-        uses: ./.github/workflows/deploy.yaml
-        secrets: inherit
-        with:
-          environment: 'staging'
+  deploy:
+    needs: [build-relayer, build-attester, build-custom-issuer]
+    uses: ./.github/workflows/deploy.yaml
+    secrets: inherit
+    with:
+      environment: 'staging'

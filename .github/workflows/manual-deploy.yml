@@ -67,15 +67,20 @@ jobs:
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::291847425310:role/gitHubDeploymentsRole
-          role-session-name: deploymentsRole
+          role-to-assume: arn:aws:iam::291847425310:role/gitHubDeploymentsRoleFastAuth
+          role-session-name: deploymentsRoleFastAuth
           role-duration-seconds: 900
           aws-region: us-east-1
+
+      # Kubectl install
+      - uses: azure/setup-kubectl@v3
+        with:
+          version: ${{ vars.KUBECTL_VERSION }}
 
       # Helm install
       - uses: azure/setup-helm@v3
         with:
-          version: v3.12.2
+          version: ${{ vars.HELM_VERSION }}
 
       # KUBECONFIG configuration
       - name: KUBECONFIG configuration
@@ -101,7 +106,14 @@ jobs:
           envsubst < Chart.yaml > Chart-0.yaml
           mv Chart-0.yaml Chart.yaml
           kubectl config use-context peersyst-privatenet
-          helm -n fast-auth upgrade ${{ github.event.inputs.environment }} ./ --install --atomic --wait --timeout 301s --values values/${{ github.event.inputs.environment }}.yaml --set-string timestamp=${NOW} --set-string tagRelayer=${{ github.event.inputs.relayer-tag }} --set-string tagAttester=${{ github.event.inputs.attester-tag }} --set-string tagCustomIssuer=${{ github.event.inputs.custom-issuer-tag }} --debug
+          helm -n fast-auth upgrade ${{ github.event.inputs.environment }} ./ \
+          --install --atomic --wait --timeout 301s \
+          --values values/${{ github.event.inputs.environment }}.yaml \
+          --set-string timestamp=${NOW} \
+          --set-string tagRelayer=${{ github.event.inputs.relayer-tag }} \
+          --set-string tagAttester=${{ github.event.inputs.attester-tag }} \
+          --set-string tagCustomIssuer=${{ github.event.inputs.custom-issuer-tag }} \
+          --debug
 
       # Send Slack message if any previous step has failed in this job
       - name: 📬 Failure job notification

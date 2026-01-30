@@ -30,7 +30,7 @@ spec:
                   secretProviderClass: attester-{{ $.Values.environment }}-secrets-{{ $i }}
           containers:
             - name: attester
-              image: peersyst/fast-auth-attester:{{ $.Values.tagAttester }}
+              image: 291847425310.dkr.ecr.us-east-1.amazonaws.com/fast-auth/attester:{{ $.Values.tagAttester }}
               resources:
                 requests:
                   memory: {{ $.Values.attester.cronjob.memoryRequest }}
