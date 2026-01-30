@@ -110,9 +110,9 @@ jobs:
           --install --atomic --wait --timeout 301s \
           --values values/${{ github.event.inputs.environment }}.yaml \
           --set-string timestamp=${NOW} \
-          --set-string tagRelayer=${{ github.event.inputs.relayer-tag }} \
-          --set-string tagAttester=${{ github.event.inputs.attester-tag }} \
-          --set-string tagCustomIssuer=${{ github.event.inputs.custom-issuer-tag }} \
+          --set-string tagRelayer="${{ github.event.inputs.relayer-tag }}" \
+          --set-string tagAttester="${{ github.event.inputs.attester-tag }}" \
+           --set-string tagCustomIssuer="${{ github.event.inputs.custom-issuer-tag }}" \
           --debug
 
       # Send Slack message if any previous step has failed in this job
