@@ -25,65 +25,65 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - name: Shorten SHA TAG
+    - name: Shorten SHA TAG
       id: env-vars
       shell: bash
       env:
         FULL_SHA: ${{ inputs.tag }}
       run: echo "TAG=${FULL_SHA::16}" >> $GITHUB_OUTPUT
 
-      - name: Repository checkout
-        uses: actions/checkout@v4
+    - name: Repository checkout
+      uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::291847425310:role/gitHubDeploymentsRoleFastAuth
-          role-session-name: deploymentsRoleFastAuth
-          role-duration-seconds: 900
-          aws-region: us-east-1
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::291847425310:role/gitHubDeploymentsRoleFastAuth
+        role-session-name: deploymentsRoleFastAuth
+        role-duration-seconds: 900
+        aws-region: us-east-1
 
-      - name: Login to ECR
-        uses: aws-actions/amazon-ecr-login@v2
+    - name: Login to ECR
+      uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-      # Restore local cache
-      - name: Restore cache
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ github.job }}-${{ runner.os }}-buildx-attester
-          restore-keys: |
-            ${{ github.job }}-${{ runner.os }}-buildx-attester
+    # Restore local cache
+    - name: Restore cache
+      uses: actions/cache@v3
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ github.job }}-${{ runner.os }}-buildx-attester
+        restore-keys: |
+          ${{ github.job }}-${{ runner.os }}-buildx-attester
 
-      # Build docker image
-      - name: Build docker image
-        uses: docker/build-push-action@v5
-        env:
-          TAG: ${{ steps.env-vars.outputs.TAG }}
-        with:
-          context: .
-          file: docker/attester.Dockerfile
-          provenance: false
-          target: ${{ inputs.target }}
-          push: ${{ inputs.push }}
-          tags: |
-            291847425310.dkr.ecr.us-east-1.amazonaws.com/fast-auth/attester:${{ env.TAG }}
-            291847425310.dkr.ecr.us-east-1.amazonaws.com/fast-auth/attester:latest
-          outputs: type=image
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache-new
-          build-args: |
-            BASE_IMAGE=291847425310.dkr.ecr.us-east-1.amazonaws.com/fast-auth/base:${{ env.TAG }}
-            TURBO_TEAM=peersyst
-          secrets: |
-            turbo_token=${{ secrets.TURBO_TOKEN }}
+    # Build docker image
+    - name: Build docker image
+      uses: docker/build-push-action@v5
+      env:
+        TAG: ${{ steps.env-vars.outputs.TAG }}
+      with:
+        context: .
+        file: docker/attester.Dockerfile
+        provenance: false
+        target: ${{ inputs.target }}
+        push: ${{ inputs.push }}
+        tags: |
+          291847425310.dkr.ecr.us-east-1.amazonaws.com/fast-auth/attester:${{ env.TAG }}
+          291847425310.dkr.ecr.us-east-1.amazonaws.com/fast-auth/attester:latest
+        outputs: type=image
+        cache-from: type=local,src=/tmp/.buildx-cache
+        cache-to: type=local,dest=/tmp/.buildx-cache-new
+        build-args: |
+          BASE_IMAGE=291847425310.dkr.ecr.us-east-1.amazonaws.com/fast-auth/base:${{ env.TAG }}
+          TURBO_TEAM=peersyst
+        secrets: |
+          turbo_token=${{ secrets.TURBO_TOKEN }}
 
-      # Save latest cache
-      - name: Save cache
-        if: always()
-        run: |
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+    # Save latest cache
+    - name: Save cache
+      if: always()
+      run: |
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
