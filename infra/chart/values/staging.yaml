@@ -3,6 +3,8 @@ namespace: fast-auth
 
 relayer:
     enabled: true
+    host1: fast-auth-staging.aws.peersyst.tech
+    host2: api.testnet.fast-auth.com
     service:
         port: 3000
         targetPort: 3000
@@ -71,4 +73,4 @@ attester:
 
 ingress:
     enabled: true
-    certificate: "arn:aws:acm:us-east-1:291847425310:certificate/b183b365-4363-4245-9966-7e990bf7b3d4"
+    certificate: "arn:aws:acm:us-east-1:291847425310:certificate/b183b365-4363-4245-9966-7e990bf7b3d4,arn:aws:acm:us-east-1:291847425310:certificate/3446ab94-39e4-4efe-8b54-e09e15ede9d2"

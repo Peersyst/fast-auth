@@ -23,7 +23,28 @@ metadata:
 spec:
   ingressClassName: alb
   rules:
-    - host: fast-auth-{{ .Values.environment }}.aws.peersyst.tech
+    - host: {{ .Values.relayer.host1 }}
+      http:
+        paths:
+          {{- if .Values.relayer.enabled }}
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-{{ .Values.environment }}
+                port:
+                  name: use-annotation
+          {{- end }}
+          {{- if .Values.customIssuer.enabled }}
+          - path: /issuer
+            pathType: Prefix
+            backend:
+              service:
+                name: custom-issuer-{{ .Values.environment }}
+                port:
+                  name: use-annotation
+          {{- end }}
+    - host: {{ .Values.relayer.host2 }}
       http:
         paths:
           {{- if .Values.relayer.enabled }}

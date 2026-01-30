@@ -3,6 +3,8 @@ namespace: fast-auth
 
 relayer:
     enabled: true
+    host1: fast-auth-relayer-production.aws.peersyst.tech
+    host2: relayer.fast-auth.com
     service:
         port: 3000
         targetPort: 3000
