@@ -3,6 +3,7 @@ export type IssuerConfig = {
     validationPublicKeyUrl: string;
     validationIssuerUrl: string;
     issuerUrl: string;
+    ignoreExpiration: boolean;
 };
 
 export default (): IssuerConfig => {
@@ -10,6 +11,7 @@ export default (): IssuerConfig => {
     const validationPublicKeyUrl = process.env.VALIDATION_PUBLIC_KEY_URL;
     const validationIssuerUrl = process.env.VALIDATION_ISSUER_URL;
     const issuerUrl = process.env.ISSUER_URL;
+    const ignoreExpiration = process.env.IGNORE_EXPIRATION === "true";
 
     if (!keyBase64 || keyBase64.trim() === "") {
         throw new Error(
@@ -57,5 +59,6 @@ export default (): IssuerConfig => {
         validationPublicKeyUrl: validationPublicKeyUrl.trim(),
         validationIssuerUrl: validationIssuerUrl.trim(),
         issuerUrl: issuerUrl.trim(),
+        ignoreExpiration,
     };
 };

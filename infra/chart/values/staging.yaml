@@ -49,6 +49,7 @@ customIssuer:
             validationIssuerUrl: VALIDATION_ISSUER_URL
             issuerUrl: ISSUER_URL
             allowedOrigins: ALLOWED_ORIGINS
+            ignoreExpiration: IGNORE_EXPIRATION
 
 attester:
     enabled: true

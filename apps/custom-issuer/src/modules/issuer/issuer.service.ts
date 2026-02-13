@@ -11,6 +11,7 @@ import { Config } from "../../config";
 export class IssuerService {
     private readonly issuerUrl: string;
     private readonly validationIssuerUrl: string;
+    private readonly ignoreExpiration: boolean;
 
     constructor(
         private readonly keyService: KeyService,
@@ -33,6 +34,7 @@ export class IssuerService {
 
         this.issuerUrl = issuerConfig.issuerUrl;
         this.validationIssuerUrl = issuerConfig.validationIssuerUrl;
+        this.ignoreExpiration = issuerConfig.ignoreExpiration;
     }
 
     async issueToken(inputJwt: string, signPayload: number[]): Promise<string> {
@@ -48,6 +50,7 @@ export class IssuerService {
             try {
                 return jwt.verify(inputJwt, publicKey, {
                     algorithms: [JWT_ALGORITHM],
+                    ignoreExpiration: this.ignoreExpiration,
                 }) as jwt.JwtPayload;
             } catch (_) {}
         }
@@ -61,7 +64,9 @@ export class IssuerService {
 
         this.validateSubject(sub);
         this.validateIssuer(iss);
-        this.validateTimeClaims(exp, nbf);
+        if (!this.ignoreExpiration) {
+            this.validateTimeClaims(exp, nbf);
+        }
 
         return { sub, exp, nbf, fatxn: signPayload };
     }
