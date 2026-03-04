@@ -16,6 +16,7 @@ import (
 )
 
 func main() {
+	config.LoadEnv(".env")
 	logger.Init()
 
 	cfg, err := config.Load()

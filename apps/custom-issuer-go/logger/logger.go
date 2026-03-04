@@ -3,20 +3,38 @@ package logger
 import (
 	"log/slog"
 	"os"
+	"strings"
 )
 
-var logger *slog.Logger
+var l *slog.Logger
 
 func Init() {
-	logger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+	l = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: parseLevel(os.Getenv("LOG_LEVEL")),
 	}))
 }
 
+func parseLevel(s string) slog.Level {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "debug":
+		return slog.LevelDebug
+	case "warn", "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
+
 func Info(msg string, args ...any) {
-	logger.Info(msg, args...)
+	l.Info(msg, args...)
+}
+
+func Warn(msg string, args ...any) {
+	l.Warn(msg, args...)
 }
 
 func Error(msg string, args ...any) {
-	logger.Error(msg, args...)
+	l.Error(msg, args...)
 }
