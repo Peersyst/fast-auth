@@ -2,7 +2,14 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
+)
+
+// Error messages start with uppercase to preserve API compatibility with the
+// previous NestJS custom-issuer service. This intentionally deviates from Go conventions.
+var (
+	ErrInvalidSignPayloadType   = errors.New("Invalid sign payload type")
+	ErrInvalidSignPayloadValues = errors.New("Invalid sign payload values")
 )
 
 // ByteArray is a []byte that unmarshals from a JSON array of integers (0-255).
@@ -11,15 +18,15 @@ type ByteArray []byte
 func (b *ByteArray) UnmarshalJSON(data []byte) error {
 	var raw []float64
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return fmt.Errorf("signPayload must be an array of numbers")
+		return ErrInvalidSignPayloadType
 	}
 	if len(raw) == 0 {
-		return fmt.Errorf("signPayload must not be empty")
+		return ErrInvalidSignPayloadValues
 	}
 	result := make([]byte, len(raw))
 	for i, v := range raw {
 		if v != float64(int(v)) || v < 0 || v > 255 {
-			return fmt.Errorf("signPayload values must be integers between 0 and 255")
+			return ErrInvalidSignPayloadValues
 		}
 		result[i] = byte(v)
 	}

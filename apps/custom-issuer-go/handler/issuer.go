@@ -7,6 +7,15 @@ import (
 
 const maxBodySize = 10 * 1024 // 10KB
 
+// Error messages start with uppercase to preserve API compatibility with the
+// previous NestJS custom-issuer service. This intentionally deviates from Go conventions.
+const (
+	errInvalidRequestBody = "Invalid request body"
+	errJWTEmpty           = "jwt must be a non-empty string"
+	errJWTTooLong         = "jwt must be shorter than or equal to 10000 characters"
+	errSignPayloadMissing = "signPayload is required"
+)
+
 func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
 
@@ -20,11 +29,11 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 
 	// Validate jwt field
 	if req.JWT == "" {
-		h.sendError(w, r, http.StatusBadRequest, "jwt must be a non-empty string")
+		h.sendError(w, r, http.StatusBadRequest, errJWTEmpty)
 		return
 	}
 	if len(req.JWT) > 10000 {
-		h.sendError(w, r, http.StatusBadRequest, "jwt must be shorter than or equal to 10000 characters")
+		h.sendError(w, r, http.StatusBadRequest, errJWTTooLong)
 		return
 	}
 
