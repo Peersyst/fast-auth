@@ -7,16 +7,19 @@ import (
 	"time"
 
 	"github.com/peersyst/fast-auth/apps/custom-issuer-go/config"
+	"github.com/peersyst/fast-auth/apps/custom-issuer-go/keys"
 	"github.com/peersyst/fast-auth/apps/custom-issuer-go/logger"
 )
 
 type IssuerHandler struct {
-	cfg *config.Config
+	cfg      *config.Config
+	keyStore *keys.FirebaseKeyStore
 }
 
-func NewIssuerHandler(cfg *config.Config) *IssuerHandler {
+func NewIssuerHandler(cfg *config.Config, keyStore *keys.FirebaseKeyStore) *IssuerHandler {
 	return &IssuerHandler{
-		cfg: cfg,
+		cfg:      cfg,
+		keyStore: keyStore,
 	}
 }
 

@@ -3,6 +3,9 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+
+	authjwt "github.com/peersyst/fast-auth/apps/custom-issuer-go/jwt"
+	"github.com/peersyst/fast-auth/apps/custom-issuer-go/logger"
 )
 
 const maxBodySize = 10 * 1024 // 10KB
@@ -40,6 +43,23 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 	// Validate signPayload
 	if req.SignPayload == nil {
 		h.sendError(w, r, http.StatusBadRequest, errSignPayloadMissing)
+		return
+	}
+
+	// Verify JWT signature against Firebase public keys
+	publicKeys := h.keyStore.GetKeys()
+	claims, err := authjwt.VerifyToken(req.JWT, publicKeys)
+	if err != nil {
+		h.sendError(w, r, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	logger.Info("JWT validated successfully")
+
+	// Validate claims
+	_, err = authjwt.ValidateClaims(claims, h.cfg.ValidationIssuerURL, h.cfg.IgnoreExpiration)
+	if err != nil {
+		h.sendError(w, r, http.StatusUnauthorized, err.Error())
 		return
 	}
 

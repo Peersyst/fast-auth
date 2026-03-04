@@ -12,6 +12,7 @@ import (
 
 	"github.com/peersyst/fast-auth/apps/custom-issuer-go/config"
 	"github.com/peersyst/fast-auth/apps/custom-issuer-go/handler"
+	"github.com/peersyst/fast-auth/apps/custom-issuer-go/keys"
 	"github.com/peersyst/fast-auth/apps/custom-issuer-go/logger"
 )
 
@@ -25,9 +26,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Fetch Firebase public keys and start background rotation
+	keyStore := keys.NewFirebaseKeyStore(cfg.ValidationPublicKeyURL)
+	ttl, err := keyStore.LoadKeys()
+	if err != nil {
+		logger.Error("failed to fetch Firebase public keys", "error", err)
+		os.Exit(1)
+	}
+	keyStore.StartRefresh(ttl)
+	defer keyStore.Stop()
+
 	// Setup HTTP routes
 	mux := http.NewServeMux()
-	issuerHandler := handler.NewIssuerHandler(cfg)
+	issuerHandler := handler.NewIssuerHandler(cfg, keyStore)
 	issuerHandler.RegisterRoutes(mux)
 
 	srv := &http.Server{
