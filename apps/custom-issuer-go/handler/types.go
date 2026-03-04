@@ -46,6 +46,7 @@ type issueResponse struct {
 type errorResponse struct {
 	StatusCode int    `json:"statusCode"`
 	Message    string `json:"message"`
+	Error      string `json:"error,omitempty"`
 	Timestamp  string `json:"timestamp"`
 	Path       string `json:"path"`
 }

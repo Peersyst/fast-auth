@@ -48,7 +48,6 @@ func LoadEnv(path string) {
 }
 
 func Load() (*Config, error) {
-
 	cfg := &Config{}
 
 	// PORT (optional, default 3000)

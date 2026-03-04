@@ -23,7 +23,7 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
-		h.sendError(w, r, http.StatusBadRequest, "Invalid request body")
+		h.sendError(w, r, http.StatusBadRequest, errInvalidRequestBody)
 		return
 	}
 
@@ -34,6 +34,12 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(req.JWT) > 10000 {
 		h.sendError(w, r, http.StatusBadRequest, errJWTTooLong)
+		return
+	}
+
+	// Validate signPayload
+	if req.SignPayload == nil {
+		h.sendError(w, r, http.StatusBadRequest, errSignPayloadMissing)
 		return
 	}
 
