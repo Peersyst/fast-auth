@@ -1,0 +1,65 @@
+package handler
+
+import (
+	"encoding/json"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/peersyst/fast-auth/apps/custom-issuer-go/config"
+)
+
+type IssuerHandler struct {
+	cfg *config.Config
+}
+
+func NewIssuerHandler(cfg *config.Config) *IssuerHandler {
+	return &IssuerHandler{
+		cfg: cfg,
+	}
+}
+
+func (h *IssuerHandler) RegisterRoutes(mux *http.ServeMux) {
+	mux.HandleFunc("POST /issuer/issue", h.withCORS(h.handleIssue))
+	// CORS preflight handler
+	mux.HandleFunc("OPTIONS /issuer/issue", h.withCORS(h.handleOptions))
+}
+
+// handleOptions responds to CORS preflight requests with 204 No Content.
+func (h *IssuerHandler) handleOptions(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *IssuerHandler) withCORS(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if origin != "" {
+			if len(h.cfg.AllowedOrigins) == 0 {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+			} else {
+				for _, allowed := range h.cfg.AllowedOrigins {
+					if strings.EqualFold(origin, allowed) {
+						w.Header().Set("Access-Control-Allow-Origin", origin)
+						w.Header().Set("Vary", "Origin")
+						break
+					}
+				}
+			}
+		}
+		w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		next(w, r)
+	}
+}
+
+func (h *IssuerHandler) sendError(w http.ResponseWriter, r *http.Request, statusCode int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	_ = json.NewEncoder(w).Encode(errorResponse{
+		StatusCode: statusCode,
+		Message:    message,
+		Timestamp:  time.Now().UTC().Format(time.RFC3339Nano),
+		Path:       r.URL.Path,
+	})
+}
