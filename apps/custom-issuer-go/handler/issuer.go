@@ -2,6 +2,8 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -13,9 +15,10 @@ const MaxJWTLength = 10000
 const (
 	errInvalidRequestBody = "Invalid request body"
 	errJWTEmpty           = "jwt must be a non-empty string"
-	errJWTTooLong         = "jwt must be shorter than or equal to 10000 characters"
 	errSignPayloadMissing = "signPayload is required"
 )
+
+var errJWTTooLong = fmt.Sprintf("jwt must be shorter than or equal to %d characters", MaxJWTLength)
 
 func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
@@ -24,6 +27,12 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
+		h.sendError(w, r, http.StatusBadRequest, errInvalidRequestBody)
+		return
+	}
+	// Reject trailing data after the first JSON object.
+	var extra json.RawMessage
+	if err := decoder.Decode(&extra); err != io.EOF {
 		h.sendError(w, r, http.StatusBadRequest, errInvalidRequestBody)
 		return
 	}
