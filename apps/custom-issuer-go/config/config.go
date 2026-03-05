@@ -23,6 +23,9 @@ type Config struct {
 func LoadEnv(path string) {
 	f, err := os.Open(path)
 	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Printf("error opening env file %s: %v", path, err)
+		}
 		return
 	}
 	defer func(f *os.File) {
