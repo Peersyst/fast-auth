@@ -41,10 +41,17 @@ func LoadEnv(path string) {
 		}
 		key = strings.TrimSpace(key)
 		val = strings.TrimSpace(val)
-		val = strings.Trim(val, `"'`)
+		if len(val) >= 2 {
+			first, last := val[0], val[len(val)-1]
+			if (first == '"' && last == '"') || (first == '\'' && last == '\'') {
+				val = val[1 : len(val)-1]
+			}
+		}
 		// Don't override existing env vars
 		if _, exists := os.LookupEnv(key); !exists {
-			_ = os.Setenv(key, val)
+			if err := os.Setenv(key, val); err != nil {
+				log.Printf("error setting env var %s: %v", key, err)
+			}
 		}
 	}
 	if err := scanner.Err(); err != nil {
