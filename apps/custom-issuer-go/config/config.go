@@ -41,6 +41,7 @@ func LoadEnv(path string) {
 		}
 		key = strings.TrimSpace(key)
 		val = strings.TrimSpace(val)
+		val = strings.Trim(val, `"'`)
 		// Don't override existing env vars
 		if _, exists := os.LookupEnv(key); !exists {
 			_ = os.Setenv(key, val)
