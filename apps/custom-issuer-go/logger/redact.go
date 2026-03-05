@@ -39,9 +39,20 @@ func RedactMap(m map[string]any, depth int) map[string]any {
 			out[k] = redacted
 			continue
 		}
-		if nested, ok := v.(map[string]any); ok {
-			out[k] = RedactMap(nested, depth+1)
-		} else {
+		switch val := v.(type) {
+		case map[string]any:
+			out[k] = RedactMap(val, depth+1)
+		case []any:
+			redacted := make([]any, len(val))
+			for i, elem := range val {
+				if m, ok := elem.(map[string]any); ok {
+					redacted[i] = RedactMap(m, depth+1)
+				} else {
+					redacted[i] = elem
+				}
+			}
+			out[k] = redacted
+		default:
 			out[k] = v
 		}
 	}

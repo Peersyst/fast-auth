@@ -2,22 +2,26 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 
 	authjwt "github.com/peersyst/fast-auth/apps/custom-issuer-go/jwt"
 	"github.com/peersyst/fast-auth/apps/custom-issuer-go/logger"
 )
 
-const maxBodySize = 10 * 1024 // 10KB
+// MaxJWTLength is the maximum allowed length for incoming JWT strings.
+const MaxJWTLength = 10000
 
 // Error messages start with uppercase to preserve API compatibility with the
 // previous NestJS custom-issuer service. This intentionally deviates from Go conventions.
 const (
 	errInvalidRequestBody = "Invalid request body"
 	errJWTEmpty           = "jwt must be a non-empty string"
-	errJWTTooLong         = "jwt must be shorter than or equal to 10000 characters"
 	errSignPayloadMissing = "signPayload is required"
 )
+
+var errJWTTooLong = fmt.Sprintf("jwt must be shorter than or equal to %d characters", MaxJWTLength)
 
 func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodySize)
@@ -29,13 +33,19 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 		h.sendError(w, r, http.StatusBadRequest, errInvalidRequestBody)
 		return
 	}
+	// Reject trailing data after the first JSON object.
+	var extra json.RawMessage
+	if err := decoder.Decode(&extra); err != io.EOF {
+		h.sendError(w, r, http.StatusBadRequest, errInvalidRequestBody)
+		return
+	}
 
 	// Validate jwt field
 	if req.JWT == "" {
 		h.sendError(w, r, http.StatusBadRequest, errJWTEmpty)
 		return
 	}
-	if len(req.JWT) > 10000 {
+	if len(req.JWT) > MaxJWTLength {
 		h.sendError(w, r, http.StatusBadRequest, errJWTTooLong)
 		return
 	}
