@@ -10,7 +10,7 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/peersyst/fast-auth/apps/custom-issuer-go/logger"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/logger"
 )
 
 type contextKey int

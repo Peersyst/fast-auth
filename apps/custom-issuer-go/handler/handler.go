@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/peersyst/fast-auth/apps/custom-issuer-go/config"
-	"github.com/peersyst/fast-auth/apps/custom-issuer-go/logger"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/config"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/logger"
 )
 
 const maxBodySize = 10 * 1024 // 10KB

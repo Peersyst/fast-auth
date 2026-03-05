@@ -10,9 +10,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/peersyst/fast-auth/apps/custom-issuer-go/config"
-	"github.com/peersyst/fast-auth/apps/custom-issuer-go/handler"
-	"github.com/peersyst/fast-auth/apps/custom-issuer-go/logger"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/config"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/handler"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/logger"
 )
 
 func main() {
