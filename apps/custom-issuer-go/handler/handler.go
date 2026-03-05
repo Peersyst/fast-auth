@@ -10,6 +10,8 @@ import (
 	"github.com/peersyst/fast-auth/apps/custom-issuer-go/logger"
 )
 
+const maxBodySize = 10 * 1024 // 10KB
+
 type IssuerHandler struct {
 	cfg *config.Config
 }
@@ -22,33 +24,43 @@ func NewIssuerHandler(cfg *config.Config) *IssuerHandler {
 
 func (h *IssuerHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /issuer/issue", h.withCORS(h.handleIssue))
-	// CORS preflight handler
-	mux.HandleFunc("OPTIONS /issuer/issue", h.withCORS(h.handleOptions))
-}
-
-// handleOptions responds to CORS preflight requests with 204 No Content.
-func (h *IssuerHandler) handleOptions(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNoContent)
+	mux.HandleFunc("OPTIONS /issuer/issue", h.withCORS(nil))
 }
 
 func (h *IssuerHandler) withCORS(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
+		originAllowed := false
+
 		if origin != "" {
 			if len(h.cfg.AllowedOrigins) == 0 {
 				w.Header().Set("Access-Control-Allow-Origin", "*")
+				originAllowed = true
 			} else {
 				for _, allowed := range h.cfg.AllowedOrigins {
 					if strings.EqualFold(origin, allowed) {
 						w.Header().Set("Access-Control-Allow-Origin", origin)
 						w.Header().Set("Vary", "Origin")
+						originAllowed = true
 						break
 					}
 				}
+				if !originAllowed {
+					http.Error(w, "Forbidden", http.StatusForbidden)
+					return
+				}
 			}
 		}
-		w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if originAllowed {
+			w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, PUT, PATCH, POST, DELETE")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		}
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 
 		next(w, r)
 	}

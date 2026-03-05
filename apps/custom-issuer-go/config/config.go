@@ -3,6 +3,7 @@ package config
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"strconv"
@@ -45,6 +46,9 @@ func LoadEnv(path string) {
 			_ = os.Setenv(key, val)
 		}
 	}
+	if err := scanner.Err(); err != nil {
+		log.Printf("error reading env file %s: %v", path, err)
+	}
 }
 
 func Load() (*Config, error) {
@@ -59,6 +63,9 @@ func Load() (*Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid PORT: %s", portStr)
 		}
+		if p < 1 || p > 65535 {
+			return nil, fmt.Errorf("PORT out of range (1-65535): %d", p)
+		}
 		cfg.Port = p
 	}
 
@@ -72,16 +79,24 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("VALIDATION_PUBLIC_KEY_URL is not a valid URL")
 	}
 
-	// VALIDATION_ISSUER_URL (required)
+	// VALIDATION_ISSUER_URL (required, must be valid URL)
 	cfg.ValidationIssuerURL = os.Getenv("VALIDATION_ISSUER_URL")
 	if cfg.ValidationIssuerURL == "" {
 		return nil, fmt.Errorf("missing required environment variable: VALIDATION_ISSUER_URL")
 	}
+	u, err = url.Parse(cfg.ValidationIssuerURL)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return nil, fmt.Errorf("VALIDATION_ISSUER_URL is not a valid URL")
+	}
 
-	// ISSUER_URL (required)
+	// ISSUER_URL (required, must be valid URL)
 	cfg.IssuerURL = os.Getenv("ISSUER_URL")
 	if cfg.IssuerURL == "" {
 		return nil, fmt.Errorf("missing required environment variable: ISSUER_URL")
+	}
+	u, err = url.Parse(cfg.IssuerURL)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return nil, fmt.Errorf("ISSUER_URL is not a valid URL")
 	}
 
 	// ALLOWED_ORIGINS (optional, comma-separated)

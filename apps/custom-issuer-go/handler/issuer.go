@@ -5,7 +5,8 @@ import (
 	"net/http"
 )
 
-const maxBodySize = 10 * 1024 // 10KB
+// MaxJWTLength is the maximum allowed length for incoming JWT strings.
+const MaxJWTLength = 10000
 
 // Error messages start with uppercase to preserve API compatibility with the
 // previous NestJS custom-issuer service. This intentionally deviates from Go conventions.
@@ -32,7 +33,7 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 		h.sendError(w, r, http.StatusBadRequest, errJWTEmpty)
 		return
 	}
-	if len(req.JWT) > 10000 {
+	if len(req.JWT) > MaxJWTLength {
 		h.sendError(w, r, http.StatusBadRequest, errJWTTooLong)
 		return
 	}

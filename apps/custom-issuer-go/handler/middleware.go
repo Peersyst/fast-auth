@@ -27,8 +27,10 @@ func cachedBodyFromContext(ctx context.Context) map[string]any {
 // panics in downstream handlers, returning a 500 JSON response.
 func RecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Read and cache r.Body
-		bodyBytes, _ := io.ReadAll(io.LimitReader(r.Body, 10*1024))
+		// Cap the read to maxBodySize to prevent extra-large bodies from
+		// consuming excessive memory; the issuer handler rejects bodies
+		// above this limit anyway, so truncation here is acceptable.
+		bodyBytes, _ := io.ReadAll(io.LimitReader(r.Body, maxBodySize))
 		_ = r.Body.Close()
 		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
