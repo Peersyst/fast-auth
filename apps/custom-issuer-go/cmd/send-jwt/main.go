@@ -21,6 +21,7 @@ func main() {
 	fileFlag := flag.String("file", "", "path to text file containing the JWT")
 	payloadFlag := flag.String("payload", "", "path to file whose raw bytes become signPayload (optional)")
 	urlFlag := flag.String("url", "http://localhost:3000", "service base URL")
+	verbose := flag.Bool("verbose", false, "print JWT preview (disabled by default to avoid leaking tokens)")
 	flag.Parse()
 
 	// Support positional arg as file path
@@ -70,11 +71,14 @@ func main() {
 	fmt.Printf("File: %s\n", jwtFile)
 	fmt.Printf("Payload: %v (%d bytes)\n", payload, len(payload))
 	fmt.Printf("Service URL: %s\n", *urlFlag)
-	preview := token
-	if len(preview) > 50 {
-		preview = preview[:50] + "..."
+	fmt.Printf("JWT length: %d\n", len(token))
+	if *verbose {
+		preview := token
+		if len(preview) > 50 {
+			preview = preview[:50] + "..."
+		}
+		fmt.Printf("JWT (first 50 chars): %s\n", preview)
 	}
-	fmt.Printf("JWT (first 50 chars): %s\n", preview)
 	fmt.Println()
 
 	// Build request

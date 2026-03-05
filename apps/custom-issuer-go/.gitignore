@@ -2,3 +2,4 @@
 .env
 custom-issuer-go
 jwt-*
+send-jwt

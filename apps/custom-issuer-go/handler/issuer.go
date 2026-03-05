@@ -64,14 +64,13 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Info("JWT validated successfully")
-
 	// Validate claims
 	_, err = authjwt.ValidateClaims(claims, h.cfg.ValidationIssuerURL, h.cfg.IgnoreExpiration)
 	if err != nil {
 		h.sendError(w, r, http.StatusUnauthorized, err.Error())
 		return
 	}
+	logger.Info("JWT validated successfully")
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(issueResponse{Token: "placeholder"})

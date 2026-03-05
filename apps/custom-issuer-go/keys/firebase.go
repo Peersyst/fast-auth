@@ -165,6 +165,9 @@ func parsePublicKeys(body []byte) ([]*rsa.PublicKey, error) {
 	return pubKeys, nil
 }
 
+// parsePEMCertificate extracts an RSA public key from a CERTIFICATE PEM block.
+// Firebase's x509 endpoint only serves CERTIFICATE blocks, so "PUBLIC KEY" and
+// "RSA PUBLIC KEY" types are intentionally unsupported for now.
 func parsePEMCertificate(pemData []byte) (*rsa.PublicKey, error) {
 	block, _ := pem.Decode(pemData)
 	if block == nil {

@@ -116,7 +116,7 @@ func ValidateClaims(claims map[string]any, validationIssuer string, ignoreExpira
 
 	now := time.Now().Unix()
 
-	// exp: optional, must be integer if present
+	// exp: optional for compatibility with the NestJS custom-issuer; must be integer if present
 	if expRaw, exists := claims["exp"]; exists {
 		expFloat, ok := expRaw.(float64)
 		if !ok || expFloat != math.Trunc(expFloat) {
@@ -130,7 +130,7 @@ func ValidateClaims(claims map[string]any, validationIssuer string, ignoreExpira
 		}
 	}
 
-	// nbf: optional, must be integer if present
+	// nbf: optional for compatibility with the NestJS custom-issuer; must be integer if present
 	if nbfRaw, exists := claims["nbf"]; exists {
 		nbfFloat, ok := nbfRaw.(float64)
 		if !ok || nbfFloat != math.Trunc(nbfFloat) {
