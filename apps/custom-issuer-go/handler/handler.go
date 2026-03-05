@@ -84,8 +84,8 @@ func (h *IssuerHandler) sendError(w http.ResponseWriter, r *http.Request, status
 			"path", r.URL.Path,
 			"ip", r.RemoteAddr,
 			"userAgent", r.UserAgent(),
-			"body", logger.RedactMap(body, 0),
-			"headers", logger.RedactHeaders(r.Header),
+			"body", body,
+			"headers", r.Header,
 			"query", r.URL.RawQuery,
 			"error", message,
 		)
