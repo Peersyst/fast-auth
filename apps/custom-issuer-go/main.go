@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"github.com/peersyst/fast-auth/apps/custom-issuer/config"
-	"github.com/peersyst/fast-auth/apps/custom-issuer/handler"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/logger"
 )
 
@@ -25,19 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup HTTP routes
-	mux := http.NewServeMux()
-	issuerHandler := handler.NewIssuerHandler(cfg)
-	issuerHandler.RegisterRoutes(mux)
-
-	srv := &http.Server{
-		Addr:           fmt.Sprintf(":%d", cfg.Port),
-		Handler:        handler.RecoveryMiddleware(mux),
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		IdleTimeout:    60 * time.Second,
-		MaxHeaderBytes: 1 << 20, // 1MB
-	}
+	srv := NewServer(cfg)
 
 	// Graceful shutdown
 	go func() {
