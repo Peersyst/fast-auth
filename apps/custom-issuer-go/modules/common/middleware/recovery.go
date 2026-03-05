@@ -1,4 +1,4 @@
-package handler
+package middleware
 
 import (
 	"bytes"
@@ -10,15 +10,19 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/peersyst/fast-auth/apps/custom-issuer-go/logger"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/logger"
 )
+
+// MaxBodySize is the maximum allowed request body size in bytes.
+const MaxBodySize = 10 * 1024 // 10KB
+
 
 type contextKey int
 
 const cachedBodyKey contextKey = iota
 
-// cachedBodyFromContext returns the parsed request body stored by RecoveryMiddleware.
-func cachedBodyFromContext(ctx context.Context) map[string]any {
+// CachedBodyFromContext returns the parsed request body stored by RecoveryMiddleware.
+func CachedBodyFromContext(ctx context.Context) map[string]any {
 	v, _ := ctx.Value(cachedBodyKey).(map[string]any)
 	return v
 }
@@ -27,10 +31,10 @@ func cachedBodyFromContext(ctx context.Context) map[string]any {
 // panics in downstream handlers, returning a 500 JSON response.
 func RecoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Cap the read to maxBodySize to prevent extra-large bodies from
+		// Cap the read to MaxBodySize to prevent extra-large bodies from
 		// consuming excessive memory; the issuer handler rejects bodies
 		// above this limit anyway, so truncation here is acceptable.
-		bodyBytes, _ := io.ReadAll(io.LimitReader(r.Body, maxBodySize))
+		bodyBytes, _ := io.ReadAll(io.LimitReader(r.Body, MaxBodySize))
 		_ = r.Body.Close()
 		r.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
@@ -44,15 +48,15 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 		defer func() {
 			if rec := recover(); rec != nil {
 				stack := string(debug.Stack())
-				body := cachedBodyFromContext(r.Context())
+				body := CachedBodyFromContext(r.Context())
 
 				logger.Error("panic recovered",
 					"method", r.Method,
 					"path", r.URL.Path,
 					"ip", r.RemoteAddr,
 					"userAgent", r.UserAgent(),
-					"body", logger.RedactMap(body, 0),
-					"headers", logger.RedactHeaders(r.Header),
+					"body", body,
+					"headers", r.Header,
 					"query", r.URL.RawQuery,
 					"panic", fmt.Sprintf("%v", rec),
 					"stack", stack,
@@ -60,7 +64,12 @@ func RecoveryMiddleware(next http.Handler) http.Handler {
 
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusInternalServerError)
-				_ = json.NewEncoder(w).Encode(errorResponse{
+				_ = json.NewEncoder(w).Encode(struct {
+					StatusCode int    `json:"statusCode"`
+					Message    string `json:"message"`
+					Timestamp  string `json:"timestamp"`
+					Path       string `json:"path"`
+				}{
 					StatusCode: http.StatusInternalServerError,
 					Message:    "Internal server error",
 					Timestamp:  time.Now().UTC().Format("2006-01-02T15:04:05.000Z"),

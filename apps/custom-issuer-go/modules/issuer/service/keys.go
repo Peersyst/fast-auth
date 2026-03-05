@@ -1,4 +1,4 @@
-package keys
+package service
 
 import (
 	"crypto/rsa"
@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/peersyst/fast-auth/apps/custom-issuer-go/logger"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/logger"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
 	httpTimeout            = 10 * time.Second
 )
 
-type FirebaseKeyStore struct {
+type firebaseKeyStore struct {
 	mu       sync.RWMutex
 	keys     []*rsa.PublicKey
 	url      string
@@ -31,15 +31,15 @@ type FirebaseKeyStore struct {
 	stopOnce sync.Once
 }
 
-func NewFirebaseKeyStore(url string) *FirebaseKeyStore {
-	return &FirebaseKeyStore{
+func newFirebaseKeyStore(url string) *firebaseKeyStore {
+	return &firebaseKeyStore{
 		url:  url,
 		stop: make(chan struct{}),
 	}
 }
 
 // LoadKeys fetches keys from the URL. Returns the Cache-Control max-age duration.
-func (s *FirebaseKeyStore) LoadKeys() (time.Duration, error) {
+func (s *firebaseKeyStore) LoadKeys() (time.Duration, error) {
 	client := &http.Client{Timeout: httpTimeout}
 	resp, err := client.Get(s.url)
 	if err != nil {
@@ -83,7 +83,7 @@ func (s *FirebaseKeyStore) LoadKeys() (time.Duration, error) {
 }
 
 // GetKeys returns a copy of the current set of public keys.
-func (s *FirebaseKeyStore) GetKeys() []*rsa.PublicKey {
+func (s *firebaseKeyStore) GetKeys() []*rsa.PublicKey {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	result := make([]*rsa.PublicKey, len(s.keys))
@@ -92,7 +92,7 @@ func (s *FirebaseKeyStore) GetKeys() []*rsa.PublicKey {
 }
 
 // StartRefresh starts a background goroutine that refreshes keys based on Cache-Control TTL.
-func (s *FirebaseKeyStore) StartRefresh(initialTTL time.Duration) {
+func (s *firebaseKeyStore) StartRefresh(initialTTL time.Duration) {
 	go func() {
 		ttl := initialTTL
 		for {
@@ -113,7 +113,7 @@ func (s *FirebaseKeyStore) StartRefresh(initialTTL time.Duration) {
 }
 
 // Stop stops the background refresh goroutine. Safe to call multiple times.
-func (s *FirebaseKeyStore) Stop() {
+func (s *firebaseKeyStore) Stop() {
 	s.stopOnce.Do(func() { close(s.stop) })
 }
 

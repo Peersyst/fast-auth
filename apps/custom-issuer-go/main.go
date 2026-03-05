@@ -3,17 +3,14 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/peersyst/fast-auth/apps/custom-issuer-go/config"
-	"github.com/peersyst/fast-auth/apps/custom-issuer-go/handler"
-	"github.com/peersyst/fast-auth/apps/custom-issuer-go/keys"
-	"github.com/peersyst/fast-auth/apps/custom-issuer-go/logger"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/config"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/logger"
 )
 
 func main() {
@@ -26,29 +23,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Fetch Firebase public keys and start background rotation
-	keyStore := keys.NewFirebaseKeyStore(cfg.ValidationPublicKeyURL)
-	ttl, err := keyStore.LoadKeys()
+	srv, stop, err := NewServer(cfg)
 	if err != nil {
-		logger.Error("failed to fetch Firebase public keys", "error", err)
+		logger.Error("failed to create server", "error", err)
 		os.Exit(1)
 	}
-	keyStore.StartRefresh(ttl)
-	defer keyStore.Stop()
-
-	// Setup HTTP routes
-	mux := http.NewServeMux()
-	issuerHandler := handler.NewIssuerHandler(cfg, keyStore)
-	issuerHandler.RegisterRoutes(mux)
-
-	srv := &http.Server{
-		Addr:           fmt.Sprintf(":%d", cfg.Port),
-		Handler:        handler.RecoveryMiddleware(mux),
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		IdleTimeout:    60 * time.Second,
-		MaxHeaderBytes: 1 << 20, // 1MB
-	}
+	defer stop()
 
 	// Graceful shutdown
 	go func() {

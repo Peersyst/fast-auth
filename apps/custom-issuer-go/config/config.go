@@ -64,64 +64,77 @@ func LoadEnv(path string) {
 
 func Load() (*Config, error) {
 	cfg := &Config{}
-
-	// PORT (optional, default 3000)
-	portStr := os.Getenv("PORT")
-	if portStr == "" {
-		cfg.Port = 3000
-	} else {
-		p, err := strconv.Atoi(portStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid PORT: %s", portStr)
-		}
-		if p < 1 || p > 65535 {
-			return nil, fmt.Errorf("PORT out of range (1-65535): %d", p)
-		}
-		cfg.Port = p
-	}
-
-	// Required URL fields (must be valid http/https)
 	var err error
-	if cfg.ValidationPublicKeyURL, err = requireHTTPURL("VALIDATION_PUBLIC_KEY_URL"); err != nil {
-		return nil, err
-	}
-	if cfg.ValidationIssuerURL, err = requireHTTPURL("VALIDATION_ISSUER_URL"); err != nil {
-		return nil, err
-	}
-	if cfg.IssuerURL, err = requireHTTPURL("ISSUER_URL"); err != nil {
-		return nil, err
-	}
 
-	// ALLOWED_ORIGINS (optional, comma-separated, deduplicated)
-	origins := os.Getenv("ALLOWED_ORIGINS")
-	if origins != "" {
-		seen := make(map[string]struct{})
-		for _, o := range strings.Split(origins, ",") {
-			o = strings.TrimSpace(o)
-			if o == "" {
-				continue
-			}
-			if _, exists := seen[o]; exists {
-				continue
-			}
-			seen[o] = struct{}{}
-			cfg.AllowedOrigins = append(cfg.AllowedOrigins, o)
-		}
+	if cfg.Port, err = parsePort(); err != nil {
+		return nil, err
 	}
-
-	// IGNORE_EXPIRATION (optional, default false)
-	if v := os.Getenv("IGNORE_EXPIRATION"); v != "" {
-		b, err := strconv.ParseBool(v)
-		if err != nil {
-			return nil, fmt.Errorf("invalid IGNORE_EXPIRATION value %q: must be a boolean", v)
-		}
-		cfg.IgnoreExpiration = b
+	if cfg.ValidationPublicKeyURL, err = parseHTTPURL("VALIDATION_PUBLIC_KEY_URL"); err != nil {
+		return nil, err
+	}
+	if cfg.ValidationIssuerURL, err = parseHTTPURL("VALIDATION_ISSUER_URL"); err != nil {
+		return nil, err
+	}
+	if cfg.IssuerURL, err = parseHTTPURL("ISSUER_URL"); err != nil {
+		return nil, err
+	}
+	cfg.AllowedOrigins = parseOrigins()
+	if cfg.IgnoreExpiration, err = parseBoolEnv("IGNORE_EXPIRATION"); err != nil {
+		return nil, err
 	}
 
 	return cfg, nil
 }
 
-func requireHTTPURL(name string) (string, error) {
+func parsePort() (int, error) {
+	portStr := os.Getenv("PORT")
+	if portStr == "" {
+		return 3000, nil
+	}
+	p, err := strconv.Atoi(portStr)
+	if err != nil {
+		return 0, fmt.Errorf("invalid PORT: %s", portStr)
+	}
+	if p < 1 || p > 65535 {
+		return 0, fmt.Errorf("PORT out of range (1-65535): %d", p)
+	}
+	return p, nil
+}
+
+func parseOrigins() []string {
+	raw := os.Getenv("ALLOWED_ORIGINS")
+	if raw == "" {
+		return nil
+	}
+	seen := make(map[string]struct{})
+	var origins []string
+	for _, o := range strings.Split(raw, ",") {
+		o = strings.TrimSpace(o)
+		if o == "" {
+			continue
+		}
+		if _, exists := seen[o]; exists {
+			continue
+		}
+		seen[o] = struct{}{}
+		origins = append(origins, o)
+	}
+	return origins
+}
+
+func parseBoolEnv(name string) (bool, error) {
+	v := os.Getenv(name)
+	if v == "" {
+		return false, nil
+	}
+	b, err := strconv.ParseBool(v)
+	if err != nil {
+		return false, fmt.Errorf("invalid %s value %q: must be a boolean", name, v)
+	}
+	return b, nil
+}
+
+func parseHTTPURL(name string) (string, error) {
 	val := os.Getenv(name)
 	if val == "" {
 		return "", fmt.Errorf("missing required environment variable: %s", name)
