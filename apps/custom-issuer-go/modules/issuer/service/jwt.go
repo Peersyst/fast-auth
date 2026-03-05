@@ -1,15 +1,12 @@
 package service
 
 import (
-	"crypto"
 	"crypto/rsa"
-	"crypto/sha256"
-	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"math"
-	"strings"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // Error messages start with uppercase to preserve API compatibility with the
@@ -34,62 +31,31 @@ type verifiedClaims struct {
 }
 
 // verifyToken verifies the JWT signature against the provided public keys using RS256.
-func verifyToken(tokenStr string, publicKeys []*rsa.PublicKey) (map[string]any, error) {
-	parts := strings.SplitN(tokenStr, ".", 3)
-	if len(parts) != 3 {
-		return nil, errInvalidToken
-	}
+func verifyToken(tokenStr string, publicKeys []*rsa.PublicKey) (jwt.MapClaims, error) {
+	parser := jwt.NewParser(
+		jwt.WithValidMethods([]string{"RS256"}),
+		jwt.WithoutClaimsValidation(),
+	)
 
-	// Decode and check header
-	headerBytes, err := base64.RawURLEncoding.DecodeString(parts[0])
-	if err != nil {
-		return nil, errInvalidToken
-	}
-	var header struct {
-		Alg string `json:"alg"`
-	}
-	if err := json.Unmarshal(headerBytes, &header); err != nil {
-		return nil, errInvalidToken
-	}
-	if header.Alg != "RS256" {
-		return nil, errInvalidToken
-	}
-
-	// Verify signature against each public key
-	signingInput := []byte(parts[0] + "." + parts[1])
-	signature, err := base64.RawURLEncoding.DecodeString(parts[2])
-	if err != nil {
-		return nil, errInvalidToken
-	}
-
-	hash := sha256.Sum256(signingInput)
-	verified := false
 	for _, key := range publicKeys {
-		if rsa.VerifyPKCS1v15(key, crypto.SHA256, hash[:], signature) == nil {
-			verified = true
-			break
+		token, err := parser.Parse(tokenStr, func(t *jwt.Token) (any, error) {
+			return key, nil
+		})
+		if err != nil {
+			continue
 		}
-	}
-	if !verified {
-		return nil, errInvalidToken
-	}
-
-	// Decode payload
-	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return nil, errInvalidToken
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return nil, errInvalidToken
+		}
+		return claims, nil
 	}
 
-	var claims map[string]any
-	if err := json.Unmarshal(payloadBytes, &claims); err != nil {
-		return nil, errInvalidToken
-	}
-
-	return claims, nil
+	return nil, errInvalidToken
 }
 
 // validateClaims validates the JWT claims and returns the verified claims.
-func validateClaims(claims map[string]any, validationIssuer string, ignoreExpiration bool) (*verifiedClaims, error) {
+func validateClaims(claims jwt.MapClaims, validationIssuer string, ignoreExpiration bool) (*verifiedClaims, error) {
 	result := &verifiedClaims{}
 
 	// sub: must exist, be string, non-empty
