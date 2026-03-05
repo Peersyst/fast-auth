@@ -57,7 +57,7 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.service.Issue(req.JWT, req.SignPayload)
 	if err != nil {
-		commonhandler.SendError(w, r, http.StatusInternalServerError, err.Error())
+		commonhandler.SendError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}
 
