@@ -2,14 +2,14 @@ import { FinalExecutionOutcome } from "near-api-js/lib/providers";
 import { PublicKey } from "../types/attestation.types";
 import { publicKeysMatch, sortPublicKeys } from "../utils/public-keys-match";
 import { ContractPublicKeysService } from "./contract-public-keys.service";
-import { GooglePublicKeysService } from "./google-public-keys.service";
+import { KeyProvider } from "./key-providers/key-provider.interface";
 import { LoggerService } from "./logger.service";
 
 export class AttestationService {
     logger = new LoggerService();
     constructor(
         private readonly contractPublicKeysService: ContractPublicKeysService,
-        private readonly googlePublicKeysService: GooglePublicKeysService,
+        private readonly keyProvider: KeyProvider,
     ) {}
 
     /**
@@ -17,7 +17,8 @@ export class AttestationService {
      * @returns The list of public keys.
      */
     async shouldAttest(): Promise<{ shouldAttest: boolean; contractPublicKeys: PublicKey[]; apiPublicKeys: PublicKey[] }> {
-        let apiPublicKeys = await this.googlePublicKeysService.getCurrentPublicKeys();
+        this.logger.log("attestation-service", `fetching keys from ${this.keyProvider.name}`);
+        let apiPublicKeys = await this.keyProvider.getCurrentPublicKeys();
         apiPublicKeys = sortPublicKeys(apiPublicKeys);
         let contractPublicKeys = await this.contractPublicKeysService.getCurrentPublicKeys();
         contractPublicKeys = sortPublicKeys(contractPublicKeys);
