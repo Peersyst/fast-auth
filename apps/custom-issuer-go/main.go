@@ -1,16 +1,15 @@
 package main
 
 import (
-	"context"
-	"errors"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/peersyst/fast-auth/apps/custom-issuer/config"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/logger"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/modules"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/kms"
 )
 
 func main() {
@@ -23,12 +22,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv, stop, err := NewServer(cfg)
+	// Register modules
+	mods := []modules.AppModule{&kms.Module{}, &issuer.Module{}}
+	appModules, err := modules.NewAppModules(cfg, &mods)
 	if err != nil {
-		logger.Error("failed to create server", "error", err)
+		panic(err)
+	}
+
+	server := NewServer(cfg, appModules)
+
+	if err := appModules.Start(); err != nil {
+		logger.Error("failed to start modules", "error", err)
 		os.Exit(1)
 	}
-	defer stop()
 
 	// Graceful shutdown
 	go func() {
@@ -36,18 +42,21 @@ func main() {
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		<-sigCh
 
-		logger.Info("shutting down server...")
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+		logger.Info("stopping app modules...")
+		if err := appModules.Stop(); err != nil {
+			logger.Error("failed to stop modules", "error", err)
+		}
 
-		if err := srv.Shutdown(shutdownCtx); err != nil {
+		logger.Info("shutting down server...")
+		if err := server.Stop(); err != nil {
 			logger.Error("server shutdown error", "error", err)
 		}
+
 	}()
 
 	logger.Info("server starting", "port", cfg.Port)
-	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		logger.Error("server error", "error", err)
+	if err := server.Start(); err != nil {
+		logger.Error("start server error", "error", err)
 		os.Exit(1)
 	}
 

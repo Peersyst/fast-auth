@@ -1,33 +1,27 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/peersyst/fast-auth/apps/custom-issuer/config"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/middleware"
-	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer"
-	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/kms"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/modules"
 	"github.com/rs/cors"
 )
 
+type Server struct {
+	http *http.Server
+}
+
 // NewServer creates an HTTP server with all modules and middleware registered.
 // Returns the server and a stop function for background cleanup (e.g. key refresh).
-func NewServer(cfg *config.Config) (*http.Server, func(), error) {
+func NewServer(cfg *config.Config, appModules *modules.AppModules) *Server {
 	mux := http.NewServeMux()
 
-	// Register modules
-	kmsModule, err := kms.NewModule(cfg)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	issuerModule, err := issuer.NewModule(cfg, kmsModule.Service)
-	if err != nil {
-		return nil, nil, err
-	}
-	issuerModule.RegisterRoutes(mux)
+	appModules.RegisterRoutes(mux)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: cfg.AllowedOrigins,
@@ -46,5 +40,25 @@ func NewServer(cfg *config.Config) (*http.Server, func(), error) {
 		MaxHeaderBytes:    1 << 20, // 1MB
 	}
 
-	return srv, issuerModule.Stop, nil
+	return &Server{
+		http: srv,
+	}
+}
+
+func (s *Server) Start() error {
+	err := s.http.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		return err
+	}
+	return nil
+}
+
+func (s *Server) Stop() error {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := s.http.Shutdown(shutdownCtx); err != nil {
+		return err
+	}
+	return nil
 }
