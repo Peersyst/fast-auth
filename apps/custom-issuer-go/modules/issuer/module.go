@@ -39,6 +39,7 @@ func (m *Module) Init(cfg *config.Config, appModules *modules.AppModules) error 
 	}
 
 	m.handler = handler.NewIssuerHandler(svc)
+	m.service = svc
 	return nil
 }
 
