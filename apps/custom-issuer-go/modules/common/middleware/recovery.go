@@ -16,7 +16,6 @@ import (
 // MaxBodySize is the maximum allowed request body size in bytes.
 const MaxBodySize = 10 * 1024 // 10KB
 
-
 type contextKey int
 
 const cachedBodyKey contextKey = iota

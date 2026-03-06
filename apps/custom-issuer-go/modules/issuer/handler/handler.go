@@ -21,7 +21,4 @@ func NewIssuerHandler(svc *service.IssuerService) *IssuerHandler {
 // RegisterRoutes registers the issuer HTTP routes on the given mux.
 func (h *IssuerHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /issuer/issue", h.handleIssue)
-	mux.HandleFunc("OPTIONS /issuer/issue", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNoContent)
-	})
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/middleware"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/kms"
+	"github.com/rs/cors"
 )
 
 // NewServer creates an HTTP server with all modules and middleware registered.
@@ -28,9 +29,11 @@ func NewServer(cfg *config.Config) (*http.Server, func(), error) {
 	}
 	issuerModule.RegisterRoutes(mux)
 
-	// Apply middleware stack (innermost first)
-	var h http.Handler = mux
-	h = middleware.CORS(cfg.AllowedOrigins)(h)
+	c := cors.New(cors.Options{
+		AllowedOrigins: cfg.AllowedOrigins,
+	})
+	h := c.Handler(mux)
+	// Recovery must be the outermost middleware so it catches panics from all inner layers, including CORS.
 	h = middleware.RecoveryMiddleware(h)
 
 	srv := &http.Server{
