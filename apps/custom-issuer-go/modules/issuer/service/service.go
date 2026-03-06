@@ -27,11 +27,10 @@ type IssuerService struct {
 // and starts background rotation.
 func NewIssuerService(cfg *config.Config) (*IssuerService, error) {
 	ks := newFirebaseKeyStore(cfg.ValidationPublicKeyURL)
-	ttl, err := ks.LoadKeys()
-	if err != nil {
+	if err := ks.LoadKeys(); err != nil {
 		return nil, err
 	}
-	ks.StartRefresh(ttl)
+	ks.StartRefresh()
 
 	return &IssuerService{cfg: cfg, keyStore: ks}, nil
 }

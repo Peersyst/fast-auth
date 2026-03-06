@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -17,8 +16,7 @@ import (
 )
 
 const (
-	defaultRefreshInterval = 1 * time.Hour
-	minRefreshInterval     = 5 * time.Minute
+	defaultRefreshInterval = 5 * time.Minute
 	retryBackoff           = 30 * time.Second
 	httpTimeout            = 10 * time.Second
 )
@@ -38,48 +36,42 @@ func newFirebaseKeyStore(url string) *firebaseKeyStore {
 	}
 }
 
-// LoadKeys fetches keys from the URL. Returns the Cache-Control max-age duration.
-func (s *firebaseKeyStore) LoadKeys() (time.Duration, error) {
+// LoadKeys fetches keys from the URL.
+func (s *firebaseKeyStore) LoadKeys() error {
 	client := &http.Client{Timeout: httpTimeout}
 	resp, err := client.Get(s.url)
 	if err != nil {
-		return 0, fmt.Errorf("failed to fetch public keys: %w", err)
+		return fmt.Errorf("failed to fetch public keys: %w", err)
 	}
 	defer func(Body io.ReadCloser) {
 		_ = Body.Close()
 	}(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		return 0, fmt.Errorf("failed to fetch public keys: HTTP %d", resp.StatusCode)
+		return fmt.Errorf("failed to fetch public keys: HTTP %d", resp.StatusCode)
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return 0, fmt.Errorf("failed to read public keys response: %w", err)
+		return fmt.Errorf("failed to read public keys response: %w", err)
 	}
 
 	keys, err := parsePublicKeys(body)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	if len(keys) == 0 {
-		return 0, fmt.Errorf("no valid public keys found at %s", s.url)
+		return fmt.Errorf("no valid public keys found at %s", s.url)
 	}
 
 	s.mu.Lock()
 	s.keys = keys
 	s.mu.Unlock()
 
-	ttl := parseCacheControlMaxAge(resp.Header.Get("Cache-Control"))
-	nextRotation := time.Now().Add(ttl)
-	logger.Info("loaded Firebase public keys",
-		"count", len(keys),
-		"next_rotation", nextRotation.UTC().Format(time.RFC3339),
-		"refresh_in", ttl.String(),
-	)
+	logger.Info("loaded Firebase public keys", "count", len(keys))
 
-	return ttl, nil
+	return nil
 }
 
 // GetKeys returns a copy of the current set of public keys.
@@ -91,21 +83,21 @@ func (s *firebaseKeyStore) GetKeys() []*rsa.PublicKey {
 	return result
 }
 
-// StartRefresh starts a background goroutine that refreshes keys based on Cache-Control TTL.
-func (s *firebaseKeyStore) StartRefresh(initialTTL time.Duration) {
+// StartRefresh starts a background goroutine that refreshes keys at a fixed interval.
+func (s *firebaseKeyStore) StartRefresh() {
 	go func() {
-		ttl := initialTTL
+		interval := defaultRefreshInterval
 		for {
 			select {
 			case <-s.stop:
 				return
-			case <-time.After(ttl):
-				newTTL, err := s.LoadKeys()
+			case <-time.After(interval):
+				err := s.LoadKeys()
 				if err != nil {
 					logger.Error("failed to refresh Firebase public keys, retrying", "error", err, "retry_in", retryBackoff.String())
-					ttl = retryBackoff
+					interval = retryBackoff
 				} else {
-					ttl = newTTL
+					interval = defaultRefreshInterval
 				}
 			}
 		}
@@ -185,28 +177,4 @@ func parsePEMCertificate(pemData []byte) (*rsa.PublicKey, error) {
 	}
 
 	return rsaKey, nil
-}
-
-func parseCacheControlMaxAge(header string) time.Duration {
-	if header == "" {
-		return defaultRefreshInterval
-	}
-
-	for _, directive := range strings.Split(header, ",") {
-		directive = strings.TrimSpace(directive)
-		if strings.HasPrefix(directive, "max-age=") {
-			val := strings.TrimPrefix(directive, "max-age=")
-			seconds, err := strconv.Atoi(val)
-			if err != nil || seconds <= 0 {
-				return defaultRefreshInterval
-			}
-			d := time.Duration(seconds) * time.Second
-			if d < minRefreshInterval {
-				return minRefreshInterval
-			}
-			return d
-		}
-	}
-
-	return defaultRefreshInterval
 }
