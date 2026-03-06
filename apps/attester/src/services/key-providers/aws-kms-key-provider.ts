@@ -28,6 +28,9 @@ export class AwsKmsKeyProvider implements KeyProvider {
         if (!response.PublicKey) {
             throw new Error(`KMS returned no public key for ${keyId}`);
         }
+        if (!response.KeySpec?.startsWith("RSA")) {
+            throw new Error(`KMS key ${keyId} is not RSA (KeySpec: ${response.KeySpec})`);
+        }
         return parseRsaPublicKeyFromDer(response.PublicKey);
     }
 }

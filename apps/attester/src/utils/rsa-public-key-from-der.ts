@@ -15,7 +15,9 @@ export function parseRsaPublicKeyFromDer(derBytes: Uint8Array): PublicKey {
     const publicKey = forge.pki.publicKeyFromAsn1(asn1) as forge.pki.rsa.PublicKey;
 
     // 3) Extract RSA components
-    const n = Buffer.from(publicKey.n.toString(16), "hex");
+    let hex = publicKey.n.toString(16);
+    if (hex.length % 2 !== 0) hex = "0" + hex;
+    const n = Buffer.from(hex, "hex");
     return {
         n: Array.from(new Uint8Array(n)),
         e: publicKey.e.toByteArray(),
