@@ -57,7 +57,7 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.service.Issue(req.JWT, req.SignPayload)
+	result, err := h.service.Issue(r.Context(), req.JWT, req.SignPayload)
 	if err != nil {
 		var authErr *service.AuthError
 		if errors.As(err, &authErr) {

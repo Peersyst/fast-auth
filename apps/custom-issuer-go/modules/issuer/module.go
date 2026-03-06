@@ -16,8 +16,8 @@ type Module struct {
 
 // NewModule creates a new issuer Module with all dependencies.
 // It fetches Firebase public keys and starts background rotation.
-func NewModule(cfg *config.Config) (*Module, error) {
-	svc, err := service.NewIssuerService(cfg)
+func NewModule(cfg *config.Config, signer service.Signer) (*Module, error) {
+	svc, err := service.NewIssuerService(cfg, signer)
 	if err != nil {
 		return nil, err
 	}
