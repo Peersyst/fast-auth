@@ -1,12 +1,14 @@
 import { NearTransactionService } from "./services/near/near-transaction.service";
 import { NearProviderService } from "./services/near/near-provider.service";
 import { NearSignerService } from "./services/near/near-signer.service";
-import { GooglePublicKeysService } from "./services/google-public-keys.service";
 import { ContractPublicKeysService } from "./services/contract-public-keys.service";
 import { AttestationService } from "./services/attestation.service";
 import { KeyPair } from "near-api-js";
 import "dotenv/config";
 import { LoggerService } from "./services/logger.service";
+import { KeyProvider } from "./services/key-providers/key-provider.interface";
+import { GoogleKeyProvider } from "./services/key-providers/google-key-provider";
+import { AwsKmsKeyProvider } from "./services/key-providers/aws-kms-key-provider";
 
 const Logger = new LoggerService();
 
@@ -14,14 +16,50 @@ type Config = {
     privateKey: string;
     accountId: string | undefined;
     nodeUrl: string;
-    googleCertificatesUrl: string;
     contractId: string;
     guardContractId: string;
+    keyProvider: KeyProvider;
 };
 
 /**
- * Loads a config from environment.
- * @returns The loaded config.
+ * Builds the key provider based on the KEY_PROVIDER environment variable.
+ * @returns The configured key provider instance.
+ */
+function buildKeyProvider(): KeyProvider {
+    const provider = process.env.KEY_PROVIDER ?? "kms";
+
+    if (provider === "google") {
+        const defaultUrl = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
+        const url = process.env.GOOGLE_CERTIFICATES_URL ?? defaultUrl;
+        if (!process.env.GOOGLE_CERTIFICATES_URL) {
+            Logger.warn("config", `env GOOGLE_CERTIFICATES_URL not found, defaulting to ${defaultUrl}.`);
+        }
+        Logger.log("config", `using Google key provider (url: ${url})`);
+        return new GoogleKeyProvider(url);
+    }
+
+    if (provider === "kms") {
+        const region = process.env.AWS_REGION;
+        if (!region) throw new Error("AWS_REGION is required when KEY_PROVIDER=kms");
+
+        const previousKeyId = process.env.KMS_PREVIOUS_KEY_ID;
+        const currentKeyId = process.env.KMS_CURRENT_KEY_ID;
+        const nextKeyId = process.env.KMS_NEXT_KEY_ID;
+
+        if (!previousKeyId && !currentKeyId && !nextKeyId) {
+            throw new Error("KMS_*_KEY_ID keys must be set when KEY_PROVIDER=kms");
+        }
+
+        Logger.log("config", "using AWS KMS key provider");
+        return new AwsKmsKeyProvider({ region, previousKeyId, currentKeyId, nextKeyId });
+    }
+
+    throw new Error(`Unknown KEY_PROVIDER: ${provider}. Must be "google" or "kms".`);
+}
+
+/**
+ * Loads and validates the attester configuration from environment variables.
+ * @returns The validated configuration object.
  */
 function loadConfig(): Config {
     const privateKey = process.env.PRIVATE_KEY ?? "";
@@ -35,12 +73,6 @@ function loadConfig(): Config {
     const nodeUrl = process.env.NODE_URL;
     if (!nodeUrl) {
         throw new Error("env NODE_URL not found.");
-    }
-
-    let googleCertificatesUrl = process.env.GOOGLE_CERTIFICATES_URL;
-    if (!googleCertificatesUrl) {
-        googleCertificatesUrl = "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
-        Logger.warn("loadConfig", `env GOOGLE_CERTIFICATES_URL not found, defaulting to ${googleCertificatesUrl}.`);
     }
 
     const contractId = process.env.CONTRACT_ID;
@@ -57,23 +89,23 @@ function loadConfig(): Config {
         privateKey,
         accountId,
         nodeUrl,
-        googleCertificatesUrl,
         contractId,
         guardContractId,
+        keyProvider: buildKeyProvider(),
     };
 }
 
 /**
- * The main function.
+ * Entry point: loads config, checks if attestation is needed, and syncs public keys.
  */
 async function main() {
     Logger.log("main", "loading config...");
     const config = loadConfig();
-    Logger.debug("main", `config loaded ${JSON.stringify({ ...config, privateKey: "***" })}`);
+    Logger.debug("main", `config loaded ${JSON.stringify({ ...config, privateKey: "***", keyProvider: config.keyProvider.name })}`);
+
     const nearSignerService = new NearSignerService(config.privateKey, config.accountId);
     const nearProviderService = new NearProviderService(config.nodeUrl);
     const nearTransactionService = new NearTransactionService(nearProviderService, nearSignerService);
-    const googlePublicKeysService = new GooglePublicKeysService(config.googleCertificatesUrl);
     const contractPublicKeysService = new ContractPublicKeysService(
         config.contractId,
         config.guardContractId,
@@ -81,7 +113,8 @@ async function main() {
         nearTransactionService,
         nearSignerService,
     );
-    const attestationService = new AttestationService(contractPublicKeysService, googlePublicKeysService);
+
+    const attestationService = new AttestationService(contractPublicKeysService, config.keyProvider);
 
     const { shouldAttest, apiPublicKeys, contractPublicKeys } = await attestationService.shouldAttest();
     if (!shouldAttest) {

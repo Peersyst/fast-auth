@@ -29,7 +29,9 @@ export function parseRsaPublicKeyFromCertPem(certPem: string): PublicKey {
     }
 
     const rsa = pubKey as forge.pki.rsa.PublicKey;
-    const n = Buffer.from(rsa.n.toString(16), "hex");
+    let hex = rsa.n.toString(16);
+    if (hex.length % 2 !== 0) hex = "0" + hex;
+    const n = Buffer.from(hex, "hex");
     return {
         n: Array.from(new Uint8Array(n)),
         e: rsa.e.toByteArray(),
