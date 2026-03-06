@@ -2,12 +2,14 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 
 	commonhandler "github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/handler"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/middleware"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/utils/bytearray"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer/service"
 )
 
 // MaxJWTLength is the maximum allowed length for incoming JWT strings.
@@ -55,8 +57,13 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.service.Issue(req.JWT, req.SignPayload)
+	result, err := h.service.Issue(r.Context(), req.JWT, req.SignPayload)
 	if err != nil {
+		var authErr *service.AuthError
+		if errors.As(err, &authErr) {
+			commonhandler.SendError(w, r, http.StatusUnauthorized, authErr.Message)
+			return
+		}
 		commonhandler.SendError(w, r, http.StatusInternalServerError, http.StatusText(http.StatusInternalServerError))
 		return
 	}

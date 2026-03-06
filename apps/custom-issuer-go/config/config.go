@@ -17,6 +17,8 @@ type Config struct {
 	IssuerURL              string
 	AllowedOrigins         []string
 	IgnoreExpiration       bool
+	AWSRegion              string
+	KMSKeyID               string
 }
 
 // LoadEnv reads a .env file into the environment.
@@ -82,6 +84,12 @@ func Load() (*Config, error) {
 	if cfg.IgnoreExpiration, err = parseBoolEnv("IGNORE_EXPIRATION"); err != nil {
 		return nil, err
 	}
+	if cfg.AWSRegion, err = parseRequiredEnv("AWS_REGION"); err != nil {
+		return nil, err
+	}
+	if cfg.KMSKeyID, err = parseRequiredEnv("KMS_KEY_ID"); err != nil {
+		return nil, err
+	}
 
 	return cfg, nil
 }
@@ -134,10 +142,18 @@ func parseBoolEnv(name string) (bool, error) {
 	return b, nil
 }
 
-func parseHTTPURL(name string) (string, error) {
+func parseRequiredEnv(name string) (string, error) {
 	val := os.Getenv(name)
 	if val == "" {
 		return "", fmt.Errorf("missing required environment variable: %s", name)
+	}
+	return val, nil
+}
+
+func parseHTTPURL(name string) (string, error) {
+	val, err := parseRequiredEnv(name)
+	if err != nil {
+		return "", err
 	}
 	u, err := url.Parse(val)
 	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {

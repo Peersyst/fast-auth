@@ -23,7 +23,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv := NewServer(cfg)
+	srv, stop, err := NewServer(cfg)
+	if err != nil {
+		logger.Error("failed to create server", "error", err)
+		os.Exit(1)
+	}
+	defer stop()
 
 	// Graceful shutdown
 	go func() {
