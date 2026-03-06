@@ -21,6 +21,10 @@ type Config = {
     keyProvider: KeyProvider;
 };
 
+/**
+ * Builds the key provider based on the KEY_PROVIDER environment variable.
+ * @returns The configured key provider instance.
+ */
 function buildKeyProvider(): KeyProvider {
     const provider = process.env.KEY_PROVIDER ?? "kms";
 
@@ -53,6 +57,10 @@ function buildKeyProvider(): KeyProvider {
     throw new Error(`Unknown KEY_PROVIDER: ${provider}. Must be "google" or "kms".`);
 }
 
+/**
+ * Loads and validates the attester configuration from environment variables.
+ * @returns The validated configuration object.
+ */
 function loadConfig(): Config {
     const privateKey = process.env.PRIVATE_KEY ?? "";
     KeyPair.fromString(privateKey);
@@ -87,6 +95,9 @@ function loadConfig(): Config {
     };
 }
 
+/**
+ * Entry point: loads config, checks if attestation is needed, and syncs public keys.
+ */
 async function main() {
     Logger.log("main", "loading config...");
     const config = loadConfig();

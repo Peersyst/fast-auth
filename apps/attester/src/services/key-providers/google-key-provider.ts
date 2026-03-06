@@ -7,6 +7,10 @@ export class GoogleKeyProvider implements KeyProvider {
 
     constructor(private readonly certificatesUrl: string) {}
 
+    /**
+     * Fetches and parses RSA public keys from the Google certificates endpoint.
+     * @returns Array of public keys parsed from the Google certificates response.
+     */
     async getCurrentPublicKeys(): Promise<PublicKey[]> {
         const res = await fetch(this.certificatesUrl);
         if (!res.ok) throw new Error(`error fetching current public keys ${res.status} ${await res.text()}`);
