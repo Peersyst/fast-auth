@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
 
 # --- Build stage ---
-FROM golang:1.26 AS build
+FROM --platform=$BUILDPLATFORM golang:1.26 AS build
+ARG TARGETOS
+ARG TARGETARCH
 
 WORKDIR /src
 COPY apps/custom-issuer-go/go.mod apps/custom-issuer-go/go.sum ./
@@ -16,10 +18,10 @@ RUN go vet ./...
 RUN go test ./...
 
 # Build static binary
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o /custom-issuer .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /custom-issuer .
 
 # --- Release stage ---
-FROM gcr.io/distroless/static-debian13 AS release
+FROM gcr.io/distroless/static-debian13:nonroot AS release
 
 COPY --from=build /custom-issuer /custom-issuer
 
