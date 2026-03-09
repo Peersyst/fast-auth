@@ -1,28 +1,33 @@
 # syntax=docker/dockerfile:1
+ARG BASE_IMAGE=base
+FROM ${BASE_IMAGE} AS integration
+ARG TURBO_TEAM=peersyst
+ENV TURBO_TEAM=$TURBO_TEAM
 
-# --- Build stage ---
-FROM --platform=$BUILDPLATFORM golang:1.26 AS build
-ARG TARGETOS
-ARG TARGETARCH
+# Install Go runtime
+COPY --from=golang:1.26 /usr/local/go /usr/local/go
+ENV PATH="/usr/local/go/bin:${PATH}"
 
-WORKDIR /src
-COPY apps/custom-issuer-go/go.mod apps/custom-issuer-go/go.sum ./
-RUN go mod download
+# Include custom-issuer-go
+COPY apps/custom-issuer-go /project/apps/custom-issuer-go
 
-COPY apps/custom-issuer-go/ .
+# Download custom-issuer-go Go module dependencies
+RUN cd /project/apps/custom-issuer-go && go mod download
 
-# Lint
-RUN go vet ./...
+# Lint custom-issuer-go
+RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
+    npx turbo run lint --filter=custom-issuer-go
+# Test custom-issuer-go
+RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
+    npx turbo run test --filter=custom-issuer-go
+# Build custom-issuer-go
+WORKDIR /project/apps/custom-issuer-go
+RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
+    npx turbo run build --filter=custom-issuer-go
 
-# Test
-RUN go test ./...
 
-# Build static binary
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /custom-issuer .
 
-# --- Release stage ---
-FROM gcr.io/distroless/static-debian13:nonroot AS release
-
-COPY --from=build /custom-issuer /custom-issuer
-
-ENTRYPOINT ["/custom-issuer"]
+FROM alpine:3.23 AS release
+WORKDIR /app
+COPY --from=integration /project/apps/custom-issuer-go/dist/custom-issuer-go /app/custom-issuer-go
+ENTRYPOINT ["/app/custom-issuer-go"]
