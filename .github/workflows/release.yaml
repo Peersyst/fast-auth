@@ -9,6 +9,7 @@ on:
                 options:
                     - attester
                     - custom-issuer
+                    - custom-issuer-go
                     - relayer
             commit_branch:
                 description: The branch or the commit sha to push tag to
@@ -45,6 +46,16 @@ jobs:
             target: release
             base_image: ${{ github.event.inputs.tag }}
 
+    build-custom-issuer-go:
+        if: ${{ github.event.inputs.package == 'custom-issuer-go' }}
+        needs: [build-base]
+        uses: ./.github/workflows/build-custom-issuer-go.yaml
+        secrets: inherit
+        with:
+            push: false
+            target: release
+            base_image: ${{ github.event.inputs.tag }}
+
     build-relayer:
         if: ${{ github.event.inputs.package == 'relayer' }}
         needs: [build-base]
@@ -56,7 +67,7 @@ jobs:
             base_image: ${{ github.event.inputs.tag }}
 
     release:
-        needs: [build-attester, build-custom-issuer, build-relayer]
+        needs: [build-attester, build-custom-issuer, build-custom-issuer-go, build-relayer]
         name: Github release
         runs-on: ubuntu-latest
         steps:
