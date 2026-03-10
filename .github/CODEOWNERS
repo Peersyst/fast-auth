@@ -1,5 +1,5 @@
 # CODEOWNERS file
-.github/CODEOWNERS @AgustinMJ @gonzalomarcote
+.github/CODEOWNERS @AgustinMJ @gonzalomarcote @AdriaCarrera
 
 # GitHub CI-CD Workflows
 .github/workflows/deploy.yaml @AgustinMJ @gonzalomarcote
