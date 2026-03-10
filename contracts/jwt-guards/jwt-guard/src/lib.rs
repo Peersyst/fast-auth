@@ -1,6 +1,6 @@
 use std::slice::Iter;
 use borsh::{BorshDeserialize};
-use near_sdk::{near, AccountId, env, NearToken, PanicOnDefault};
+use near_sdk::{near, AccountId, env, NearToken, PanicOnDefault, Promise, Gas, ext_contract};
 use near_sdk::env::sha256;
 use base_jwt_guard::{JwtGuard, JwtPublicKey};
 use base_jwt_guard::assert_valid_public_key;
@@ -16,6 +16,12 @@ mod error;
 mod utils;
 
 const JWT_CLAIM_STORAGE: u128 = 256;
+
+// External contract interface for AttestationContract
+#[ext_contract(attestation_contract)]
+pub trait AttestationContract {
+    fn get_public_keys(&self) -> Vec<JwtPublicKey>;
+}
 
 #[near(serializers = [json])]
 #[derive(AccessControlRole, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -58,6 +64,7 @@ pub struct CustomIssuerGuard {
     jwt_claims: near_sdk::store::LookupMap<AccountId, Vec<u8>>,
     jwt_hash_claims: near_sdk::store::LookupMap<Vec<u8>, AccountId>,
     account_storage_usage: U128,
+    attestation_contract: AccountId,
 }
 
 #[derive(near_sdk::BorshStorageKey)]
@@ -78,7 +85,7 @@ impl CustomIssuerGuard {
     /// # Panics
     /// Panics if the contract is already initialized
     #[init]
-    pub fn init(config: CustomIssuerGuardConfig) -> Self {
+    pub fn init(config: CustomIssuerGuardConfig, attestation_contract: AccountId) -> Self {
         require_err!(
             !env::state_exists(),
             CustomIssuerGuardError::ContractAlreadyInitialized
@@ -89,6 +96,7 @@ impl CustomIssuerGuard {
             jwt_claims: near_sdk::store::LookupMap::new(Prefix::JwtClaims),
             jwt_hash_claims: near_sdk::store::LookupMap::new(Prefix::JwtHashClaims),
             account_storage_usage: U128(JWT_CLAIM_STORAGE),
+            attestation_contract,
         };
         this.init_acl(config.roles);
         this
@@ -183,16 +191,72 @@ impl CustomIssuerGuard {
         self.jwt_hash_claims.get(hash).cloned()
     }
 
-    /// Updates the public keys used for JWT verification
+    /// Fetches public keys from the AttestationContract and sets them in a callback
+    /// # Returns
+    /// * `Promise` - A promise that resolves when the public keys are fetched and set
+    pub fn set_public_keys(&mut self) -> Promise {
+        attestation_contract::ext(self.attestation_contract.clone())
+            .with_static_gas(Gas::from_tgas(5))
+            .get_public_keys()
+            .then(
+                Self::ext(env::current_account_id())
+                    .with_static_gas(Gas::from_tgas(5))
+                    .on_set_public_keys_callback()
+            )
+    }
+
+    /// Callback to handle the public keys fetched from AttestationContract
     /// # Arguments
-    /// * `public_keys` - The new RSA public key components to use for verification
-    ///
-    #[access_control_any(roles(Role::DAO))]
-    pub fn set_public_keys(&mut self, public_keys: Vec<JwtPublicKey>) {
-        for public_key in public_keys.iter() {
-            assert_valid_public_key(public_key.clone());
+    /// * `public_keys` - The public keys fetched from the AttestationContract
+    /// # Panics
+    /// Panics if the callback result is an error or if public key validation fails
+    #[private]
+    pub fn on_set_public_keys_callback(
+        &mut self,
+        #[callback_result] public_keys_result: Result<Vec<JwtPublicKey>, near_sdk::PromiseError>,
+    ) {
+        match public_keys_result {
+            Ok(attestation_keys) => {
+                // Convert AttestationPublicKey to JwtPublicKey
+                let jwt_public_keys: Vec<JwtPublicKey> = attestation_keys
+                    .into_iter()
+                    .map(|key| JwtPublicKey {
+                        n: key.n,
+                        e: key.e,
+                    })
+                    .collect();
+
+                // Validate all public keys
+                for public_key in jwt_public_keys.iter() {
+                    assert_valid_public_key(public_key.clone());
+                }
+
+                // Set the public keys
+                self.public_keys = jwt_public_keys;
+                env::log_str("Public keys successfully updated from AttestationContract");
+            }
+            Err(e) => {
+                env::panic_str(&format!("Failed to fetch public keys from AttestationContract: {:?}", e));
+            }
         }
-        self.public_keys = public_keys;
+    }
+
+    /// Sets the attestation contract address
+    /// # Arguments
+    /// * `attestation_contract` - The new attestation contract account ID
+    /// # Panics
+    /// Panics if the caller is not authorized (DAO role)
+    #[access_control_any(roles(Role::DAO))]
+    pub fn set_attestation_contract(&mut self, attestation_contract: AccountId) {
+        self.attestation_contract = attestation_contract;
+        env::log_str("Attestation contract address updated");
+    }
+
+    /// Gets the current attestation contract address
+    /// # Returns
+    /// * `AccountId` - The current attestation contract account ID
+    pub fn get_attestation_contract(&self) -> AccountId {
+        self.attestation_contract.clone()
     }
 
     /// Unwraps the JWT claim of an account
