@@ -1,15 +1,15 @@
 # syntax=docker/dockerfile:1
 ARG BASE_IMAGE=base
-FROM ${BASE_IMAGE} AS integration
+FROM ${BASE_IMAGE} as integration
 ARG TURBO_TEAM=peersyst
 ENV TURBO_TEAM=$TURBO_TEAM
+
+# Include custom-issuer-go
+COPY apps/custom-issuer-go /project/apps/custom-issuer-go
 
 # Install Go runtime
 COPY --from=golang:1.26 /usr/local/go /usr/local/go
 ENV PATH="/usr/local/go/bin:${PATH}"
-
-# Include custom-issuer-go
-COPY apps/custom-issuer-go /project/apps/custom-issuer-go
 
 # Download custom-issuer-go Go module dependencies
 RUN cd /project/apps/custom-issuer-go && go mod download
