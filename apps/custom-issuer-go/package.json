@@ -4,7 +4,7 @@
     "version": "0.0.0",
     "description": "",
     "scripts": {
-        "build": "CGO_ENABLED=0 go build -o dist/custom-issuer-go .",
+        "build": "CGO_ENABLED=0 go build -o custom-issuer-go .",
         "lint": "go vet ./...",
         "test": "go test ./..."
     }

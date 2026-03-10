@@ -29,5 +29,5 @@ RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
 
 FROM alpine:3.23 AS release
 WORKDIR /app
-COPY --from=integration /project/apps/custom-issuer-go/dist/custom-issuer-go /app/custom-issuer-go
+COPY --from=integration /project/apps/custom-issuer-go/custom-issuer-go /app/custom-issuer-go
 ENTRYPOINT ["/app/custom-issuer-go"]
