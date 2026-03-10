@@ -4,7 +4,7 @@ AWS Lambda that rotates the KMS RSA signing keys used by the fast-auth stack.
 
 ## Architecture context
 
-```
+```text
 custom-issuer (Go)          attester (Node.js)
   │                            │
   │ Signs JWTs via KMS         │ Reads public keys from KMS
@@ -39,7 +39,7 @@ Because the attester keeps all three public keys on-chain, JWTs signed with the 
 
 ## What the Lambda does
 
-```
+```text
 Before:  prev=A   curr=B   next=C
 After:   prev=B   curr=C   next=NEW   (A disabled, deleted in 7 days)
 ```
