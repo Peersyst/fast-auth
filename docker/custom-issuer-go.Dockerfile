@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 ARG BASE_IMAGE=base
-FROM ${BASE_IMAGE} as integration
+FROM ${BASE_IMAGE} AS integration
 ARG TURBO_TEAM=peersyst
 ENV TURBO_TEAM=$TURBO_TEAM
 
