@@ -25,9 +25,9 @@ logger.setLevel(logging.INFO)
 
 kms = boto3.client("kms")
 
-PREVIOUS = "alias/signing-previous"
-CURRENT = "alias/signing-current"
-NEXT = "alias/signing-next"
+PREVIOUS = "alias/custom-issuer-previous"
+CURRENT = "alias/custom-issuer-current"
+NEXT = "alias/custom-issuer-next"
 
 KEY_SPEC = "RSA_2048"
 
@@ -108,12 +108,18 @@ def lambda_handler(event, context):
     new_key_id = kms.create_key(KeySpec=KEY_SPEC, KeyUsage="SIGN_VERIFY")["KeyMetadata"]["KeyId"]
     logger.info(f"Created new key: {new_key_id}")
 
+    # Retire BEFORE rotating aliases so the key still carries
+    # alias/custom-issuer-previous — this lets the IAM policy use
+    # kms:ResourceAliases to restrict DisableKey/ScheduleKeyDeletion
+    # to keys behind our aliases.  JWT verification is unaffected
+    # because the guard contract uses on-chain public key material,
+    # not KMS.
+    # Only retire on a clean (non-recovery) run; during crash recovery
+    # the "previous" key may still be the one clients are using.
+    scheduled_for_deletion = retire_key(prev_id) if start == RotationStart.UPDATE_PREVIOUS else None
+
     rotate_aliases(start, curr_id, next_id, new_key_id)
     logger.info(f"Aliases rotated: prev={curr_id}, curr={next_id}, next={new_key_id}")
-
-    # Only retire the old key on a clean (non-recovery) run, during crash
-    # recovery the "previous" key may still be the one clients are using.
-    scheduled_for_deletion = retire_key(prev_id) if start == RotationStart.UPDATE_PREVIOUS else None
 
     return {
         "previous": curr_id,
