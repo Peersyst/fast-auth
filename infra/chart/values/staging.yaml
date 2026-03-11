@@ -94,6 +94,11 @@ attester:
             guardContractId: GUARD_CONTRACT_ID
             accountId: ACCOUNT_ID
             privateKey: PRIVATE_KEY
+            keyProvider: KEY_PROVIDER
+            awsRegion: AWS_REGION
+            kmsPreviousKeyId: KMS_PREVIOUS_KEY_ID
+            kmsCurrentKeyId: KMS_CURRENT_KEY_ID
+            kmsNextKeyId: KMS_NEXT_KEY_ID
 
 ingress:
     enabled: true
