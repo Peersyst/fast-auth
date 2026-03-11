@@ -79,7 +79,7 @@ After bootstrapping, run the attester so it attests the initial key set to the c
   "previous": "<key-id now behind alias/signing-previous>",
   "current":  "<key-id now behind alias/signing-current>",
   "next":     "<new key-id behind alias/signing-next>",
-  "retired":  "<key-id that was disabled and scheduled for deletion>"
+  "scheduled_for_deletion":  "<key-id that was disabled and scheduled for deletion>"
 }
 ```
 
@@ -88,3 +88,102 @@ After bootstrapping, run the attester so it attests the initial key set to the c
 Alias rotation is wrapped in a try/except that re-raises on failure, so the Lambda returns a non-200 status and CloudWatch logs the exact error. If rotation fails mid-way the alias state must be inspected and corrected manually before retrying.
 
 Key retirement (disable + schedule deletion) is best-effort: a warning is logged on failure but the rotation result is still returned.
+
+## Deploy
+
+### Requirements
+
+| Requirement | Purpose |
+|---|---|
+| AWS CLI v2 configured with credentials | Deploy and invoke the Lambda |
+| Python 3.12+ | Lambda runtime |
+| Three KMS aliases bootstrapped (see [One-time KMS alias bootstrap](#one-time-kms-alias-bootstrap)) | The Lambda expects all three aliases to exist |
+| IAM role for the Lambda | Execution role with the permissions listed below |
+
+#### IAM permissions
+
+The Lambda execution role needs the following KMS actions:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "kms:DescribeKey",
+    "kms:CreateKey",
+    "kms:UpdateAlias",
+    "kms:DisableKey",
+    "kms:ScheduleKeyDeletion"
+  ],
+  "Resource": "*"
+}
+```
+
+It also needs CloudWatch Logs permissions so the Lambda can write its logs (rotation status, crash-recovery warnings, errors). The easiest option is to attach the AWS-managed policy `AWSLambdaBasicExecutionRole`, which grants:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": [
+    "logs:CreateLogGroup",
+    "logs:CreateLogStream",
+    "logs:PutLogEvents"
+  ],
+  "Resource": "arn:aws:logs:*:*:*"
+}
+```
+
+### Create the Lambda
+
+```bash
+# 1. Package the code
+zip lambda.zip lambda.py
+
+# 2. Create the function (replace <ROLE_ARN> with your execution role)
+aws lambda create-function \
+  --function-name custom-issuer-rotation \
+  --runtime python3.12 \
+  --handler lambda.lambda_handler \
+  --role <ROLE_ARN> \
+  --zip-file fileb://lambda.zip \
+  --timeout 30
+```
+
+### Update an existing Lambda
+
+```bash
+zip lambda.zip lambda.py
+
+aws lambda update-function-code \
+  --function-name custom-issuer-rotation \
+  --zip-file fileb://lambda.zip
+```
+
+### Schedule periodic rotation (optional)
+
+Use an EventBridge rule to trigger rotation on a schedule, for example every 30 days:
+
+```bash
+aws events put-rule \
+  --name custom-issuer-rotation-schedule \
+  --schedule-expression "rate(30 days)"
+
+aws lambda add-permission \
+  --function-name custom-issuer-rotation \
+  --statement-id eventbridge-invoke \
+  --action lambda:InvokeFunction \
+  --principal events.amazonaws.com \
+  --source-arn "$(aws events describe-rule --name custom-issuer-rotation-schedule --query 'Arn' --output text)"
+
+aws events put-targets \
+  --rule custom-issuer-rotation-schedule \
+  --targets "Id=1,Arn=$(aws lambda get-function --function-name custom-issuer-rotation --query 'Configuration.FunctionArn' --output text)"
+```
+
+### Test manually
+
+```bash
+aws lambda invoke \
+  --function-name custom-issuer-rotation \
+  --payload '{}' \
+  /dev/stdout
+```
