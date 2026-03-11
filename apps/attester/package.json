@@ -26,6 +26,7 @@
     },
     "dependencies": {
         "@aws-sdk/client-kms": "^3.1003.0",
+        "@aws-sdk/client-secrets-manager": "^3.1006.0",
         "@near-js/accounts": "^2.0.2",
         "@near-js/transactions": "^2.0.2",
         "@noble/hashes": "^1.7.2",

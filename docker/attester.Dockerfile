@@ -29,9 +29,9 @@ RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
 
 
 
-FROM node:20.10.0 as release
+FROM public.ecr.aws/lambda/nodejs:20 as release
 ENV NODE_ENV=production
-WORKDIR /app
-COPY --from=integration /artifacts/dist /app/dist
-COPY --from=integration /artifacts/node_modules /app/node_modules
-CMD [ "node", "/app/dist" ]
+WORKDIR ${LAMBDA_TASK_ROOT}
+COPY --from=integration /artifacts/dist ./dist
+COPY --from=integration /artifacts/node_modules ./node_modules
+CMD [ "dist/handler.handler" ]

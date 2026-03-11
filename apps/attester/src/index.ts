@@ -98,7 +98,7 @@ function loadConfig(): Config {
 /**
  * Entry point: loads config, checks if attestation is needed, and syncs public keys.
  */
-async function main() {
+export async function main() {
     Logger.log("main", "loading config...");
     const config = loadConfig();
     Logger.debug("main", `config loaded ${JSON.stringify({ ...config, privateKey: "***", keyProvider: config.keyProvider.name })}`);
@@ -129,5 +129,3 @@ async function main() {
         Logger.log("main", `sync done successfully ${JSON.stringify(res)}`);
     }
 }
-
-main();
