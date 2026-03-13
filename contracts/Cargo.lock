@@ -128,7 +128,7 @@ dependencies = [
 
 [[package]]
 name = "auth0-guard"
-version = "0.1.0-rc.1"
+version = "1.0.0"
 dependencies = [
  "base-jwt-guard",
  "borsh",
@@ -165,7 +165,7 @@ dependencies = [
 
 [[package]]
 name = "base-jwt-guard"
-version = "0.1.0-rc.1"
+version = "1.0.0"
 dependencies = [
  "borsh",
  "crypto-bigint",
@@ -1048,7 +1048,7 @@ dependencies = [
 
 [[package]]
 name = "fa"
-version = "0.1.0-rc.1"
+version = "1.0.0"
 dependencies = [
  "borsh",
  "near-sdk",
@@ -1091,7 +1091,7 @@ dependencies = [
 
 [[package]]
 name = "firebase-guard"
-version = "0.1.0-rc.1"
+version = "1.0.0"
 dependencies = [
  "base-jwt-guard",
  "borsh",
@@ -1775,7 +1775,7 @@ dependencies = [
 
 [[package]]
 name = "jwt-guard"
-version = "0.1.0-rc.1"
+version = "1.0.0"
 dependencies = [
  "base-jwt-guard",
  "borsh",
@@ -1794,7 +1794,7 @@ dependencies = [
 
 [[package]]
 name = "jwt-guard-router"
-version = "0.1.0-rc.1"
+version = "1.0.0"
 dependencies = [
  "near-sdk",
  "near-workspaces",

@@ -1,0 +1,6 @@
+# CODEOWNERS file
+.github/CODEOWNERS @gonzalomarcote @AdriaCarrera
+
+# GitHub CI-CD Workflows
+.github/workflows/deploy.yaml @AdriaCarrera @gonzalomarcote
+.github/workflows/manual-deploy.yml @AdriaCarrera @gonzalomarcote

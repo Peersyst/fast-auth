@@ -1,0 +1,11 @@
+{
+    "name": "custom-issuer-go",
+    "private": true,
+    "version": "0.0.0",
+    "description": "",
+    "scripts": {
+        "build": "CGO_ENABLED=0 go build -o custom-issuer-go .",
+        "lint": "go vet ./...",
+        "test": "go test ./..."
+    }
+}

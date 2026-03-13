@@ -1,0 +1,15 @@
+# Env
+.env
+
+# Go build artifacts
+tmp/
+vendor/
+*.test
+*.out
+
+# Logs
+logs/
+*.log
+
+# IDE
+.idea/

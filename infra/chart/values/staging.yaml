@@ -51,6 +51,31 @@ customIssuer:
             allowedOrigins: ALLOWED_ORIGINS
             ignoreExpiration: IGNORE_EXPIRATION
 
+customIssuerGo:
+    enabled: true
+    service:
+        port: 3000
+        targetPort: 3000
+    deployment:
+        name: custom-issuer-go
+        replicas: 1
+        port: 3000
+        memoryRequest: 256Mi
+        cpuRequest: 100m
+        memoryLimit: 256Mi
+        cpuLimit: 100m
+    secretProviderClass:
+        objectName: "fast-auth/staging/custom-issuer-go"
+        objectAlias: fast-auth-staging-custom-issuer-go
+        secrets:
+            validationPublicKeyUrl: VALIDATION_PUBLIC_KEY_URL
+            validationIssuerUrl: VALIDATION_ISSUER_URL
+            issuerUrl: ISSUER_URL
+            allowedOrigins: ALLOWED_ORIGINS
+            ignoreExpiration: IGNORE_EXPIRATION
+            awsRegion: AWS_REGION
+            kmsKeyId: KMS_KEY_ID
+
 attester:
     enabled: true
     replicas: 2
@@ -69,6 +94,11 @@ attester:
             guardContractId: GUARD_CONTRACT_ID
             accountId: ACCOUNT_ID
             privateKey: PRIVATE_KEY
+            keyProvider: KEY_PROVIDER
+            awsRegion: AWS_REGION
+            kmsPreviousKeyId: KMS_PREVIOUS_KEY_ID
+            kmsCurrentKeyId: KMS_CURRENT_KEY_ID
+            kmsNextKeyId: KMS_NEXT_KEY_ID
 
 ingress:
     enabled: true
