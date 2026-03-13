@@ -130,4 +130,23 @@ async function main() {
     }
 }
 
-main();
+/**
+ * AWS Lambda handler. Wraps the main function for scheduled (EventBridge) or on-demand invocation.
+ */
+export const handler = async () => {
+    try {
+        await main();
+        return { statusCode: 200, body: "Attestation completed successfully" };
+    } catch (error) {
+        Logger.error("handler", `Lambda execution failed: ${error}`);
+        throw error;
+    }
+};
+
+// Run standalone when executed directly (e.g. `node dist/index.js` or `tsx src/index.ts`)
+if (require.main === module) {
+    main().catch((error) => {
+        Logger.error("main", `${error}`);
+        process.exit(1);
+    });
+}
