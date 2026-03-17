@@ -15,25 +15,43 @@ provider "aws" {
   region = var.aws_region
 }
 
-module "custom_issuer_lambdas" {
-  source = "./modules/custom-issuer-lambdas"
+module "kms_signing_keys" {
+  source = "./modules/kms-signing-keys"
+
+  environment             = var.environment
+  kms_key_deletion_window = var.kms_key_deletion_window
+}
+
+module "attester" {
+  source = "./modules/attester"
 
   environment = var.environment
   aws_region  = var.aws_region
 
-  # KMS
-  kms_key_deletion_window = var.kms_key_deletion_window
+  zip_path      = var.attester_zip_path
+  schedule      = var.attester_schedule
+  timeout       = var.attester_timeout
+  memory_size   = var.attester_memory_size
+  secret_config = var.attester_secret_config
 
-  # Attester
-  attester_zip_path      = var.attester_zip_path
-  attester_schedule      = var.attester_schedule
-  attester_timeout       = var.attester_timeout
-  attester_memory_size   = var.attester_memory_size
-  attester_secret_config = var.attester_secret_config
+  kms_previous_alias_name = module.kms_signing_keys.signing_previous_alias_name
+  kms_current_alias_name  = module.kms_signing_keys.signing_current_alias_name
+  kms_next_alias_name     = module.kms_signing_keys.signing_next_alias_name
+}
 
-  # Rotation
-  rotation_zip_path    = var.rotation_zip_path
-  rotation_schedule    = var.rotation_schedule
-  rotation_timeout     = var.rotation_timeout
-  rotation_memory_size = var.rotation_memory_size
+module "custom_issuer_rotation" {
+  source = "./modules/custom-issuer-rotation"
+
+  environment = var.environment
+
+  zip_path    = var.rotation_zip_path
+  schedule    = var.rotation_schedule
+  timeout     = var.rotation_timeout
+  memory_size = var.rotation_memory_size
+
+  kms_alias_names = [
+    module.kms_signing_keys.signing_previous_alias_name,
+    module.kms_signing_keys.signing_current_alias_name,
+    module.kms_signing_keys.signing_next_alias_name,
+  ]
 }

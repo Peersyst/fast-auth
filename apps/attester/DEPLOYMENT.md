@@ -83,7 +83,7 @@ aws iam attach-role-policy \
 
 ### 3.3 KMS read-only policy
 
-Save as `kms-policy.json`. Replace `ACCOUNT_ID` and `REGION` with your values, and set the key IDs/aliases matching `KMS_PREVIOUS_KEY_ID`, `KMS_CURRENT_KEY_ID`, and `KMS_NEXT_KEY_ID`:
+Save as `kms-policy.json`:
 
 ```json
 {
@@ -96,18 +96,11 @@ Save as `kms-policy.json`. Replace `ACCOUNT_ID` and `REGION` with your values, a
         "kms:GetPublicKey",
         "kms:DescribeKey"
       ],
-      "Resource": [
-        "arn:aws:kms:REGION:ACCOUNT_ID:key/KMS_PREVIOUS_KEY_ID",
-        "arn:aws:kms:REGION:ACCOUNT_ID:key/KMS_CURRENT_KEY_ID",
-        "arn:aws:kms:REGION:ACCOUNT_ID:key/KMS_NEXT_KEY_ID"
-      ]
+      "Resource": "*"
     }
   ]
 }
 ```
-
-> If using KMS aliases (e.g. `alias/attester-current`), add the alias ARNs as well:
-> `arn:aws:kms:REGION:ACCOUNT_ID:alias/attester-current`
 
 ```bash
 aws iam put-role-policy \

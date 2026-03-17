@@ -17,21 +17,30 @@ Terraform project that deploys the **attester** and **custom-issuer-rotation** A
 
 ```
 infra/terraform/
-├── main.tf                       # Provider, backend, module invocation
+├── main.tf                       # Provider, backend, module invocations
 ├── variables.tf                  # All input variables
-├── outputs.tf                    # Proxied outputs from the module
+├── outputs.tf                    # Proxied outputs from the modules
 ├── terraform.tfvars.example      # Example variable values
 ├── .gitignore
 ├── README.md
 └── modules/
-    └── custom-issuer-lambdas/
-        ├── kms.tf                # KMS keys and aliases
-        ├── iam.tf                # IAM roles and policies
-        ├── lambda.tf             # Lambda functions and CloudWatch log groups
-        ├── eventbridge.tf        # EventBridge scheduled rules
-        ├── secrets.tf            # Secrets Manager secret
-        ├── variables.tf          # Module input variables
-        └── outputs.tf            # Module outputs
+    ├── kms-signing-keys/         # Shared KMS keys and aliases
+    │   ├── main.tf
+    │   ├── variables.tf
+    │   └── outputs.tf
+    ├── attester/                 # Attester Lambda and supporting resources
+    │   ├── lambda.tf
+    │   ├── iam.tf
+    │   ├── secrets.tf
+    │   ├── eventbridge.tf
+    │   ├── variables.tf
+    │   └── outputs.tf
+    └── custom-issuer-rotation/   # Rotation Lambda and supporting resources
+        ├── lambda.tf
+        ├── iam.tf
+        ├── eventbridge.tf
+        ├── variables.tf
+        └── outputs.tf
 ```
 
 ## Prerequisites
@@ -87,21 +96,6 @@ terraform plan -var-file="terraform.tfvars"
 terraform apply -var-file="terraform.tfvars"
 ```
 
-### 4. Post-deployment: populate attester secrets
-
-After the first apply, update the attester Lambda environment with values from Secrets Manager:
-
-```bash
-SECRET=$(aws secretsmanager get-secret-value \
-  --secret-id attester/config-<environment> \
-  --query SecretString \
-  --output text)
-
-aws lambda update-function-configuration \
-  --function-name attester-<environment> \
-  --environment "Variables={$(echo "$SECRET" | jq -r 'to_entries | map("\(.key)=\(.value)") | join(",")')}"
-```
-
 ## Updating Lambda code
 
 After code changes, rebuild the zip and update:
@@ -110,7 +104,7 @@ After code changes, rebuild the zip and update:
 # Rebuild
 cd apps/attester && pnpm build:lambda
 # or
-cd apps/custom-issuer-rotation && zip custom-issuer-rotation-lambda.zip lambda.py
+cd apps/custom-issuer-rotation && pnpm build:lambda
 
 # Re-apply (Terraform detects the changed zip hash)
 cd infra/terraform

@@ -16,9 +16,24 @@ The Lambda execution role needs the following KMS actions:
 ```json
 [
   {
+    "Sid": "AllowKMSKeyManagement",
     "Effect": "Allow",
-    "Action": ["kms:DescribeKey", "kms:DisableKey", "kms:ScheduleKeyDeletion"],
-    "Resource": "arn:aws:kms:<REGION>:<ACCOUNT_ID>:key/*",
+    "Action": [
+      "kms:CreateKey",
+      "kms:ListAliases",
+      "kms:UpdateAlias",
+      "kms:DescribeKey"
+    ],
+    "Resource": "*"
+  },
+  {
+    "Sid": "AllowKMSAliasManagement",
+    "Effect": "Allow",
+    "Action": [
+      "kms:DisableKey",
+      "kms:ScheduleKeyDeletion"
+    ],
+    "Resource": "*",
     "Condition": {
       "ForAnyValue:StringEquals": {
         "kms:ResourceAliases": [
@@ -28,21 +43,6 @@ The Lambda execution role needs the following KMS actions:
         ]
       }
     }
-  },
-  {
-    "Effect": "Allow",
-    "Action": "kms:UpdateAlias",
-    "Resource": [
-      "arn:aws:kms:<REGION>:<ACCOUNT_ID>:alias/custom-issuer-previous",
-      "arn:aws:kms:<REGION>:<ACCOUNT_ID>:alias/custom-issuer-current",
-      "arn:aws:kms:<REGION>:<ACCOUNT_ID>:alias/custom-issuer-next",
-      "arn:aws:kms:<REGION>:<ACCOUNT_ID>:key/*"
-    ]
-  },
-  {
-    "Effect": "Allow",
-    "Action": "kms:CreateKey",
-    "Resource": "*"
   }
 ]
 ```
@@ -82,7 +82,7 @@ aws iam attach-role-policy \
   --role-name custom-issuer-rotation-role \
   --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
 
-# 3. Inline the KMS permissions (replace <REGION> and <ACCOUNT_ID>)
+# 3. Inline the KMS permissions
 aws iam put-role-policy \
   --role-name custom-issuer-rotation-role \
   --policy-name custom-issuer-rotation-kms \
@@ -90,9 +90,16 @@ aws iam put-role-policy \
     "Version": "2012-10-17",
     "Statement": [
       {
+        "Sid": "AllowKMSKeyManagement",
         "Effect": "Allow",
-        "Action": ["kms:DescribeKey", "kms:DisableKey", "kms:ScheduleKeyDeletion"],
-        "Resource": "arn:aws:kms:<REGION>:<ACCOUNT_ID>:key/*",
+        "Action": ["kms:CreateKey", "kms:ListAliases", "kms:UpdateAlias", "kms:DescribeKey"],
+        "Resource": "*"
+      },
+      {
+        "Sid": "AllowKMSAliasManagement",
+        "Effect": "Allow",
+        "Action": ["kms:DisableKey", "kms:ScheduleKeyDeletion"],
+        "Resource": "*",
         "Condition": {
           "ForAnyValue:StringEquals": {
             "kms:ResourceAliases": [
@@ -102,21 +109,6 @@ aws iam put-role-policy \
             ]
           }
         }
-      },
-      {
-        "Effect": "Allow",
-        "Action": "kms:UpdateAlias",
-        "Resource": [
-          "arn:aws:kms:<REGION>:<ACCOUNT_ID>:alias/custom-issuer-previous",
-          "arn:aws:kms:<REGION>:<ACCOUNT_ID>:alias/custom-issuer-current",
-          "arn:aws:kms:<REGION>:<ACCOUNT_ID>:alias/custom-issuer-next",
-          "arn:aws:kms:<REGION>:<ACCOUNT_ID>:key/*"
-        ]
-      },
-      {
-        "Effect": "Allow",
-        "Action": "kms:CreateKey",
-        "Resource": "*"
       }
     ]
   }'
@@ -126,7 +118,7 @@ aws iam put-role-policy \
 
 ```bash
 # 1. Package the code
-zip lambda.zip lambda.py
+pnpm run build:lambda
 
 # 2. Create the function (uses $ROLE_ARN from the previous step)
 aws lambda create-function \
