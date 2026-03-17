@@ -37,8 +37,10 @@ jobs:
       - name: Check version
         run: |
           CONTRACT_PATH="contracts/${{ github.event.inputs.contract }}/Cargo.toml"
-          GUARD_CONTRACT_PATH="contracts/jwt-guards/${{ github.event.inputs.contract }}/Cargo.toml"
-          if [ ! -f "$CONTRACT_PATH" && ! -f "$GUARD_CONTRACT_PATH" ]; then
+          if [ ! -f "$CONTRACT_PATH" ]; then
+            CONTRACT_PATH="contracts/jwt-guards/${{ github.event.inputs.contract }}/Cargo.toml"
+          fi
+          if [ ! -f "$CONTRACT_PATH" ]; then
             echo "Error: Cargo.toml not found for contract ${{ github.event.inputs.contract }}"
             exit 1
           fi
