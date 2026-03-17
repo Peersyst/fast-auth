@@ -132,6 +132,7 @@ async function main() {
 
 /**
  * AWS Lambda handler. Wraps the main function for scheduled (EventBridge) or on-demand invocation.
+ * @returns A promise that resolves to a success message.
  */
 export const handler = async () => {
     try {
