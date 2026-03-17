@@ -77,7 +77,7 @@ customIssuerGo:
             kmsKeyId: KMS_KEY_ID
 
 attester:
-    enabled: true
+    enabled: false
     replicas: 2
     cronjob:
         name: attester
@@ -95,7 +95,7 @@ attester:
             accountId: ACCOUNT_ID
             privateKey: PRIVATE_KEY
             keyProvider: KEY_PROVIDER
-            awsRegion: AWS_REGION
+            kmsRegion: KMS_REGION
             kmsPreviousKeyId: KMS_PREVIOUS_KEY_ID
             kmsCurrentKeyId: KMS_CURRENT_KEY_ID
             kmsNextKeyId: KMS_NEXT_KEY_ID

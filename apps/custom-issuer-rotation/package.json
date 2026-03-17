@@ -1,0 +1,14 @@
+{
+    "name": "custom-issuer-rotation",
+    "private": true,
+    "version": "0.0.0",
+    "scripts": {
+        "build": "echo 'No build step'",
+        "build:lambda": "zip custom-issuer-rotation-lambda.zip lambda.py",
+        "test": "echo 'No tests'",
+        "lint": "echo 'No linting'"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
+}
