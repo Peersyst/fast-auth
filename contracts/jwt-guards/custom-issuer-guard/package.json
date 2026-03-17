@@ -1,5 +1,5 @@
 {
-    "name": "@contracts/jwt-guard",
+    "name": "@contracts/custom-issuer-guard",
     "private": true,
     "version": "0.0.0",
     "description": "",

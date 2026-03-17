@@ -680,6 +680,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "custom-issuer-guard"
+version = "1.0.0"
+dependencies = [
+ "base-jwt-guard",
+ "borsh",
+ "crypto-bigint",
+ "near-contract-standards",
+ "near-plugins",
+ "near-sdk",
+ "near-workspaces",
+ "schemars",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sha2",
+ "tokio",
+]
+
+[[package]]
 name = "cxx"
 version = "1.0.158"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1087,25 +1106,6 @@ dependencies = [
  "libc",
  "libredox",
  "windows-sys 0.59.0",
-]
-
-[[package]]
-name = "firebase-guard"
-version = "1.0.0"
-dependencies = [
- "base-jwt-guard",
- "borsh",
- "crypto-bigint",
- "near-contract-standards",
- "near-plugins",
- "near-sdk",
- "near-workspaces",
- "schemars",
- "serde",
- "serde_json",
- "serde_with",
- "sha2",
- "tokio",
 ]
 
 [[package]]
@@ -1771,25 +1771,6 @@ dependencies = [
  "fluent-uri",
  "serde",
  "serde_json",
-]
-
-[[package]]
-name = "jwt-guard"
-version = "1.0.0"
-dependencies = [
- "base-jwt-guard",
- "borsh",
- "crypto-bigint",
- "near-contract-standards",
- "near-plugins",
- "near-sdk",
- "near-workspaces",
- "schemars",
- "serde",
- "serde_json",
- "serde_with",
- "sha2",
- "tokio",
 ]
 
 [[package]]

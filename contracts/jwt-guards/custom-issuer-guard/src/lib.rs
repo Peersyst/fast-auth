@@ -1,21 +1,17 @@
 use std::slice::Iter;
 use borsh::{BorshDeserialize};
-use near_sdk::{near, AccountId, env, NearToken, PanicOnDefault, Promise, Gas, ext_contract};
-use near_sdk::env::sha256;
+use near_sdk::{near, AccountId, env, PanicOnDefault, Promise, Gas, ext_contract};
+use near_sdk::serde_json;
 use base_jwt_guard::{JwtGuard, JwtPublicKey};
 use base_jwt_guard::assert_valid_public_key;
-use near_contract_standards::storage_management::{StorageBalance, StorageBalanceBounds, StorageManagement};
-use near_sdk::json_types::{U128};
 use near_plugins::{access_control, access_control_any, AccessControlRole, AccessControllable, Upgradable};
+use serde::{Deserialize, Serialize};
 use crate::config::{CustomIssuerGuardConfig, RolesConfig};
 use crate::error::CustomIssuerGuardError;
 
-mod storage_impl;
 mod config;
 mod error;
 mod utils;
-
-const JWT_CLAIM_STORAGE: u128 = 256;
 
 // External contract interface for AttestationContract
 #[ext_contract(attestation_contract)]
@@ -44,6 +40,12 @@ impl Role {
     }
 }
 
+/// Custom claims structure for FastAuth Auth0 JWT tokens
+#[derive(Serialize, Deserialize)]
+pub struct CustomClaims {
+    pub fatxn: Vec<u8>,
+}
+
 /// A NEAR contract that verifies JWT tokens signed with RS256 algorithm
 /// 
 /// This contract provides functionality to verify JSON Web Tokens (JWTs) that have been signed using
@@ -61,9 +63,6 @@ impl Role {
 #[near(contract_state)]
 pub struct CustomIssuerGuard {
     public_keys: Vec<JwtPublicKey>,
-    jwt_claims: near_sdk::store::LookupMap<AccountId, Vec<u8>>,
-    jwt_hash_claims: near_sdk::store::LookupMap<Vec<u8>, AccountId>,
-    account_storage_usage: U128,
     attestation_contract: AccountId,
 }
 
@@ -93,9 +92,6 @@ impl CustomIssuerGuard {
         config.assert_valid();
         let mut this = Self {
             public_keys: config.public_keys,
-            jwt_claims: near_sdk::store::LookupMap::new(Prefix::JwtClaims),
-            jwt_hash_claims: near_sdk::store::LookupMap::new(Prefix::JwtHashClaims),
-            account_storage_usage: U128(JWT_CLAIM_STORAGE),
             attestation_contract,
         };
         this.init_acl(config.roles);
@@ -130,65 +126,6 @@ impl CustomIssuerGuard {
                 );
             }
         }
-    }
-
-    /// Gets the current storage usage of the contract
-    /// 
-    /// # Returns
-    /// * `U128` - The current storage usage of the contract in bytes
-    ///
-    pub fn get_account_storage_usage(&self) -> U128 {
-        self.account_storage_usage
-    }
-
-    /// Claims an OIDC token by storing its hash for the caller.
-    ///
-    /// This method allows the caller (identified by the sender's account ID) to store a hash of their OIDC token.
-    /// The hash provided must be exactly 32 bytes long.
-    ///
-    /// # Arguments
-    /// * `oidc_token_hash` - A 32-byte vector containing the hash of the OIDC token.
-    ///
-    /// # Panics
-    /// Panics if the `oidc_token_hash` is not exactly 32 bytes.
-    ///
-    /// # Storage Usage
-    /// This method consumes storage space associated with the sender's `AccountId`.
-    pub fn claim_oidc(&mut self, oidc_token_hash: Vec<u8>) {
-        assert_eq!(oidc_token_hash.len(), 32, "OIDC token hash must be 32 bytes");
-        let account_id = env::predecessor_account_id();
-
-        assert!(!self.exist_jwt_hash_claim(&oidc_token_hash), "OIDC token hash already claimed");
-
-        let hash = self.internal_unwrap_jwt_claim(&account_id);
-        self.jwt_hash_claims.remove(&hash.clone());
-
-        self.jwt_claims.insert(account_id.clone(), oidc_token_hash.clone());
-        self.jwt_hash_claims.insert(oidc_token_hash, account_id);
-    }
-
-    /// Gets the JWT claim of an account
-    /// 
-    /// # Arguments
-    /// * `account_id` - The account ID of the account for which to get the JWT claim
-    /// 
-    /// # Returns
-    /// * `Option<Vec<u8>>` - The JWT claim of the account, if it exists, or `None` otherwise
-    ///
-    pub fn jwt_claim_of(&self, account_id: &AccountId) -> Option<Vec<u8>> {
-        self.jwt_claims.get(account_id).cloned()
-    }
-
-    /// Gets the account that claimed a JWT claim by its hash
-    ///
-    /// # Arguments
-    /// * `hash` - The hash of the JWT claim for which to get the account
-    ///
-    /// # Returns
-    /// * `Option<AccountId>` - The account ID of the account that claimed the JWT claim, if it exists, or `None` otherwise
-    ///
-    pub fn jwt_hash_claim_of(&self, hash: &Vec<u8>) -> Option<AccountId> {
-        self.jwt_hash_claims.get(hash).cloned()
     }
 
     /// Fetches public keys from the AttestationContract and sets them in a callback
@@ -259,34 +196,6 @@ impl CustomIssuerGuard {
         self.attestation_contract.clone()
     }
 
-    /// Unwraps the JWT claim of an account
-    /// 
-    /// # Arguments
-    /// * `account_id` - The account ID of the account for which to unwrap the JWT claim
-    /// 
-    /// # Panics
-    /// Panics if the account is not registered
-    ///
-    fn internal_unwrap_jwt_claim(&self, account_id: &AccountId) -> &Vec<u8> {
-        match self.jwt_claims.get(account_id) {
-            Some(jwt_hash) => jwt_hash,
-            None => {
-                env::panic_str(format!("The account {} is not registered", &account_id).as_str())
-            }
-        }
-    }
-
-    ///
-    /// # Arguments
-    /// * `hash` - The hash of the jwt claim to check for
-    ///
-    /// # Returns
-    /// * `bool` - True if jwt hash claim exists, false otherwise
-    ///
-    fn exist_jwt_hash_claim(&self, hash: &Vec<u8>) -> bool {
-        self.jwt_hash_claims.get(hash).is_some()
-    }
-
     /// Verifies a JWT token and its custom claims
     ///
     /// # Arguments
@@ -325,93 +234,18 @@ impl JwtGuard for CustomIssuerGuard {
     ///   * Boolean indicating if verification succeeded
     ///   * String containing either the subject claim or error message
     #[private]
-    fn verify_custom_claims(&self, jwt: String, _jwt_payload: Vec<u8>, _sign_payload: Vec<u8>, predecessor: AccountId) -> (bool, String) {
+    fn verify_custom_claims(&self, _jwt: String, jwt_payload: Vec<u8>, sign_payload: Vec<u8>, _predecessor: AccountId) -> (bool, String) {
         // Parse the payload into CustomClaims
-        let claim_hash = self.internal_unwrap_jwt_claim(&predecessor);
-        let jwt_hash = sha256(jwt);
-        if !jwt_hash.eq(claim_hash) {
-            return (false, format!("Claim for user {} not matching hash {:?}", predecessor, jwt_hash));
+        let claims: CustomClaims = match serde_json::from_slice(&jwt_payload) {
+            Ok(claims) => claims,
+            Err(error) => return (false, error.to_string()),
+        };
+
+        // Compare fatxn with sign_payload
+        if claims.fatxn != sign_payload {
+            return (false, "Transaction payload mismatch".to_string());
         }
+        // Return the sub and fatxn fields
         (true, "".parse().unwrap())
-    }
-}
-
-
-#[near]
-impl StorageManagement for CustomIssuerGuard {
-    /// Registers an account with the contract.
-    ///
-    /// This method allows the caller to register an account with the contract. The account must be
-    /// registered before it can be used with the contract.
-    ///
-    /// # Arguments
-    /// * `account_id` - The account ID of the account to register.
-    ///
-    /// # Panics
-    /// Panics if the account is already registered.
-    #[payable]
-    fn storage_deposit(
-        &mut self,
-        account_id: Option<AccountId>,
-        _registration_only: Option<bool>,
-    ) -> StorageBalance {
-        self.internal_storage_deposit(account_id)
-    }
-
-    /// Withdraws funds from the contract.
-    ///
-    /// This method allows the caller to withdraw funds from the contract. The caller must be the
-    /// contract owner or an account that has been registered with the contract.
-    ///
-    /// # Arguments
-    /// * `amount` - The amount of funds to withdraw. If not specified, all available funds will be withdrawn.
-    ///
-    /// # Panics
-    /// Panics if the caller is not the contract owner and the account is not registered.
-    #[payable]
-    fn storage_withdraw(&mut self, amount: Option<NearToken>) -> StorageBalance {
-        self.internal_storage_withdraw(amount)
-    }
-
-    /// Unregisters an account from the contract.
-    ///
-    /// This method allows the caller to unregister an account from the contract. The account must be
-    /// registered before it can be unregistered.
-    ///
-    /// # Arguments
-    /// * `force` - If `true`, the account will be unregistered even if it still has funds in the contract. If `false` (the default), the account must have no funds in the contract.
-    ///
-    /// # Panics
-    /// Panics if the account is not registered.
-    #[payable]
-    fn storage_unregister(&mut self, _force: Option<bool>) -> bool {
-        self.internal_storage_unregister()
-    }
-
-    /// Returns the balance of an account in the contract.
-    ///
-    /// This method allows the caller to query the balance of an account in the contract. The account must be
-    /// registered before it can be queried.
-    ///
-    /// # Arguments
-    /// * `account_id` - The account ID of the account to query.
-    ///
-    /// # Returns
-    /// * `StorageBalance` - The balance of the account in the contract.
-    fn storage_balance_bounds(&self) -> StorageBalanceBounds {
-        self.internal_storage_balance_bounds()
-    }
-
-    /// Returns the balance of an account in the contract.
-    ///
-    /// This method allows the caller to query the balance of an account in the contract. The account must be
-    /// registered before it can be queried.
-    ///
-    /// # Arguments
-    /// * `account_id` - The account ID of the account to query.
-    ///
-    /// # Returns
-    fn storage_balance_of(&self, account_id: AccountId) -> Option<StorageBalance> {
-        self.internal_storage_balance_of(&account_id)
     }
 }
