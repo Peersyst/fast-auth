@@ -1,6 +1,6 @@
 [package]
-name = "jwt-guard"
-description = "jwt-guard"
+name = "custom-issuer-guard"
+description = "custom-issuer-guard"
 version = "1.0.0"
 edition = "2021"
 repository = "https://github.com/Peersyst/fast-auth"
