@@ -187,6 +187,8 @@ importers:
 
   apps/custom-issuer-go: {}
 
+  apps/custom-issuer-rotation: {}
+
   apps/relayer:
     dependencies:
       '@aws-sdk/client-secrets-manager':

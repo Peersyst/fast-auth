@@ -39,8 +39,8 @@ function buildKeyProvider(): KeyProvider {
     }
 
     if (provider === "kms") {
-        const region = process.env.AWS_REGION;
-        if (!region) throw new Error("AWS_REGION is required when KEY_PROVIDER=kms");
+        const region = process.env.KMS_REGION;
+        if (!region) throw new Error("KMS_REGION is required when KEY_PROVIDER=kms");
 
         const previousKeyId = process.env.KMS_PREVIOUS_KEY_ID;
         const currentKeyId = process.env.KMS_CURRENT_KEY_ID;

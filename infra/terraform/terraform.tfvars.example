@@ -1,0 +1,26 @@
+aws_region  = "us-east-1"
+environment = "staging"
+
+# Paths to pre-built Lambda zip files (relative to infra/terraform/)
+attester_zip_path = "../../apps/attester/attester-lambda.zip"
+rotation_zip_path = "../../apps/custom-issuer-rotation/custom-issuer-rotation-lambda.zip"
+
+# EventBridge schedules
+attester_schedule = "rate(5 minutes)"
+rotation_schedule = "rate(90 days)"
+
+# Attester secret config — set via CLI or a separate .tfvars file NOT checked into git.
+# KMS env vars (KEY_PROVIDER, AWS_REGION, KMS_*_KEY_ID) are injected automatically
+# by the Lambda resource and should NOT be duplicated here.
+# attester_secret_config = {
+#   PRIVATE_KEY              = "ed25519:xxxx"
+#   ACCOUNT_ID               = "xxxx.near"
+#   NODE_URL                 = "https://rpc.testnet.near.org"
+#   CONTRACT_ID              = "google-public-keys.testnet"
+#   GUARD_CONTRACT_ID        = "firebase.jwt.testnet"
+#   KEY_PROVIDER             = "kms"
+#   AWS_REGION               = "us-east-1"
+#   KMS_PREVIOUS_KEY_ID      = "alias/custom-issuer-previous"
+#   KMS_CURRENT_KEY_ID       = "alias/custom-issuer-current"
+#   KMS_NEXT_KEY_ID          = "alias/custom-issuer-next"
+# }
