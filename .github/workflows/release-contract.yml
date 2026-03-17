@@ -61,7 +61,7 @@ jobs:
       - name: Publish the Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.event.inputs.contract }}/${{ github.event.inputs.tag }}
+          tag_name: ${{ github.event.inputs.contract }}@${{ github.event.inputs.tag }}
           target_commitish: ${{ github.event.inputs.commit_branch }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
