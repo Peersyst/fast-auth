@@ -9,6 +9,8 @@ export class KeyService implements OnModuleInit {
     private validationPublicKeys: string[] = [];
     private readonly keyBase64: string;
     private readonly validationPublicKeyUrl: string;
+    private lastUpdateTime = 0;
+    private static readonly REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
     constructor(private readonly configService: ConfigService<Config>) {
         // Get key configuration from typed configuration
@@ -31,6 +33,7 @@ export class KeyService implements OnModuleInit {
         try {
             this.signingKey = this.decodeBase64Key(this.keyBase64);
             this.validationPublicKeys = await this.loadPublicKeysFromUrl(this.validationPublicKeyUrl);
+            this.lastUpdateTime = Date.now();
             this.logger.log(`Keys loaded successfully. Found ${this.validationPublicKeys.length} validation public key(s)`);
         } catch (error) {
             this.logger.error("Failed to load keys", error);
@@ -167,6 +170,11 @@ export class KeyService implements OnModuleInit {
     getValidationPublicKeys(): string[] {
         if (this.validationPublicKeys.length === 0) {
             throw new Error("Validation public keys not loaded. Check application startup logs.");
+        }
+        if (Date.now() - this.lastUpdateTime > KeyService.REFRESH_INTERVAL_MS) {
+            this.loadKeys().catch((error) => {
+                this.logger.error("Failed to refresh keys", error);
+            });
         }
         return this.validationPublicKeys;
     }
