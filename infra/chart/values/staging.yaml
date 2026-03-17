@@ -73,7 +73,7 @@ customIssuerGo:
             issuerUrl: ISSUER_URL
             allowedOrigins: ALLOWED_ORIGINS
             ignoreExpiration: IGNORE_EXPIRATION
-            awsRegion: AWS_REGION
+            kmsRegion: KMS_REGION
             kmsKeyId: KMS_KEY_ID
 
 attester:
