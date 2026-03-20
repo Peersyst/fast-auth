@@ -108,6 +108,9 @@ importers:
       '@nestjs/platform-express':
         specifier: ^11.0.1
         version: 11.1.11(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)
+      '@willsoto/nestjs-prometheus':
+        specifier: ^6.0.2
+        version: 6.0.2(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(prom-client@15.1.3)
       class-transformer:
         specifier: 0.5.1
         version: 0.5.1
@@ -120,6 +123,9 @@ importers:
       jsonwebtoken:
         specifier: ^9.0.2
         version: 9.0.2
+      prom-client:
+        specifier: ^15.1.3
+        version: 15.1.3
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -406,6 +412,8 @@ importers:
   contracts/jwt-guards/auth0-guard: {}
 
   contracts/jwt-guards/base-jwt-guard: {}
+
+  contracts/jwt-guards/custom-issuer-guard: {}
 
   contracts/jwt-guards/firebase-guard: {}
 
@@ -19517,6 +19525,11 @@ snapshots:
   '@willsoto/nestjs-prometheus@6.0.2(@nestjs/common@10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.2))(prom-client@15.1.3)':
     dependencies:
       '@nestjs/common': 10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.2)
+      prom-client: 15.1.3
+
+  '@willsoto/nestjs-prometheus@6.0.2(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(prom-client@15.1.3)':
+    dependencies:
+      '@nestjs/common': 11.1.11(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       prom-client: 15.1.3
 
   '@xtuc/ieee754@1.2.0': {}
