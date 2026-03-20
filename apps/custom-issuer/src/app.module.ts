@@ -22,7 +22,7 @@ import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
                 return {
                     defaultLabels: {
                         app: config.get("prometheus.appName"),
-                        environment: process.env.CONFIG_ENV || process.env.NODE_ENV || "development",
+                        environment: config.get("prometheus.env"),
                     },
                 };
             },

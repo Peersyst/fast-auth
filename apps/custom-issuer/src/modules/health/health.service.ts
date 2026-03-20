@@ -15,7 +15,7 @@ export class HealthService {
         });
     }
 
-    private async checkValidationKeys(): Promise<HealthDependencyCheckerResult> {
+    private checkValidationKeys(): HealthDependencyCheckerResult {
         try {
             // Throws if no keys are loaded
             this.keyService.getValidationPublicKeys();
