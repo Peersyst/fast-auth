@@ -8,8 +8,10 @@ import (
 	"github.com/peersyst/fast-auth/apps/custom-issuer/config"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/logger"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/modules"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/health"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/kms"
+	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/metrics"
 )
 
 func main() {
@@ -23,7 +25,7 @@ func main() {
 	}
 
 	// Register modules
-	mods := []modules.AppModule{&kms.Module{}, &issuer.Module{}}
+	mods := []modules.AppModule{&kms.Module{}, &issuer.Module{}, &health.Module{}, &metrics.Module{}}
 	appModules, err := modules.NewAppModules(cfg, &mods)
 	if err != nil {
 		panic(err)

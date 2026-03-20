@@ -69,6 +69,18 @@ func NewKMSService(cfg *config.Config) (*KMSService, error) {
 // jwtHeader is the pre-encoded RS256 JWT header: {"alg":"RS256","typ":"JWT"}
 var jwtHeader = base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"RS256","typ":"JWT"}`))
 
+// Ping signs a fixed payload to verify KMS connectivity and signing permissions.
+func (s *KMSService) Ping(ctx context.Context) error {
+	digest := sha256.Sum256([]byte("healthcheck"))
+	_, err := s.client.Sign(ctx, &kms.SignInput{
+		KeyId:            &s.keyID,
+		Message:          digest[:],
+		MessageType:      types.MessageTypeDigest,
+		SigningAlgorithm: types.SigningAlgorithmSpecRsassaPkcs1V15Sha256,
+	})
+	return err
+}
+
 // SignJWT builds a JWT from the JSON-encoded payload and signs it via AWS KMS.
 // It mirrors how the NestJS jsonwebtoken library assembles JWTs:
 // base64url(header).base64url(payload).base64url(signature)

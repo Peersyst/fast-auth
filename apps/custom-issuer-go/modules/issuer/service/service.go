@@ -82,6 +82,11 @@ func (s *IssuerService) Stop() {
 	s.keyStore.Stop()
 }
 
+// HasValidationKeys returns true if the service has loaded validation public keys.
+func (s *IssuerService) HasValidationKeys() bool {
+	return len(s.keyStore.GetKeys()) > 0
+}
+
 // createSignedToken builds the JWT claims and signs them via the Signer.
 func (s *IssuerService) createSignedToken(ctx context.Context, verified *verifiedClaims, signPayload []byte) (string, error) {
 	fatxn := make([]int, len(signPayload))
