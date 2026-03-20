@@ -2,10 +2,11 @@ import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as jwt from "jsonwebtoken";
 import { KeyService } from "./key.service";
-import { JWT_ALGORITHM, SECONDS_IN_MILLISECOND } from "./issuer.constants";
+import { JWT_ALGORITHM, NS_PER_SECOND, SECONDS_IN_MILLISECOND } from "./issuer.constants";
 import { ErrorMessage } from "./issuer.errors";
 import { TokenClaims } from "./issuer.types";
 import { Config } from "../../config";
+import { IssuerMetricsProvider } from "./issuer.metrics";
 
 @Injectable()
 export class IssuerService {
@@ -16,6 +17,7 @@ export class IssuerService {
     constructor(
         private readonly keyService: KeyService,
         private readonly configService: ConfigService<Config>,
+        private readonly metrics: IssuerMetricsProvider,
     ) {
         // Get issuer configuration from typed configuration
         const issuerConfig = this.configService.get<Config["issuer"]>("issuer");
@@ -38,9 +40,20 @@ export class IssuerService {
     }
 
     async issueToken(inputJwt: string, signPayload: number[]): Promise<string> {
-        const decoded = this.verifyAndDecodeToken(inputJwt);
-        const claims = this.extractAndValidateClaims(decoded, signPayload);
-        return this.createSignedToken(claims);
+        const start = process.hrtime.bigint();
+        try {
+            const decoded = this.verifyAndDecodeToken(inputJwt);
+            const claims = this.extractAndValidateClaims(decoded, signPayload);
+            const token = this.createSignedToken(claims);
+            this.metrics.incrementIssued();
+            return token;
+        } catch (error) {
+            this.metrics.incrementFailed();
+            throw error;
+        } finally {
+            const durationNs = process.hrtime.bigint() - start;
+            this.metrics.observeDuration(Number(durationNs) / NS_PER_SECOND);
+        }
     }
 
     private verifyAndDecodeToken(inputJwt: string): jwt.JwtPayload {
