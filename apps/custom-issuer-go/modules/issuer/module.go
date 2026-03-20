@@ -18,7 +18,7 @@ var ModuleName = "issuer"
 // Module wires together the issuer service and handler.
 type Module struct {
 	handler *handler.IssuerHandler
-	service *service.IssuerService
+	Service *service.IssuerService
 }
 
 // Init initializes the module.
@@ -39,7 +39,7 @@ func (m *Module) Init(cfg *config.Config, appModules *modules.AppModules) error 
 	}
 
 	m.handler = handler.NewIssuerHandler(svc)
-	m.service = svc
+	m.Service = svc
 	return nil
 }
 
@@ -60,6 +60,6 @@ func (m *Module) OnApplicationStart() error {
 
 // OnApplicationStop Stop stops background key refresh. Safe to call multiple times.
 func (m *Module) OnApplicationStop() error {
-	m.service.Stop()
+	m.Service.Stop()
 	return nil
 }

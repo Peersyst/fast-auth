@@ -5,10 +5,12 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"time"
 
 	commonhandler "github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/handler"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/middleware"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/utils/bytearray"
+	issuermetrics "github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer/metrics"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer/service"
 )
 
@@ -57,8 +59,12 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	start := time.Now()
 	result, err := h.service.Issue(r.Context(), req.JWT, req.SignPayload)
+	duration := time.Since(start).Seconds()
+	issuermetrics.IssueDurationSeconds.Observe(duration)
 	if err != nil {
+		issuermetrics.TokensFailedTotal.Inc()
 		var authErr *service.AuthError
 		if errors.As(err, &authErr) {
 			commonhandler.SendError(w, r, http.StatusUnauthorized, authErr.Message)
@@ -68,5 +74,6 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	issuermetrics.TokensIssuedTotal.Inc()
 	commonhandler.SendJSON(w, http.StatusOK, issueResponse{Token: result.Token})
 }
