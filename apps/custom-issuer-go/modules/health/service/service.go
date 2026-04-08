@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"time"
+
+	"github.com/peersyst/fast-auth/apps/custom-issuer/logger"
 )
 
 type HealthCheckStatus string
@@ -10,6 +12,9 @@ type HealthCheckStatus string
 const (
 	StatusOK    HealthCheckStatus = "ok"
 	StatusError HealthCheckStatus = "error"
+
+	validationKeysUnavailableMessage = "validation keys unavailable"
+	signingUnavailableMessage        = "signing dependency unavailable"
 )
 
 type DependencyResult struct {
@@ -18,8 +23,8 @@ type DependencyResult struct {
 }
 
 type ReadyzResponse struct {
-	Status HealthCheckStatus            `json:"status"`
-	Checks map[string]DependencyResult  `json:"checks"`
+	Status HealthCheckStatus           `json:"status"`
+	Checks map[string]DependencyResult `json:"checks"`
 }
 
 // ValidationKeyChecker checks whether validation keys are loaded.
@@ -50,13 +55,17 @@ func (s *HealthService) CheckHealth() ReadyzResponse {
 	if s.keyChecker.HasValidationKeys() {
 		checks["validation-keys-go"] = DependencyResult{Status: StatusOK}
 	} else {
-		checks["validation-keys-go"] = DependencyResult{Status: StatusError, Message: "no validation keys loaded"}
+		checks["validation-keys-go"] = DependencyResult{Status: StatusError, Message: validationKeysUnavailableMessage}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	if err := s.signProber.Ping(ctx); err != nil {
-		checks["kms-sign-go"] = DependencyResult{Status: StatusError, Message: err.Error()}
+		logger.Error("health check failed",
+			"dependency", "kms-sign-go",
+			"error", err,
+		)
+		checks["kms-sign-go"] = DependencyResult{Status: StatusError, Message: signingUnavailableMessage}
 	} else {
 		checks["kms-sign-go"] = DependencyResult{Status: StatusOK}
 	}
