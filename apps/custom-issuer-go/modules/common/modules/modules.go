@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -37,16 +38,18 @@ func (m *AppModules) Start() error {
 	return nil
 }
 
-// Stop stops all modules.
+// Stop stops all modules in reverse init order. All modules are stopped even
+// if some return errors.
 func (m *AppModules) Stop() error {
-	for _, module := range *m.modules {
+	var errs []error
+	for i := len(*m.modules) - 1; i >= 0; i-- {
+		module := (*m.modules)[i]
 		logger.Info("Stopping module", "module", module.GetName())
-		err := module.OnApplicationStop()
-		if err != nil {
-			return err
+		if err := module.OnApplicationStop(); err != nil {
+			errs = append(errs, err)
 		}
 	}
-	return nil
+	return errors.Join(errs...)
 }
 
 // GetModules returns all modules.

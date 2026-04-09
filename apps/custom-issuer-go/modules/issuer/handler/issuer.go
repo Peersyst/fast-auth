@@ -12,6 +12,8 @@ import (
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/utils/bytearray"
 	issuermetrics "github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer/metrics"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer/service"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // MaxJWTLength is the maximum allowed length for incoming JWT strings.
@@ -62,9 +64,10 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	result, err := h.service.Issue(r.Context(), req.JWT, req.SignPayload)
 	duration := time.Since(start).Seconds()
-	issuermetrics.IssueDurationSeconds.Observe(duration)
 	if err != nil {
-		issuermetrics.TokensFailedTotal.Inc()
+		issuermetrics.IssueDurationSeconds.Record(r.Context(), duration,
+			metric.WithAttributes(attribute.String("outcome", "error")))
+		issuermetrics.TokensFailedTotal.Add(r.Context(), 1)
 		var authErr *service.AuthError
 		if errors.As(err, &authErr) {
 			commonhandler.SendError(w, r, http.StatusUnauthorized, authErr.Message)
@@ -74,6 +77,8 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	issuermetrics.TokensIssuedTotal.Inc()
+	issuermetrics.IssueDurationSeconds.Record(r.Context(), duration,
+		metric.WithAttributes(attribute.String("outcome", "success")))
+	issuermetrics.TokensIssuedTotal.Add(r.Context(), 1)
 	commonhandler.SendJSON(w, http.StatusOK, issueResponse{Token: result.Token})
 }

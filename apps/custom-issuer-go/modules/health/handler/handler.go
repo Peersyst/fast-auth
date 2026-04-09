@@ -27,8 +27,8 @@ func (h *HealthHandler) handleLivez(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *HealthHandler) handleReadyz(w http.ResponseWriter, _ *http.Request) {
-	result := h.service.CheckHealth()
+func (h *HealthHandler) handleReadyz(w http.ResponseWriter, r *http.Request) {
+	result := h.service.CheckHealth(r.Context())
 	if result.Status == service.StatusOK {
 		commonhandler.SendJSON(w, http.StatusOK, result)
 	} else {

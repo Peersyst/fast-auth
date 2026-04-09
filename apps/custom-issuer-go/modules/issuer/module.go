@@ -7,6 +7,7 @@ import (
 	"github.com/peersyst/fast-auth/apps/custom-issuer/config"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/modules"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer/handler"
+	issuermetrics "github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer/metrics"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer/service"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/kms"
 )
@@ -23,7 +24,6 @@ type Module struct {
 
 // Init initializes the module.
 func (m *Module) Init(cfg *config.Config, appModules *modules.AppModules) error {
-	appModules.GetModules()
 	kmsModule, err := appModules.GetModule(kms.ModuleName)
 	if err != nil {
 		return err
@@ -35,6 +35,10 @@ func (m *Module) Init(cfg *config.Config, appModules *modules.AppModules) error 
 
 	svc, err := service.NewIssuerService(cfg, kmsMod.Service)
 	if err != nil {
+		return err
+	}
+
+	if err := issuermetrics.Init(); err != nil {
 		return err
 	}
 

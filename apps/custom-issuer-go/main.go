@@ -24,8 +24,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Register modules
-	mods := []modules.AppModule{&kms.Module{}, &issuer.Module{}, &health.Module{}, &metrics.Module{}}
+	// Register modules. Order matters: metrics must init before issuer (sets the
+	// global OTel MeterProvider that issuer.Init uses to create meters).
+	mods := []modules.AppModule{&kms.Module{}, &metrics.Module{}, &issuer.Module{}, &health.Module{}}
 	appModules, err := modules.NewAppModules(cfg, &mods)
 	if err != nil {
 		panic(err)
@@ -39,21 +40,23 @@ func main() {
 	}
 
 	// Graceful shutdown
+	done := make(chan struct{})
 	go func() {
 		sigCh := make(chan os.Signal, 1)
 		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 		<-sigCh
-
-		logger.Info("stopping app modules...")
-		if err := appModules.Stop(); err != nil {
-			logger.Error("failed to stop modules", "error", err)
-		}
 
 		logger.Info("shutting down server...")
 		if err := server.Stop(); err != nil {
 			logger.Error("server shutdown error", "error", err)
 		}
 
+		logger.Info("stopping app modules...")
+		if err := appModules.Stop(); err != nil {
+			logger.Error("failed to stop modules", "error", err)
+		}
+
+		close(done)
 	}()
 
 	logger.Info("server starting", "port", cfg.Port)
@@ -62,5 +65,6 @@ func main() {
 		os.Exit(1)
 	}
 
+	<-done
 	logger.Info("server stopped")
 }

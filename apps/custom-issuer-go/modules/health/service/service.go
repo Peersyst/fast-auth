@@ -49,7 +49,7 @@ func NewHealthService(keyChecker ValidationKeyChecker, signProber SignProber) *H
 }
 
 // CheckHealth runs all dependency checks and returns an aggregated result.
-func (s *HealthService) CheckHealth() ReadyzResponse {
+func (s *HealthService) CheckHealth(ctx context.Context) ReadyzResponse {
 	checks := map[string]DependencyResult{}
 
 	if s.keyChecker.HasValidationKeys() {
@@ -58,9 +58,9 @@ func (s *HealthService) CheckHealth() ReadyzResponse {
 		checks["validation-keys-go"] = DependencyResult{Status: StatusError, Message: validationKeysUnavailableMessage}
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	probeCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 	defer cancel()
-	if err := s.signProber.Ping(ctx); err != nil {
+	if err := s.signProber.Ping(probeCtx); err != nil {
 		logger.Error("health check failed",
 			"dependency", "kms-sign-go",
 			"error", err,

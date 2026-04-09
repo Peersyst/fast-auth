@@ -10,10 +10,20 @@ import (
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/middleware"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/modules"
 	"github.com/rs/cors"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 type Server struct {
 	http *http.Server
+}
+
+func shouldInstrumentRequest(r *http.Request) bool {
+	switch r.URL.Path {
+	case "/metrics", "/livez", "/readyz":
+		return false
+	default:
+		return true
+	}
 }
 
 // NewServer creates an HTTP server with all modules and middleware registered.
@@ -27,8 +37,11 @@ func NewServer(cfg *config.Config, appModules *modules.AppModules) *Server {
 		AllowedOrigins: cfg.AllowedOrigins,
 	})
 	h := c.Handler(mux)
-	// Recovery must be the outermost middleware so it catches panics from all inner layers, including CORS.
 	h = middleware.RecoveryMiddleware(h)
+	h = otelhttp.NewHandler(h, "custom-issuer-go",
+		otelhttp.WithFilter(shouldInstrumentRequest),
+		otelhttp.WithServerName("custom-issuer-go"),
+	)
 
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
