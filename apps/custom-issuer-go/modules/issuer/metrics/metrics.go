@@ -9,9 +9,10 @@ import (
 )
 
 var (
-	TokensIssuedTotal    metric.Int64Counter
-	TokensFailedTotal    metric.Int64Counter
-	IssueDurationSeconds metric.Float64Histogram
+	TokensIssuedTotal           metric.Int64Counter
+	TokensFailedTotal           metric.Int64Counter
+	TokensValidationFailedTotal metric.Int64Counter
+	IssueDurationSeconds        metric.Float64Histogram
 )
 
 func Init() error {
@@ -28,6 +29,11 @@ func Init() error {
 	}
 	TokensFailedTotal, err = meter.Int64Counter("custom_issuer_go_tokens_failed_total",
 		metric.WithDescription("Total number of token issuance failures (auth/internal errors, excludes request validation)"))
+	if err != nil {
+		return err
+	}
+	TokensValidationFailedTotal, err = meter.Int64Counter("custom_issuer_go_tokens_validation_failed_total",
+		metric.WithDescription("Total number of requests rejected due to validation errors"))
 	if err != nil {
 		return err
 	}

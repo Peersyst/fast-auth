@@ -35,28 +35,38 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
+		issuermetrics.TokensValidationFailedTotal.Add(r.Context(), 1,
+			metric.WithAttributes(attribute.String("reason", "invalid_body")))
 		commonhandler.SendValidationErrors(w, r, []string{mapDecodeError(err)})
 		return
 	}
 	// Reject trailing data after the first JSON object.
 	var extra json.RawMessage
 	if err := decoder.Decode(&extra); err != io.EOF {
+		issuermetrics.TokensValidationFailedTotal.Add(r.Context(), 1,
+			metric.WithAttributes(attribute.String("reason", "invalid_body")))
 		commonhandler.SendValidationErrors(w, r, []string{errInvalidRequestBody})
 		return
 	}
 
 	// Validate jwt field
 	if req.JWT == "" {
+		issuermetrics.TokensValidationFailedTotal.Add(r.Context(), 1,
+			metric.WithAttributes(attribute.String("reason", "jwt_empty")))
 		commonhandler.SendValidationErrors(w, r, []string{errJWTEmpty})
 		return
 	}
 	if len(req.JWT) > MaxJWTLength {
+		issuermetrics.TokensValidationFailedTotal.Add(r.Context(), 1,
+			metric.WithAttributes(attribute.String("reason", "jwt_too_long")))
 		commonhandler.SendValidationErrors(w, r, []string{errJWTTooLong})
 		return
 	}
 
 	// Validate signPayload
 	if req.SignPayload == nil {
+		issuermetrics.TokensValidationFailedTotal.Add(r.Context(), 1,
+			metric.WithAttributes(attribute.String("reason", "sign_payload_empty")))
 		commonhandler.SendValidationErrors(w, r, []string{errSignPayloadEmpty})
 		return
 	}
