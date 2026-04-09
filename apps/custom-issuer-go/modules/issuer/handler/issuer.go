@@ -5,11 +5,15 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"time"
 
 	commonhandler "github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/handler"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/middleware"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/utils/bytearray"
+	issuermetrics "github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer/metrics"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer/service"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 )
 
 // MaxJWTLength is the maximum allowed length for incoming JWT strings.
@@ -31,34 +35,49 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
+		issuermetrics.TokensValidationFailedTotal.Add(r.Context(), 1,
+			metric.WithAttributes(attribute.String("reason", "invalid_body")))
 		commonhandler.SendValidationErrors(w, r, []string{mapDecodeError(err)})
 		return
 	}
 	// Reject trailing data after the first JSON object.
 	var extra json.RawMessage
 	if err := decoder.Decode(&extra); err != io.EOF {
+		issuermetrics.TokensValidationFailedTotal.Add(r.Context(), 1,
+			metric.WithAttributes(attribute.String("reason", "invalid_body")))
 		commonhandler.SendValidationErrors(w, r, []string{errInvalidRequestBody})
 		return
 	}
 
 	// Validate jwt field
 	if req.JWT == "" {
+		issuermetrics.TokensValidationFailedTotal.Add(r.Context(), 1,
+			metric.WithAttributes(attribute.String("reason", "jwt_empty")))
 		commonhandler.SendValidationErrors(w, r, []string{errJWTEmpty})
 		return
 	}
 	if len(req.JWT) > MaxJWTLength {
+		issuermetrics.TokensValidationFailedTotal.Add(r.Context(), 1,
+			metric.WithAttributes(attribute.String("reason", "jwt_too_long")))
 		commonhandler.SendValidationErrors(w, r, []string{errJWTTooLong})
 		return
 	}
 
 	// Validate signPayload
 	if req.SignPayload == nil {
+		issuermetrics.TokensValidationFailedTotal.Add(r.Context(), 1,
+			metric.WithAttributes(attribute.String("reason", "sign_payload_empty")))
 		commonhandler.SendValidationErrors(w, r, []string{errSignPayloadEmpty})
 		return
 	}
 
+	start := time.Now()
 	result, err := h.service.Issue(r.Context(), req.JWT, req.SignPayload)
+	duration := time.Since(start).Seconds()
 	if err != nil {
+		issuermetrics.IssueDurationSeconds.Record(r.Context(), duration,
+			metric.WithAttributes(attribute.String("outcome", "error")))
+		issuermetrics.TokensFailedTotal.Add(r.Context(), 1)
 		var authErr *service.AuthError
 		if errors.As(err, &authErr) {
 			commonhandler.SendError(w, r, http.StatusUnauthorized, authErr.Message)
@@ -68,5 +87,8 @@ func (h *IssuerHandler) handleIssue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	issuermetrics.IssueDurationSeconds.Record(r.Context(), duration,
+		metric.WithAttributes(attribute.String("outcome", "success")))
+	issuermetrics.TokensIssuedTotal.Add(r.Context(), 1)
 	commonhandler.SendJSON(w, http.StatusOK, issueResponse{Token: result.Token})
 }

@@ -2,6 +2,10 @@
 apiVersion: v1
 kind: Service
 metadata:
+  annotations:
+    prometheus.io/port: {{ .Values.customIssuerGo.service.targetPort | quote }}
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/metrics"
   name: custom-issuer-go-{{ .Values.environment }}
   namespace: {{ .Values.namespace }}
 spec:
@@ -52,6 +56,20 @@ spec:
             cpu: {{ .Values.customIssuerGo.deployment.cpuLimit }}
         ports:
         - containerPort: {{ .Values.customIssuerGo.deployment.port }}
+        livenessProbe:
+          httpGet:
+            path: /livez
+            port: {{ .Values.customIssuerGo.deployment.port }}
+          initialDelaySeconds: 10
+          timeoutSeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: {{ .Values.customIssuerGo.deployment.port }}
+          initialDelaySeconds: 10
+          timeoutSeconds: 10
+          periodSeconds: 30
         volumeMounts:
         - name: custom-issuer-go-secrets
           mountPath: "/mnt/secrets"

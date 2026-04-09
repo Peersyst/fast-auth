@@ -7,6 +7,7 @@ import (
 	"github.com/peersyst/fast-auth/apps/custom-issuer/config"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/common/modules"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer/handler"
+	issuermetrics "github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer/metrics"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/issuer/service"
 	"github.com/peersyst/fast-auth/apps/custom-issuer/modules/kms"
 )
@@ -18,12 +19,11 @@ var ModuleName = "issuer"
 // Module wires together the issuer service and handler.
 type Module struct {
 	handler *handler.IssuerHandler
-	service *service.IssuerService
+	Service *service.IssuerService
 }
 
 // Init initializes the module.
 func (m *Module) Init(cfg *config.Config, appModules *modules.AppModules) error {
-	appModules.GetModules()
 	kmsModule, err := appModules.GetModule(kms.ModuleName)
 	if err != nil {
 		return err
@@ -38,8 +38,12 @@ func (m *Module) Init(cfg *config.Config, appModules *modules.AppModules) error 
 		return err
 	}
 
+	if err := issuermetrics.Init(); err != nil {
+		return err
+	}
+
 	m.handler = handler.NewIssuerHandler(svc)
-	m.service = svc
+	m.Service = svc
 	return nil
 }
 
@@ -60,6 +64,6 @@ func (m *Module) OnApplicationStart() error {
 
 // OnApplicationStop Stop stops background key refresh. Safe to call multiple times.
 func (m *Module) OnApplicationStop() error {
-	m.service.Stop()
+	m.Service.Stop()
 	return nil
 }
