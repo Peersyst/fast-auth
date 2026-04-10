@@ -11,6 +11,8 @@ import (
 )
 
 type Config struct {
+	AppName                string
+	Environment            string
 	Port                   int
 	ValidationPublicKeyURL string
 	ValidationIssuerURL    string
@@ -65,7 +67,10 @@ func LoadEnv(path string) {
 }
 
 func Load() (*Config, error) {
-	cfg := &Config{}
+	cfg := &Config{
+		AppName:     parseStringEnv("APP_NAME", "custom-issuer-go"),
+		Environment: parseStringEnv("CONFIG_ENV", "development"),
+	}
 	var err error
 
 	if cfg.Port, err = parsePort(); err != nil {
@@ -148,6 +153,14 @@ func parseRequiredEnv(name string) (string, error) {
 		return "", fmt.Errorf("missing required environment variable: %s", name)
 	}
 	return val, nil
+}
+
+func parseStringEnv(name string, fallback string) string {
+	val := strings.TrimSpace(os.Getenv(name))
+	if val == "" {
+		return fallback
+	}
+	return val
 }
 
 func parseHTTPURL(name string) (string, error) {

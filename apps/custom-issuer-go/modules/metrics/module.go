@@ -31,15 +31,19 @@ type Module struct {
 }
 
 // Init initializes the OTel MeterProvider with a Prometheus exporter.
-func (m *Module) Init(_ *config.Config, _ *modules.AppModules) error {
-	exporter, err := prometheus.New()
+func (m *Module) Init(cfg *config.Config, _ *modules.AppModules) error {
+	exporter, err := prometheus.New(
+		prometheus.WithResourceAsConstantLabels(attribute.NewAllowKeysFilter("app", "environment", "service.name")),
+	)
 	if err != nil {
 		return err
 	}
 	res, err := resource.Merge(
 		resource.Default(),
 		resource.NewSchemaless(
-			attribute.String("service.name", "custom-issuer-go"),
+			attribute.String("app", cfg.AppName),
+			attribute.String("environment", cfg.Environment),
+			attribute.String("service.name", cfg.AppName),
 		),
 	)
 	if err != nil {
