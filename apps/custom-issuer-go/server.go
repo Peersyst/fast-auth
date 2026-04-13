@@ -19,7 +19,7 @@ type Server struct {
 
 func shouldInstrumentRequest(r *http.Request) bool {
 	switch r.URL.Path {
-	case "/metrics", "/livez", "/readyz":
+	case "/", "/metrics", "/livez", "/readyz":
 		return false
 	default:
 		return true
