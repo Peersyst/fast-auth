@@ -1,0 +1,52 @@
+{{- if .Values.landing.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: landing-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+  - name: api
+    port: {{ .Values.landing.service.port }}
+    targetPort: {{ .Values.landing.service.targetPort }}
+  selector:
+    app: landing-{{ .Values.environment }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.landing.deployment.name }}-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.landing.deployment.name }}-{{ .Values.environment }}
+spec:
+  replicas: {{ .Values.landing.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.landing.deployment.name }}-{{ .Values.environment }}
+  template:
+    metadata:
+      annotations:
+        timestamp: {{ .Values.timestamp }}
+      labels:
+        app: {{ .Values.landing.deployment.name }}-{{ .Values.environment }}
+    spec:
+      containers:
+      - name: landing
+        image: ghcr.io/peersyst/fast-auth-landing:{{ .Values.tagLanding }}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: {{ .Values.landing.deployment.memoryRequest }}
+            cpu: {{ .Values.landing.deployment.cpuRequest }}
+          limits:
+            memory: {{ .Values.landing.deployment.memoryLimit }}
+            cpu: {{ .Values.landing.deployment.cpuLimit }}
+        ports:
+        - containerPort: {{ .Values.landing.deployment.port }}
+        env:
+        - name: FASTAUTH_METRICS_URL
+          value: {{ .Values.landing.metricsUrl | quote }}
+      imagePullSecrets:
+      - name: regcred
+{{- end }}

@@ -100,6 +100,21 @@ attester:
             kmsCurrentKeyId: KMS_CURRENT_KEY_ID
             kmsNextKeyId: KMS_NEXT_KEY_ID
 
+landing:
+    enabled: true
+    metricsUrl: "https://fast-auth-metrics-dashboard.vercel.app/api/public/metrics"
+    service:
+        port: 3000
+        targetPort: 3000
+    deployment:
+        name: landing
+        replicas: 1
+        port: 3000
+        memoryRequest: 256Mi
+        cpuRequest: 100m
+        memoryLimit: 256Mi
+        cpuLimit: 100m
+
 ingress:
     enabled: true
     certificate: "arn:aws:acm:us-east-1:291847425310:certificate/b183b365-4363-4245-9966-7e990bf7b3d4"

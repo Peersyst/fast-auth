@@ -55,8 +55,17 @@ jobs:
           target: release
           base_image: ${{ github.sha }}
 
+    build-landing:
+        needs: [build-base]
+        uses: ./.github/workflows/build-landing.yaml
+        secrets: inherit
+        with:
+          push: true
+          target: release
+          base_image: ${{ github.sha }}
+
     deploy:
-        needs: [build-relayer, build-attester, build-custom-issuer, build-custom-issuer-go]
+        needs: [build-relayer, build-attester, build-custom-issuer, build-custom-issuer-go, build-landing]
         uses: ./.github/workflows/deploy.yaml
         secrets: inherit
         with:
