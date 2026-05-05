@@ -24,7 +24,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN pnpm install
+RUN pnpm install --frozen-lockfile
 
 RUN pnpm run build:packages
 RUN pnpm run lint:packages

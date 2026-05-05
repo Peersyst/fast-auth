@@ -7,7 +7,7 @@ ENV TURBO_TEAM=$TURBO_TEAM
 # Include custom-issuer
 COPY apps/custom-issuer /project/apps/custom-issuer
 # Install custom-issuer dependencies
-RUN pnpm install
+RUN pnpm install --frozen-lockfile
 
 # Lint custom-issuer
 RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
