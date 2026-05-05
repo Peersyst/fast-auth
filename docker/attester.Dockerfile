@@ -7,7 +7,7 @@ ENV TURBO_TEAM=$TURBO_TEAM
 # Include attester
 COPY apps/attester /project/apps/attester
 # Install attester dependencies
-RUN pnpm install
+RUN pnpm install --frozen-lockfile
 
 # Lint attester
 RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \

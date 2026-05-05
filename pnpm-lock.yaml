@@ -83,16 +83,16 @@ importers:
         version: 0.27.4
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       ts-jest:
         specifier: ^29.1.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.27.4)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3)))(typescript@6.0.3)
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.27.4)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)))(typescript@5.7.3)
       tsx:
         specifier: ^4.20.6
         version: 4.21.0
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
 
   apps/custom-issuer:
     dependencies:
@@ -359,14 +359,14 @@ importers:
         version: 4.6.0(express@4.21.2)
       typeorm:
         specifier: ^0.3.0
-        version: 0.3.27(pg@8.16.3)(reflect-metadata@0.1.13)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+        version: 0.3.27(pg@8.16.3)(reflect-metadata@0.1.13)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       winston:
         specifier: ^3.8.2
         version: 3.18.3
     devDependencies:
       '@nestjs/schematics':
         specifier: ^10.0.3
-        version: 10.2.3(chokidar@3.6.0)(typescript@6.0.3)
+        version: 10.2.3(chokidar@3.6.0)(typescript@5.7.3)
       '@nestjs/testing':
         specifier: ^10.2.10
         version: 10.4.20(@nestjs/common@10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.1.13)(rxjs@7.8.2))(@nestjs/core@10.4.20)(@nestjs/platform-express@10.4.20)
@@ -392,8 +392,8 @@ importers:
         specifier: ^1.9.4
         version: 1.9.10
       '@types/node':
-        specifier: latest
-        version: 25.6.0
+        specifier: ^22.15.30
+        version: 22.16.5
       '@types/supertest':
         specifier: 2.0.12
         version: 2.0.12
@@ -405,22 +405,22 @@ importers:
         version: 10.1.0
       jest:
         specifier: 29.4.2
-        version: 29.4.2(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+        version: 29.4.2(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       supertest:
         specifier: 6.3.3
         version: 6.3.3
       ts-jest:
         specifier: 29.0.5
-        version: 29.0.5(@babel/core@7.28.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.4.2(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)))(typescript@6.0.3)
+        version: 29.0.5(@babel/core@7.28.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.4.2(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)))(typescript@5.7.3)
       ts-loader:
         specifier: 9.4.2
-        version: 9.4.2(typescript@6.0.3)(webpack@5.99.9(esbuild@0.23.1))
+        version: 9.4.2(typescript@5.7.3)(webpack@5.99.9(esbuild@0.23.1))
       ts-node:
         specifier: 10.9.2
-        version: 10.9.2(@types/node@25.6.0)(typescript@6.0.3)
+        version: 10.9.2(@types/node@22.16.5)(typescript@5.7.3)
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
       webpack:
         specifier: ^5.95.0
         version: 5.99.9(esbuild@0.23.1)
@@ -439,10 +439,6 @@ importers:
   contracts/jwt-guards/base-jwt-guard: {}
 
   contracts/jwt-guards/custom-issuer-guard: {}
-
-  contracts/jwt-guards/firebase-guard: {}
-
-  contracts/jwt-guards/jwt-guard: {}
 
   docs:
     dependencies:
@@ -584,11 +580,11 @@ importers:
         specifier: workspace:*
         version: link:../../shared/tsup
       '@types/node':
-        specifier: latest
-        version: 25.6.0
+        specifier: ^22.15.30
+        version: 22.16.5
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
 
   packages/backend/core:
     devDependencies:
@@ -600,7 +596,7 @@ importers:
         version: 7.1.17(@nestjs/common@10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)
       '@nestjs/typeorm':
         specifier: ^10.0.1
-        version: 10.0.2(@nestjs/common@10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.27(pg@8.16.3)(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)))
+        version: 10.0.2(@nestjs/common@10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.27(pg@8.16.3)(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3)))
       '@shared/eslint':
         specifier: workspace:*
         version: link:../../shared/eslint
@@ -623,8 +619,8 @@ importers:
         specifier: ^5.3.1
         version: 5.6.0(@types/json-schema@7.0.15)(express@4.21.2)
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
 
   packages/providers/firebase:
     dependencies:
@@ -648,7 +644,7 @@ importers:
         version: 5.1.1
       react-native-auth0:
         specifier: ^5.0.1
-        version: 5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)
+        version: 5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)
     devDependencies:
       '@shared/eslint':
         specifier: workspace:*
@@ -670,16 +666,16 @@ importers:
         version: 22.16.5
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       ts-jest:
         specifier: ^29.1.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3)))(typescript@6.0.3)
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)))(typescript@5.7.3)
       ts-node:
         specifier: ^10.9.2
-        version: 10.9.2(@types/node@22.16.5)(typescript@6.0.3)
+        version: 10.9.2(@types/node@22.16.5)(typescript@5.7.3)
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
 
   packages/providers/javascript:
     dependencies:
@@ -703,7 +699,7 @@ importers:
         version: 5.1.1
       react-native-auth0:
         specifier: ^5.0.1
-        version: 5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)
+        version: 5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)
     devDependencies:
       '@shared/eslint':
         specifier: workspace:*
@@ -725,16 +721,16 @@ importers:
         version: 22.16.5
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       ts-jest:
         specifier: ^29.1.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3)))(typescript@6.0.3)
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)))(typescript@5.7.3)
       ts-node:
         specifier: ^10.9.2
-        version: 10.9.2(@types/node@22.16.5)(typescript@6.0.3)
+        version: 10.9.2(@types/node@22.16.5)(typescript@5.7.3)
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
 
   packages/providers/react-native:
     dependencies:
@@ -752,10 +748,10 @@ importers:
         version: 19.1.0
       react-native:
         specifier: '>=0.60.0'
-        version: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0)
+        version: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0)
       react-native-auth0:
         specifier: ^5.0.1
-        version: 5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)
+        version: 5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)
     devDependencies:
       '@shared/eslint':
         specifier: workspace:*
@@ -777,16 +773,16 @@ importers:
         version: 19.1.8
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       ts-jest:
         specifier: ^29.1.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3)))(typescript@6.0.3)
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)))(typescript@5.7.3)
       ts-node:
         specifier: ^10.9.2
-        version: 10.9.2(@types/node@22.16.5)(typescript@6.0.3)
+        version: 10.9.2(@types/node@22.16.5)(typescript@5.7.3)
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
 
   packages/sdks/browser:
     dependencies:
@@ -810,7 +806,7 @@ importers:
         version: 5.1.1
       react-native-auth0:
         specifier: ^5.0.1
-        version: 5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)
+        version: 5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)
     devDependencies:
       '@shared/eslint':
         specifier: workspace:*
@@ -832,16 +828,16 @@ importers:
         version: 22.16.5
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       ts-jest:
         specifier: ^29.1.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3)))(typescript@6.0.3)
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)))(typescript@5.7.3)
       ts-node:
         specifier: ^10.9.2
-        version: 10.9.2(@types/node@22.16.5)(typescript@6.0.3)
+        version: 10.9.2(@types/node@22.16.5)(typescript@5.7.3)
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
 
   packages/sdks/react:
     dependencies:
@@ -881,16 +877,16 @@ importers:
         version: 19.1.8
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       ts-jest:
         specifier: ^29.1.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3)))(typescript@6.0.3)
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)))(typescript@5.7.3)
       ts-node:
         specifier: ^10.9.2
-        version: 10.9.2(@types/node@22.16.5)(typescript@6.0.3)
+        version: 10.9.2(@types/node@22.16.5)(typescript@5.7.3)
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
 
   packages/shared/cli:
     devDependencies:
@@ -904,8 +900,8 @@ importers:
         specifier: workspace:*
         version: link:../tsup
       '@types/node':
-        specifier: latest
-        version: 25.6.0
+        specifier: ^22.15.30
+        version: 22.16.5
       commander:
         specifier: ^12.1.0
         version: 12.1.0
@@ -913,8 +909,8 @@ importers:
         specifier: ^2.1.0
         version: 2.5.4
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
 
   packages/shared/eslint:
     devDependencies:
@@ -967,20 +963,20 @@ importers:
         specifier: ^29.5.14
         version: 29.5.14
       '@types/node':
-        specifier: latest
-        version: 25.6.0
+        specifier: ^22.15.30
+        version: 22.16.5
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       near-api-js:
         specifier: ^4.0.4
         version: 4.0.4
       ts-jest:
         specifier: ^29.3.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)))(typescript@6.0.3)
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)))(typescript@5.7.3)
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
 
   packages/shared/test:
     devDependencies:
@@ -995,19 +991,19 @@ importers:
         version: link:../tsup
       '@swisstype/essential':
         specifier: ^0.1.2
-        version: 0.1.2(typescript@6.0.3)
+        version: 0.1.2(typescript@5.7.3)
       '@types/jest':
         specifier: ^29.5.12
         version: 29.5.12
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+        version: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3))
       ts-jest:
         specifier: ^29.3.4
-        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)))(typescript@6.0.3)
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3)))(typescript@5.7.3)
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
 
   packages/shared/tsconfig: {}
 
@@ -1020,17 +1016,17 @@ importers:
         specifier: workspace:*
         version: link:../tsconfig
       '@types/node':
-        specifier: latest
-        version: 25.6.0
+        specifier: ^22.15.30
+        version: 22.16.5
       rimraf:
         specifier: ^5.0.0
         version: 5.0.0
       tsup:
         specifier: ^8.2.4
-        version: 8.2.4(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.1)
+        version: 8.2.4(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.7.3)(yaml@2.8.1)
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
 
   packages/shared/utils:
     dependencies:
@@ -1054,17 +1050,17 @@ importers:
         specifier: ^29.5.13
         version: 29.5.14
       '@types/node':
-        specifier: latest
-        version: 25.6.0
+        specifier: ^22.15.30
+        version: 22.16.5
       '@types/validator':
         specifier: ^13.12.1
         version: 13.15.4
       jest:
         specifier: ^29.7.0
-        version: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       typescript:
-        specifier: latest
-        version: 6.0.3
+        specifier: ^5.7.3
+        version: 5.7.3
       validator:
         specifier: 13.15.0
         version: 13.15.0
@@ -17090,7 +17086,7 @@ snapshots:
       jest-util: 30.2.0
       slash: 3.0.0
 
-  '@jest/core@29.7.0(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))':
+  '@jest/core@29.7.0(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))':
     dependencies:
       '@jest/console': 29.7.0
       '@jest/reporters': 29.7.0
@@ -17104,7 +17100,7 @@ snapshots:
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+      jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -17125,7 +17121,7 @@ snapshots:
       - supports-color
       - ts-node
 
-  '@jest/core@29.7.0(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))':
+  '@jest/core@29.7.0(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3))':
     dependencies:
       '@jest/console': 29.7.0
       '@jest/reporters': 29.7.0
@@ -17139,7 +17135,7 @@ snapshots:
       exit: 0.1.2
       graceful-fs: 4.2.11
       jest-changed-files: 29.7.0
-      jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+      jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3))
       jest-haste-map: 29.7.0
       jest-message-util: 29.7.0
       jest-regex-util: 29.6.3
@@ -18008,14 +18004,14 @@ snapshots:
     transitivePeerDependencies:
       - chokidar
 
-  '@nestjs/schematics@10.2.3(chokidar@3.6.0)(typescript@6.0.3)':
+  '@nestjs/schematics@10.2.3(chokidar@3.6.0)(typescript@5.7.3)':
     dependencies:
       '@angular-devkit/core': 17.3.11(chokidar@3.6.0)
       '@angular-devkit/schematics': 17.3.11(chokidar@3.6.0)
       comment-json: 4.2.5
       jsonc-parser: 3.3.1
       pluralize: 8.0.0
-      typescript: 6.0.3
+      typescript: 5.7.3
     transitivePeerDependencies:
       - chokidar
 
@@ -18074,13 +18070,13 @@ snapshots:
     optionalDependencies:
       '@nestjs/platform-express': 11.1.11(@nestjs/common@11.1.11(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)
 
-  '@nestjs/typeorm@10.0.2(@nestjs/common@10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.27(pg@8.16.3)(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)))':
+  '@nestjs/typeorm@10.0.2(@nestjs/common@10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.11)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.27(pg@8.16.3)(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3)))':
     dependencies:
       '@nestjs/common': 10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       '@nestjs/core': 11.1.11(@nestjs/common@10.4.20(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/platform-express@11.1.11)(reflect-metadata@0.2.2)(rxjs@7.8.2)
       reflect-metadata: 0.2.2
       rxjs: 7.8.2
-      typeorm: 0.3.27(pg@8.16.3)(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+      typeorm: 0.3.27(pg@8.16.3)(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3))
       uuid: 9.0.1
 
   '@next/env@16.2.4': {}
@@ -18288,11 +18284,11 @@ snapshots:
       fast-glob: 3.3.3
     optional: true
 
-  '@react-native-community/cli-config@20.0.0(typescript@6.0.3)':
+  '@react-native-community/cli-config@20.0.0(typescript@5.7.3)':
     dependencies:
       '@react-native-community/cli-tools': 20.0.0
       chalk: 4.1.2
-      cosmiconfig: 9.0.0(typescript@6.0.3)
+      cosmiconfig: 9.0.0(typescript@5.7.3)
       deepmerge: 4.3.1
       fast-glob: 3.3.3
       joi: 17.13.3
@@ -18300,9 +18296,9 @@ snapshots:
       - typescript
     optional: true
 
-  '@react-native-community/cli-doctor@20.0.0(typescript@6.0.3)':
+  '@react-native-community/cli-doctor@20.0.0(typescript@5.7.3)':
     dependencies:
-      '@react-native-community/cli-config': 20.0.0(typescript@6.0.3)
+      '@react-native-community/cli-config': 20.0.0(typescript@5.7.3)
       '@react-native-community/cli-platform-android': 20.0.0
       '@react-native-community/cli-platform-apple': 20.0.0
       '@react-native-community/cli-platform-ios': 20.0.0
@@ -18314,7 +18310,7 @@ snapshots:
       execa: 5.1.1
       node-stream-zip: 1.15.0
       ora: 5.4.1
-      semver: 7.7.2
+      semver: 7.7.4
       wcwidth: 1.0.1
       yaml: 2.8.1
     transitivePeerDependencies:
@@ -18373,7 +18369,7 @@ snapshots:
       mime: 2.6.0
       ora: 5.4.1
       prompts: 2.4.2
-      semver: 7.7.2
+      semver: 7.7.4
     optional: true
 
   '@react-native-community/cli-types@20.0.0':
@@ -18381,11 +18377,11 @@ snapshots:
       joi: 17.13.3
     optional: true
 
-  '@react-native-community/cli@20.0.0(typescript@6.0.3)':
+  '@react-native-community/cli@20.0.0(typescript@5.7.3)':
     dependencies:
       '@react-native-community/cli-clean': 20.0.0
-      '@react-native-community/cli-config': 20.0.0(typescript@6.0.3)
-      '@react-native-community/cli-doctor': 20.0.0(typescript@6.0.3)
+      '@react-native-community/cli-config': 20.0.0(typescript@5.7.3)
+      '@react-native-community/cli-doctor': 20.0.0(typescript@5.7.3)
       '@react-native-community/cli-server-api': 20.0.0
       '@react-native-community/cli-tools': 20.0.0
       '@react-native-community/cli-types': 20.0.0
@@ -18397,7 +18393,7 @@ snapshots:
       fs-extra: 8.1.0
       graceful-fs: 4.2.11
       prompts: 2.4.2
-      semver: 7.7.2
+      semver: 7.7.4
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -18477,7 +18473,7 @@ snapshots:
       nullthrows: 1.1.1
       yargs: 17.7.2
 
-  '@react-native/community-cli-plugin@0.82.0(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))':
+  '@react-native/community-cli-plugin@0.82.0(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))':
     dependencies:
       '@react-native/dev-middleware': 0.82.0
       debug: 4.4.3
@@ -18487,7 +18483,7 @@ snapshots:
       metro-core: 0.83.3
       semver: 7.7.2
     optionalDependencies:
-      '@react-native-community/cli': 20.0.0(typescript@6.0.3)
+      '@react-native-community/cli': 20.0.0(typescript@5.7.3)
       '@react-native/metro-config': 0.82.0(@babel/core@7.28.0)
     transitivePeerDependencies:
       - bufferutil
@@ -18547,21 +18543,21 @@ snapshots:
 
   '@react-native/normalize-colors@0.82.0': {}
 
-  '@react-native/virtualized-lists@0.82.0(@types/react@19.1.8)(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)':
+  '@react-native/virtualized-lists@0.82.0(@types/react@19.1.8)(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)':
     dependencies:
       invariant: 2.2.4
       nullthrows: 1.1.1
       react: 19.1.0
-      react-native: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0)
+      react-native: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0)
     optionalDependencies:
       '@types/react': 19.1.8
 
-  '@react-native/virtualized-lists@0.82.0(@types/react@19.2.2)(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)':
+  '@react-native/virtualized-lists@0.82.0(@types/react@19.2.2)(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)':
     dependencies:
       invariant: 2.2.4
       nullthrows: 1.1.1
       react: 19.2.0
-      react-native: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0)
+      react-native: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0)
     optionalDependencies:
       '@types/react': 19.2.2
 
@@ -19294,9 +19290,9 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@swisstype/essential@0.1.2(typescript@6.0.3)':
+  '@swisstype/essential@0.1.2(typescript@5.7.3)':
     dependencies:
-      typescript: 6.0.3
+      typescript: 5.7.3
 
   '@szmarczak/http-timer@5.0.1':
     dependencies:
@@ -19535,6 +19531,7 @@ snapshots:
   '@types/node@25.6.0':
     dependencies:
       undici-types: 7.19.2
+    optional: true
 
   '@types/parse-json@4.0.2': {}
 
@@ -21191,14 +21188,14 @@ snapshots:
     optionalDependencies:
       typescript: 5.9.3
 
-  cosmiconfig@9.0.0(typescript@6.0.3):
+  cosmiconfig@9.0.0(typescript@5.7.3):
     dependencies:
       env-paths: 2.2.1
       import-fresh: 3.3.1
       js-yaml: 4.1.1
       parse-json: 5.2.0
     optionalDependencies:
-      typescript: 6.0.3
+      typescript: 5.7.3
     optional: true
 
   create-ecdh@4.0.4:
@@ -21230,13 +21227,13 @@ snapshots:
       safe-buffer: 5.2.1
       sha.js: 2.4.12
 
-  create-jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3)):
+  create-jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)):
     dependencies:
       '@jest/types': 29.6.3
       chalk: 4.1.2
       exit: 0.1.2
       graceful-fs: 4.2.11
-      jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+      jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       jest-util: 29.7.0
       prompts: 2.4.2
     transitivePeerDependencies:
@@ -21245,13 +21242,13 @@ snapshots:
       - supports-color
       - ts-node
 
-  create-jest@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)):
+  create-jest@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3)):
     dependencies:
       '@jest/types': 29.6.3
       chalk: 4.1.2
       exit: 0.1.2
       graceful-fs: 4.2.11
-      jest-config: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+      jest-config: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3))
       jest-util: 29.7.0
       prompts: 2.4.2
     transitivePeerDependencies:
@@ -23854,16 +23851,16 @@ snapshots:
       - babel-plugin-macros
       - supports-color
 
-  jest-cli@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3)):
+  jest-cli@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)):
     dependencies:
-      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
       chalk: 4.1.2
-      create-jest: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+      create-jest: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       exit: 0.1.2
       import-local: 3.2.0
-      jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+      jest-config: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       jest-util: 29.7.0
       jest-validate: 29.7.0
       yargs: 17.7.2
@@ -23873,16 +23870,16 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest-cli@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)):
+  jest-cli@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3)):
     dependencies:
-      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3))
       '@jest/test-result': 29.7.0
       '@jest/types': 29.6.3
       chalk: 4.1.2
-      create-jest: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+      create-jest: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3))
       exit: 0.1.2
       import-local: 3.2.0
-      jest-config: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+      jest-config: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3))
       jest-util: 29.7.0
       jest-validate: 29.7.0
       yargs: 17.7.2
@@ -23911,7 +23908,7 @@ snapshots:
       - supports-color
       - ts-node
 
-  jest-config@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3)):
+  jest-config@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)):
     dependencies:
       '@babel/core': 7.28.0
       '@jest/test-sequencer': 29.7.0
@@ -23937,12 +23934,12 @@ snapshots:
       strip-json-comments: 3.1.1
     optionalDependencies:
       '@types/node': 22.16.5
-      ts-node: 10.9.2(@types/node@22.16.5)(typescript@6.0.3)
+      ts-node: 10.9.2(@types/node@22.16.5)(typescript@5.7.3)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
 
-  jest-config@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)):
+  jest-config@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3)):
     dependencies:
       '@babel/core': 7.28.0
       '@jest/test-sequencer': 29.7.0
@@ -23968,12 +23965,12 @@ snapshots:
       strip-json-comments: 3.1.1
     optionalDependencies:
       '@types/node': 22.16.5
-      ts-node: 10.9.2(@types/node@25.6.0)(typescript@6.0.3)
+      ts-node: 10.9.2(@types/node@25.6.0)(typescript@5.7.3)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
 
-  jest-config@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)):
+  jest-config@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3)):
     dependencies:
       '@babel/core': 7.28.0
       '@jest/test-sequencer': 29.7.0
@@ -23999,7 +23996,7 @@ snapshots:
       strip-json-comments: 3.1.1
     optionalDependencies:
       '@types/node': 25.6.0
-      ts-node: 10.9.2(@types/node@25.6.0)(typescript@6.0.3)
+      ts-node: 10.9.2(@types/node@25.6.0)(typescript@5.7.3)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -24473,36 +24470,36 @@ snapshots:
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
-  jest@29.4.2(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)):
+  jest@29.4.2(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)):
     dependencies:
-      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       '@jest/types': 29.6.3
       import-local: 3.2.0
-      jest-cli: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+      jest-cli: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
     transitivePeerDependencies:
       - '@types/node'
       - babel-plugin-macros
       - supports-color
       - ts-node
 
-  jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3)):
+  jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)):
     dependencies:
-      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       '@jest/types': 29.6.3
       import-local: 3.2.0
-      jest-cli: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+      jest-cli: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
     transitivePeerDependencies:
       - '@types/node'
       - babel-plugin-macros
       - supports-color
       - ts-node
 
-  jest@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)):
+  jest@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3)):
     dependencies:
-      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+      '@jest/core': 29.7.0(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3))
       '@jest/types': 29.6.3
       import-local: 3.2.0
-      jest-cli: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+      jest-cli: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3))
     transitivePeerDependencies:
       - '@types/node'
       - babel-plugin-macros
@@ -27029,34 +27026,34 @@ snapshots:
       react-loadable: '@docusaurus/react-loadable@6.0.0(react@19.1.0)'
       webpack: 5.99.9(esbuild@0.23.1)
 
-  react-native-auth0@5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0))(react@19.1.0):
+  react-native-auth0@5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0))(react@19.1.0):
     dependencies:
       '@auth0/auth0-spa-js': 2.3.0
       base-64: 1.0.0
       jwt-decode: 4.0.0
       react: 19.1.0
-      react-native: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0)
+      react-native: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0)
       url: 0.11.4
 
-  react-native-auth0@5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0):
+  react-native-auth0@5.0.1(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0):
     dependencies:
       '@auth0/auth0-spa-js': 2.3.0
       base-64: 1.0.0
       jwt-decode: 4.0.0
       react: 19.2.0
-      react-native: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0)
+      react-native: 0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0)
       url: 0.11.4
 
-  react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0):
+  react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0):
     dependencies:
       '@jest/create-cache-key-function': 29.7.0
       '@react-native/assets-registry': 0.82.0
       '@react-native/codegen': 0.82.0(@babel/core@7.28.0)
-      '@react-native/community-cli-plugin': 0.82.0(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))
+      '@react-native/community-cli-plugin': 0.82.0(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))
       '@react-native/gradle-plugin': 0.82.0
       '@react-native/js-polyfills': 0.82.0
       '@react-native/normalize-colors': 0.82.0
-      '@react-native/virtualized-lists': 0.82.0(@types/react@19.1.8)(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)
+      '@react-native/virtualized-lists': 0.82.0(@types/react@19.1.8)(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.1.8)(react@19.1.0))(react@19.1.0)
       abort-controller: 3.0.0
       anser: 1.4.10
       ansi-regex: 5.0.1
@@ -27095,16 +27092,16 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0):
+  react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0):
     dependencies:
       '@jest/create-cache-key-function': 29.7.0
       '@react-native/assets-registry': 0.82.0
       '@react-native/codegen': 0.82.0(@babel/core@7.28.0)
-      '@react-native/community-cli-plugin': 0.82.0(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))
+      '@react-native/community-cli-plugin': 0.82.0(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))
       '@react-native/gradle-plugin': 0.82.0
       '@react-native/js-polyfills': 0.82.0
       '@react-native/normalize-colors': 0.82.0
-      '@react-native/virtualized-lists': 0.82.0(@types/react@19.2.2)(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@6.0.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)
+      '@react-native/virtualized-lists': 0.82.0(@types/react@19.2.2)(react-native@0.82.0(@babel/core@7.28.0)(@react-native-community/cli@20.0.0(typescript@5.7.3))(@react-native/metro-config@0.82.0(@babel/core@7.28.0))(@types/react@19.2.2)(react@19.2.0))(react@19.2.0)
       abort-controller: 3.0.0
       anser: 1.4.10
       ansi-regex: 5.0.1
@@ -28383,17 +28380,17 @@ snapshots:
 
   ts-interface-checker@0.1.13: {}
 
-  ts-jest@29.0.5(@babel/core@7.28.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.4.2(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)))(typescript@6.0.3):
+  ts-jest@29.0.5(@babel/core@7.28.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.4.2(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)))(typescript@5.7.3):
     dependencies:
       bs-logger: 0.2.6
       fast-json-stable-stringify: 2.1.0
-      jest: 29.4.2(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+      jest: 29.4.2(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       jest-util: 29.7.0
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
       semver: 7.7.2
-      typescript: 6.0.3
+      typescript: 5.7.3
       yargs-parser: 21.1.1
     optionalDependencies:
       '@babel/core': 7.28.0
@@ -28401,19 +28398,19 @@ snapshots:
       babel-jest: 29.7.0(@babel/core@7.28.0)
       esbuild: 0.23.1
 
-  ts-jest@29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3)))(typescript@6.0.3):
+  ts-jest@29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)))(typescript@5.7.3):
     dependencies:
       bs-logger: 0.2.6
       ejs: 3.1.10
       fast-json-stable-stringify: 2.1.0
-      jest: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+      jest: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       jest-util: 29.7.0
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
       semver: 7.7.2
       type-fest: 4.41.0
-      typescript: 6.0.3
+      typescript: 5.7.3
       yargs-parser: 21.1.1
     optionalDependencies:
       '@babel/core': 7.28.0
@@ -28422,19 +28419,19 @@ snapshots:
       babel-jest: 29.7.0(@babel/core@7.28.0)
       esbuild: 0.23.1
 
-  ts-jest@29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)))(typescript@6.0.3):
+  ts-jest@29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.23.1)(jest@29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3)))(typescript@5.7.3):
     dependencies:
       bs-logger: 0.2.6
       ejs: 3.1.10
       fast-json-stable-stringify: 2.1.0
-      jest: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3))
+      jest: 29.7.0(@types/node@25.6.0)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3))
       jest-util: 29.7.0
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
       semver: 7.7.2
       type-fest: 4.41.0
-      typescript: 6.0.3
+      typescript: 5.7.3
       yargs-parser: 21.1.1
     optionalDependencies:
       '@babel/core': 7.28.0
@@ -28464,19 +28461,19 @@ snapshots:
       babel-jest: 29.7.0(@babel/core@7.28.0)
       esbuild: 0.23.1
 
-  ts-jest@29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.27.4)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3)))(typescript@6.0.3):
+  ts-jest@29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(esbuild@0.27.4)(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)))(typescript@5.7.3):
     dependencies:
       bs-logger: 0.2.6
       ejs: 3.1.10
       fast-json-stable-stringify: 2.1.0
-      jest: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3))
+      jest: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
       jest-util: 29.7.0
       json5: 2.2.3
       lodash.memoize: 4.1.2
       make-error: 1.3.6
       semver: 7.7.2
       type-fest: 4.41.0
-      typescript: 6.0.3
+      typescript: 5.7.3
       yargs-parser: 21.1.1
     optionalDependencies:
       '@babel/core': 7.28.0
@@ -28485,13 +28482,13 @@ snapshots:
       babel-jest: 29.7.0(@babel/core@7.28.0)
       esbuild: 0.27.4
 
-  ts-loader@9.4.2(typescript@6.0.3)(webpack@5.99.9(esbuild@0.23.1)):
+  ts-loader@9.4.2(typescript@5.7.3)(webpack@5.99.9(esbuild@0.23.1)):
     dependencies:
       chalk: 4.1.2
       enhanced-resolve: 5.18.2
       micromatch: 4.0.8
       semver: 7.7.2
-      typescript: 6.0.3
+      typescript: 5.7.3
       webpack: 5.99.9(esbuild@0.23.1)
 
   ts-loader@9.5.4(typescript@5.9.3)(webpack@5.103.0(esbuild@0.23.1)):
@@ -28503,6 +28500,24 @@ snapshots:
       source-map: 0.7.4
       typescript: 5.9.3
       webpack: 5.103.0(esbuild@0.23.1)
+
+  ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3):
+    dependencies:
+      '@cspotcode/source-map-support': 0.8.1
+      '@tsconfig/node10': 1.0.11
+      '@tsconfig/node12': 1.0.11
+      '@tsconfig/node14': 1.0.3
+      '@tsconfig/node16': 1.0.4
+      '@types/node': 22.16.5
+      acorn: 8.15.0
+      acorn-walk: 8.3.4
+      arg: 4.1.3
+      create-require: 1.1.1
+      diff: 4.0.2
+      make-error: 1.3.6
+      typescript: 5.7.3
+      v8-compile-cache-lib: 3.0.1
+      yn: 3.1.1
 
   ts-node@10.9.2(@types/node@22.16.5)(typescript@5.9.3):
     dependencies:
@@ -28522,25 +28537,7 @@ snapshots:
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
 
-  ts-node@10.9.2(@types/node@22.16.5)(typescript@6.0.3):
-    dependencies:
-      '@cspotcode/source-map-support': 0.8.1
-      '@tsconfig/node10': 1.0.11
-      '@tsconfig/node12': 1.0.11
-      '@tsconfig/node14': 1.0.3
-      '@tsconfig/node16': 1.0.4
-      '@types/node': 22.16.5
-      acorn: 8.15.0
-      acorn-walk: 8.3.4
-      arg: 4.1.3
-      create-require: 1.1.1
-      diff: 4.0.2
-      make-error: 1.3.6
-      typescript: 6.0.3
-      v8-compile-cache-lib: 3.0.1
-      yn: 3.1.1
-
-  ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3):
+  ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3):
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
       '@tsconfig/node10': 1.0.11
@@ -28554,9 +28551,10 @@ snapshots:
       create-require: 1.1.1
       diff: 4.0.2
       make-error: 1.3.6
-      typescript: 6.0.3
+      typescript: 5.7.3
       v8-compile-cache-lib: 3.0.1
       yn: 3.1.1
+    optional: true
 
   tsconfig-paths-webpack-plugin@4.2.0:
     dependencies:
@@ -28581,6 +28579,33 @@ snapshots:
   tslib@1.14.1: {}
 
   tslib@2.8.1: {}
+
+  tsup@8.2.4(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.7.3)(yaml@2.8.1):
+    dependencies:
+      bundle-require: 5.1.0(esbuild@0.23.1)
+      cac: 6.7.14
+      chokidar: 3.6.0
+      consola: 3.4.2
+      debug: 4.4.1
+      esbuild: 0.23.1
+      execa: 5.1.1
+      globby: 11.1.0
+      joycon: 3.1.1
+      picocolors: 1.1.1
+      postcss-load-config: 6.0.1(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(yaml@2.8.1)
+      resolve-from: 5.0.0
+      rollup: 4.44.1
+      source-map: 0.8.0-beta.0
+      sucrase: 3.35.0
+      tree-kill: 1.2.2
+    optionalDependencies:
+      postcss: 8.5.6
+      typescript: 5.7.3
+    transitivePeerDependencies:
+      - jiti
+      - supports-color
+      - tsx
+      - yaml
 
   tsup@8.2.4(jiti@1.21.7)(postcss@8.5.6)(tsx@4.21.0)(typescript@6.0.3)(yaml@2.8.1):
     dependencies:
@@ -28713,7 +28738,7 @@ snapshots:
 
   typedarray@0.0.6: {}
 
-  typeorm@0.3.27(pg@8.16.3)(reflect-metadata@0.1.13)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)):
+  typeorm@0.3.27(pg@8.16.3)(reflect-metadata@0.1.13)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)):
     dependencies:
       '@sqltools/formatter': 1.2.5
       ansis: 3.17.0
@@ -28732,12 +28757,12 @@ snapshots:
       yargs: 17.7.2
     optionalDependencies:
       pg: 8.16.3
-      ts-node: 10.9.2(@types/node@25.6.0)(typescript@6.0.3)
+      ts-node: 10.9.2(@types/node@22.16.5)(typescript@5.7.3)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
 
-  typeorm@0.3.27(pg@8.16.3)(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@25.6.0)(typescript@6.0.3)):
+  typeorm@0.3.27(pg@8.16.3)(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@25.6.0)(typescript@5.7.3)):
     dependencies:
       '@sqltools/formatter': 1.2.5
       ansis: 3.17.0
@@ -28756,7 +28781,7 @@ snapshots:
       yargs: 17.7.2
     optionalDependencies:
       pg: 8.16.3
-      ts-node: 10.9.2(@types/node@25.6.0)(typescript@6.0.3)
+      ts-node: 10.9.2(@types/node@25.6.0)(typescript@5.7.3)
     transitivePeerDependencies:
       - babel-plugin-macros
       - supports-color
@@ -28801,7 +28826,8 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici-types@7.19.2: {}
+  undici-types@7.19.2:
+    optional: true
 
   undici@7.12.0: {}
 

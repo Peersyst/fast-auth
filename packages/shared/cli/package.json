@@ -21,9 +21,9 @@
         "@shared/eslint": "workspace:*",
         "@shared/tsconfig": "workspace:*",
         "@shared/tsup": "workspace:*",
-        "@types/node": "latest",
+        "@types/node": "^22.15.30",
         "commander": "^12.1.0",
         "turbo": "^2.1.0",
-        "typescript": "latest"
+        "typescript": "^5.7.3"
     }
 }

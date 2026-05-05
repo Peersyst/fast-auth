@@ -7,7 +7,7 @@ ENV TURBO_TEAM=$TURBO_TEAM
 # Include relayer
 COPY apps/relayer /project/apps/relayer
 # Install relayer dependencies
-RUN pnpm install
+RUN pnpm install --frozen-lockfile
 
 # Lint relayer
 RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \

@@ -21,9 +21,9 @@
     "devDependencies": {
         "@shared/eslint": "workspace:*",
         "@shared/tsconfig": "workspace:*",
-        "@types/node": "latest",
+        "@types/node": "^22.15.30",
         "rimraf": "^5.0.0",
         "tsup": "^8.2.4",
-        "typescript": "latest"
+        "typescript": "^5.7.3"
     }
 }
