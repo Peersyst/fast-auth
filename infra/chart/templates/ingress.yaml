@@ -18,6 +18,10 @@ metadata:
     alb.ingress.kubernetes.io/actions.custom-issuer-go-{{ .Values.environment }}: >
       {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"custom-issuer-go-{{ .Values.environment }}","servicePort":"api","weight":20}]}}
     {{- end }}
+    {{- if .Values.landing.enabled }}
+    alb.ingress.kubernetes.io/actions.landing-{{ .Values.environment }}: >
+      {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"landing-{{ .Values.environment }}","servicePort":"api","weight":20}]}}
+    {{- end }}
   name: {{ .Values.namespace }}-{{ .Values.environment }}
   namespace: {{ .Values.namespace }}
 spec:
@@ -41,6 +45,15 @@ spec:
             backend:
               service:
                 name: custom-issuer-go-{{ .Values.environment }}
+                port:
+                  name: use-annotation
+          {{- end }}
+          {{- if .Values.landing.enabled }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: landing-{{ .Values.environment }}
                 port:
                   name: use-annotation
           {{- end }}
