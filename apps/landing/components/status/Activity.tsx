@@ -7,9 +7,6 @@ import NearblocksLink from "./NearblocksLink";
 import SectionLabel from "./SectionLabel";
 import { fmtAbsolute, fmtN, fmtPct } from "./format";
 
-// Tabs whose row labels are NEAR account IDs — those link to nearblocks.
-// methods (`ft_transfer`, `swap`, …) and providers (`google-oauth2`, …) are
-// not accounts, so they render as plain code.
 const ACCOUNT_TABS = new Set<BreakdownKey>(["receivers", "relayers", "guards"]);
 
 const TABS: { id: BreakdownKey | "overall"; label: string; col: string }[] = [
@@ -50,6 +47,7 @@ export default function Activity({ data }: { data: StatusData }) {
         <div className="tabBar" role="tablist">
           {TABS.map((t) => (
             <button
+              type="button"
               key={t.id}
               role="tab"
               aria-selected={tab === t.id}

@@ -1,6 +1,8 @@
-"use client";
-
-import { useState } from "react";
+// Native HTML <details>/<summary> for the FAQ — no client interactivity
+// needed. The browser toggles the expanded state on its own; this works
+// reliably on every mobile browser (and screen readers / assistive tech) with
+// zero React state, zero event handlers. The first item is `open` by default
+// to mirror the prior UI's initial state.
 import { PlusIcon } from "./icons";
 
 const ITEMS = [
@@ -47,8 +49,6 @@ const ITEMS = [
 ];
 
 export default function FAQ() {
-  const [open, setOpen] = useState(0);
-
   return (
     <section className="faq" id="faq">
       <div className="container">
@@ -62,19 +62,15 @@ export default function FAQ() {
           </div>
           <div className="faqList">
             {ITEMS.map((it, i) => (
-              <div key={i} className={"faqItem " + (open === i ? "open" : "")}>
-                <button
-                  className="faqQ"
-                  onClick={() => setOpen(open === i ? -1 : i)}
-                  aria-expanded={open === i}
-                >
-                  {it.q}
-                  <span className="plus">
+              <details key={i} className="faqItem" open={i === 0}>
+                <summary className="faqQ">
+                  <span className="faqQText">{it.q}</span>
+                  <span className="plus" aria-hidden="true">
                     <PlusIcon />
                   </span>
-                </button>
+                </summary>
                 <div className="faqA"><p>{it.a}</p></div>
-              </div>
+              </details>
             ))}
           </div>
         </div>

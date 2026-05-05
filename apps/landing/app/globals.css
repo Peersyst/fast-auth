@@ -54,6 +54,12 @@
 /* ========== BASE ========== */
 *, *::before, *::after { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
+/* Defensive guard: any stray overflowing element shouldn't create a body-level
+   horizontal scrollbar on mobile. `overflow-x: clip` is preferred over
+   `hidden` because it doesn't establish a new scroll container, so position:
+   sticky on the header still works. */
+html { overflow-x: clip; }
+body { overflow-x: clip; max-width: 100%; }
 body {
   font-family: var(--font-sans);
   color: var(--color-ink);
@@ -64,6 +70,21 @@ body {
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; }
 ::selection { background: var(--color-mint); color: var(--color-ink); }
+
+/* Mobile tap behavior: kill the 300ms double-tap delay and customize the
+   tap-highlight so taps feel responsive on iOS / Android. Any non-text node
+   nested inside an interactive element gets pointer-events:none so a touch
+   anywhere inside the button/link counts as a touch on the element itself.
+   This addresses the iOS quirk where taps on inner SVGs (or wrapper spans
+   that contain the SVG, like FAQ's `.plus` circle) get routed to the inner
+   element and never bubble up as a click on the parent button. */
+a, button, [role="button"], [role="tab"], summary, label {
+  -webkit-tap-highlight-color: rgba(0, 242, 155, 0.18);
+  touch-action: manipulation;
+}
+a svg, button svg, [role="button"] svg, [role="tab"] svg,
+button > .plus, button > .checkbox { pointer-events: none; }
+
 
 /* Layout container */
 .container {
@@ -163,6 +184,26 @@ button { font-family: inherit; }
 
 @media (max-width: 880px) {
   .nav .navLink:not(.navLink--status) { display: none; }
+  .headerInner { gap: 12px; }
+  .brand { min-width: 0; }
+  .brand .wordmark { font-size: 16px; }
+}
+@media (max-width: 560px) {
+  .brand .by { display: none; }
+  .nav { gap: 0; }
+  .navLink { padding: 8px 8px; }
+  .headerCTA {
+    height: 36px;
+    padding: 0 12px;
+    font-size: 13px;
+    gap: 6px;
+  }
+  .headerCTA svg { width: 12px; height: 12px; }
+}
+@media (max-width: 380px) {
+  .navLink--status { padding: 8px 6px; font-size: 11px; }
+  .headerCTA { padding: 0 10px; }
+  .headerCTA svg { display: none; }
 }
 
 /* ========== HERO ========== */
@@ -198,11 +239,17 @@ button { font-family: inherit; }
   margin-bottom: 24px;
 }
 .heroKicker .kdot {
+  display: inline-block;
   width: 6px; height: 6px; border-radius: 50%;
   background: var(--color-mint);
   box-shadow: 0 0 0 0 rgba(0,242,155,0.7);
   animation: pulseMint 2s ease-out infinite;
+  vertical-align: middle;
+  margin-right: 10px;
+  /* Match the prior flex-gap spacing visually. The dot sits inline with the
+     first line of text, so wrapping never orphans it onto its own row. */
 }
+.heroKicker .kText { display: inline; }
 @keyframes pulseMint {
   0%   { box-shadow: 0 0 0 0 rgba(0,242,155,0.55); }
   70%  { box-shadow: 0 0 0 8px rgba(0,242,155,0); }
@@ -617,6 +664,8 @@ h2.sectionTitle {
   padding: 12px 16px;
   border-bottom: 1px solid rgba(255,255,255,0.10);
   background: #111;
+  position: relative;
+  z-index: 2;
 }
 .codeBar .dots { display: flex; gap: 6px; }
 .codeBar .dots span { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.18); }
@@ -649,7 +698,10 @@ h2.sectionTitle {
   padding: 8px 16px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
   background: #0e0e0e;
+  position: relative;
+  z-index: 2;
 }
+
 .codeTab {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -804,11 +856,17 @@ pre.code {
 .faqGrid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 64px; align-items: start; }
 @media (max-width: 880px) { .faqGrid { grid-template-columns: 1fr; gap: 32px; } }
 .faqList { display: flex; flex-direction: column; }
+/* `.faqItem` is now a `<details>` element. Native browser open/close — no JS
+   needed. We hide the default disclosure marker so the design uses our own
+   `.plus` circle instead. */
 .faqItem {
   border-top: 1px solid var(--color-border-subtle);
   padding: 20px 0;
 }
 .faqItem:last-child { border-bottom: 1px solid var(--color-border-subtle); }
+.faqItem > summary { list-style: none; }
+.faqItem > summary::-webkit-details-marker { display: none; }
+
 .faqQ {
   width: 100%;
   background: transparent;
@@ -825,6 +883,8 @@ pre.code {
   letter-spacing: -0.01em;
   color: var(--color-ink);
   padding: 4px 0;
+  position: relative;
+  z-index: 1;
 }
 .faqQ .plus {
   width: 24px; height: 24px;
@@ -835,13 +895,15 @@ pre.code {
   flex-shrink: 0;
   transition: background 120ms ease, transform 200ms ease;
 }
-.faqItem.open .faqQ .plus { transform: rotate(45deg); background: var(--color-mint); border-color: var(--color-mint); }
+.faqItem[open] .faqQ .plus { transform: rotate(45deg); background: var(--color-mint); border-color: var(--color-mint); }
 .faqA {
-  overflow: hidden;
-  max-height: 0;
-  transition: max-height 220ms ease, padding 220ms ease;
+  /* The browser shows / hides this when `<details>` toggles `open`. Keep a
+     soft transition feel via padding. We can't transition to/from
+     `display: none`, but the natural snap looks fine and is reliable. */
+  padding-top: 0;
+  transition: padding 220ms ease;
 }
-.faqItem.open .faqA { max-height: 500px; padding-top: 12px; }
+.faqItem[open] .faqA { padding-top: 12px; }
 .faqA p {
   margin: 0;
   color: var(--color-ink-subtle);
@@ -987,6 +1049,90 @@ pre.code {
   align-items: center;
 }
 .phoneBody { flex: 1; padding: 8px 20px 16px; overflow: hidden; }
+
+/* Pure-CSS cycle through the three phone screens. Each `.phStep` overlays
+   the body and is hidden by default; keyframes flip its visibility for a
+   slice of an 11s loop. No JS needed — the animation runs the moment the
+   browser parses the CSS, regardless of whether React hydrates.
+
+   Timeline (11s total):
+     0.0 –  3.5s  →  Step 1 (sign-in, with typing animation)
+     3.5 –  6.0s  →  Step 2 (approving)
+     6.0 – 11.0s  →  Step 3 (wallet)
+   `forwards` keeps the final frame's visibility:hidden until the loop
+   restarts, so two screens never overlap. */
+.phoneBody--cycle { position: relative; }
+.phStep {
+  position: absolute;
+  inset: 8px 20px 16px;
+  opacity: 0;
+  visibility: hidden;
+  animation: phStepCycle 11s linear infinite;
+}
+.phStep--1 { animation-name: phStep1; }
+.phStep--2 { animation-name: phStep2; }
+.phStep--3 { animation-name: phStep3; }
+
+@keyframes phStep1 {
+  0%       { opacity: 0; visibility: hidden; }
+  1%       { opacity: 1; visibility: visible; }
+  31.8%    { opacity: 1; visibility: visible; }
+  32.7%    { opacity: 0; visibility: hidden; }
+  100%     { opacity: 0; visibility: hidden; }
+}
+@keyframes phStep2 {
+  0%, 31.8%   { opacity: 0; visibility: hidden; }
+  32.7%       { opacity: 1; visibility: visible; }
+  54.5%       { opacity: 1; visibility: visible; }
+  55.5%       { opacity: 0; visibility: hidden; }
+  100%        { opacity: 0; visibility: hidden; }
+}
+@keyframes phStep3 {
+  0%, 54.5%   { opacity: 0; visibility: hidden; }
+  55.5%       { opacity: 1; visibility: visible; }
+  99%         { opacity: 1; visibility: visible; }
+  100%        { opacity: 0; visibility: hidden; }
+}
+
+/* Step indicator dots — light up the active dot in sync with the cycle. */
+.phDot--1, .phDot--2, .phDot--3 {
+  animation: phDotCycle 11s linear infinite;
+}
+.phDot--1 { animation-name: phDot1; }
+.phDot--2 { animation-name: phDot2; }
+.phDot--3 { animation-name: phDot3; }
+@keyframes phDot1 {
+  0%, 31.8%   { width: 16px; background: var(--color-ink); border-radius: 100px; }
+  32.7%, 100% { width: 5px; background: var(--color-border-subtle); border-radius: 50%; }
+}
+@keyframes phDot2 {
+  0%, 31.8%   { width: 5px; background: var(--color-border-subtle); border-radius: 50%; }
+  32.7%, 54.5% { width: 16px; background: var(--color-ink); border-radius: 100px; }
+  55.5%, 100% { width: 5px; background: var(--color-border-subtle); border-radius: 50%; }
+}
+@keyframes phDot3 {
+  0%, 54.5%   { width: 5px; background: var(--color-border-subtle); border-radius: 50%; }
+  55.5%, 100% { width: 16px; background: var(--color-ink); border-radius: 100px; }
+}
+
+/* Email typing animation — synced with step 1's visible window. The text is
+   inside `.scInput`, which uses overflow:hidden + a width that animates
+   from 0 → its content width over the typing duration. `ch` units make the
+   width match the character count exactly. */
+.scInputType {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+  width: 0;
+  animation: typeEmail 11s steps(17, end) infinite;
+}
+@keyframes typeEmail {
+  0%       { width: 0; }
+  10%      { width: 17ch; }
+  31%      { width: 17ch; }
+  32%, 100% { width: 0; }
+}
 .phoneDots { display: flex; gap: 6px; justify-content: center; padding: 8px 0 14px; }
 .pd { width: 5px; height: 5px; border-radius: 50%; background: var(--color-border-subtle); transition: all 200ms ease; }
 .pdActive { width: 16px; background: var(--color-ink); border-radius: 100px; }
@@ -1255,6 +1401,9 @@ pre.code {
 .dashSection {
   padding: 40px 0;
   border-bottom: 1px solid var(--color-border);
+  /* No overflow-x clip here — it would chop off uptime-bar tooltips that
+     anchor outside the section bounds. The body already has `overflow-x:
+     clip` so a misbehaving cell can't pump the page-level scrollbar. */
 }
 .dashSection--alt { background: var(--color-surface-muted); }
 .dashSection:last-of-type { border-bottom: 0; }
@@ -1305,6 +1454,10 @@ pre.code {
   display: flex;
   flex-direction: column;
   gap: 18px;
+  /* Grid child — let inner content (long account ids, code hashes, the
+     uptime sparkline) decide their own overflow rather than expanding the
+     card past the screen on mobile. */
+  min-width: 0;
 }
 .healthCardHead {
   display: flex;
@@ -1399,17 +1552,36 @@ pre.code {
   gap: 2px;
   height: 24px;
 }
-.uptimeSeg { display: block; border-radius: 2px; }
+.uptimeSeg {
+  display: block;
+  border-radius: 2px;
+  /* Reset the default <button> chrome so segments still look like a sparkline. */
+  appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  font: inherit;
+  cursor: pointer;
+}
 .uptimeSeg--ok   { background: var(--color-mint); }
 .uptimeSeg--warn { background: var(--color-status-warn); }
 .uptimeSeg--err  { background: var(--color-status-err); }
 
-/* Hover tooltip on each hourly bucket. Mirrors the dashboard's MPC liveness
-   heatmap pattern — `data-tooltip` content rendered via ::after, native
-   `title` kept as a touch / accessibility fallback. */
-.uptimeSeg { position: relative; cursor: default; }
-.uptimeSeg:hover { filter: brightness(1.08); }
-.uptimeSeg:hover::after {
+/* Hover/focus tooltip on each hourly bucket. Mirrors the dashboard's MPC
+   liveness heatmap pattern — `data-tooltip` content rendered via ::after,
+   native `title` kept as a touch / accessibility fallback. The segment is a
+   real <button> so mobile taps focus it; both :hover (desktop) and :focus /
+   :active (touch) reveal the tooltip. */
+.uptimeSeg { position: relative; }
+.uptimeSeg:hover,
+.uptimeSeg:focus,
+.uptimeSeg:active { filter: brightness(1.12); }
+.uptimeSeg:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
+.uptimeSeg:hover::after,
+.uptimeSeg:focus::after,
+.uptimeSeg:active::after {
   content: attr(data-tooltip);
   position: absolute;
   top: calc(100% + 6px);
@@ -1423,12 +1595,18 @@ pre.code {
   font-size: 11px;
   line-height: 1.3;
   white-space: nowrap;
+  /* Cap the tooltip at the viewport so it can never extend off-screen, and
+     allow it to wrap when the no-wrap width would overflow. */
+  max-width: min(260px, calc(100vw - 24px));
+  text-align: center;
   z-index: 10;
   pointer-events: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
   letter-spacing: 0.02em;
 }
-.uptimeSeg:hover::before {
+.uptimeSeg:hover::before,
+.uptimeSeg:focus::before,
+.uptimeSeg:active::before {
   content: "";
   position: absolute;
   top: 100%;
@@ -1438,6 +1616,55 @@ pre.code {
   border-bottom-color: var(--color-ink);
   pointer-events: none;
   z-index: 10;
+}
+
+/* Edge anchoring: 24 segments per bar. For the first 4 segments the
+   centered tooltip would underflow on the left; for the last 4 it would
+   overflow on the right. Re-anchor those to the corresponding edge of the
+   segment so the bubble stays inside the bar's track. The arrow stays
+   centered on the segment in all cases so it still points at the bar. */
+.uptimeSeg:nth-child(-n+4):hover::after,
+.uptimeSeg:nth-child(-n+4):focus::after,
+.uptimeSeg:nth-child(-n+4):active::after {
+  left: 0;
+  right: auto;
+  transform: translateX(0);
+}
+.uptimeSeg:nth-child(n+21):hover::after,
+.uptimeSeg:nth-child(n+21):focus::after,
+.uptimeSeg:nth-child(n+21):active::after {
+  left: auto;
+  right: 0;
+  transform: translateX(0);
+}
+
+/* On narrow viewports, allow the tooltip to wrap onto multiple lines instead
+   of trying to fit a 35-character timestamp on one line. Also widen the
+   edge-anchoring window: with the bar narrower on mobile, even segments
+   well into the middle cannot fit a centered tooltip. Anchor the first
+   half of segments to the left edge of the segment, the second half to
+   the right edge — that way the tooltip always grows inward. */
+@media (max-width: 720px) {
+  .uptimeSeg:hover::after,
+  .uptimeSeg:focus::after,
+  .uptimeSeg:active::after {
+    white-space: normal;
+    max-width: min(220px, calc(100vw - 32px));
+  }
+  .uptimeSeg:nth-child(-n+12):hover::after,
+  .uptimeSeg:nth-child(-n+12):focus::after,
+  .uptimeSeg:nth-child(-n+12):active::after {
+    left: 0;
+    right: auto;
+    transform: translateX(0);
+  }
+  .uptimeSeg:nth-child(n+13):hover::after,
+  .uptimeSeg:nth-child(n+13):focus::after,
+  .uptimeSeg:nth-child(n+13):active::after {
+    left: auto;
+    right: 0;
+    transform: translateX(0);
+  }
 }
 
 /* nearblocks.io outbound links inside status tables. Subtle until hover so
@@ -1470,6 +1697,9 @@ pre.code {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  /* Grid child — `min-width: 0` so the inner `.dashTable` can scroll
+     horizontally instead of forcing the panel to overflow the screen. */
+  min-width: 0;
 }
 .overviewHead {
   display: flex;
@@ -1541,6 +1771,15 @@ pre.code {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   overflow: hidden;
+  /* Cells use white-space: nowrap, so the table can outgrow narrow viewports.
+     Allow the table itself to scroll horizontally so the page doesn't. The
+     `min-width: 0` is critical when this lives inside a flex/grid parent —
+     without it the child defaults to `min-width: auto` (intrinsic content
+     width), which makes the parent grow rather than the table scroll. */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  min-width: 0;
+  max-width: 100%;
 }
 .dashTable--scroll { overflow: auto; }
 .dashTable table { width: 100%; border-collapse: collapse; }
@@ -1669,7 +1908,14 @@ pre.code {
   margin-bottom: 14px;
   border-bottom: 1px solid var(--color-border);
   flex-wrap: wrap;
+  /* Ensure the tab row always wins iOS hit-testing against the adjacent
+     `.dashTable` overflow-scroll container that follows it. Without an
+     explicit stacking context, taps near the bottom edge of a tab can be
+     captured by the table's scroll region instead of the button. */
+  position: relative;
+  z-index: 1;
 }
+
 .tabBtn {
   appearance: none;
   background: transparent;
@@ -1740,6 +1986,11 @@ pre.code {
   margin-top: 14px;
   padding: 8px 4px;
   flex-wrap: wrap;
+  /* Same defense as `.tabBar`: pagination sits right under a `.dashTable`
+     scroll region. Stack it on top so iOS routes taps to the buttons, not
+     the scroll container above. */
+  position: relative;
+  z-index: 1;
 }
 .paginationCount {
   font-family: var(--font-mono);
@@ -1924,4 +2175,232 @@ pre.code {
   color: var(--color-ink-subtle);
   line-height: 18px;
   max-width: 360px;
+}
+
+/* =========================================================================
+   Mobile responsive — overflow guards
+   ========================================================================= */
+
+/* Hero kicker: on narrow viewports cap the pill width to its column so the
+   inline text inside (.kText) wraps onto multiple lines. The dot now lives
+   inside .kText as an inline-block, so it always sits with the first line.
+   Bump padding so the dot's 8px pulse glow has clearance from the pill edge. */
+@media (max-width: 480px) {
+  .heroKicker {
+    max-width: 100%;
+    line-height: 1.4;
+    padding: 10px 18px;
+  }
+  .heroKicker .kdot {
+    margin-left: 2px;
+  }
+}
+
+/* healthMeta rows: 160px label + 1fr value cramps long codes/numbers on
+   small screens. Stack label above value below 720px. */
+@media (max-width: 720px) {
+  .healthMeta > div {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 12px 0;
+  }
+  .healthMeta dd { font-size: 13px; }
+}
+
+/* failureRow: 1fr column with non-breaking <code> account IDs needs an
+   explicit min-width: 0 + break opportunity to prevent overflow. */
+@media (max-width: 1080px) {
+  .failureRow > * { min-width: 0; }
+  .failureExecutor code,
+  .failureReason,
+  .failureMethod code {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+  .failureTx { text-align: left; }
+}
+
+/* Contracts: drop the 280px min-width on small screens — the dashTable wraps
+   it in a horizontal scroll container, but very narrow viewports don't need
+   the cell forced wider. */
+@media (max-width: 480px) {
+  .contractCell { min-width: 0; }
+}
+
+/* Status — touch targets. Pagination + tab buttons default to 28px / 36px tall
+   which is below the 44px iOS / 48dp Android touch-target minimum. Bump on
+   mobile so they're comfortably tappable. */
+@media (max-width: 720px) {
+  .pageBtn {
+    min-width: 40px;
+    height: 40px;
+    font-size: 13px;
+    padding: 0 10px;
+  }
+  .paginationBtns { gap: 6px; flex-wrap: wrap; }
+  .pagination { gap: 12px; }
+
+  .tabBtn {
+    padding: 12px 14px;
+    font-size: 14px;
+    min-height: 44px;
+  }
+  .tabBar { gap: 0 4px; }
+  .tabBarNote { margin-left: 0; padding: 0; width: 100%; }
+}
+
+/* Status — visible scrollbar on mobile so tables that overflow horizontally
+   are obviously scrollable. iOS hides scrollbars by default, so we keep a
+   thin always-visible track on touch widths. */
+@media (max-width: 720px) {
+  .dashTable {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border-subtle) transparent;
+  }
+  .dashTable::-webkit-scrollbar { height: 6px; }
+  .dashTable::-webkit-scrollbar-thumb {
+    background: var(--color-border-subtle);
+    border-radius: 3px;
+  }
+  .dashTable::-webkit-scrollbar-track { background: transparent; }
+}
+
+/* Activity component — the tabBarNote ("Pending excluded") was using
+   margin-left: auto which on wrapped flex tabs ends up oddly placed. Reset
+   above. Also ensure the kpiTileRow doesn't overflow when 4 columns crush. */
+@media (max-width: 480px) {
+  .kpiTileRow--four { grid-template-columns: repeat(2, 1fr); }
+  .kpiTileRow--four .kpiTile:nth-child(2n) { border-right: 0; }
+  .kpiTileRow--four .kpiTile:nth-child(-n+2) { border-bottom: 1px solid var(--color-border); }
+}
+
+/* Status banner: the BannerStat row uses `repeat(2, auto)` at 720px, which
+   can still overflow with long values (`12,345,678` etc). Force fixed
+   2-column grid so values can wrap their codes. */
+@media (max-width: 480px) {
+  .statusBannerRight {
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 12px 16px;
+  }
+  .statusBanner > .container { gap: 16px; }
+  .bannerStat { padding-left: 12px; }
+  .bannerStatValue { font-size: 18px; }
+}
+
+/* =========================================================================
+   Mobile tap targets — bring small / inline interactive elements up to the
+   ~44px iOS / 48dp Android minimum so they're reliably tappable. Apply only
+   on touch-capable / narrow viewports; on desktop the dense compact styles
+   stay (tap targets there are mouse-driven, not finger-driven).
+   ========================================================================= */
+@media (max-width: 720px) {
+  /* Header nav: nav links are pill-shaped tap targets; bump to 40px to give
+     the finger a comfortable hit area without expanding the 64px header. */
+  .navLink {
+    min-height: 40px;
+    padding: 8px 12px;
+  }
+  .headerCTA {
+    height: 44px;
+    padding: 0 16px;
+    font-size: 14px;
+  }
+
+  /* Hero audit pill: was ~26px tall, well below the 44px minimum. Bump
+     padding so the whole pill is comfortably tappable. */
+  .heroMeta .auditPill {
+    min-height: 40px;
+    padding: 8px 14px;
+  }
+
+  /* Stats link ("View full status dashboard") was a bare underlined inline
+     run with 2px bottom padding — pad it into a real tappable row. */
+  .statsLink {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    padding: 8px 0;
+  }
+
+  /* Footer column links: render as block tap rows with vertical padding
+     and full-row width so the entire row is the tap target. */
+  .footerCol ul { gap: 4px; }
+  .footerCol a {
+    display: block;
+    padding: 10px 0;
+    min-height: 40px;
+  }
+  .footerBottom { gap: 12px; }
+  .footerBottom .pill {
+    padding: 8px 12px;
+    min-height: 32px;
+  }
+
+  /* FAQ row: clicking anywhere on the question collapses/expands. Bump
+     vertical padding so there's a clear ~48px target including the chevron. */
+  .faqQ { min-height: 48px; padding: 10px 0; }
+  .faqItem { padding: 16px 0; }
+
+  /* Developer code card — copy button + tabs were tiny. Bump on mobile. */
+  .codeBar { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
+  .codeBar .copy {
+    min-height: 36px;
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+  .codeTabs {
+    padding: 8px;
+    flex-wrap: wrap;
+    /* No `overflow-x: auto` — making this a scroll container on iOS routes
+       taps to the scroller and swallows the button click. With wrap on, the
+       3 tabs stack onto 2 rows on the narrowest screens, which is fine. */
+  }
+  .codeTab {
+    min-height: 40px;
+    padding: 10px 14px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* Inline explorer links inside dense status tables: padded to ~36px so
+     the tap area covers more than the underlined text run. Keeps the dense
+     layout but gives the finger something to land on. */
+  .explorerLink {
+    display: inline-block;
+    padding: 6px 0;
+    border-bottom-width: 1px;
+  }
+
+  /* Audit banner CTA: pad up to a full tap row. */
+  .auditBanner .cta {
+    min-height: 44px;
+    padding: 12px 20px;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Smallest screens — the headerCTA dropped to 36px tall on <380px which is
+   below the touch minimum. Keep it visually tight but clickable. */
+@media (max-width: 380px) {
+  .headerCTA {
+    height: 40px;
+    padding: 0 12px;
+  }
+  .navLink--status { min-height: 40px; padding: 8px 8px; }
+}
+
+/* PhoneHero is purely decorative — every "button" inside (Continue / OAuth /
+   wallet actions) is a static visual prop with no handler. Make sure mobile
+   users don't waste taps on them: kill the pointer cursor and disable touch
+   handling so the surrounding hero CTAs are the obvious tap targets. */
+.phoneScreen button,
+.phoneScreen .scPrimary,
+.phoneScreen .scOauth,
+.phoneScreen .walActions button {
+  cursor: default;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
 }

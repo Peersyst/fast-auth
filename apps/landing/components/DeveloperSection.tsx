@@ -98,12 +98,53 @@ const TAB_LABEL: Record<Tab, string> = {
   interface: "Interface",
 };
 
+const TABS: Tab[] = ["provider", "hooks", "interface"];
+
+// Copy to clipboard with a fallback for insecure contexts. The modern
+// `navigator.clipboard` API only works on https:// or localhost — on a plain
+// http://192.168.x.x dev URL (mobile testing over LAN), Safari rejects it
+// silently. The textarea + execCommand path is deprecated but still works
+// everywhere as a fallback for those non-secure origins.
+function copyToClipboard(text: string): boolean {
+  if (
+    typeof navigator !== "undefined" &&
+    navigator.clipboard?.writeText &&
+    window.isSecureContext
+  ) {
+    navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    return true;
+  }
+  return fallbackCopy(text);
+}
+
+function fallbackCopy(text: string): boolean {
+  if (typeof document === "undefined") return false;
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.setAttribute("readonly", "");
+  ta.style.position = "fixed";
+  ta.style.top = "0";
+  ta.style.left = "0";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch {
+    ok = false;
+  }
+  document.body.removeChild(ta);
+  return ok;
+}
+
 export default function DeveloperSection({ docsHref }: { docsHref: string }) {
   const [tab, setTab] = useState<Tab>("provider");
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard?.writeText(SNIPPETS[tab]);
+    copyToClipboard(SNIPPETS[tab]);
     setCopied(true);
     setTimeout(() => setCopied(false), 1200);
   };
@@ -179,14 +220,21 @@ export default function DeveloperSection({ docsHref }: { docsHref: string }) {
             <div className="codeBar">
               <div className="dots"><span /><span /><span /></div>
               <span className="file">{TAB_FILE[tab]}</span>
-              <button className={"copy " + (copied ? "copied" : "")} onClick={handleCopy}>
+              <button
+                type="button"
+                className={"copy " + (copied ? "copied" : "")}
+                onClick={handleCopy}
+              >
                 {copied ? "✓ Copied" : "Copy"}
               </button>
             </div>
-            <div className="codeTabs">
-              {(["provider", "hooks", "interface"] as Tab[]).map((t) => (
+            <div className="codeTabs" role="tablist">
+              {TABS.map((t) => (
                 <button
+                  type="button"
                   key={t}
+                  role="tab"
+                  aria-selected={tab === t}
                   className={"codeTab " + (tab === t ? "active" : "")}
                   onClick={() => setTab(t)}
                 >

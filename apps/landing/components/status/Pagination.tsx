@@ -21,6 +21,7 @@ export default function Pagination({ page, pages, total, pageSize, onChange }: P
       </span>
       <div className="paginationBtns">
         <button
+          type="button"
           className="pageBtn"
           onClick={() => onChange(Math.max(0, page - 1))}
           disabled={page === 0}
@@ -30,6 +31,7 @@ export default function Pagination({ page, pages, total, pageSize, onChange }: P
         </button>
         {Array.from({ length: pages }, (_, i) => (
           <button
+            type="button"
             key={i}
             className={`pageBtn${i === page ? " pageBtn--on" : ""}`}
             onClick={() => onChange(i)}
@@ -39,6 +41,7 @@ export default function Pagination({ page, pages, total, pageSize, onChange }: P
           </button>
         ))}
         <button
+          type="button"
           className="pageBtn"
           onClick={() => onChange(Math.min(pages - 1, page + 1))}
           disabled={page === pages - 1}

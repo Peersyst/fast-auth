@@ -1,6 +1,7 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
+// PhoneHero — pure CSS animation. All three screens are rendered at all
+// times; CSS keyframes cycle which one is visible. Zero JS state, zero React
+// effects, zero hydration dependency. The animation runs the moment the
+// HTML+CSS reaches the browser, regardless of whether React loads.
 import {
   AppleIcon,
   ArrowDown,
@@ -18,36 +19,8 @@ import {
 const TARGET_EMAIL = "alex@protocol.dev";
 
 export default function PhoneHero() {
-  const [step, setStep] = useState(0);
-  const [email, setEmail] = useState("");
-  const typingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (step === 0) {
-      let i = 0;
-      setEmail("");
-      typingRef.current = setInterval(() => {
-        i++;
-        setEmail(TARGET_EMAIL.slice(0, i));
-        if (i >= TARGET_EMAIL.length) {
-          if (typingRef.current) clearInterval(typingRef.current);
-          setTimeout(() => setStep(1), 900);
-        }
-      }, 70);
-      return () => {
-        if (typingRef.current) clearInterval(typingRef.current);
-      };
-    }
-    if (step === 1) {
-      const t = setTimeout(() => setStep(2), 2200);
-      return () => clearTimeout(t);
-    }
-    const t = setTimeout(() => setStep(0), 3800);
-    return () => clearTimeout(t);
-  }, [step]);
-
   return (
-    <div className="phoneWrap">
+    <div className="phoneWrap" aria-hidden="true">
       <div className="phone">
         <div className="phoneNotch" />
         <div className="phoneScreen">
@@ -60,16 +33,16 @@ export default function PhoneHero() {
             </span>
           </div>
 
-          <div className="phoneBody">
-            {step === 0 && <SignInScreen email={email} />}
-            {step === 1 && <ApprovingScreen />}
-            {step === 2 && <WalletScreen />}
+          <div className="phoneBody phoneBody--cycle">
+            <div className="phStep phStep--1"><SignInScreen /></div>
+            <div className="phStep phStep--2"><ApprovingScreen /></div>
+            <div className="phStep phStep--3"><WalletScreen /></div>
           </div>
 
           <div className="phoneDots">
-            {[0, 1, 2].map((i) => (
-              <span key={i} className={"pd " + (i === step ? "pdActive" : "")} />
-            ))}
+            <span className="pd phDot--1" />
+            <span className="pd phDot--2" />
+            <span className="pd phDot--3" />
           </div>
         </div>
       </div>
@@ -91,7 +64,7 @@ export default function PhoneHero() {
   );
 }
 
-function SignInScreen({ email }: { email: string }) {
+function SignInScreen() {
   return (
     <div className="sc">
       <div className="scHead">
@@ -105,19 +78,22 @@ function SignInScreen({ email }: { email: string }) {
       <div className="scField">
         <label>Email</label>
         <div className="scInput">
-          <span>{email}</span>
-          {email.length < 18 && <span className="caret" />}
+          {/* CSS animates `width` from 0 → 100% over the typing window so
+              the email reveals char-by-char. The caret span sits to the
+              right and blinks via its own keyframe. */}
+          <span className="scInputType">{TARGET_EMAIL}</span>
+          <span className="caret" />
         </div>
       </div>
 
-      <button className="scPrimary">Continue</button>
+      <button className="scPrimary" type="button" tabIndex={-1}>Continue</button>
 
       <div className="scDivider"><span>or</span></div>
 
-      <button className="scOauth">
+      <button className="scOauth" type="button" tabIndex={-1}>
         <GoogleIcon /> Continue with Google
       </button>
-      <button className="scOauth">
+      <button className="scOauth" type="button" tabIndex={-1}>
         <AppleIcon /> Continue with Apple
       </button>
 
@@ -163,9 +139,9 @@ function WalletScreen() {
       </div>
 
       <div className="walActions">
-        <button><SendIcon /> Send</button>
-        <button><RecvIcon /> Receive</button>
-        <button><SwapIcon /> Swap</button>
+        <button type="button" tabIndex={-1}><SendIcon /> Send</button>
+        <button type="button" tabIndex={-1}><RecvIcon /> Receive</button>
+        <button type="button" tabIndex={-1}><SwapIcon /> Swap</button>
       </div>
 
       <div className="walSection">Recent</div>

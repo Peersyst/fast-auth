@@ -5,8 +5,9 @@ import { useState } from "react";
 import type { StatusData } from "@/lib/status";
 import NearblocksLink from "./NearblocksLink";
 import Pagination from "./Pagination";
+import RelativeTime from "./RelativeTime";
 import SectionLabel from "./SectionLabel";
-import { fmtAbsolute, relativeTime, shortHash } from "./format";
+import { fmtAbsolute, shortHash } from "./format";
 
 const PAGE_SIZE = 8;
 const KIND_LABEL: Record<string, string> = {
@@ -43,7 +44,7 @@ export default function Failures({ data }: { data: StatusData }) {
           {slice.map((f, i) => (
             <div key={start + i} className="failureRow">
               <span className="failureWhen" title={fmtAbsolute(f.at)}>
-                {relativeTime(f.at)}
+                <RelativeTime iso={f.at} />
               </span>
               <span className={`failureKind failureKind--${f.kind}`}>
                 {KIND_LABEL[f.kind] || f.kind}

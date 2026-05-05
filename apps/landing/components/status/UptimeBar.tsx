@@ -24,11 +24,13 @@ export default function UptimeBar({ data, label, coverage, anchor }: Props) {
             ? buildTooltip(v, anchorMs - (data.length - 1 - i) * 3_600_000)
             : `${v.toFixed(2)}%`;
           return (
-            <span
+            <button
+              type="button"
               key={i}
               className={`uptimeSeg uptimeSeg--${tone}`}
               data-tooltip={tooltip}
               title={tooltip}
+              aria-label={tooltip}
             />
           );
         })}
@@ -40,8 +42,21 @@ export default function UptimeBar({ data, label, coverage, anchor }: Props) {
 function buildTooltip(pct: number, bucketEndMs: number): string {
   const start = new Date(bucketEndMs - 3_600_000);
   const end = new Date(bucketEndMs);
+  // Always format in UTC + en-GB so the string is identical on server and
+  // client. `undefined` locale + no timezone would fall back to the runtime
+  // defaults — different between Node.js (server) and the user's mobile
+  // browser, which causes a hydration mismatch on the data-tooltip / title
+  // attributes that React's hydration check then bails on.
   const fmt = (d: Date) =>
-    d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-  const day = start.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-  return `${day} ${fmt(start)}–${fmt(end)} • ${pct.toFixed(2)}% uptime`;
+    d.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "UTC",
+    });
+  const day = start.toLocaleDateString("en-GB", {
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
+  return `${day} ${fmt(start)}–${fmt(end)} UTC • ${pct.toFixed(2)}% uptime`;
 }

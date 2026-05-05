@@ -7,7 +7,22 @@ import { ArrowRight } from "./icons";
 
 type Props = { metrics: LiveMetrics | null; statusHref: string };
 
-const NUMBER_FMT = new Intl.NumberFormat("en-US");
+// Manual thousands-separator formatting. `Intl.NumberFormat` can emit
+// invisible characters (LTR marks, narrow no-break spaces) that differ
+// between Node.js and the browser, causing hydration mismatches on the
+// number-rendering text in this client component.
+const NUMBER_FMT = {
+  format(n: number): string {
+    const s = String(Math.trunc(n));
+    const negative = s.startsWith("-");
+    const body = negative ? s.slice(1) : s;
+    const groups: string[] = [];
+    for (let i = body.length; i > 0; i -= 3) {
+      groups.unshift(body.slice(Math.max(0, i - 3), i));
+    }
+    return (negative ? "-" : "") + groups.join(",");
+  },
+};
 
 export default function Stats({ metrics, statusHref }: Props) {
   const updatedLabel = useFreshnessLabel(metrics?.fetchedAt ?? null);
@@ -40,13 +55,13 @@ export default function Stats({ metrics, statusHref }: Props) {
           </article>
 
           <article className="statCard">
-            <h3>Active (24h)</h3>
+            <h3>Active (30d)</h3>
             <p className="v">{formatNumber(metrics?.accounts.active30d)}</p>
             <span className="delta">{formatWeeklyContext(metrics?.accounts.active7d)}</span>
           </article>
 
           <article className="statCard">
-            <h3>Sign events (7d)</h3>
+            <h3>Sign events (30d)</h3>
             <p className="v">{formatNumber(metrics?.signEvents.last30d)}</p>
             <span className="delta">{formatRelayers(metrics?.relayers.total)}</span>
           </article>
@@ -99,7 +114,13 @@ function formatUptimeWindow(classified: number | undefined | null): string {
 }
 
 function useFreshnessLabel(iso: string | null): string {
-  const [label, setLabel] = useState<string>(() => fmtAge(iso));
+  // Initialize with a deterministic placeholder so server and client agree on
+  // first render. Computing `fmtAge(iso)` at useState time uses `Date.now()`,
+  // which differs between SSR and hydration — that mismatches the text
+  // content and forces React to recover, sometimes leaving the surrounding
+  // tree's effects unbound on slower mobile devices. We patch the real value
+  // in via useEffect after mount.
+  const [label, setLabel] = useState<string>("—");
 
   useEffect(() => {
     if (!iso) return;
