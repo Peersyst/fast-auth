@@ -57,4 +57,16 @@ spec:
                 port:
                   name: use-annotation
           {{- end }}
+    {{- if .Values.landing.enabled }}
+    - host: auth.near.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: landing-{{ .Values.environment }}
+                port:
+                  name: use-annotation
+    {{- end }}
 {{- end }}
