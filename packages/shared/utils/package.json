@@ -24,7 +24,7 @@
         "@shared/tsconfig": "workspace:*",
         "@shared/tsup": "workspace:*",
         "@types/jest": "^29.5.13",
-        "@types/node": "^22.15.30",
+        "@types/node": "latest",
         "@types/validator": "^13.12.1",
         "jest": "^29.7.0",
         "typescript": "^5.7.3",
