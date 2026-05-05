@@ -30,7 +30,7 @@ spec:
                   secretProviderClass: attester-{{ $.Values.environment }}-secrets-{{ $i }}
           containers:
             - name: attester
-              image: peersyst/fast-auth-attester:{{ $.Values.tagAttester }}
+              image: ghcr.io/peersyst/fast-auth-attester:{{ .Values.tagAttester }}
               resources:
                 requests:
                   memory: {{ $.Values.attester.cronjob.memoryRequest }}
