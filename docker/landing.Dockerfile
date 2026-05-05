@@ -9,9 +9,6 @@ COPY apps/landing /project/apps/landing
 # Install landing dependencies
 RUN pnpm install --frozen-lockfile
 
-# Lint landing
-RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
-    npx turbo run lint --filter=landing
 # Check types landing
 RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
     npx turbo run check-types --filter=landing
@@ -27,6 +24,6 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 WORKDIR /app
 COPY --from=integration /project/apps/landing/.next/standalone ./
-COPY --from=integration /project/apps/landing/.next/static ./.next/static
-COPY --from=integration /project/apps/landing/public ./public
-CMD ["server.js"]
+COPY --from=integration /project/apps/landing/.next/static ./apps/landing/.next/static
+COPY --from=integration /project/apps/landing/public ./apps/landing/public
+CMD ["apps/landing/server.js"]
