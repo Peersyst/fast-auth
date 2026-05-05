@@ -1,5 +1,5 @@
 {
-    "extends": "@shared/tsconfig/package",
+    "extends": "@shared/tsconfig/browser-package",
     "compilerOptions": {
         "outDir": "./dist",
         "lib": ["ES2022", "DOM"]
