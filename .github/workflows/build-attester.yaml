@@ -41,7 +41,7 @@ jobs:
       # Configure tag name
       - name: Sets env vars
         run: |
-          echo "DOCKER_IMAGE_NAME=${{ secrets.DOCKER_USERNAME }}/${{ github.event.repository.name }}-attester:${GITHUB_SHA:0:8}" >> $GITHUB_ENV
+          echo "DOCKER_IMAGE_NAME=${{ secrets.DOCKER_USERNAME || 'local' }}/${{ github.event.repository.name }}-attester:${GITHUB_SHA:0:8}" >> $GITHUB_ENV
 
       # Build docker image
       - name: Build docker image
