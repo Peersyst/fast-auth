@@ -637,8 +637,8 @@ importers:
         specifier: ^11.2.0
         version: 11.10.0
       jose:
-        specifier: ^6.0.11
-        version: 6.0.12
+        specifier: ^5.9.6
+        version: 5.10.0
       near-api-js:
         specifier: ^5.1.1
         version: 5.1.1
@@ -692,8 +692,8 @@ importers:
         specifier: ^6.6.1
         version: 6.6.1
       jose:
-        specifier: ^6.0.11
-        version: 6.0.12
+        specifier: ^5.9.6
+        version: 5.10.0
       near-api-js:
         specifier: ^5.1.1
         version: 5.1.1
@@ -738,8 +738,8 @@ importers:
         specifier: ^2.0.2
         version: 2.2.3(@near-js/crypto@1.4.2)(@near-js/types@0.3.1)(@near-js/utils@1.1.0)
       jose:
-        specifier: ^6.0.11
-        version: 6.0.12
+        specifier: ^5.9.6
+        version: 5.10.0
       near-api-js:
         specifier: ^4.0.4
         version: 4.0.4
@@ -799,8 +799,8 @@ importers:
         specifier: ^6.6.1
         version: 6.6.1
       jose:
-        specifier: ^6.0.11
-        version: 6.0.12
+        specifier: ^5.9.6
+        version: 5.10.0
       near-api-js:
         specifier: ^5.1.1
         version: 5.1.1
@@ -9017,6 +9017,9 @@ packages:
 
   joi@17.13.3:
     resolution: {integrity: sha512-otDA4ldcIx+ZXsKHWmp0YizCweVRZG96J10b0FevjfuncLO1oX59THoAmHkNubYJ+9gWsYsp5k8v4ib6oDv1fA==}
+
+  jose@5.10.0:
+    resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
 
   jose@6.0.12:
     resolution: {integrity: sha512-T8xypXs8CpmiIi78k0E+Lk7T2zlK4zDyg+o1CZ4AkOHgDg98ogdP2BeZ61lTFKFyoEwJ9RgAgN+SdM3iPgNonQ==}
@@ -24528,6 +24531,8 @@ snapshots:
       '@sideway/address': 4.1.5
       '@sideway/formula': 3.0.1
       '@sideway/pinpoint': 2.0.0
+
+  jose@5.10.0: {}
 
   jose@6.0.12: {}
 
