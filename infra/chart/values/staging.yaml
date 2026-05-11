@@ -102,7 +102,7 @@ attester:
 
 landing:
     enabled: true
-    metricsUrl: "https://fast-auth-metrics-dashboard.vercel.app/api/public/metrics"
+    metricsUrl: "https://fast-auth-indexer-api-api-production.up.railway.app/api/public/metrics"
     service:
         port: 3000
         targetPort: 3000
