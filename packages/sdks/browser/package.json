@@ -1,10 +1,15 @@
 {
     "name": "@fast-auth-near/browser-sdk",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "description": "",
     "main": "./dist/index.js",
+    "files": [
+        "dist",
+        "CHANGELOG.md",
+        "package.json"
+    ],
     "scripts": {
-        "build": "tsc",
+        "build": "tsc -p tsconfig.build.json",
         "lint": "eslint .",
         "test": "jest"
     },

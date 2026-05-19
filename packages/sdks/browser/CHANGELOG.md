@@ -1,5 +1,11 @@
 # @fast-auth-near/browser-sdk
 
+## 1.0.3
+
+### Patch Changes
+
+-   republish
+
 ## 1.0.2
 
 ### Patch Changes
