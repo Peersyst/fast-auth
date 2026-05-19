@@ -1,5 +1,11 @@
 # @fast-auth-near/react-sdk
 
+## 1.0.4
+
+### Patch Changes
+
+-   Removed jose and fixed type declarations
+
 ## 1.0.3
 
 ### Patch Changes
