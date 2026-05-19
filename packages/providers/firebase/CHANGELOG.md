@@ -1,5 +1,11 @@
 # @fast-auth-near/firebase-provider
 
+## 1.0.2
+
+### Patch Changes
+
+-   Republish
+
 ## 1.0.1
 
 ### Patch Changes
