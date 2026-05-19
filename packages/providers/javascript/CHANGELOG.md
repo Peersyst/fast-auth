@@ -1,5 +1,11 @@
 # @fast-auth-near/javascript-provider
 
+## 1.0.1
+
+### Patch Changes
+
+-   Republish packages
+
 ## 1.0.0
 
 ### Major Changes
