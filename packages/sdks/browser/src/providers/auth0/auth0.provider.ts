@@ -1,7 +1,7 @@
 import { Auth0Client } from "@auth0/auth0-spa-js";
 import { Auth0ProviderOptions, Auth0RequestDelegateActionSignatureOptions, Auth0RequestTransactionSignatureOptions } from "./auth0.types";
 import { encodeDelegateAction, encodeTransaction } from "./utils";
-import { decodeJwt } from "jose";
+import jwt_decode from "jwt-decode";
 import { SignatureRequest } from "../../signers";
 import { Auth0ProviderError } from "./auth0.errors";
 import { Auth0ProviderErrorCodes } from "./auth0.error-codes";
@@ -68,7 +68,7 @@ export class Auth0Provider implements IFastAuthProvider {
      */
     async getPath(): Promise<string> {
         const token = await this.client.getTokenSilently();
-        const { sub } = decodeJwt(token);
+        const { sub } = jwt_decode<{ sub?: string }>(token);
         if (!sub) {
             throw new Auth0ProviderError(Auth0ProviderErrorCodes.USER_NOT_LOGGED_IN);
         }
@@ -117,7 +117,7 @@ export class Auth0Provider implements IFastAuthProvider {
      */
     async getSignatureRequest(): Promise<SignatureRequest> {
         const token = await this.client.getTokenSilently();
-        const decoded = decodeJwt(token);
+        const decoded = jwt_decode<{ fatxn: Uint8Array }>(token);
         return {
             guardId: `jwt#https://${this.options.domain}/`,
             verifyPayload: token,

@@ -1,5 +1,5 @@
 export * from "./auth0-client.mock";
-export * from "./jose.mock";
+export * from "./jwt-decode.mock";
 export * from "./utils.mock";
 export * from "./global-location.mock";
 export * from "./fast-auth-provider.mock";

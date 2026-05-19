@@ -5,7 +5,7 @@ import {
     ReactNativeRequestTransactionSignatureOptions,
 } from "./types";
 import { encodeDelegateAction, encodeTransaction } from "./utils";
-import { decodeJwt } from "jose";
+import jwt_decode from "jwt-decode";
 import { ReactNativeProviderError, ReactNativeProviderErrorCodes } from "./errors";
 import { IFastAuthProvider } from "./core/provider/types";
 import { SignatureRequest } from "./core";
@@ -93,7 +93,7 @@ export class ReactNativeProvider implements IFastAuthProvider {
             throw new ReactNativeProviderError(ReactNativeProviderErrorCodes.CREDENTIALS_NOT_FOUND);
         }
 
-        const { sub } = decodeJwt(credentials.idToken);
+        const { sub } = jwt_decode<{ sub?: string }>(credentials.idToken);
 
         if (!sub) {
             throw new ReactNativeProviderError(ReactNativeProviderErrorCodes.INVALID_TOKEN);
@@ -180,7 +180,7 @@ export class ReactNativeProvider implements IFastAuthProvider {
             throw new ReactNativeProviderError(ReactNativeProviderErrorCodes.CREDENTIALS_NOT_FOUND);
         }
 
-        const decoded = decodeJwt(credentials.accessToken);
+        const decoded = jwt_decode<{ fatxn: Uint8Array }>(credentials.accessToken);
 
         return {
             guardId: `jwt#https://${this.options.domain}/`,

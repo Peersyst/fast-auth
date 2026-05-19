@@ -12,7 +12,7 @@ import {
     JavascriptLoginWithPopupOptions,
 } from "./types";
 import { encodeDelegateAction, encodeTransaction } from "./utils";
-import { decodeJwt } from "jose";
+import jwt_decode from "jwt-decode";
 import { SignatureRequest } from "./core/signer/types";
 import { JavascriptProviderError, JavascriptProviderErrorCodes } from "./errors";
 import { IFastAuthProvider } from "./core/provider/types";
@@ -138,7 +138,7 @@ export class JavascriptProvider implements IFastAuthProvider {
      */
     async getPath(): Promise<string> {
         const token = await this.client.getTokenSilently();
-        const { sub } = decodeJwt(token);
+        const { sub } = jwt_decode<{ sub?: string }>(token);
         if (!sub) {
             throw new JavascriptProviderError(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN);
         }
@@ -255,7 +255,7 @@ export class JavascriptProvider implements IFastAuthProvider {
      */
     async getSignatureRequest(): Promise<SignatureRequest> {
         const token = await this.client.getTokenSilently();
-        const decoded = decodeJwt(token);
+        const decoded = jwt_decode<{ fatxn: Uint8Array }>(token);
         return {
             guardId: `jwt#https://${this.options.domain}/`,
             verifyPayload: token,

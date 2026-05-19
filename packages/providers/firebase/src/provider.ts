@@ -1,4 +1,4 @@
-import { decodeJwt } from "jose";
+import jwt_decode from "jwt-decode";
 import { SignatureRequest } from "./core/signer/types";
 import { FirebaseProviderError, FirebaseProviderErrorCodes } from "./errors";
 import { IFastAuthProvider } from "./core/provider/types";
@@ -92,7 +92,7 @@ export class FirebaseProvider implements IFastAuthProvider {
             throw new FirebaseProviderError(FirebaseProviderErrorCodes.USER_NOT_LOGGED_IN);
         }
         const token = await this.currentUser.getIdToken();
-        const { sub } = decodeJwt(token);
+        const { sub } = jwt_decode<{ sub?: string }>(token);
         if (!sub) {
             throw new FirebaseProviderError(FirebaseProviderErrorCodes.USER_NOT_LOGGED_IN);
         }

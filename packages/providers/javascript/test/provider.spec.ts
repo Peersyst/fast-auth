@@ -23,11 +23,12 @@ jest.mock("../src/utils", () => {
     };
 });
 
-// Mock jose module directly, avoiding TDZ
-jest.mock("jose", () => {
+// Mock jwt-decode module directly, avoiding TDZ
+jest.mock("jwt-decode", () => {
     const m = require("./mocks");
     return {
-        decodeJwt: m.decodeJwt,
+        __esModule: true,
+        default: m.decodeJwt,
     };
 });
 
