@@ -12,6 +12,7 @@
     "scripts": {
         "build": "tsc -p tsconfig.build.json",
         "lint": "eslint .",
+        "clean": "rimraf .turbo dist node_modules",
         "test": "jest"
     },
     "keywords": [],
@@ -39,7 +40,10 @@
         "typescript": "^5.7.3"
     },
     "exports": {
-        ".": "./src/index.ts"
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
     },
     "publishConfig": {
         "access": "public"

@@ -11,6 +11,7 @@
     ],
     "scripts": {
         "build": "tsc -p tsconfig.build.json",
+        "clean": "rimraf .turbo dist node_modules",
         "lint": "eslint ."
     },
     "keywords": [
@@ -46,7 +47,10 @@
         "react-native": ">=0.60.0"
     },
     "exports": {
-        ".": "./src/index.ts"
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        }
     },
     "publishConfig": {
         "access": "public"
