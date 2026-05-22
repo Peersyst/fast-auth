@@ -15,8 +15,8 @@ export default function WhatIsFastAuth() {
         <div className="valueGrid">
           <article className="valueCard">
             <span className="vNum">01 · ONBOARDING</span>
-            <h3>Email, Google, Apple, or passkey.</h3>
-            <p>Four sign-in methods, all routed through Auth0: Google, Apple, email/password, and passkeys. We provision a real NEAR account in the background — no seed phrase, no extension, no wallet popup. Whatever the user already trusts, that's how they sign in.</p>
+            <h3>Google, Apple, email, or passkey.</h3>
+            <p>Four sign-in methods, all routed through Auth0: Google and Apple first, plus email/password and passkeys. We provision a real NEAR account in the background — no seed phrase, no extension, no wallet popup. Whatever the user already trusts, that's how they sign in.</p>
             <div className="valueIllu">
               <ValueIllu1 />
             </div>

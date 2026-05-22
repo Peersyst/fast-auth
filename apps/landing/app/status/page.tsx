@@ -18,10 +18,43 @@ const STATUS_HREF = "/status";
 const AUDIT_HREF =
   "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/FastAuth_Halborn.pdf";
 
+const STATUS_TITLE = "FastAuth Status — Live NEAR mainnet metrics, MPC signing health, indexer state";
+const STATUS_DESCRIPTION =
+  "Live FastAuth metrics on NEAR mainnet: MPC and FastAuth signing health, account growth, sign-event volume, top callers, contracts, and indexer state. Updated every minute.";
+// Reuse the root OG image; the status page doesn't need a bespoke card and a
+// missing image hurts social previews more than a generic one helps them.
+const STATUS_OG_IMAGE = "/fast-auth-img-og.png";
+const STATUS_OG_IMAGE_ALT = "FastAuth status — live NEAR mainnet metrics";
+
 export const metadata: Metadata = {
-  title: "FastAuth · Status",
-  description:
-    "Live FastAuth metrics on NEAR mainnet. MPC and FastAuth signing health, accounts, sign-events, top callers, contracts, and indexer state.",
+  title: STATUS_TITLE,
+  description: STATUS_DESCRIPTION,
+  alternates: {
+    canonical: STATUS_HREF,
+  },
+  openGraph: {
+    type: "website",
+    url: STATUS_HREF,
+    siteName: "FastAuth",
+    title: STATUS_TITLE,
+    description: STATUS_DESCRIPTION,
+    locale: "en_US",
+    images: [
+      {
+        url: STATUS_OG_IMAGE,
+        width: 1000,
+        height: 583,
+        alt: STATUS_OG_IMAGE_ALT,
+        type: "image/png",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: STATUS_TITLE,
+    description: STATUS_DESCRIPTION,
+    images: [{ url: STATUS_OG_IMAGE, alt: STATUS_OG_IMAGE_ALT }],
+  },
 };
 
 export const revalidate = 60;
