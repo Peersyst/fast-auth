@@ -47,18 +47,20 @@ export default async function Page() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
       <Header docsHref={DOCS_HREF} statusHref={STATUS_HREF} />
-      <Hero
-        docsHref={DOCS_HREF}
-        statusHref={STATUS_HREF}
-        auditHref={AUDIT_HREF}
-      />
-      <AuditBanner auditHref={AUDIT_HREF} />
-      <WhatIsFastAuth />
-      <HowItWorks />
-      <DeveloperSection docsHref={DOCS_HREF} />
-      <Stats metrics={metrics} statusHref={STATUS_HREF} />
-      <FAQ />
-      <FooterCTA docsHref={DOCS_HREF} applyHref={APPLY_HREF} />
+      <main>
+        <Hero
+          docsHref={DOCS_HREF}
+          statusHref={STATUS_HREF}
+          auditHref={AUDIT_HREF}
+        />
+        <AuditBanner auditHref={AUDIT_HREF} />
+        <WhatIsFastAuth />
+        <HowItWorks />
+        <DeveloperSection docsHref={DOCS_HREF} />
+        <Stats metrics={metrics} statusHref={STATUS_HREF} />
+        <FAQ />
+        <FooterCTA docsHref={DOCS_HREF} applyHref={APPLY_HREF} />
+      </main>
       <SiteFooter docsHref={DOCS_HREF} statusHref={STATUS_HREF} auditHref={AUDIT_HREF} />
     </>
   );

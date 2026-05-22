@@ -136,6 +136,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* GA loads from googletagmanager.com after lazyOnload (post-window-onload).
+            Preconnect + DNS prefetch shave the TLS / DNS round-trip off the first
+            beacon without pulling the script earlier into the critical path. */}
+        <link
+          rel="preconnect"
+          href="https://www.googletagmanager.com"
+          crossOrigin="anonymous"
+        />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         <script
           type="application/ld+json"
           // JSON-LD payload is a static object built above; JSON.stringify
@@ -152,11 +161,15 @@ export default function RootLayout({
         />
       </head>
       <body>{children}</body>
+      {/* lazyOnload pushes GA execution past window.onload so the ~64 KiB GTM
+          bundle never blocks LCP / TBT on this informational landing. The
+          initial pageview still fires (gtag config runs after load), which is
+          acceptable for analytics on a non-conversion-critical first paint. */}
       <Script
         src="https://www.googletagmanager.com/gtag/js?id=G-9HVGE9PZ10"
-        strategy="afterInteractive"
+        strategy="lazyOnload"
       />
-      <Script id="gtag-init" strategy="afterInteractive">
+      <Script id="gtag-init" strategy="lazyOnload">
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}

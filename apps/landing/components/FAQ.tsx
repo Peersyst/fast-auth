@@ -25,7 +25,7 @@ export default function FAQ() {
             {FAQ_ITEMS.map((it, i) => (
               <details key={it.q} className="faqItem" open={i === 0}>
                 <summary className="faqQ">
-                  <span className="faqQText">{it.q}</span>
+                  <h3 className="faqQText">{it.q}</h3>
                   <span className="plus" aria-hidden="true">
                     <PlusIcon />
                   </span>
