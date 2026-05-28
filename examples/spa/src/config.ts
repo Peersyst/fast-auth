@@ -1,10 +1,11 @@
 import configJson from "../config.json";
 
+type FastAuthNetwork = "mainnet" | "testnet";
+
 interface AuthConfig {
     auth0: {
-        domain: string;
+        network: FastAuthNetwork;
         clientId: string;
-        audience: string;
     };
     near: {
         mpcContractId: string;
@@ -25,9 +26,8 @@ interface AuthConfig {
 
 const config: AuthConfig = {
     auth0: {
-        domain: import.meta.env.VITE_AUTH0_DOMAIN || configJson.auth0.domain,
+        network: (import.meta.env.VITE_FAST_AUTH_NETWORK || configJson.auth0.network) as FastAuthNetwork,
         clientId: import.meta.env.VITE_AUTH0_CLIENT_ID || configJson.auth0.clientId,
-        audience: import.meta.env.VITE_AUTH0_AUDIENCE || configJson.auth0.audience,
     },
     near: {
         mpcContractId: import.meta.env.VITE_NEAR_MPC_CONTRACT_ID || configJson.near.mpcContractId,

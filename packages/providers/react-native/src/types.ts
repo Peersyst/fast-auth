@@ -1,37 +1,24 @@
 import { Transaction } from "near-api-js/lib/transaction";
 import { DelegateAction } from "@near-js/transactions";
-import { Auth0Options } from "react-native-auth0";
+import { FastAuthNetwork } from "@shared/core";
 
-export type AppOptions = {
-    imageUrl: string;
-    name: string;
-};
+export type { FastAuthNetwork } from "@shared/core";
 
 /**
  * Options for initializing the ReactNativeProvider
  */
-export type ReactNativeProviderOptions = AppOptions &
-    Auth0Options & {
-        /**
-         * The audience for the API (e.g., your API identifier in Auth0)
-         */
-        audience?: string;
-    };
+export type ReactNativeProviderOptions = {
+    network: FastAuthNetwork;
+    clientId: string;
+    domain?: string;
+    audience?: string;
+    signingAudience?: string;
+};
 
 /**
  * Base options for requesting signatures
  */
-export type ReactNativeBaseRequestSignatureOptions = {
-    /**
-     * URL of the image to display in the authorization UI
-     */
-    imageUrl: string;
-
-    /**
-     * Name of the application requesting the signature
-     */
-    name: string;
-};
+export type ReactNativeBaseRequestSignatureOptions = Record<string, never>;
 
 /**
  * Options for requesting a transaction signature

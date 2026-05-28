@@ -50,21 +50,13 @@ export const useTransactionSigner = ({ signer, publicKey }: UseTransactionSigner
             setState((prev) => ({ ...prev, error: null }));
 
             try {
-                const transaction = await relayer.createTransfer(
-                    accountId,
-                    PublicKey.fromString(publicKey),
-                    receiverId,
-                    amount
-                );
+                const transaction = await relayer.createTransfer(accountId, PublicKey.fromString(publicKey), receiverId, amount);
 
                 if (!transaction) {
                     throw new Error("Failed to create transaction");
                 }
 
                 await signer.requestTransactionSignature({
-                    imageUrl:
-                        "https://example.fast-auth.com/near-logo.png",
-                    name: "Peersyst Technology",
                     transaction,
                 });
 
@@ -78,7 +70,7 @@ export const useTransactionSigner = ({ signer, publicKey }: UseTransactionSigner
                 throw error;
             }
         },
-        [signer, publicKey, relayer]
+        [signer, publicKey, relayer],
     );
 
     const sign = useCallback(async () => {

@@ -4,8 +4,6 @@ const { deserialize } = require("borsh");
 // KEYS
 
 const TRANSACTION_KEY = "transaction";
-const IMAGE_URL_KEY = "image_url";
-const NAME_KEY = "name";
 const DELEGATE_ACTION_KEY = "delegateAction";
 
 // SCHEMA definitions
@@ -183,10 +181,6 @@ const SCHEMA = new (class BorshSchema {
 
 // UTILS
 
-function hasKeys(query, keys) {
-    return keys.every((k) => k in query);
-}
-
 function parseTransaction(txString) {
     return Transaction.decode(Uint8Array.from(txString.split(",").map((value) => Number(value))));
 }
@@ -231,15 +225,52 @@ function stringifyActions(actions) {
  * @param {PostLoginAPI} api - Interface whose methods can be used to change the behavior of the login.
  */
 exports.onExecutePostLogin = async (event, api) => {
+    const onchainAudience = event.secrets.ONCHAIN_AUDIENCE;
     const query = event.request.query;
+    const isOnchainAudience = event.resource_server?.identifier === onchainAudience;
+    const hasTxParams = TRANSACTION_KEY in query;
+    const hasDelegateParams = DELEGATE_ACTION_KEY in query;
+    const hasSigningPayload = hasTxParams || hasDelegateParams;
 
-    if (hasKeys(query, [TRANSACTION_KEY, IMAGE_URL_KEY, NAME_KEY])) {
-        const transaction = parseTransaction(event.request.query.transaction);
-        console.log(event.request.query.imageUrl);
+    if (isOnchainAudience && !hasSigningPayload) {
+        return api.access.deny("Signing audience requested without transaction payload");
+    }
+    if (!isOnchainAudience && hasSigningPayload) {
+        return api.access.deny("Transaction payload only allowed with signing audience");
+    }
+    if (!isOnchainAudience) return;
+
+    // Strip OIDC profile scopes from the issued access token.
+    //
+    // @auth0/auth0-spa-js unions per-call scope with its built-in default ("openid profile email"),
+    // so the access token would otherwise carry profile+email and let /userinfo return the user's
+    // email, name, picture and locale for the 60s of token validity.
+    //
+    // Constraints:
+    //   - `scope` is a reserved claim and cannot be overridden via setCustomClaim (Auth0 throws
+    //     'The "scope" claim cannot be set.'). The `removeScope` API is the supported path.
+    //   - We cannot remove `openid` because Auth0 then declines to emit the id_token, and
+    //     @auth0/auth0-spa-js hard-fails the callback with 'ID token is required but missing'.
+    //     The hard check is non-configurable in the library.
+    //
+    // Net result: the signing token's `scope` is "openid transaction:sign". /userinfo is still
+    // reachable but only returns `sub` (no email/name/picture). The `sub` is still the raw Google
+    // identifier until D13 (hashed sub) lands, at which point /userinfo will only ever return a
+    // privacy-preserving hash. See ADR D5 + D13.
+    api.accessToken.removeScope("profile");
+    api.accessToken.removeScope("email");
+    api.accessToken.removeScope("offline_access");
+
+    const branding = {
+        imageUrl: event.client.metadata?.logo_uri ?? "",
+        name: event.client.name,
+    };
+
+    if (hasTxParams) {
+        const transaction = parseTransaction(query.transaction);
         api.prompt.render(event.secrets.authorize_app_modal, {
             fields: {
-                imageUrl: event.request.query.image_url,
-                name: event.request.query.name,
+                ...branding,
                 receiverId: transaction.receiverId,
                 signerId: transaction.signerId,
                 actions: stringifyActions(transaction.actions),
@@ -247,14 +278,13 @@ exports.onExecutePostLogin = async (event, api) => {
         });
         api.accessToken.setCustomClaim(
             "fatxn",
-            event.request.query.transaction.split(",").map((value) => Number(value)),
+            query.transaction.split(",").map((value) => Number(value)),
         );
-    } else if (hasKeys(query, [DELEGATE_ACTION_KEY, IMAGE_URL_KEY, NAME_KEY])) {
-        const delegateAction = decodeDelegateAction(event.request.query.delegateAction);
+    } else {
+        const delegateAction = decodeDelegateAction(query.delegateAction);
         api.prompt.render(event.secrets.delegate_action_modal, {
             fields: {
-                imageUrl: event.request.query.image_url,
-                name: event.request.query.name,
+                ...branding,
                 receiverId: delegateAction.receiverId,
                 senderId: delegateAction.senderId,
                 maxBlockHeight: delegateAction.maxBlockHeight.toString(),
@@ -263,7 +293,7 @@ exports.onExecutePostLogin = async (event, api) => {
         });
         api.accessToken.setCustomClaim(
             "fatxn",
-            event.request.query.delegateAction.split(",").map((value) => Number(value)),
+            query.delegateAction.split(",").map((value) => Number(value)),
         );
     }
 };

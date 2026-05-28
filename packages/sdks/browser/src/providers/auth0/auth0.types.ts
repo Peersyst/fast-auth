@@ -1,16 +1,19 @@
 import { Transaction } from "near-api-js/lib/transaction";
 import { DelegateAction } from "@near-js/transactions";
+import { FastAuthNetwork } from "@shared/core";
+
+export type { FastAuthNetwork } from "@shared/core";
 
 export type Auth0ProviderOptions = {
-    domain: string;
+    network: FastAuthNetwork;
     clientId: string;
     redirectUri: string;
-    audience: string;
+    domain?: string;
+    audience?: string;
+    signingAudience?: string;
 };
 
 export type Auth0BaseRequestSignatureOptions = {
-    imageUrl: string;
-    name: string;
     redirectUri?: string;
 };
 

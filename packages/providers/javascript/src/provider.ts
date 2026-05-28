@@ -11,6 +11,7 @@ import {
     JavascriptLoginWithRedirectOptions,
     JavascriptLoginWithPopupOptions,
 } from "./types";
+import { FAST_AUTH_AUTH0_DEFAULTS } from "@shared/core";
 import { encodeDelegateAction, encodeTransaction } from "./utils";
 import jwt_decode from "jwt-decode";
 import { SignatureRequest } from "./core/signer/types";
@@ -18,11 +19,22 @@ import { JavascriptProviderError, JavascriptProviderErrorCodes } from "./errors"
 import { IFastAuthProvider } from "./core/provider/types";
 
 export class JavascriptProvider implements IFastAuthProvider {
-    private readonly options: JavascriptProviderOptions;
+    private readonly options: JavascriptProviderOptions & {
+        domain: string;
+        audience: string;
+        signingAudience: string;
+    };
     private client: Auth0Client;
 
     constructor(options: JavascriptProviderOptions) {
-        this.options = options;
+        const defaults = FAST_AUTH_AUTH0_DEFAULTS[options.network];
+        this.options = {
+            network: options.network,
+            clientId: options.clientId,
+            domain: options.domain ?? defaults.domain,
+            audience: options.audience ?? defaults.audience,
+            signingAudience: options.signingAudience ?? defaults.signingAudience,
+        };
         this.client = new Auth0Client({
             domain: this.options.domain,
             clientId: this.options.clientId,
@@ -153,11 +165,11 @@ export class JavascriptProvider implements IFastAuthProvider {
     private async requestTransactionSignatureWithRedirect(
         requestSignatureOptions: JavascriptRequestTransactionSignatureWithRedirectOptions,
     ): Promise<void> {
-        const { redirectUri, imageUrl, name, transaction, ...opts } = requestSignatureOptions;
+        const { redirectUri, transaction, ...opts } = requestSignatureOptions;
         await this.client.loginWithRedirect({
             authorizationParams: {
-                image_url: imageUrl,
-                name,
+                audience: this.options.signingAudience,
+                scope: "transaction:sign",
                 transaction: encodeTransaction(transaction),
                 redirect_uri: redirectUri,
             },
@@ -173,11 +185,11 @@ export class JavascriptProvider implements IFastAuthProvider {
     private async requestTransactionSignatureWithPopup(
         requestSignatureOptions: JavascriptRequestTransactionSignatureWithPopupOptions,
     ): Promise<void> {
-        const { imageUrl, name, transaction, ...opts } = requestSignatureOptions;
+        const { transaction, ...opts } = requestSignatureOptions;
         await this.client.loginWithPopup({
             authorizationParams: {
-                image_url: imageUrl,
-                name,
+                audience: this.options.signingAudience,
+                scope: "transaction:sign",
                 transaction: encodeTransaction(transaction),
             },
             ...opts,
@@ -205,11 +217,11 @@ export class JavascriptProvider implements IFastAuthProvider {
     private async requestDelegateActionSignatureWithRedirect(
         requestSignatureOptions: JavascriptRequestDelegateActionSignatureWithRedirectOptions,
     ): Promise<void> {
-        const { redirectUri, imageUrl, name, delegateAction, ...opts } = requestSignatureOptions;
+        const { redirectUri, delegateAction, ...opts } = requestSignatureOptions;
         await this.client.loginWithRedirect({
             authorizationParams: {
-                image_url: imageUrl,
-                name,
+                audience: this.options.signingAudience,
+                scope: "transaction:sign",
                 redirect_uri: redirectUri,
                 delegateAction: encodeDelegateAction(delegateAction),
             },
@@ -225,11 +237,11 @@ export class JavascriptProvider implements IFastAuthProvider {
     private async requestDelegateActionSignatureWithPopup(
         requestSignatureOptions: JavascriptRequestDelegateActionSignatureWithPopupOptions,
     ): Promise<void> {
-        const { imageUrl, name, delegateAction, ...opts } = requestSignatureOptions;
+        const { delegateAction, ...opts } = requestSignatureOptions;
         await this.client.loginWithPopup({
             authorizationParams: {
-                image_url: imageUrl,
-                name,
+                audience: this.options.signingAudience,
+                scope: "transaction:sign",
                 delegateAction: encodeDelegateAction(delegateAction),
             },
             ...opts,
@@ -254,7 +266,9 @@ export class JavascriptProvider implements IFastAuthProvider {
      * @returns The signature request.
      */
     async getSignatureRequest(): Promise<SignatureRequest> {
-        const token = await this.client.getTokenSilently();
+        const token = await this.client.getTokenSilently({
+            authorizationParams: { audience: this.options.signingAudience },
+        });
         const decoded = jwt_decode<{ fatxn: Uint8Array }>(token);
         return {
             guardId: `jwt#https://${this.options.domain}/`,

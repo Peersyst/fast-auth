@@ -32,9 +32,8 @@ export function FastAuthProvider({ children }: { children: ReactNode }) {
         const createProvider = (type: ProviderType): JavascriptProvider | FirebaseProvider => {
             if (type === "auth0") {
                 return new JavascriptProvider({
-                    domain: config.auth0.domain,
+                    network: config.auth0.network,
                     clientId: config.auth0.clientId,
-                    audience: config.auth0.audience,
                 });
             }
 

@@ -1,8 +1,7 @@
 {
     "auth0": {
-        "domain": "login.testnet.fast-auth.com",
-        "clientId": "np8paqIpMWmNbzT4xAvOOapZBjsOpptl",
-        "audience": "https://api.testnet.fast-auth.com"
+        "network": "testnet",
+        "clientId": "np8paqIpMWmNbzT4xAvOOapZBjsOpptl"
     },
     "near": {
         "mpcContractId": "v1.signer-prod.testnet",
