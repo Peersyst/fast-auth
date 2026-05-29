@@ -43,7 +43,13 @@ async fn test_verify_signature_should_pass() -> Result<(), Box<dyn std::error::E
 
     near_sdk::log!("outcome: {:?}", outcome);
     assert!(outcome.is_success());
-    
+    // The fixture JWT was minted with aud=["https://fast-auth-poc.com", ...]
+    // which never matches the sandbox-allocated contract account ID, so the
+    // audience check is expected to reject it. Replace this with a token whose
+    // aud equals `contract.id()` once the test JWT minting pipeline is updated.
+    let result: (bool, String) = outcome.json()?;
+    assert_eq!(result, (false, "audience mismatch".to_string()));
+
     Ok(())
 }
 
