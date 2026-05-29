@@ -1,9 +1,12 @@
 .avatar {
     width: 4.5rem;
+    height: 4.5rem;
     border-radius: 12px;
+    object-fit: cover;
 }
 
 .layout {
+    position: relative;
     display: flex;
     flex-direction: row;
     gap: 1.5rem;
@@ -13,8 +16,9 @@
 
 .circle {
     position: absolute;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
     width: 2.5rem;
     height: 2.5rem;
     border-radius: 999px;

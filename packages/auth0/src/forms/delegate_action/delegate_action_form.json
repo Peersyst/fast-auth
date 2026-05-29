@@ -1,0 +1,133 @@
+{
+  "version": "4.0.0",
+  "form": {
+    "name": "Delegate action form",
+    "languages": {
+      "primary": "en"
+    },
+    "nodes": [
+      {
+        "id": "step_opV2",
+        "type": "STEP",
+        "coordinates": {
+          "x": 500,
+          "y": 0
+        },
+        "alias": "New step",
+        "config": {
+          "components": [
+            {
+              "id": "image_2UVJ",
+              "category": "BLOCK",
+              "type": "IMAGE",
+              "config": {
+                "src": "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/e58a78b0-133e-4542-aac6-703fe0b638c8.png",
+                "position": "CENTER",
+                "height": 48
+              }
+            },
+            {
+              "id": "rich_text_2cyr",
+              "category": "BLOCK",
+              "type": "RICH_TEXT",
+              "config": {
+                "content": "<h2 style=\"text-align:center;\">Authorize {{ fields.name }}</h2>"
+              }
+            },
+            {
+              "id": "custom_uOjC",
+              "category": "FIELD",
+              "type": "CUSTOM",
+              "required": false,
+              "sensitive": false,
+              "config": {
+                "schema": {},
+                "code": "/**\n * Custom field that renders two app avatars (left = our wallet, right = requesting app)\n * separated by a small circle with a transfer/icon glyph in the middle.\n *\n * Params (configured per-form in <form>_form_base.json):\n *   - leftImageUrl: URL for the left avatar (our wallet/identity logo)\n *   - rightImageUrl: URL for the right avatar (the requesting app's logo, e.g. {{ fields.imageUrl }})\n *   - iconUrl: URL for the center circle icon\n *\n * If `rightImageUrl` is empty/missing (e.g. the client has no logo_uri configured), the\n * right avatar is hidden so we don't render a broken-image placeholder.\n */\nfunction AuthorizeAppImage(context) {\n    return {\n        /** Invoked once when the field is created */\n        init() {\n            const layout = document.createElement(\"div\");\n            layout.classList.add(\"layout\");\n\n            const { leftImageUrl, rightImageUrl, iconUrl } = context.custom.getParams();\n\n            const leftAvatar = document.createElement(\"img\");\n            leftAvatar.classList.add(\"avatar\");\n            leftAvatar.setAttribute(\"alt\", \"\");\n            leftAvatar.setAttribute(\"src\", leftImageUrl);\n\n            layout.appendChild(leftAvatar);\n\n            const trimmedRight = (rightImageUrl || \"\").trim();\n            if (trimmedRight) {\n                const circle = document.createElement(\"div\");\n                circle.classList.add(\"circle\");\n\n                const icon = document.createElement(\"img\");\n                icon.classList.add(\"icon\");\n                icon.setAttribute(\"alt\", \"\");\n                icon.setAttribute(\"src\", iconUrl);\n                circle.appendChild(icon);\n\n                const rightAvatar = document.createElement(\"img\");\n                rightAvatar.classList.add(\"avatar\");\n                rightAvatar.setAttribute(\"alt\", \"\");\n                rightAvatar.setAttribute(\"src\", trimmedRight);\n\n                layout.appendChild(circle);\n                layout.appendChild(rightAvatar);\n            }\n\n            return layout;\n        },\n\n        /** Returns a list of URLs that the SDK guarantees that will loaded before init() is invoked */\n        getScripts() {\n            return [];\n        },\n\n        /** Invoked when field has to be blocked */\n        block() {},\n\n        /** Invoked when field has to be unblocked */\n        unblock() {},\n\n        /** Invoked when the SDK needs to get the value (possibly several times) */\n        getValue() {},\n    };\n}\n",
+                "css": ".avatar {\n    width: 4.5rem;\n    height: 4.5rem;\n    border-radius: 12px;\n    object-fit: cover;\n}\n\n.layout {\n    position: relative;\n    display: flex;\n    flex-direction: row;\n    gap: 1.5rem;\n    align-items: center;\n    justify-content: center;\n}\n\n.circle {\n    position: absolute;\n    top: 50%;\n    left: 50%;\n    transform: translate(-50%, -50%);\n    width: 2.5rem;\n    height: 2.5rem;\n    border-radius: 999px;\n    background-color: #f6f6f6;\n    z-index: 1;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n}\n\n.icon {\n    width: 1.2rem;\n    height: 1.2rem;\n}\n",
+                "params": {
+                  "iconUrl": "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/ab6afba7-91a2-4c53-b2a3-90e4f8c3492a.png",
+                  "leftImageUrl": "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/db9f38ff-53ea-4f76-a1c0-33c728386e5b.png",
+                  "rightImageUrl": "{{ fields.imageUrl }}"
+                }
+              }
+            },
+            {
+              "id": "custom_Stka",
+              "category": "FIELD",
+              "type": "CUSTOM",
+              "required": false,
+              "sensitive": false,
+              "config": {
+                "schema": {},
+                "code": "/**\n * This custom field uses imask.js to mask an input with a currency symbol\n * Add \"symbol\" param using a value like \"€\" to see the difference\n */\nfunction AuthorizeAppTransactionDetails(context) {\n    const ALPHABET = \"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz\";\n    function base58Encode(bytes) {\n        let result = \"\";\n        let num = BigInt(0);\n        // Convert byte array to BigInt\n        for (const byte of bytes) {\n            num = (num << BigInt(8)) + BigInt(byte);\n        }\n        // Encode using Base58\n        while (num > 0) {\n            const remainder = num % BigInt(58);\n            num = num / BigInt(58);\n            result = ALPHABET[Number(remainder)] + result;\n        }\n        // Handle leading zeros\n        for (const byte of bytes) {\n            if (byte === 0) {\n                result = ALPHABET[0] + result;\n            } else {\n                break;\n            }\n        }\n        return result;\n    }\n\n    const formatPublicKey = (publicKey) => {\n        if (publicKey.secp256k1Key !== undefined) {\n            return `secp256k1:${base58Encode(Buffer.from(publicKey.secp256k1Key.data))}`;\n        }\n        return `ed25519:${base58Encode(Buffer.from(publicKey.ed25519Key.data))}`;\n    };\n\n    const createAccountContent = () => {\n        const createAccountContent = document.createElement(\"p\");\n        createAccountContent.textContent = \"By approving this request, a new account will be created.\";\n        return createAccountContent;\n    };\n\n    const deployContractContent = (action) => {\n        const deployContractContent = document.createElement(\"div\");\n\n        const text = document.createElement(\"p\");\n        text.textContent = \"By approving this request, the compiled smart contract will be deployed.\";\n        const code = createTextContent(\"Code\", action.deployContract.code ? `${action.deployContract.code.length} bytes` : null);\n\n        deployContractContent.appendChild(text);\n        deployContractContent.appendChild(code);\n        return deployContractContent;\n    };\n\n    const functionCallContent = (action) => {\n        const functionCallContent = document.createElement(\"div\");\n\n        const text = document.createElement(\"p\");\n        text.textContent = \"By approving this request, the following function will be called.\";\n        const methodName = createTextContent(\"Method Name\", action.functionCall.methodName);\n        const args = createTextContent(\"Args\", Buffer.from(action.functionCall.args).toString());\n        const gas = createTextContent(\"Gas\", action.functionCall.gas?.toString());\n        const deposit = createTextContent(\"Deposit\", action.functionCall.deposit?.toString());\n\n        functionCallContent.appendChild(text);\n        functionCallContent.appendChild(methodName);\n        functionCallContent.appendChild(args);\n        functionCallContent.appendChild(gas);\n        functionCallContent.appendChild(deposit);\n        return functionCallContent;\n    };\n\n    const transferContent = (action) => {\n        const transferContent = document.createElement(\"div\");\n\n        const text = document.createElement(\"p\");\n        text.textContent = \"By approving this request, the following amount will be transferred to the receiver.\";\n\n        const fields = createTextContent(\"Deposit\", `${action.transfer.deposit?.toString()} yoctoNEAR`);\n        transferContent.appendChild(text);\n        transferContent.appendChild(fields);\n        return transferContent;\n    };\n\n    const stakeContent = (action) => {\n        const stakeContent = document.createElement(\"div\");\n\n        const text = document.createElement(\"p\");\n        text.textContent = `By approving this request, the following amount will be staked to the public key.`;\n        const fields = createTextContent(\"Stake\", `${action.stake.stake?.toString()} yoctoNEAR`);\n        const publicKey = createTextContent(\"Public Key\", action.stake.publicKey?.toString());\n\n        stakeContent.appendChild(text);\n        stakeContent.appendChild(fields);\n        stakeContent.appendChild(publicKey);\n        return stakeContent;\n    };\n\n    const addKeyContent = (action) => {\n        const addKeyContent = document.createElement(\"div\");\n\n        const text = document.createElement(\"p\");\n        text.textContent = `By approving this request, the following access key will be added to your account.`;\n        const publicKey = createTextContent(\"Public Key\", formatPublicKey(action.addKey.publicKey));\n        const nonce = createTextContent(\"Nonce\", action.addKey.accessKey?.nonce?.toString());\n\n        let permissionContent;\n        if (action.addKey.accessKey?.permission?.fullAccess) {\n            const warning = document.createElement(\"div\");\n            warning.classList.add(\"warning-callout\");\n            warning.textContent = \"This key will have full access to your account. Only approve if you trust the recipient.\";\n            permissionContent = warning;\n        } else {\n            permissionContent = createTextContent(\"Permission\", JSON.stringify(action.addKey.accessKey?.permission?.functionCall, null, 2));\n        }\n\n        addKeyContent.appendChild(text);\n        addKeyContent.appendChild(publicKey);\n        addKeyContent.appendChild(nonce);\n        addKeyContent.appendChild(permissionContent);\n        return addKeyContent;\n    };\n\n    const deleteKeyContent = (action) => {\n        const deleteKeyContent = document.createElement(\"div\");\n\n        const text = document.createElement(\"p\");\n        text.classList.add(\"text-content\");\n        text.textContent = \"This action will delete an access key from your account. Only approve if you trust the recipient.\";\n\n        const publicKey = createTextContent(\"Public Key\", formatPublicKey(action.deleteKey.publicKey));\n\n        const warning = document.createElement(\"div\");\n        warning.classList.add(\"warning-callout\");\n        warning.textContent = \"Once deleted, the key cannot be recovered.\";\n\n        deleteKeyContent.appendChild(text);\n        deleteKeyContent.appendChild(publicKey);\n        deleteKeyContent.appendChild(warning);\n        return deleteKeyContent;\n    };\n\n    const deleteAccountContent = (action) => {\n        const deleteAccountContent = document.createElement(\"div\");\n\n        const text = document.createElement(\"p\");\n        text.textContent = `By approving this request, the account will be deleted.`;\n        const beneficiaryId = createTextContent(\"Beneficiary ID\", action.deleteAccount.beneficiaryId);\n\n        const warning = document.createElement(\"div\");\n        warning.classList.add(\"warning-callout\");\n        warning.textContent = \"Once deleted, the account cannot be recovered.\";\n\n        deleteAccountContent.appendChild(text);\n        deleteAccountContent.appendChild(beneficiaryId);\n        deleteAccountContent.appendChild(warning);\n        return deleteAccountContent;\n    };\n\n    const signedDelegateContent = (action) => {\n        const signedDelegateContent = document.createElement(\"div\");\n\n        const text = document.createElement(\"p\");\n        text.textContent = `By approving this request, the following delegate action will be executed.`;\n        const delegateAction = createTextContent(\"Delegate Action\", action.signedDelegate.delegateAction);\n\n        signedDelegateContent.appendChild(text);\n        signedDelegateContent.appendChild(delegateAction);\n        return signedDelegateContent;\n    };\n\n    const deployGlobalContractContent = (action) => {\n        const deployGlobalContractContent = document.createElement(\"div\");\n\n        const text = document.createElement(\"p\");\n        text.textContent = `By approving this request, the compiled smart contract will be deployed.`;\n        const code = createTextContent(\n            \"Code\",\n            action.deployGlobalContract.code ? `${action.deployGlobalContract.code.length} bytes` : null,\n        );\n\n        deployGlobalContractContent.appendChild(text);\n        deployGlobalContractContent.appendChild(code);\n        return deployGlobalContractContent;\n    };\n\n    const useGlobalContractContent = (action) => {\n        const useGlobalContractContent = document.createElement(\"div\");\n\n        const text = document.createElement(\"p\");\n        text.textContent = `By approving this request, the following global contract will be used.`;\n        const contractIdentifier = createTextContent(\"Contract Identifier\", action.useGlobalContract.contractIdentifier);\n\n        useGlobalContractContent.appendChild(text);\n        useGlobalContractContent.appendChild(contractIdentifier);\n        return useGlobalContractContent;\n    };\n\n    const handleNearAction = (action) => {\n        // Parse the action based on its structure\n        let actionType = \"Unknown\";\n        let actionData = {};\n        let showWarning = false;\n\n        // Find first defined action to determine type\n        const actionKey = Object.keys(action).find((key) => action[key] !== undefined);\n\n        switch (actionKey) {\n            case \"createAccount\":\n                actionType = \"CreateAccount\";\n                actionData = createAccountContent();\n                break;\n\n            case \"deployContract\":\n                actionType = \"DeployContract\";\n                actionData = deployContractContent(action);\n                showWarning = true; // Contract deployment is potentially dangerous\n                break;\n\n            case \"functionCall\":\n                actionType = \"FunctionCall\";\n                actionData = functionCallContent(action);\n                break;\n\n            case \"transfer\":\n                actionType = \"Transfer\";\n                actionData = transferContent(action);\n                break;\n\n            case \"stake\":\n                actionType = \"Stake\";\n                actionData = stakeContent(action);\n                break;\n\n            case \"addKey\":\n                actionType = \"AddKey\";\n                actionData = addKeyContent(action);\n                // Show warning if it's a full access key\n                showWarning = action.addKey.accessKey?.permission?.fullAccess !== undefined;\n                break;\n\n            case \"deleteKey\":\n                actionType = \"DeleteKey\";\n                actionData = deleteKeyContent(action);\n                showWarning = true; // Deleting keys can lock you out\n                break;\n\n            case \"deleteAccount\":\n                actionType = \"DeleteAccount\";\n                actionData = deleteAccountContent(action);\n                showWarning = true; // Account deletion is irreversible\n                break;\n\n            case \"signedDelegate\":\n                actionType = \"SignedDelegate\";\n                actionData = signedDelegateContent(action);\n                break;\n\n            case \"deployGlobalContract\":\n                actionType = \"DeployGlobalContract\";\n                actionData = deployGlobalContractContent(action);\n                showWarning = true; // Global contract deployment is potentially dangerous\n                break;\n\n            case \"useGlobalContract\":\n                actionType = \"UseGlobalContract\";\n                actionData = useGlobalContractContent(action);\n                break;\n        }\n\n        return createAccordion(actionType, actionData, showWarning);\n    };\n\n    const createAccordion = (label, content, showWarning = false) => {\n        const accordion = document.createElement(\"div\");\n        accordion.classList.add(\"accordion\");\n\n        const header = document.createElement(\"div\");\n        header.classList.add(\"accordion-header\");\n\n        const headerContent = document.createElement(\"div\");\n        headerContent.classList.add(\"accordion-header-content\");\n\n        const leftContent = document.createElement(\"div\");\n        leftContent.classList.add(\"accordion-left-content\");\n\n        if (showWarning) {\n            const warningIcon = document.createElement(\"span\");\n            warningIcon.classList.add(\"warning-icon\");\n            warningIcon.innerHTML = \"⚠️\";\n            leftContent.appendChild(warningIcon);\n        }\n\n        const labelElement = document.createElement(\"span\");\n        labelElement.classList.add(\"accordion-header-label\");\n        labelElement.textContent = label;\n        leftContent.appendChild(labelElement);\n\n        const expandIcon = document.createElement(\"span\");\n        expandIcon.classList.add(\"expand-icon\");\n        expandIcon.innerHTML = \"+\";\n\n        headerContent.appendChild(leftContent);\n        headerContent.appendChild(expandIcon);\n        header.appendChild(headerContent);\n\n        const contentElement = document.createElement(\"div\");\n        contentElement.classList.add(\"accordion-content\");\n        contentElement.appendChild(content);\n\n        accordion.appendChild(header);\n        accordion.appendChild(contentElement);\n\n        header.addEventListener(\"click\", () => {\n            contentElement.classList.toggle(\"open\");\n            // Toggle the expand icon\n            if (contentElement.classList.contains(\"open\")) {\n                expandIcon.innerHTML = \"−\";\n            } else {\n                expandIcon.innerHTML = \"+\";\n            }\n        });\n\n        return accordion;\n    };\n\n    const createTextContent = (label, value, link = false) => {\n        const textContent = document.createElement(\"div\");\n        textContent.classList.add(\"text-content\");\n\n        const labelElement = document.createElement(\"div\");\n        labelElement.classList.add(\"label\");\n        labelElement.textContent = label;\n\n        const valueElement = document.createElement(\"div\");\n        valueElement.classList.add(\"value\");\n        valueElement.textContent = value;\n\n        if (link) {\n            valueElement.classList.add(\"link\");\n            valueElement.setAttribute(\"href\", link);\n            valueElement.setAttribute(\"target\", \"_blank\");\n        }\n\n        textContent.appendChild(labelElement);\n        textContent.appendChild(valueElement);\n\n        return textContent;\n    };\n\n    return {\n        /** Invoked once when the field is created */\n        init() {\n            const box = document.createElement(\"div\");\n            box.classList.add(\"box\");\n\n            const config = context.custom.getParams();\n            const { signerId, receiverId, actions } = config;\n\n            const sender = createTextContent(\"Signer ID\", signerId);\n            const receiver = createTextContent(\"Receiver ID\", receiverId);\n\n            const parsedActions = JSON.parse(actions);\n            const actionAccordions = [];\n\n            for (const action of parsedActions) {\n                const accordion = handleNearAction(action);\n                actionAccordions.push(accordion);\n            }\n\n            box.appendChild(sender);\n            box.appendChild(receiver);\n\n            const actionsContainer = document.createElement(\"div\");\n            actionsContainer.classList.add(\"actions-container\");\n            const actionsLabel = document.createElement(\"div\");\n            actionsLabel.classList.add(\"label\");\n            actionsLabel.textContent = \"Actions\";\n            actionsContainer.appendChild(actionsLabel);\n\n            actionAccordions.forEach((accordion) => {\n                actionsContainer.appendChild(accordion);\n            });\n\n            box.appendChild(actionsContainer);\n\n            return box;\n        },\n\n        /** Returns a list of URLs that the SDK guarantees that will loaded before init() is invoked */\n        getScripts() {\n            return [];\n        },\n\n        /** Invoked when field has to be blocked */\n        block() {},\n\n        /** Invoked when field has to be unblocked */\n        unblock() {},\n\n        /** Invoked when the SDK needs to get the value (possibly several times) */\n        getValue() {},\n    };\n}\n",
+                "css": ".box {\n    padding: 1.25rem;\n    display: flex;\n    flex-direction: column;\n    align-items: center;\n    justify-content: center;\n    gap: 1.25rem;\n    width: 100%;\n\n    border-radius: 1rem;\n    border: 1px solid #e5e5e5;\n}\n\n.text-content {\n    display: flex;\n    flex-direction: column;\n    align-items: left;\n    justify-content: left;\n    width: 100%;\n}\n\n.label {\n    font-size: 0.75rem;\n    color: #999999;\n    font-weight: 500;\n}\n\n.value {\n    color: #3f4246;\n    font-size: 0.875rem;\n    font-weight: 600;\n}\n\n.json-content {\n    display: flex;\n    padding: 0.5rem;\n    flex-direction: column;\n    align-items: left;\n    justify-content: left;\n    width: 100%;\n    border-radius: 12px;\n    background-color: #fafafa;\n\n    color: #3f4246;\n    font-size: 0.875rem;\n    font-weight: 500;\n}\n\n.accordion {\n    width: 100%;\n    border: 1px solid #e5e5e5;\n    border-radius: 6px;\n    overflow: hidden;\n}\n\n.accordion-header {\n    background: #fff;\n    padding: 12px 16px;\n    cursor: pointer;\n    user-select: none;\n}\n\n.accordion-header-content {\n    display: flex;\n    align-items: center;\n    justify-content: space-between;\n    width: 100%;\n}\n\n.accordion-left-content {\n    display: flex;\n    align-items: center;\n    gap: 8px;\n}\n\n.accordion-header-label {\n    font-size: 0.75rem;\n    color: black;\n    font-weight: 500;\n}\n\n.warning-icon {\n    font-size: 1rem;\n    color: #ff4444;\n}\n\n.expand-icon {\n    font-size: 1.2rem;\n    color: #666;\n    font-weight: bold;\n    line-height: 1;\n    transition: transform 0.2s ease;\n    user-select: none;\n    min-width: 20px;\n    text-align: center;\n}\n\n.accordion-content {\n    max-height: 0;\n    overflow: hidden;\n    font-size: 0.75rem;\n    background-color: #fafafa;\n    color: #0a0a0a;\n    font-weight: 400;\n    transition:\n        max-height 0.3s ease,\n        padding 0.3s ease;\n    padding: 0 1rem;\n}\n\n.accordion-content.open {\n    padding: 12px 16px;\n    max-height: 500px;\n}\n\n.actions-container {\n    display: flex;\n    flex-direction: column;\n    align-items: left;\n    justify-content: left;\n    width: 100%;\n    gap: 0.25rem;\n}\n\n.accordion-content .label {\n    font-size: 0.75rem;\n}\n\n.accordion-content .value {\n    font-size: 0.75rem;\n}\n\n.warning-callout {\n    background-color: #ffebee;\n    padding: 16px;\n    border-radius: 4px;\n    margin-top: 16px;\n    color: #c62828;\n}\n",
+                "params": {
+                  "actions": "{{ fields.actions }}",
+                  "senderId": "{{ fields.senderId }}",
+                  "receiverId": "{{ fields.receiverId }}",
+                  "maxBlockHeight": "{{ fields.maxBlockHeight }}"
+                }
+              }
+            },
+            {
+              "id": "next_button_fWFq",
+              "category": "BLOCK",
+              "type": "NEXT_BUTTON",
+              "config": {
+                "text": "Approve"
+              }
+            },
+            {
+              "id": "previous_button_lCY9",
+              "category": "BLOCK",
+              "type": "PREVIOUS_BUTTON",
+              "config": {
+                "text": "Deny"
+              }
+            }
+          ],
+          "next_node": "$ending"
+        }
+      }
+    ],
+    "start": {
+      "hidden_fields": [
+        {
+          "key": "imageUrl"
+        },
+        {
+          "key": "name"
+        },
+        {
+          "key": "senderId"
+        },
+        {
+          "key": "publicKey"
+        },
+        {
+          "key": "receiverId"
+        },
+        {
+          "key": "actions"
+        },
+        {
+          "key": "maxBlockHeight"
+        }
+      ],
+      "next_node": "step_opV2",
+      "coordinates": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    "ending": {
+      "resume_flow": true,
+      "coordinates": {
+        "x": 1250,
+        "y": 0
+      }
+    }
+  },
+  "flows": {},
+  "connections": {}
+}

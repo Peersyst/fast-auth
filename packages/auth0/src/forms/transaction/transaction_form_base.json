@@ -1,0 +1,119 @@
+{
+  "version": "4.0.0",
+  "form": {
+    "name": "Transaction form",
+    "languages": {
+      "primary": "en"
+    },
+    "nodes": [
+      {
+        "id": "step_wa5I",
+        "type": "STEP",
+        "coordinates": {
+          "x": 463,
+          "y": -81
+        },
+        "alias": "New step",
+        "config": {
+          "components": [
+            {
+              "id": "image_R9Dw",
+              "category": "BLOCK",
+              "type": "IMAGE",
+              "config": {
+                "src": "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/e58a78b0-133e-4542-aac6-703fe0b638c8.png",
+                "position": "CENTER",
+                "height": 48
+              }
+            },
+            {
+              "id": "rich_text_dvF6",
+              "category": "BLOCK",
+              "type": "RICH_TEXT",
+              "config": {
+                "content": "<h2 style=\"text-align:center;\">Authorize {{ fields.name }}</h2>"
+              }
+            },
+            {
+              "$source": "shared/image",
+              "id": "custom_4Mqg",
+              "category": "FIELD",
+              "type": "CUSTOM",
+              "required": false,
+              "sensitive": false,
+              "config": {
+                "schema": {},
+                "code": "",
+                "css": "",
+                "params": {
+                  "iconUrl": "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/1b54f479-7990-4834-9b37-95b26e2023fb.png",
+                  "leftImageUrl": "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/db9f38ff-53ea-4f76-a1c0-33c728386e5b.png",
+                  "rightImageUrl": "{{ fields.imageUrl }}"
+                }
+              }
+            },
+            {
+              "$source": "details",
+              "id": "custom_W035",
+              "category": "FIELD",
+              "type": "CUSTOM",
+              "required": false,
+              "sensitive": false,
+              "config": {
+                "schema": {},
+                "code": "",
+                "css": "",
+                "params": {
+                  "actions": "{{ fields.actions }}",
+                  "signerId": "{{ fields.signerId }}",
+                  "receiverId": "{{ fields.receiverId }}"
+                }
+              }
+            },
+            {
+              "id": "next_button_2wFC",
+              "category": "BLOCK",
+              "type": "NEXT_BUTTON",
+              "config": {
+                "text": "Approve"
+              }
+            },
+            {
+              "id": "previous_button_MdLF",
+              "category": "BLOCK",
+              "type": "PREVIOUS_BUTTON",
+              "config": {
+                "text": "Deny"
+              }
+            }
+          ],
+          "next_node": "$ending"
+        }
+      }
+    ],
+    "start": {
+      "hidden_fields": [
+        { "key": "receiverId" },
+        { "key": "actions" },
+        { "key": "name" },
+        { "key": "imageUrl" },
+        { "key": "signerId" },
+        { "key": "publicKey" }
+      ],
+      "next_node": "step_wa5I",
+      "coordinates": {
+        "x": 132,
+        "y": -102
+      }
+    },
+    "ending": {
+      "resume_flow": true,
+      "coordinates": {
+        "x": 1060,
+        "y": -118
+      }
+    }
+  },
+  "flows": {},
+  "connections": {}
+}
