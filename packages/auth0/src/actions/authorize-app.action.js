@@ -305,7 +305,13 @@ exports.onExecutePostLogin = async (event, api) => {
  * @param {Event} event - Details about the user and the context in which they are logging in.
  * @param {PostLoginAPI} api - Interface whose methods can be used to change the behavior of the login.
  */
-exports.onContinuePostLogin = async (event, api) => {};
+exports.onContinuePostLogin = async (event, api) => {
+    // The decision form (see shared/decision) writes the user's choice into the `decision`
+    // hidden field, which the runtime surfaces here as event.prompt.fields.decision.
+    if (event.prompt?.fields?.decision === "denied") {
+        return api.access.deny("User rejected the signing request");
+    }
+};
 
 // Exports for testing. Auth0's action runtime only invokes `onExecutePostLogin` /
 // `onContinuePostLogin`; extra exports are inert in production.

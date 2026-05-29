@@ -62,19 +62,20 @@
               }
             },
             {
-              "id": "next_button_fWFq",
-              "category": "BLOCK",
-              "type": "NEXT_BUTTON",
+              "$source": "shared/decision",
+              "id": "custom_decision_da",
+              "category": "FIELD",
+              "type": "CUSTOM",
+              "required": false,
+              "sensitive": false,
               "config": {
-                "text": "Approve"
-              }
-            },
-            {
-              "id": "previous_button_lCY9",
-              "category": "BLOCK",
-              "type": "PREVIOUS_BUTTON",
-              "config": {
-                "text": "Deny"
+                "schema": {},
+                "code": "",
+                "css": "",
+                "params": {
+                  "approveText": "Approve",
+                  "denyText": "Deny"
+                }
               }
             }
           ],
@@ -90,7 +91,8 @@
         { "key": "publicKey" },
         { "key": "receiverId" },
         { "key": "actions" },
-        { "key": "maxBlockHeight" }
+        { "key": "maxBlockHeight" },
+        { "key": "decision" }
       ],
       "next_node": "step_opV2",
       "coordinates": {

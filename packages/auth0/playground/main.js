@@ -60,6 +60,25 @@
         }
         if (rendered) body.appendChild(rendered);
 
+        // Mount the Approve/Deny decision component below the details, exactly like the form.
+        const decisionStatus = document.createElement("p");
+        decisionStatus.className = "decision-status";
+        try {
+            const decisionContext = window.createMockContext({ approveText: "Approve", denyText: "Deny" }, function (event, data) {
+                if (event === "goForward") {
+                    decisionStatus.textContent = "decision → " + (data.hidden.decision || "(unset)");
+                }
+            });
+            const decisionComponent = window.AuthorizeAppDecision(decisionContext);
+            body.appendChild(decisionComponent.init());
+            body.appendChild(decisionStatus);
+        } catch (err) {
+            const errBox = document.createElement("pre");
+            errBox.className = "error";
+            errBox.textContent = String(err && err.stack ? err.stack : err);
+            body.appendChild(errBox);
+        }
+
         const debugDetails = document.createElement("details");
         debugDetails.className = "debug";
         const debugSummary = document.createElement("summary");

@@ -7,7 +7,7 @@
  * `fatxn` custom claim. The `event`/`api` objects are mocked to the minimal surface the
  * handler reads.
  */
-const { onExecutePostLogin } = require("../src/actions/authorize-app.action.js");
+const { onExecutePostLogin, onContinuePostLogin } = require("../src/actions/authorize-app.action.js");
 const { buildTransaction, buildDelegateAction, buildAction } = require("./fixtures/builders.js");
 
 const ONCHAIN_AUDIENCE = "https://onchain.example";
@@ -126,5 +126,31 @@ describe("onExecutePostLogin — delegate-action payload", () => {
         expect(fields.receiverId).toBe("bob.near");
         expect(fields.maxBlockHeight).toBe("1000");
         expect(calls.customClaims.fatxn).toEqual(csv.split(",").map(Number));
+    });
+});
+
+describe("onContinuePostLogin — decision gating", () => {
+    test("denies access when the user rejected the signing request", async () => {
+        const { api, calls } = makeApi();
+
+        await onContinuePostLogin({ prompt: { fields: { decision: "denied" } } }, api);
+
+        expect(calls.deny).toEqual(["User rejected the signing request"]);
+    });
+
+    test("does nothing (resumes the flow) when the user approved", async () => {
+        const { api, calls } = makeApi();
+
+        await onContinuePostLogin({ prompt: { fields: { decision: "approved" } } }, api);
+
+        expect(calls.deny).toEqual([]);
+    });
+
+    test("does not deny when no decision/prompt is present", async () => {
+        const { api, calls } = makeApi();
+
+        await onContinuePostLogin({}, api);
+
+        expect(calls.deny).toEqual([]);
     });
 });
