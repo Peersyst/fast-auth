@@ -1,0 +1,11 @@
+{
+    "version": "0.0.1",
+    "configurations": [
+        {
+            "name": "auth0-playground",
+            "runtimeExecutable": "npx",
+            "runtimeArgs": ["--yes", "http-server", "packages/auth0", "-p", "5174", "-c-1"],
+            "port": 5174
+        }
+    ]
+}

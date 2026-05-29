@@ -268,7 +268,7 @@ exports.onExecutePostLogin = async (event, api) => {
 
     if (hasTxParams) {
         const transaction = parseTransaction(query.transaction);
-        api.prompt.render(event.secrets.authorize_app_modal, {
+        api.prompt.render(event.secrets.TRANSACTION_FORM, {
             fields: {
                 ...branding,
                 receiverId: transaction.receiverId,
@@ -282,7 +282,7 @@ exports.onExecutePostLogin = async (event, api) => {
         );
     } else {
         const delegateAction = decodeDelegateAction(query.delegateAction);
-        api.prompt.render(event.secrets.delegate_action_modal, {
+        api.prompt.render(event.secrets.DELEGATE_ACTION_FORM, {
             fields: {
                 ...branding,
                 receiverId: delegateAction.receiverId,
@@ -306,3 +306,10 @@ exports.onExecutePostLogin = async (event, api) => {
  * @param {PostLoginAPI} api - Interface whose methods can be used to change the behavior of the login.
  */
 exports.onContinuePostLogin = async (event, api) => {};
+
+// Exports for testing. Auth0's action runtime only invokes `onExecutePostLogin` /
+// `onContinuePostLogin`; extra exports are inert in production.
+exports.parseTransaction = parseTransaction;
+exports.decodeDelegateAction = decodeDelegateAction;
+exports.stringifyActions = stringifyActions;
+exports.SCHEMA = SCHEMA;

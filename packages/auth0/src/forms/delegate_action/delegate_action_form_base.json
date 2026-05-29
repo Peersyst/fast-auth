@@ -17,24 +17,6 @@
         "config": {
           "components": [
             {
-              "id": "image_2UVJ",
-              "category": "BLOCK",
-              "type": "IMAGE",
-              "config": {
-                "src": "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/e58a78b0-133e-4542-aac6-703fe0b638c8.png",
-                "position": "CENTER",
-                "height": 48
-              }
-            },
-            {
-              "id": "rich_text_2cyr",
-              "category": "BLOCK",
-              "type": "RICH_TEXT",
-              "config": {
-                "content": "<h2 style=\"text-align:center;\">Authorize {{ fields.name }}</h2>"
-              }
-            },
-            {
               "$source": "shared/image",
               "id": "custom_uOjC",
               "category": "FIELD",
@@ -50,6 +32,14 @@
                   "leftImageUrl": "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/db9f38ff-53ea-4f76-a1c0-33c728386e5b.png",
                   "rightImageUrl": "{{ fields.imageUrl }}"
                 }
+              }
+            },
+            {
+              "id": "rich_text_2cyr",
+              "category": "BLOCK",
+              "type": "RICH_TEXT",
+              "config": {
+                "content": "<h2 style=\"text-align:center;\">{{ fields.name }} wants to sign a DelegateAction</h2>"
               }
             },
             {
