@@ -11,12 +11,9 @@
         "check-types": "npx tsc --noEmit"
     },
     "main": "./src/index.ts",
-    "types": "./dist/index.d.ts",
+    "types": "./src/index.ts",
     "exports": {
-        ".": {
-            "types": "./dist/index.d.ts",
-            "default": "./src/index.ts"
-        }
+        ".": "./src/index.ts"
     },
     "devDependencies": {
         "@shared/eslint": "workspace:*",
