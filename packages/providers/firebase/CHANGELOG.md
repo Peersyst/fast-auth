@@ -1,5 +1,11 @@
 # @fast-auth-near/firebase-provider
 
+## 1.1.0
+
+### Minor Changes
+
+-   JWT Security improvements
+
 ## 1.0.4
 
 ### Patch Changes

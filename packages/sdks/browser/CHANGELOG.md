@@ -1,5 +1,11 @@
 # @fast-auth-near/browser-sdk
 
+## 1.1.0
+
+### Minor Changes
+
+-   JWT Security improvements
+
 ## 1.0.4
 
 ### Patch Changes
