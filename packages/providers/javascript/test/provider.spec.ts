@@ -53,6 +53,7 @@ describe("JavascriptProvider", () => {
         mockAuth0Client.clearMocks();
 
         mockOptions = {
+            network: "testnet",
             domain: "test-domain.auth0.com",
             clientId: "test-client-id",
             audience: "test-audience",
@@ -365,8 +366,6 @@ describe("JavascriptProvider", () => {
             mockTransaction = {} as Transaction;
             mockRequestOptions = {
                 redirectUri: "http://localhost:3000/callback",
-                imageUrl: "https://example.com/image.png",
-                name: "Test App",
                 transaction: mockTransaction,
             };
         });
@@ -381,8 +380,8 @@ describe("JavascriptProvider", () => {
 
                 expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                     authorizationParams: {
-                        image_url: mockRequestOptions.imageUrl,
-                        name: mockRequestOptions.name,
+                        audience: "auth0.jwt.fast-auth.testnet",
+                        scope: "transaction:sign",
                         redirect_uri: mockRequestOptions.redirectUri,
                         transaction: mockEncodedTransaction,
                     },
@@ -397,8 +396,6 @@ describe("JavascriptProvider", () => {
                 mockAuth0Client.loginWithRedirect.mockResolvedValue(undefined);
                 const optionsWithRedirectUri = {
                     redirectUri: "http://localhost:3000/custom-callback",
-                    imageUrl: "https://example.com/image.png",
-                    name: "Test App",
                     transaction: mockTransaction,
                 };
 
@@ -406,8 +403,8 @@ describe("JavascriptProvider", () => {
 
                 expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                     authorizationParams: {
-                        image_url: optionsWithRedirectUri.imageUrl,
-                        name: optionsWithRedirectUri.name,
+                        audience: "auth0.jwt.fast-auth.testnet",
+                        scope: "transaction:sign",
                         redirect_uri: optionsWithRedirectUri.redirectUri,
                         transaction: mockEncodedTransaction,
                     },
@@ -437,8 +434,6 @@ describe("JavascriptProvider", () => {
                 mockEncodeTransaction.mockReturnValue(mockEncodedTransaction);
                 mockAuth0Client.loginWithPopup.mockResolvedValue(undefined);
                 const optionsWithoutRedirectUri = {
-                    imageUrl: "https://example.com/image.png",
-                    name: "Test App",
                     transaction: mockTransaction,
                 };
 
@@ -446,8 +441,8 @@ describe("JavascriptProvider", () => {
 
                 expect(mockAuth0Client.loginWithPopup).toHaveBeenCalledWith({
                     authorizationParams: {
-                        image_url: optionsWithoutRedirectUri.imageUrl,
-                        name: optionsWithoutRedirectUri.name,
+                        audience: "auth0.jwt.fast-auth.testnet",
+                        scope: "transaction:sign",
                         transaction: mockEncodedTransaction,
                     },
                 });
@@ -495,8 +490,6 @@ describe("JavascriptProvider", () => {
             mockDelegateAction = {} as DelegateAction;
             mockRequestOptions = {
                 redirectUri: "http://localhost:3000/callback",
-                imageUrl: "https://example.com/image.png",
-                name: "Test App",
                 delegateAction: mockDelegateAction,
             };
         });
@@ -511,8 +504,8 @@ describe("JavascriptProvider", () => {
 
                 expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                     authorizationParams: {
-                        image_url: mockRequestOptions.imageUrl,
-                        name: mockRequestOptions.name,
+                        audience: "auth0.jwt.fast-auth.testnet",
+                        scope: "transaction:sign",
                         redirect_uri: mockRequestOptions.redirectUri,
                         delegateAction: mockEncodedDelegateAction,
                     },
@@ -527,8 +520,6 @@ describe("JavascriptProvider", () => {
                 mockAuth0Client.loginWithRedirect.mockResolvedValue(undefined);
                 const optionsWithRedirectUri = {
                     redirectUri: "http://localhost:3000/custom-callback",
-                    imageUrl: "https://example.com/image.png",
-                    name: "Test App",
                     delegateAction: mockDelegateAction,
                 };
 
@@ -536,8 +527,8 @@ describe("JavascriptProvider", () => {
 
                 expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                     authorizationParams: {
-                        image_url: optionsWithRedirectUri.imageUrl,
-                        name: optionsWithRedirectUri.name,
+                        audience: "auth0.jwt.fast-auth.testnet",
+                        scope: "transaction:sign",
                         redirect_uri: optionsWithRedirectUri.redirectUri,
                         delegateAction: mockEncodedDelegateAction,
                     },
@@ -569,8 +560,6 @@ describe("JavascriptProvider", () => {
                 mockEncodeDelegateAction.mockReturnValue(mockEncodedDelegateAction);
                 mockAuth0Client.loginWithPopup.mockResolvedValue(undefined);
                 const optionsWithoutRedirectUri = {
-                    imageUrl: "https://example.com/image.png",
-                    name: "Test App",
                     delegateAction: mockDelegateAction,
                 };
 
@@ -578,8 +567,8 @@ describe("JavascriptProvider", () => {
 
                 expect(mockAuth0Client.loginWithPopup).toHaveBeenCalledWith({
                     authorizationParams: {
-                        image_url: optionsWithoutRedirectUri.imageUrl,
-                        name: optionsWithoutRedirectUri.name,
+                        audience: "auth0.jwt.fast-auth.testnet",
+                        scope: "transaction:sign",
                         delegateAction: mockEncodedDelegateAction,
                     },
                 });

@@ -86,6 +86,7 @@ export class ReactNativeProvider implements IFastAuthProvider {
      *
      * The path is constructed from the session id token's subject claim and the Auth0 domain.
      * Format: `jwt#https://{domain}/#${sub}`
+     * @returns Promise resolving to the user's path string.
      */
     async getPath(): Promise<string> {
         const credentials = await this.client.credentialsManager.getCredentials();
@@ -109,6 +110,7 @@ export class ReactNativeProvider implements IFastAuthProvider {
      * Issues a short-lived token against the signing audience. The credentials are held
      * in-memory until consumed by getSignatureRequest; they are NOT persisted, so the
      * session credentials in credentialsManager remain untouched.
+     * @param _requestSignatureOptions The options containing the transaction to sign.
      */
     async requestTransactionSignature(_requestSignatureOptions: ReactNativeRequestTransactionSignatureOptions): Promise<void> {
         const { transaction } = _requestSignatureOptions;
@@ -127,6 +129,7 @@ export class ReactNativeProvider implements IFastAuthProvider {
 
     /**
      * Request a delegate action signature from the user.
+     * @param options The options containing the delegate action to sign.
      */
     async requestDelegateActionSignature(options: ReactNativeRequestDelegateActionSignatureOptions): Promise<void> {
         const { delegateAction } = options;
@@ -147,6 +150,7 @@ export class ReactNativeProvider implements IFastAuthProvider {
      *
      * Consumes the one-shot signing credentials issued by request*Signature. Session
      * credentials in credentialsManager are not touched.
+     * @returns Promise resolving to the signature request containing the guard id, verify payload, and sign payload.
      */
     async getSignatureRequest(): Promise<SignatureRequest> {
         const credentials = this.signingCredentials;
