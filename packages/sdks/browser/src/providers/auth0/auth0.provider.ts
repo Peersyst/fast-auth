@@ -1,5 +1,6 @@
 import { Auth0Client } from "@auth0/auth0-spa-js";
 import { Auth0ProviderOptions, Auth0RequestDelegateActionSignatureOptions, Auth0RequestTransactionSignatureOptions } from "./auth0.types";
+import { FAST_AUTH_AUTH0_DEFAULTS } from "@shared/core";
 import { encodeDelegateAction, encodeTransaction } from "./utils";
 import jwt_decode from "jwt-decode";
 import { SignatureRequest } from "../../signers";
@@ -8,11 +9,23 @@ import { Auth0ProviderErrorCodes } from "./auth0.error-codes";
 import { IFastAuthProvider } from "../../client/providers/fast-auth.provider";
 
 export class Auth0Provider implements IFastAuthProvider {
-    private readonly options: Auth0ProviderOptions;
+    private readonly options: Auth0ProviderOptions & {
+        domain: string;
+        audience: string;
+        signingAudience: string;
+    };
     private client: Auth0Client;
 
     constructor(options: Auth0ProviderOptions) {
-        this.options = options;
+        const defaults = FAST_AUTH_AUTH0_DEFAULTS[options.network];
+        this.options = {
+            network: options.network,
+            clientId: options.clientId,
+            redirectUri: options.redirectUri,
+            domain: options.domain ?? defaults.domain,
+            audience: options.audience ?? defaults.audience,
+            signingAudience: options.signingAudience ?? defaults.signingAudience,
+        };
         this.client = new Auth0Client({
             domain: this.options.domain,
             clientId: this.options.clientId,
@@ -81,12 +94,12 @@ export class Auth0Provider implements IFastAuthProvider {
      * @returns The signature.
      */
     async requestTransactionSignature(requestSignatureOptions: Auth0RequestTransactionSignatureOptions): Promise<void> {
-        const { redirectUri, imageUrl, name, transaction } = requestSignatureOptions;
+        const { redirectUri, transaction } = requestSignatureOptions;
 
         await this.client.loginWithRedirect({
             authorizationParams: {
-                imageUrl,
-                name,
+                audience: this.options.signingAudience,
+                scope: "transaction:sign",
                 redirect_uri: redirectUri ?? this.options.redirectUri,
                 transaction: encodeTransaction(transaction),
             },
@@ -99,12 +112,12 @@ export class Auth0Provider implements IFastAuthProvider {
      * @returns The void.
      */
     async requestDelegateActionSignature(options: Auth0RequestDelegateActionSignatureOptions): Promise<void> {
-        const { redirectUri, imageUrl, name, delegateAction } = options;
+        const { redirectUri, delegateAction } = options;
 
         await this.client.loginWithRedirect({
             authorizationParams: {
-                imageUrl,
-                name,
+                audience: this.options.signingAudience,
+                scope: "transaction:sign",
                 redirect_uri: redirectUri ?? this.options.redirectUri,
                 delegateAction: encodeDelegateAction(delegateAction),
             },
@@ -116,7 +129,9 @@ export class Auth0Provider implements IFastAuthProvider {
      * @returns The signature request.
      */
     async getSignatureRequest(): Promise<SignatureRequest> {
-        const token = await this.client.getTokenSilently();
+        const token = await this.client.getTokenSilently({
+            authorizationParams: { audience: this.options.signingAudience },
+        });
         const decoded = jwt_decode<{ fatxn: Uint8Array }>(token);
         return {
             guardId: `jwt#https://${this.options.domain}/`,

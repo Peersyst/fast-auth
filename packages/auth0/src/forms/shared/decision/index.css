@@ -1,0 +1,27 @@
+.decision-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
+}
+
+.decision-button {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.decision-button.approve {
+    background-color: #0a0a0a;
+    color: #ffffff;
+}
+
+.decision-button.deny {
+    background-color: #ffffff;
+    color: #3f4246;
+    border-color: #e5e5e5;
+}

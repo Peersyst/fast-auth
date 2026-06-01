@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>auth0 forms playground</title>
+    <!-- Production form CSS, loaded first so the rendered block matches Auth0 exactly.
+         transaction/ and delegate_action/ details CSS are identical, so one covers both. -->
+    <link rel="stylesheet" href="../src/forms/transaction/details/index.css" />
+    <link rel="stylesheet" href="../src/forms/shared/decision/index.css" />
+    <!-- Playground chrome (toolbar, cards, debug). Must load AFTER so its layout wraps
+         the production block without overriding the block's own styles. -->
+    <link rel="stylesheet" href="playground.css" />
+</head>
+<body>
+    <header class="toolbar">
+        <h1>auth0 forms playground</h1>
+        <label>
+            mode
+            <select id="mode-filter">
+                <option value="all">all</option>
+                <option value="transaction">transaction</option>
+                <option value="delegate_action">delegate_action</option>
+            </select>
+        </label>
+        <label>
+            <input type="checkbox" id="fuzz-toggle" />
+            fuzz payloads
+        </label>
+        <div class="spacer"></div>
+        <button id="refresh" class="primary" type="button">re-render</button>
+    </header>
+
+    <main id="cards"></main>
+
+    <!-- Production sources (no bundler). helpers must load first; details factories rely on
+         the __auth0FormHelpers global it defines. -->
+    <script src="../src/forms/shared/helpers/index.js"></script>
+    <script src="../src/forms/transaction/details/index.js"></script>
+    <script src="../src/forms/delegate_action/details/index.js"></script>
+    <script src="../src/forms/shared/decision/index.js"></script>
+
+    <!-- Playground scaffolding -->
+    <script src="payloads.js"></script>
+    <script src="mock-context.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>

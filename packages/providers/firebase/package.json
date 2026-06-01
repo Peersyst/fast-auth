@@ -10,7 +10,7 @@
         "package.json"
     ],
     "scripts": {
-        "build": "tsc -p tsconfig.build.json",
+        "build": "tsup",
         "lint": "eslint .",
         "clean": "rimraf .turbo dist node_modules",
         "test": "jest"
@@ -37,12 +37,14 @@
         "jest": "^29.7.0",
         "ts-jest": "^29.1.4",
         "ts-node": "^10.9.2",
+        "tsup": "^8.2.4",
         "typescript": "^5.7.3"
     },
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
-            "default": "./dist/index.js"
+            "import": "./dist/index.mjs",
+            "require": "./dist/index.js"
         }
     },
     "publishConfig": {

@@ -1,0 +1,113 @@
+{
+  "version": "4.0.0",
+  "form": {
+    "name": "Delegate action form",
+    "languages": {
+      "primary": "en"
+    },
+    "nodes": [
+      {
+        "id": "step_opV2",
+        "type": "STEP",
+        "coordinates": {
+          "x": 500,
+          "y": 0
+        },
+        "alias": "New step",
+        "config": {
+          "components": [
+            {
+              "$source": "shared/image",
+              "id": "custom_uOjC",
+              "category": "FIELD",
+              "type": "CUSTOM",
+              "required": false,
+              "sensitive": false,
+              "config": {
+                "schema": {},
+                "code": "",
+                "css": "",
+                "params": {
+                  "iconUrl": "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/ab6afba7-91a2-4c53-b2a3-90e4f8c3492a.png",
+                  "leftImageUrl": "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/db9f38ff-53ea-4f76-a1c0-33c728386e5b.png",
+                  "rightImageUrl": "{{ fields.imageUrl }}"
+                }
+              }
+            },
+            {
+              "id": "rich_text_2cyr",
+              "category": "BLOCK",
+              "type": "RICH_TEXT",
+              "config": {
+                "content": "<h2 style=\"text-align:center;\">{{ fields.name }} wants to sign a DelegateAction</h2>"
+              }
+            },
+            {
+              "$source": "details",
+              "id": "custom_Stka",
+              "category": "FIELD",
+              "type": "CUSTOM",
+              "required": false,
+              "sensitive": false,
+              "config": {
+                "schema": {},
+                "code": "",
+                "css": "",
+                "params": {
+                  "actions": "{{ fields.actions }}",
+                  "senderId": "{{ fields.senderId }}",
+                  "receiverId": "{{ fields.receiverId }}",
+                  "maxBlockHeight": "{{ fields.maxBlockHeight }}"
+                }
+              }
+            },
+            {
+              "$source": "shared/decision",
+              "id": "custom_decision_da",
+              "category": "FIELD",
+              "type": "CUSTOM",
+              "required": false,
+              "sensitive": false,
+              "config": {
+                "schema": {},
+                "code": "",
+                "css": "",
+                "params": {
+                  "approveText": "Approve",
+                  "denyText": "Deny"
+                }
+              }
+            }
+          ],
+          "next_node": "$ending"
+        }
+      }
+    ],
+    "start": {
+      "hidden_fields": [
+        { "key": "imageUrl" },
+        { "key": "name" },
+        { "key": "senderId" },
+        { "key": "publicKey" },
+        { "key": "receiverId" },
+        { "key": "actions" },
+        { "key": "maxBlockHeight" },
+        { "key": "decision" }
+      ],
+      "next_node": "step_opV2",
+      "coordinates": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    "ending": {
+      "resume_flow": true,
+      "coordinates": {
+        "x": 1250,
+        "y": 0
+      }
+    }
+  },
+  "flows": {},
+  "connections": {}
+}

@@ -4,6 +4,7 @@ packages:
     - "contracts/jwt-guards/*"
     - "docs"
     - "packages/auth"
+    - "packages/auth0"
     - "packages/backend/*"
     - "packages/sdks/*"
     - "packages/providers/*"

@@ -1,11 +1,16 @@
 import { Transaction } from "near-api-js/lib/transaction";
 import { DelegateAction } from "@near-js/transactions";
 import { PopupLoginOptions, RedirectLoginOptions } from "@auth0/auth0-spa-js";
+import { FastAuthNetwork } from "@shared/core";
+
+export type { FastAuthNetwork } from "@shared/core";
 
 export type JavascriptProviderOptions = {
-    domain: string;
+    network: FastAuthNetwork;
     clientId: string;
-    audience: string;
+    domain?: string;
+    audience?: string;
+    signingAudience?: string;
 };
 
 export type JavascriptLoginWithRedirectOptions = Omit<RedirectLoginOptions, "authorizationParams"> & {
@@ -17,8 +22,6 @@ export type JavascriptLoginWithPopupOptions = Omit<PopupLoginOptions, "authoriza
 export type JavascriptLoginOptions = JavascriptLoginWithRedirectOptions | JavascriptLoginWithPopupOptions;
 
 export type JavascriptBaseRequestSignatureOptions = {
-    imageUrl: string;
-    name: string;
     redirectUri?: string;
 };
 

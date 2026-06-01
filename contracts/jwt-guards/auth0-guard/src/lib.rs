@@ -10,6 +10,20 @@ const MIGRATION_TGAS: u64 = 10;
 #[derive(Serialize, Deserialize)]
 pub struct CustomClaims {
     pub fatxn: Vec<u8>,
+    pub aud: serde_json::Value,
+}
+
+/// Checks whether the JWT `aud` claim contains the expected audience.
+///
+/// Per the OIDC spec, `aud` can be a string or an array of strings.
+fn audience_matches(aud: &serde_json::Value, expected: &str) -> bool {
+    match aud {
+        serde_json::Value::String(s) => s == expected,
+        serde_json::Value::Array(arr) => arr.iter().any(|v|
+            v.as_str().map(|s| s == expected).unwrap_or(false)
+        ),
+        _ => false,
+    }
 }
 
 /// A NEAR contract that verifies JWT tokens signed with RS256 algorithm
@@ -199,12 +213,17 @@ impl JwtGuard for Auth0Guard {
             Err(error) => return (false, error.to_string()),
         };
 
+        // The audience must match the account ID where this contract is deployed.
+        // This prevents a JWT minted for one deployment from being replayed against another.
+        let expected = env::current_account_id().to_string();
+        if !audience_matches(&claims.aud, &expected) {
+            return (false, "audience mismatch".to_string());
+        }
         // Compare fatxn with sign_payload
         if claims.fatxn != sign_payload {
             return (false, "Transaction payload mismatch".to_string());
         }
-        // Return the sub and fatxn fields
-        (true, "".parse().unwrap())
+        (true, "".to_string())
     }
 }
 
@@ -226,7 +245,11 @@ mod tests {
             owner: env::current_account_id(),
         };
         let result = contract.verify("https://dev-gb1h5yrepb85jstz.us.auth0.com/".to_string(), "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.eyJmYXR4biI6WzE4LDAsMCwwLDEwMiw5Nyw0NSwxMDMsMTE3LDEwNSwxMDgsMTA4LDEwMSwxMDksNDYsMTE2LDEwMSwxMTUsMTE2LDExMCwxMDEsMTE2LDEsMzksMTIwLDIsNTAsNDIsMjQ3LDI0MywyMjMsMTUyLDk3LDI1MSwyOCwxNTMsMzgsMTU0LDEzMiwxODQsMTIzLDE1MiwxNTAsMjQ3LDIxNiw4Nyw1Myw3Niw0MiwxMjcsMTksMTI4LDgsMTgyLDIwOSwyNTEsMjcsMTgwLDIwLDM3LDE4NSwyNDcsMzUsNiw3MSwzMSw5NiwxMTAsNjYsMTIxLDEwNSwyMjgsMjUsMjUwLDIwNiwxODMsMTkxLDM2LDEwOSw3NSwxMDUsOTcsMjksNDAsMTQyLDgsMjQ0LDkyLDQxLDE4NiwxMjYsODYsMTExLDAsMCwyMCwwLDAsMCw5OCwxMTEsMTE1LDEwNSwxMTUsMTE2LDEwNCwxMDEsMTEwLDEwMSw5NywxMTQsNDYsMTE2LDEwMSwxMTUsMTE2LDExMCwxMDEsMTE2LDUyLDIxLDgzLDc1LDIyMCwxNzAsMTA0LDE3OSwxMzYsMjQ0LDE2OCwxMTgsMjUsOTIsMjI0LDY4LDEzMSwxNTIsMTUyLDQxLDI0NSwxOTMsMjI5LDE4Miw4LDEzNiw4NiwyMzcsMTQxLDIxNywxNTcsMTU1LDEsMCwwLDAsMywxMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMF0sImlzcyI6Imh0dHBzOi8vZGV2LWdiMWg1eXJlcGI4NWpzdHoudXMuYXV0aDAuY29tLyIsInN1YiI6Imdvb2dsZS1vYXV0aDJ8MTA1NDQ2OTI1MjM1NjMyNzc3Mzk3IiwiYXVkIjpbImh0dHBzOi8vZmFzdC1hdXRoLXBvYy5jb20iLCJodHRwczovL2Rldi1nYjFoNXlyZXBiODVqc3R6LnVzLmF1dGgwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3NDY2OTczODYsImV4cCI6MTc0Njc4Mzc4Niwic2NvcGUiOiJvcGVuaWQgdHJhbnNhY3Rpb246c2VuZC10cmFuc2FjdGlvbiIsImF6cCI6IjdEbWhXdXVnVVZKRE5TSjRlZE5PVEZtMGM5OHhzOWhwIn0.XChULVjx06hAGdBND54qFWr9KVdP95GXLc4Y8KzC9Fpj4Ky6E76ijbjE9ATVpSylKKMHrpVxjQHMoszyPbkHA759mf9x3gr5mOEkUy2WR8N35SYTZkbB77l8pA5o_zxOS9SKewBrGyZWpij0OyiM-Eqom3nwer3Aw3UPFyVB2ucpQkW-eJVrlNpKB80xhr1lCRBiHvPEnNH2Mk5Ok3x-uRzPTRq__hMjuY3F_udF4cEbeJGoWA2QGr1gTeUMKJyGvSThEk2xxq5xagXDA6FPq5DHi1Q9GxUlA3pPeb7zhNseUoGm1AdCTlqqGwgakUkuWj7I5miBjNu6qd-fQfkGXQ".to_string(), vec![18,0,0,0,102,97,45,103,117,105,108,108,101,109,46,116,101,115,116,110,101,116,1,39,120,2,50,42,247,243,223,152,97,251,28,153,38,154,132,184,123,152,150,247,216,87,53,76,42,127,19,128,8,182,209,251,27,180,20,37,185,247,35,6,71,31,96,110,66,121,105,228,25,250,206,183,191,36,109,75,105,97,29,40,142,8,244,92,41,186,126,86,111,0,0,20,0,0,0,98,111,115,105,115,116,104,101,110,101,97,114,46,116,101,115,116,110,101,116,52,21,83,75,220,170,104,179,136,244,168,118,25,92,224,68,131,152,152,41,245,193,229,182,8,136,86,237,141,217,157,155,1,0,0,0,3,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "pred".parse().unwrap());
-        assert_eq!(result, (true, "google-oauth2|105446925235632777397".to_string()));
+        // This token's aud is ["https://fast-auth-poc.com", "https://dev-gb1h5yrepb85jstz.us.auth0.com/userinfo"],
+        // neither of which matches env::current_account_id() in the test environment, so the audience
+        // check must reject it. Regenerate the fixture once token minting is updated to set aud to the
+        // deployed contract account.
+        assert_eq!(result, (false, "audience mismatch".to_string()));
     }
 
     #[test]
@@ -266,6 +289,199 @@ mod tests {
         };
         let result = contract.verify("https://dev-gb1h5yrp85jsty.us.auth0.com/".to_string(), "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Imd2bXRWLXVzMk83N21tam5NR3FCMCJ9.eyJmYXR4biI6WzE4LDAsMCwwLDEwMiw5Nyw0NSwxMDMsMTE3LDEwNSwxMDgsMTA4LDEwMSwxMDksNDYsMTE2LDEwMSwxMTUsMTE2LDExMCwxMDEsMTE2LDEsMzksMTIwLDIsNTAsNDIsMjQ3LDI0MywyMjMsMTUyLDk3LDI1MSwyOCwxNTMsMzgsMTU0LDEzMiwxODQsMTIzLDE1MiwxNTAsMjQ3LDIxNiw4Nyw1Myw3Niw0MiwxMjcsMTksMTI4LDgsMTgyLDIwOSwyNTEsMjcsMTgwLDIwMzcsMTg1LDI0NywzNSw2LDcxLDMxLDk2LDExMCw2NiwxMjEsMTA1LDIyOCwyNSwyNTAyMDYsMTgzLDE5MSwzNiwxMDksNzUsMTA1LDk3LDI5LDQwLDE0Miw4LDI0NCw5Miw0MSwxODYsMTI2LDg2LDExMSwwLDAsMjAsMCwwLDAsOTgsMTEyLDExNSwxMDUsMTE1LDExNiwxMDQsMTAxLDExMCwxMDEsOTcsMTE0LDQ2LDExNiwxMDEsMTE1LDExNiwxMTAxMDEsMTE2LDUyLDIxLDgzLDc1LDIyMCwxNzAsMTA0LDE3OSwxMzYsMjQ0LDE2OCwxMTgsMjUsOTIsMjI0LDY4LDEzMSwxNTIsMTUyLDQxLDI0NSwxOTMsMjI5LDE4Miw4LDEzNiw4NiwyMzcsMTQxLDIxNywxNTcsMTU1LDEsMCwwLDAsMywxMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMCwwLDAsMF0sImlzcyI6Imh0dHBzOi8vZGV2LWdiMWg1eXJlcGI4NWpzdHoudXMuYXV0aDAuY29tLyIsInN1YiI6Imdvb2dsZS1vYXV0aDJ8MTA1NDQ2OTI1MjM1NjMyNzc3Mzk3IiwiYXVkIjpbImh0dHBzOi8vZmFzdC1hdXRoLXBvYy5jb20iLCJodHRwczovL2Rldi1nYjFoNXlyZXBiODVqc3R6LnVzLmF1dGgwLmNvbS91c2VyaW5mbyJdLCJpYXQiOjE3NDY2OTczODYsImV4cCI6MTc0Njc4Mzc4Niwic2NvcGUiOiJvcGVuaWQgdHJhbnNhY3Rpb246c2VuZC10cmFuc2FjdGlvbiIsImF6cCI6IjdEbWhXdXVnVVZKRE5TSjRlZE5PVEZtMGM5OHhzOWhwIn0.XChULVjx06hAGdBND54qFWr9KVdP95GXLc4Y8KzC9Fpj4Ky6E76ijbjE9ATVpSylKKMHrpVxjQHMoszyPbkHA759mf9x3gr5mOEkUy2WR8N35SYTZkbB77l8pA5o_zxOS9SKewBrGyZWpij0OyiM-Eqom3nwer3Aw3UPFyVB2ucpQkW-eJVrlNpKB80xhr1lCRBiHvPEnNH2Mk5Ok3x-uRzPTRq__hMjuY3F_udF4cEbeJGoWA2QGr1gTeUMKJyGvSThEk2xxq5xagXDA6FPq5DHi1Q9GxUlA3pPeb7zhNseUoGm1AdCTlqqGwgakUkuWj7I5miBjNu6qd-fQfkGXQ".to_string(), vec![18,0,0,0,102,97,45,103,117,105,108,108,101,109,46,116,101,115,116,110,101,116,1,39,120,2,50,42,247,243,223,152,97,251,28,153,38,154,132,184,123,152,150,247,216,87,53,76,42,127,19,128,8,182,209,251,27,180,20,37,185,247,35,6,71,31,96,110,66,121,105,228,25,250,206,183,191,36,109,75,105,97,29,40,142,8,244,92,41,186,126,86,111,0,0,20,0,0,0,98,111,115,105,115,116,104,101,110,101,97,114,46,116,101,115,116,110,101,116,52,21,83,75,220,170,104,179,136,244,168,118,25,92,224,68,131,152,152,41,245,193,229,182,8,136,86,237,141,217,157,155,1,0,0,0,3,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "pred".parse().unwrap());
         assert_eq!(result, (false, "".to_string()));
+    }
+
+    #[test]
+    fn test_audience_matches_string_match() {
+        let aud = serde_json::Value::String("fast-auth.testnet".to_string());
+        assert!(audience_matches(&aud, "fast-auth.testnet"));
+    }
+
+    #[test]
+    fn test_audience_matches_string_mismatch() {
+        let aud = serde_json::Value::String("other.testnet".to_string());
+        assert!(!audience_matches(&aud, "fast-auth.testnet"));
+    }
+
+    #[test]
+    fn test_audience_matches_array_contains() {
+        let aud = serde_json::json!([
+            "https://example.com/userinfo",
+            "fast-auth.testnet"
+        ]);
+        assert!(audience_matches(&aud, "fast-auth.testnet"));
+    }
+
+    #[test]
+    fn test_audience_matches_array_missing() {
+        let aud = serde_json::json!(["a.testnet", "b.testnet"]);
+        assert!(!audience_matches(&aud, "fast-auth.testnet"));
+    }
+
+    #[test]
+    fn test_audience_matches_array_with_non_strings_skipped() {
+        let aud = serde_json::json!([42, true, "fast-auth.testnet"]);
+        assert!(audience_matches(&aud, "fast-auth.testnet"));
+    }
+
+    #[test]
+    fn test_audience_matches_unsupported_type_rejected() {
+        let aud = serde_json::json!(42);
+        assert!(!audience_matches(&aud, "fast-auth.testnet"));
+    }
+
+    #[test]
+    fn test_verify_custom_claims_accepts_matching_aud_and_fatxn() {
+        use base_jwt_guard::JwtGuard;
+        use near_sdk::test_utils::{accounts, VMContextBuilder};
+        use near_sdk::testing_env;
+
+        let mut context = VMContextBuilder::new();
+        context.current_account_id(accounts(0));
+        testing_env!(context.build());
+
+        let contract = Auth0Guard {
+            public_keys: vec![JwtPublicKey { n: vec![1, 2, 3], e: vec![1, 0, 1] }],
+            owner: accounts(0),
+        };
+
+        let sign_payload = vec![1u8, 2, 3, 4];
+        let payload = serde_json::json!({
+            "fatxn": sign_payload,
+            "aud": accounts(0).to_string(),
+        });
+        let payload_bytes = serde_json::to_vec(&payload).unwrap();
+
+        let result = contract.verify_custom_claims(
+            "ignored".to_string(),
+            payload_bytes,
+            sign_payload,
+            accounts(1),
+        );
+        assert_eq!(result, (true, "".to_string()));
+    }
+
+    #[test]
+    fn test_verify_custom_claims_accepts_aud_array_containing_account() {
+        use base_jwt_guard::JwtGuard;
+        use near_sdk::test_utils::{accounts, VMContextBuilder};
+        use near_sdk::testing_env;
+
+        let mut context = VMContextBuilder::new();
+        context.current_account_id(accounts(0));
+        testing_env!(context.build());
+
+        let contract = Auth0Guard {
+            public_keys: vec![JwtPublicKey { n: vec![1, 2, 3], e: vec![1, 0, 1] }],
+            owner: accounts(0),
+        };
+
+        let sign_payload = vec![9u8, 8, 7];
+        let payload = serde_json::json!({
+            "fatxn": sign_payload,
+            "aud": [
+                "https://example.com/userinfo",
+                accounts(0).to_string(),
+            ],
+        });
+        let payload_bytes = serde_json::to_vec(&payload).unwrap();
+
+        let result = contract.verify_custom_claims(
+            "ignored".to_string(),
+            payload_bytes,
+            sign_payload,
+            accounts(1),
+        );
+        assert_eq!(result, (true, "".to_string()));
+    }
+
+    #[test]
+    fn test_verify_custom_claims_rejects_audience_mismatch() {
+        use base_jwt_guard::JwtGuard;
+        use near_sdk::test_utils::{accounts, VMContextBuilder};
+        use near_sdk::testing_env;
+
+        let mut context = VMContextBuilder::new();
+        context.current_account_id(accounts(0));
+        testing_env!(context.build());
+
+        let contract = Auth0Guard {
+            public_keys: vec![JwtPublicKey { n: vec![1, 2, 3], e: vec![1, 0, 1] }],
+            owner: accounts(0),
+        };
+
+        let sign_payload = vec![1u8, 2, 3];
+        let payload = serde_json::json!({
+            "fatxn": sign_payload,
+            "aud": ["https://example.com/userinfo", accounts(2).to_string()],
+        });
+        let payload_bytes = serde_json::to_vec(&payload).unwrap();
+
+        let result = contract.verify_custom_claims(
+            "ignored".to_string(),
+            payload_bytes,
+            sign_payload,
+            accounts(1),
+        );
+        assert_eq!(result, (false, "audience mismatch".to_string()));
+    }
+
+    #[test]
+    fn test_verify_custom_claims_rejects_fatxn_mismatch_when_aud_ok() {
+        use base_jwt_guard::JwtGuard;
+        use near_sdk::test_utils::{accounts, VMContextBuilder};
+        use near_sdk::testing_env;
+
+        let mut context = VMContextBuilder::new();
+        context.current_account_id(accounts(0));
+        testing_env!(context.build());
+
+        let contract = Auth0Guard {
+            public_keys: vec![JwtPublicKey { n: vec![1, 2, 3], e: vec![1, 0, 1] }],
+            owner: accounts(0),
+        };
+
+        let payload = serde_json::json!({
+            "fatxn": [1u8, 2, 3],
+            "aud": accounts(0).to_string(),
+        });
+        let payload_bytes = serde_json::to_vec(&payload).unwrap();
+
+        let result = contract.verify_custom_claims(
+            "ignored".to_string(),
+            payload_bytes,
+            vec![9u8, 9, 9],
+            accounts(1),
+        );
+        assert_eq!(result, (false, "Transaction payload mismatch".to_string()));
+    }
+
+    #[test]
+    fn test_verify_custom_claims_rejects_missing_aud() {
+        use base_jwt_guard::JwtGuard;
+        use near_sdk::test_utils::{accounts, VMContextBuilder};
+        use near_sdk::testing_env;
+
+        let mut context = VMContextBuilder::new();
+        context.current_account_id(accounts(0));
+        testing_env!(context.build());
+
+        let contract = Auth0Guard {
+            public_keys: vec![JwtPublicKey { n: vec![1, 2, 3], e: vec![1, 0, 1] }],
+            owner: accounts(0),
+        };
+
+        // No `aud` field — serde should fail to deserialize CustomClaims.
+        let payload = serde_json::json!({ "fatxn": [1u8, 2, 3] });
+        let payload_bytes = serde_json::to_vec(&payload).unwrap();
+
+        let (ok, _msg) = contract.verify_custom_claims(
+            "ignored".to_string(),
+            payload_bytes,
+            vec![1u8, 2, 3],
+            accounts(1),
+        );
+        assert!(!ok);
     }
 
     #[test]
