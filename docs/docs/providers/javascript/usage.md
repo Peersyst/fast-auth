@@ -81,6 +81,16 @@ await client.login({
     redirectUri: window.location.origin,
 });
 
+// Let the user choose a different Auth0 account
+await client.login({
+    behavior: 'select_account',
+});
+
+// Force the user to re-enter credentials
+await client.login({
+    behavior: 'login',
+});
+
 // Check authentication status
 const isLoggedIn = await client.isLoggedIn();
 
@@ -195,6 +205,12 @@ await client.login();
 // Redirect flow
 await client.login({
     redirectUri: window.location.origin,
+});
+
+// Auth0 account chooser
+await client.login({
+    redirectUri: window.location.origin,
+    behavior: 'select_account',
 });
 ```
 

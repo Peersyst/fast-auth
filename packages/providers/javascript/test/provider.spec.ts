@@ -243,6 +243,22 @@ describe("JavascriptProvider", () => {
                 expect(mockAuth0Client.loginWithPopup).not.toHaveBeenCalled();
             });
 
+            it("should pass behavior to loginWithRedirect as prompt", async () => {
+                const loginOptions = {
+                    redirectUri: "http://localhost:3000/custom-callback",
+                    behavior: "select_account",
+                };
+
+                await provider.login(loginOptions);
+
+                expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
+                    authorizationParams: {
+                        prompt: "select_account",
+                        redirect_uri: loginOptions.redirectUri,
+                    },
+                });
+            });
+
             it("should propagate errors from loginWithRedirect", async () => {
                 const error = new Error("Login failed");
                 const loginOptions = {
@@ -270,6 +286,21 @@ describe("JavascriptProvider", () => {
                 await provider.login(loginOptions);
 
                 expect(mockAuth0Client.loginWithPopup).toHaveBeenCalledWith(loginOptions);
+                expect(mockAuth0Client.loginWithRedirect).not.toHaveBeenCalled();
+            });
+
+            it("should pass behavior to loginWithPopup as prompt", async () => {
+                const loginOptions = {
+                    behavior: "login",
+                };
+
+                await provider.login(loginOptions);
+
+                expect(mockAuth0Client.loginWithPopup).toHaveBeenCalledWith({
+                    authorizationParams: {
+                        prompt: "login",
+                    },
+                });
                 expect(mockAuth0Client.loginWithRedirect).not.toHaveBeenCalled();
             });
 

@@ -105,10 +105,11 @@ export class JavascriptProvider implements IFastAuthProvider {
      * @returns The void.
      */
     private async loginWithRedirect(options: JavascriptLoginWithRedirectOptions): Promise<void> {
-        const { redirectUri, ...opts } = options;
+        const { redirectUri, behavior, ...opts } = options;
         await this.client.loginWithRedirect({
             ...opts,
             authorizationParams: {
+                ...(behavior ? { prompt: behavior } : {}),
                 redirect_uri: redirectUri,
             },
         });
@@ -120,7 +121,18 @@ export class JavascriptProvider implements IFastAuthProvider {
      * @returns The void.
      */
     private async loginWithPopup(options?: JavascriptLoginWithPopupOptions): Promise<void> {
-        await this.client.loginWithPopup(options);
+        const { behavior, ...opts } = options ?? {};
+        if (!behavior) {
+            await this.client.loginWithPopup(options ? opts : undefined);
+            return;
+        }
+
+        await this.client.loginWithPopup({
+            ...opts,
+            authorizationParams: {
+                prompt: behavior,
+            },
+        });
     }
 
     /**

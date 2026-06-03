@@ -1,5 +1,10 @@
 import { Auth0Client } from "@auth0/auth0-spa-js";
-import { Auth0ProviderOptions, Auth0RequestDelegateActionSignatureOptions, Auth0RequestTransactionSignatureOptions } from "./auth0.types";
+import {
+    Auth0LoginOptions,
+    Auth0ProviderOptions,
+    Auth0RequestDelegateActionSignatureOptions,
+    Auth0RequestTransactionSignatureOptions,
+} from "./auth0.types";
 import { FAST_AUTH_AUTH0_DEFAULTS } from "@shared/core";
 import { encodeDelegateAction, encodeTransaction } from "./utils";
 import jwt_decode from "jwt-decode";
@@ -58,11 +63,15 @@ export class Auth0Provider implements IFastAuthProvider {
 
     /**
      * Sign in to the client.
+     * @param options The options for the login.
      * @returns The void.
      */
-    async login(): Promise<void> {
+    async login(options?: Auth0LoginOptions): Promise<void> {
+        const { behavior, ...opts } = options ?? {};
         await this.client.loginWithRedirect({
+            ...opts,
             authorizationParams: {
+                ...(behavior ? { prompt: behavior } : {}),
                 redirect_uri: this.options.redirectUri,
             },
         });

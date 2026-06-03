@@ -43,6 +43,7 @@ login(options?: JavascriptLoginOptions): Promise<void>
 - `options` (optional) - Login options:
   - If `redirectUri` is provided, uses redirect flow
   - If `redirectUri` is not provided, uses popup flow
+  - `behavior` maps to Auth0 `authorizationParams.prompt`: `"select_account"`, `"login"`, `"none"`, or `"consent"`
   - Can include other Auth0 redirect/popup options
 
 #### Returns
@@ -61,6 +62,16 @@ await provider.login({
 // Popup flow
 await provider.login();
 // User will see a popup for authentication
+
+// Force Auth0 to let the user choose another account
+await provider.login({
+    behavior: 'select_account',
+});
+
+// Force reauthentication
+await provider.login({
+    behavior: 'login',
+});
 ```
 
 ---
@@ -366,4 +377,3 @@ try {
     }
 }
 ```
-
