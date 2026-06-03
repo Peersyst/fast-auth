@@ -1,5 +1,11 @@
 # @fast-auth-near/react-native-provider
 
+## 1.2.0
+
+### Minor Changes
+
+-   Add behavior login options
+
 ## 1.1.0
 
 ### Minor Changes

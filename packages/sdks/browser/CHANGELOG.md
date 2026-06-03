@@ -1,5 +1,11 @@
 # @fast-auth-near/browser-sdk
 
+## 1.2.0
+
+### Minor Changes
+
+-   Add behavior login options
+
 ## 1.1.0
 
 ### Minor Changes

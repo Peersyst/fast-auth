@@ -1,5 +1,14 @@
 # spa
 
+## 0.0.5
+
+### Patch Changes
+
+-   Updated dependencies
+    -   @fast-auth-near/firebase-provider@1.2.0
+    -   @fast-auth-near/javascript-provider@1.2.0
+    -   @fast-auth-near/browser-sdk@1.2.0
+
 ## 0.0.4
 
 ### Patch Changes
