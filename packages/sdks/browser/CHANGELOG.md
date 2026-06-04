@@ -1,5 +1,11 @@
 # @fast-auth-near/browser-sdk
 
+## 1.3.0
+
+### Minor Changes
+
+-   refactor: remove audience handling and improve login flow
+
 ## 1.2.0
 
 ### Minor Changes
