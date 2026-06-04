@@ -1,5 +1,11 @@
 # @fast-auth-near/react-native-provider
 
+## 1.3.1
+
+### Patch Changes
+
+-   fix is logged in credentials
+
 ## 1.3.0
 
 ### Minor Changes
