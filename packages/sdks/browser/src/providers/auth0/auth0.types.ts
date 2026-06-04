@@ -10,7 +10,6 @@ export type Auth0ProviderOptions = {
     clientId: string;
     redirectUri: string;
     domain?: string;
-    audience?: string;
     signingAudience?: string;
 };
 

@@ -56,7 +56,6 @@ describe("JavascriptProvider", () => {
             network: "testnet",
             domain: "test-domain.auth0.com",
             clientId: "test-client-id",
-            audience: "test-audience",
         };
 
         provider = new JavascriptProvider(mockOptions);
@@ -82,146 +81,136 @@ describe("JavascriptProvider", () => {
                 expect(mockAuth0Client.getTokenSilently).not.toHaveBeenCalled();
             });
 
-            it("should return false when user is not authenticated with code and state, and no token exists", async () => {
+            it("should return false when user is not authenticated with code and state", async () => {
                 mockLocation.search = "?code=test-code&state=test-state";
                 mockAuth0Client.handleRedirectCallback.mockResolvedValue(undefined);
                 mockAuth0Client.isAuthenticated.mockResolvedValue(false);
-                mockAuth0Client.checkSession.mockResolvedValue(undefined);
-                mockAuth0Client.getTokenSilently.mockResolvedValue(null);
 
                 const result = await provider.isLoggedIn();
 
                 expect(result).toBe(false);
                 expect(mockAuth0Client.handleRedirectCallback).toHaveBeenCalled();
-                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalled();
-                expect(mockAuth0Client.checkSession).toHaveBeenCalled();
-                expect(mockAuth0Client.getTokenSilently).toHaveBeenCalled();
-            });
-
-            it("should return true when redirect callback fails but token exists", async () => {
-                mockLocation.search = "?code=test-code&state=test-state";
-                mockAuth0Client.handleRedirectCallback.mockResolvedValue(undefined);
-                mockAuth0Client.isAuthenticated.mockResolvedValue(false);
-                mockAuth0Client.checkSession.mockResolvedValue(undefined);
-                mockAuth0Client.getTokenSilently.mockResolvedValue("valid-token");
-
-                const result = await provider.isLoggedIn();
-
-                expect(result).toBe(true);
-                expect(mockAuth0Client.handleRedirectCallback).toHaveBeenCalled();
-                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalled();
-                expect(mockAuth0Client.checkSession).toHaveBeenCalled();
-                expect(mockAuth0Client.getTokenSilently).toHaveBeenCalled();
-            });
-
-            it("should return false when no code and state in URL and no token exists", async () => {
-                mockLocation.search = "";
-                mockAuth0Client.checkSession.mockResolvedValue(undefined);
-                mockAuth0Client.getTokenSilently.mockResolvedValue(null);
-
-                const result = await provider.isLoggedIn();
-
-                expect(result).toBe(false);
-                expect(mockAuth0Client.handleRedirectCallback).not.toHaveBeenCalled();
-                expect(mockAuth0Client.isAuthenticated).not.toHaveBeenCalled();
-                expect(mockAuth0Client.checkSession).toHaveBeenCalled();
-                expect(mockAuth0Client.getTokenSilently).toHaveBeenCalled();
-            });
-
-            it("should return true when no code and state in URL but token exists", async () => {
-                mockLocation.search = "";
-                mockAuth0Client.checkSession.mockResolvedValue(undefined);
-                mockAuth0Client.getTokenSilently.mockResolvedValue("valid-token");
-
-                const result = await provider.isLoggedIn();
-
-                expect(result).toBe(true);
-                expect(mockAuth0Client.handleRedirectCallback).not.toHaveBeenCalled();
-                expect(mockAuth0Client.isAuthenticated).not.toHaveBeenCalled();
-                expect(mockAuth0Client.checkSession).toHaveBeenCalled();
-                expect(mockAuth0Client.getTokenSilently).toHaveBeenCalled();
-            });
-
-            it("should return false when only code is present and no token exists", async () => {
-                mockLocation.search = "?code=test-code";
-                mockAuth0Client.checkSession.mockResolvedValue(undefined);
-                mockAuth0Client.getTokenSilently.mockResolvedValue(null);
-
-                const result = await provider.isLoggedIn();
-
-                expect(result).toBe(false);
-                expect(mockAuth0Client.handleRedirectCallback).not.toHaveBeenCalled();
-                expect(mockAuth0Client.isAuthenticated).not.toHaveBeenCalled();
-                expect(mockAuth0Client.checkSession).toHaveBeenCalled();
-                expect(mockAuth0Client.getTokenSilently).toHaveBeenCalled();
-            });
-
-            it("should return false when only state is present and no token exists", async () => {
-                mockLocation.search = "?state=test-state";
-                mockAuth0Client.checkSession.mockResolvedValue(undefined);
-                mockAuth0Client.getTokenSilently.mockResolvedValue(null);
-
-                const result = await provider.isLoggedIn();
-
-                expect(result).toBe(false);
-                expect(mockAuth0Client.handleRedirectCallback).not.toHaveBeenCalled();
-                expect(mockAuth0Client.isAuthenticated).not.toHaveBeenCalled();
-                expect(mockAuth0Client.checkSession).toHaveBeenCalled();
-                expect(mockAuth0Client.getTokenSilently).toHaveBeenCalled();
-            });
-
-            it("should return false when handleRedirectCallback throws an error and no token exists", async () => {
-                mockLocation.search = "?code=test-code&state=test-state";
-                mockAuth0Client.handleRedirectCallback.mockRejectedValue(new Error("Auth error"));
-                mockAuth0Client.checkSession.mockResolvedValue(undefined);
-                mockAuth0Client.getTokenSilently.mockResolvedValue(null);
-
-                const result = await provider.isLoggedIn();
-
-                expect(result).toBe(false);
-                expect(mockAuth0Client.handleRedirectCallback).toHaveBeenCalled();
-                expect(mockAuth0Client.isAuthenticated).not.toHaveBeenCalled();
-                expect(mockAuth0Client.checkSession).toHaveBeenCalled();
-                expect(mockAuth0Client.getTokenSilently).toHaveBeenCalled();
-            });
-
-            it("should return false when isAuthenticated throws an error and no token exists", async () => {
-                mockLocation.search = "?code=test-code&state=test-state";
-                mockAuth0Client.handleRedirectCallback.mockResolvedValue(undefined);
-                mockAuth0Client.isAuthenticated.mockRejectedValue(new Error("Auth error"));
-                mockAuth0Client.checkSession.mockResolvedValue(undefined);
-                mockAuth0Client.getTokenSilently.mockResolvedValue(null);
-
-                const result = await provider.isLoggedIn();
-
-                expect(result).toBe(false);
-                expect(mockAuth0Client.handleRedirectCallback).toHaveBeenCalled();
-                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalled();
-                expect(mockAuth0Client.checkSession).toHaveBeenCalled();
-                expect(mockAuth0Client.getTokenSilently).toHaveBeenCalled();
-            });
-
-            it("should return false when checkSession throws an error", async () => {
-                mockLocation.search = "";
-                mockAuth0Client.checkSession.mockRejectedValue(new Error("Session check failed"));
-
-                const result = await provider.isLoggedIn();
-
-                expect(result).toBe(false);
-                expect(mockAuth0Client.checkSession).toHaveBeenCalled();
+                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalledTimes(2);
+                expect(mockAuth0Client.checkSession).not.toHaveBeenCalled();
                 expect(mockAuth0Client.getTokenSilently).not.toHaveBeenCalled();
             });
 
-            it("should return false when getTokenSilently throws an error", async () => {
+            it("should return true when redirect callback succeeds and fallback authentication succeeds", async () => {
+                mockLocation.search = "?code=test-code&state=test-state";
+                mockAuth0Client.handleRedirectCallback.mockResolvedValue(undefined);
+                mockAuth0Client.isAuthenticated.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+
+                const result = await provider.isLoggedIn();
+
+                expect(result).toBe(true);
+                expect(mockAuth0Client.handleRedirectCallback).toHaveBeenCalled();
+                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalledTimes(2);
+                expect(mockAuth0Client.checkSession).not.toHaveBeenCalled();
+                expect(mockAuth0Client.getTokenSilently).not.toHaveBeenCalled();
+            });
+
+            it("should return false when no code and state in URL and user is not authenticated", async () => {
                 mockLocation.search = "";
-                mockAuth0Client.checkSession.mockResolvedValue(undefined);
-                mockAuth0Client.getTokenSilently.mockRejectedValue(new Error("Token retrieval failed"));
+                mockAuth0Client.isAuthenticated.mockResolvedValue(false);
 
                 const result = await provider.isLoggedIn();
 
                 expect(result).toBe(false);
-                expect(mockAuth0Client.checkSession).toHaveBeenCalled();
-                expect(mockAuth0Client.getTokenSilently).toHaveBeenCalled();
+                expect(mockAuth0Client.handleRedirectCallback).not.toHaveBeenCalled();
+                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalledTimes(1);
+                expect(mockAuth0Client.checkSession).not.toHaveBeenCalled();
+                expect(mockAuth0Client.getTokenSilently).not.toHaveBeenCalled();
+            });
+
+            it("should return true when no code and state in URL but user is authenticated", async () => {
+                mockLocation.search = "";
+                mockAuth0Client.isAuthenticated.mockResolvedValue(true);
+
+                const result = await provider.isLoggedIn();
+
+                expect(result).toBe(true);
+                expect(mockAuth0Client.handleRedirectCallback).not.toHaveBeenCalled();
+                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalledTimes(1);
+                expect(mockAuth0Client.checkSession).not.toHaveBeenCalled();
+                expect(mockAuth0Client.getTokenSilently).not.toHaveBeenCalled();
+            });
+
+            it("should return false when only code is present and user is not authenticated", async () => {
+                mockLocation.search = "?code=test-code";
+                mockAuth0Client.isAuthenticated.mockResolvedValue(false);
+
+                const result = await provider.isLoggedIn();
+
+                expect(result).toBe(false);
+                expect(mockAuth0Client.handleRedirectCallback).not.toHaveBeenCalled();
+                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalledTimes(1);
+                expect(mockAuth0Client.checkSession).not.toHaveBeenCalled();
+                expect(mockAuth0Client.getTokenSilently).not.toHaveBeenCalled();
+            });
+
+            it("should return false when only state is present and user is not authenticated", async () => {
+                mockLocation.search = "?state=test-state";
+                mockAuth0Client.isAuthenticated.mockResolvedValue(false);
+
+                const result = await provider.isLoggedIn();
+
+                expect(result).toBe(false);
+                expect(mockAuth0Client.handleRedirectCallback).not.toHaveBeenCalled();
+                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalledTimes(1);
+                expect(mockAuth0Client.checkSession).not.toHaveBeenCalled();
+                expect(mockAuth0Client.getTokenSilently).not.toHaveBeenCalled();
+            });
+
+            it("should return false when handleRedirectCallback throws an error and user is not authenticated", async () => {
+                mockLocation.search = "?code=test-code&state=test-state";
+                mockAuth0Client.handleRedirectCallback.mockRejectedValue(new Error("Auth error"));
+                mockAuth0Client.isAuthenticated.mockResolvedValue(false);
+
+                const result = await provider.isLoggedIn();
+
+                expect(result).toBe(false);
+                expect(mockAuth0Client.handleRedirectCallback).toHaveBeenCalled();
+                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalledTimes(1);
+                expect(mockAuth0Client.checkSession).not.toHaveBeenCalled();
+                expect(mockAuth0Client.getTokenSilently).not.toHaveBeenCalled();
+            });
+
+            it("should return false when isAuthenticated throws an error", async () => {
+                mockLocation.search = "?code=test-code&state=test-state";
+                mockAuth0Client.handleRedirectCallback.mockResolvedValue(undefined);
+                mockAuth0Client.isAuthenticated.mockRejectedValue(new Error("Auth error"));
+
+                const result = await provider.isLoggedIn();
+
+                expect(result).toBe(false);
+                expect(mockAuth0Client.handleRedirectCallback).toHaveBeenCalled();
+                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalled();
+                expect(mockAuth0Client.checkSession).not.toHaveBeenCalled();
+                expect(mockAuth0Client.getTokenSilently).not.toHaveBeenCalled();
+            });
+
+            it("should return false when fallback isAuthenticated throws an error", async () => {
+                mockLocation.search = "";
+                mockAuth0Client.isAuthenticated.mockRejectedValue(new Error("Session check failed"));
+
+                const result = await provider.isLoggedIn();
+
+                expect(result).toBe(false);
+                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalled();
+                expect(mockAuth0Client.checkSession).not.toHaveBeenCalled();
+                expect(mockAuth0Client.getTokenSilently).not.toHaveBeenCalled();
+            });
+
+            it("should not request a silent token while checking login state", async () => {
+                mockLocation.search = "";
+                mockAuth0Client.isAuthenticated.mockResolvedValue(false);
+
+                const result = await provider.isLoggedIn();
+
+                expect(result).toBe(false);
+                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalled();
+                expect(mockAuth0Client.checkSession).not.toHaveBeenCalled();
+                expect(mockAuth0Client.getTokenSilently).not.toHaveBeenCalled();
             });
         });
     });
@@ -243,17 +232,16 @@ describe("JavascriptProvider", () => {
                 expect(mockAuth0Client.loginWithPopup).not.toHaveBeenCalled();
             });
 
-            it("should pass behavior to loginWithRedirect as prompt", async () => {
+            it("should pass forceSelectAccount to loginWithRedirect as prompt", async () => {
                 const loginOptions = {
                     redirectUri: "http://localhost:3000/custom-callback",
-                    behavior: "select_account",
                 };
 
-                await provider.login(loginOptions);
+                await provider.login(loginOptions, true);
 
                 expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                     authorizationParams: {
-                        prompt: "select_account",
+                        prompt: "login",
                         redirect_uri: loginOptions.redirectUri,
                     },
                 });
@@ -274,7 +262,11 @@ describe("JavascriptProvider", () => {
             it("should call loginWithPopup when no redirectUri is provided", async () => {
                 await provider.login();
 
-                expect(mockAuth0Client.loginWithPopup).toHaveBeenCalledWith(undefined);
+                expect(mockAuth0Client.loginWithPopup).toHaveBeenCalledWith({
+                    authorizationParams: {
+                        prompt: undefined,
+                    },
+                });
                 expect(mockAuth0Client.loginWithRedirect).not.toHaveBeenCalled();
             });
 
@@ -285,16 +277,19 @@ describe("JavascriptProvider", () => {
 
                 await provider.login(loginOptions);
 
-                expect(mockAuth0Client.loginWithPopup).toHaveBeenCalledWith(loginOptions);
+                expect(mockAuth0Client.loginWithPopup).toHaveBeenCalledWith({
+                    ...loginOptions,
+                    authorizationParams: {
+                        prompt: undefined,
+                    },
+                });
                 expect(mockAuth0Client.loginWithRedirect).not.toHaveBeenCalled();
             });
 
-            it("should pass behavior to loginWithPopup as prompt", async () => {
-                const loginOptions = {
-                    behavior: "login",
-                };
+            it("should pass forceSelectAccount to loginWithPopup as prompt", async () => {
+                const loginOptions = {};
 
-                await provider.login(loginOptions);
+                await provider.login(loginOptions, true);
 
                 expect(mockAuth0Client.loginWithPopup).toHaveBeenCalledWith({
                     authorizationParams: {
@@ -330,60 +325,50 @@ describe("JavascriptProvider", () => {
 
     describe("getPath", () => {
         it("should return correct path when user is logged in", async () => {
-            const mockToken = "mock-jwt-token";
             const mockSub = "user123";
-            mockAuth0Client.getTokenSilently.mockResolvedValue(mockToken);
-            mockDecodeJwt.mockReturnValue({ sub: mockSub });
+            mockAuth0Client.getIdTokenClaims.mockResolvedValue({ sub: mockSub });
 
             const result = await provider.getPath();
 
             expect(result).toBe(`jwt#https://${mockOptions.domain}/#${mockSub}`);
-            expect(mockAuth0Client.getTokenSilently).toHaveBeenCalled();
-            expect(mockDecodeJwt).toHaveBeenCalledWith(mockToken);
+            expect(mockAuth0Client.getIdTokenClaims).toHaveBeenCalled();
+            expect(mockAuth0Client.getTokenSilently).not.toHaveBeenCalled();
+            expect(mockDecodeJwt).not.toHaveBeenCalled();
         });
 
         it("should throw Auth0ProviderError when sub is missing", async () => {
-            const mockToken = "mock-jwt-token";
-            mockAuth0Client.getTokenSilently.mockResolvedValue(mockToken);
-            mockDecodeJwt.mockReturnValue({ sub: null });
+            mockAuth0Client.getIdTokenClaims.mockResolvedValue({ sub: null });
 
             await expect(provider.getPath()).rejects.toThrow(JavascriptProviderError);
             await expect(provider.getPath()).rejects.toThrow(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN);
         });
 
         it("should throw Auth0ProviderError when sub is undefined", async () => {
-            const mockToken = "mock-jwt-token";
-            mockAuth0Client.getTokenSilently.mockResolvedValue(mockToken);
-            mockDecodeJwt.mockReturnValue({ sub: undefined });
+            mockAuth0Client.getIdTokenClaims.mockResolvedValue({ sub: undefined });
 
             await expect(provider.getPath()).rejects.toThrow(JavascriptProviderError);
             await expect(provider.getPath()).rejects.toThrow(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN);
         });
 
         it("should throw Auth0ProviderError when sub is empty string", async () => {
-            const mockToken = "mock-jwt-token";
-            mockAuth0Client.getTokenSilently.mockResolvedValue(mockToken);
-            mockDecodeJwt.mockReturnValue({ sub: "" });
+            mockAuth0Client.getIdTokenClaims.mockResolvedValue({ sub: "" });
 
             await expect(provider.getPath()).rejects.toThrow(JavascriptProviderError);
             await expect(provider.getPath()).rejects.toThrow(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN);
         });
 
-        it("should propagate errors from getTokenSilently", async () => {
-            const error = new Error("Token retrieval failed");
-            mockAuth0Client.getTokenSilently.mockRejectedValue(error);
+        it("should propagate errors from getIdTokenClaims", async () => {
+            const error = new Error("Claims retrieval failed");
+            mockAuth0Client.getIdTokenClaims.mockRejectedValue(error);
 
-            await expect(provider.getPath()).rejects.toThrow("Token retrieval failed");
+            await expect(provider.getPath()).rejects.toThrow("Claims retrieval failed");
         });
 
-        it("should propagate errors from decodeJwt", async () => {
-            const mockToken = "mock-jwt-token";
-            mockAuth0Client.getTokenSilently.mockResolvedValue(mockToken);
-            mockDecodeJwt.mockImplementation(() => {
-                throw new Error("JWT decode failed");
-            });
+        it("should throw Auth0ProviderError when claims are undefined", async () => {
+            mockAuth0Client.getIdTokenClaims.mockResolvedValue(undefined);
 
-            await expect(provider.getPath()).rejects.toThrow("JWT decode failed");
+            await expect(provider.getPath()).rejects.toThrow(JavascriptProviderError);
+            await expect(provider.getPath()).rejects.toThrow(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN);
         });
     });
 

@@ -21,7 +21,6 @@ import { SignatureRequest } from "./core";
 export class ReactNativeProvider implements IFastAuthProvider {
     private readonly options: ReactNativeProviderOptions & {
         domain: string;
-        audience: string;
         signingAudience: string;
     };
     private client: Auth0;
@@ -35,7 +34,6 @@ export class ReactNativeProvider implements IFastAuthProvider {
             network: options.network,
             clientId: options.clientId,
             domain: options.domain ?? defaults.domain,
-            audience: options.audience ?? defaults.audience,
             signingAudience: options.signingAudience ?? defaults.signingAudience,
         };
         this.client = new Auth0({ domain: this.options.domain, clientId: this.options.clientId });
@@ -57,12 +55,15 @@ export class ReactNativeProvider implements IFastAuthProvider {
     /**
      * Sign in to the client using Web Authentication.
      *
-     * Issues a token against the session audience and persists it via credentialsManager.
+     * Persists the session credentials via credentialsManager.
+     * @param forceSelectAccount Whether to force the user to reselect account.
      * @returns Promise that resolves when login is complete.
      */
-    async login(): Promise<void> {
+    async login(forceSelectAccount?: boolean): Promise<void> {
         const credentials = await this.client.webAuth.authorize({
-            audience: this.options.audience,
+            additionalParameters: {
+                ...(forceSelectAccount ? { prompt: "login" } : {}),
+            },
         });
         await this.client.credentialsManager.saveCredentials(credentials);
     }

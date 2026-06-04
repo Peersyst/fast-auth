@@ -9,20 +9,14 @@ export type JavascriptProviderOptions = {
     network: FastAuthNetwork;
     clientId: string;
     domain?: string;
-    audience?: string;
     signingAudience?: string;
 };
 
-export type JavascriptLoginBehavior = "select_account" | "login" | "none" | "consent";
-
 export type JavascriptLoginWithRedirectOptions = Omit<RedirectLoginOptions, "authorizationParams"> & {
     redirectUri: string;
-    behavior?: JavascriptLoginBehavior;
 };
 
-export type JavascriptLoginWithPopupOptions = Omit<PopupLoginOptions, "authorizationParams"> & {
-    behavior?: JavascriptLoginBehavior;
-};
+export type JavascriptLoginWithPopupOptions = Omit<PopupLoginOptions, "authorizationParams">;
 
 export type JavascriptLoginOptions = JavascriptLoginWithRedirectOptions | JavascriptLoginWithPopupOptions;
 

@@ -21,7 +21,6 @@ import { IFastAuthProvider } from "./core/provider/types";
 export class JavascriptProvider implements IFastAuthProvider {
     private readonly options: JavascriptProviderOptions & {
         domain: string;
-        audience: string;
         signingAudience: string;
     };
     private client: Auth0Client;
@@ -32,15 +31,12 @@ export class JavascriptProvider implements IFastAuthProvider {
             network: options.network,
             clientId: options.clientId,
             domain: options.domain ?? defaults.domain,
-            audience: options.audience ?? defaults.audience,
             signingAudience: options.signingAudience ?? defaults.signingAudience,
         };
         this.client = new Auth0Client({
             domain: this.options.domain,
             clientId: this.options.clientId,
-            authorizationParams: {
-                audience: this.options.audience,
-            },
+            authorizationParams: {},
         });
     }
 
@@ -61,19 +57,6 @@ export class JavascriptProvider implements IFastAuthProvider {
     }
 
     /**
-     * Check if the user has a token.
-     * @returns True if the user has a token, false otherwise.
-     */
-    private async checkToken(): Promise<boolean> {
-        await this.client.checkSession();
-        const token = await this.client.getTokenSilently();
-        if (token) {
-            return true;
-        }
-        return false;
-    }
-
-    /**
      * Check if the user is signed in.
      * @returns True if the user is signed in, false otherwise.
      */
@@ -84,32 +67,28 @@ export class JavascriptProvider implements IFastAuthProvider {
                 return true;
             }
         } catch {
-            // If redirect callback fails, continue to check token
+            // If redirect callback fails, keep the app in the logged-out state.
         }
 
         try {
-            const tokenExists = await this.checkToken();
-            if (tokenExists) {
-                return true;
-            }
+            return await this.client.isAuthenticated();
         } catch {
-            // If token check fails, user is not logged in
+            return false;
         }
-
-        return false;
     }
 
     /**
      * Login with redirect.
      * @param options The options for the login with redirect.
+     * @param forceSelectAccount Wheter to force the user to reselect account.
      * @returns The void.
      */
-    private async loginWithRedirect(options: JavascriptLoginWithRedirectOptions): Promise<void> {
-        const { redirectUri, behavior, ...opts } = options;
+    private async loginWithRedirect(options: JavascriptLoginWithRedirectOptions, forceSelectAccount?: boolean): Promise<void> {
+        const { redirectUri, ...opts } = options;
         await this.client.loginWithRedirect({
             ...opts,
             authorizationParams: {
-                ...(behavior ? { prompt: behavior } : {}),
+                prompt: forceSelectAccount ? "login" : undefined,
                 redirect_uri: redirectUri,
             },
         });
@@ -118,19 +97,16 @@ export class JavascriptProvider implements IFastAuthProvider {
     /**
      * Login with popup.
      * @param options The options for the login with popup.
+     * @param forceSelectAccount Wheter to force the user to reselect account.
      * @returns The void.
      */
-    private async loginWithPopup(options?: JavascriptLoginWithPopupOptions): Promise<void> {
-        const { behavior, ...opts } = options ?? {};
-        if (!behavior) {
-            await this.client.loginWithPopup(options ? opts : undefined);
-            return;
-        }
+    private async loginWithPopup(options?: JavascriptLoginWithPopupOptions, forceSelectAccount?: boolean): Promise<void> {
+        const { ...opts } = options ?? {};
 
         await this.client.loginWithPopup({
             ...opts,
             authorizationParams: {
-                prompt: behavior,
+                prompt: forceSelectAccount ? "login" : undefined,
             },
         });
     }
@@ -138,13 +114,14 @@ export class JavascriptProvider implements IFastAuthProvider {
     /**
      * Sign in to the client.
      * @param options The options for the login.
+     * @param forceSelectAccount Wheter to force the user to reselect account.
      * @returns The void.
      */
-    async login(options?: JavascriptLoginOptions): Promise<void> {
+    async login(options?: JavascriptLoginOptions, forceSelectAccount?: boolean): Promise<void> {
         if (options && "redirectUri" in options) {
-            await this.loginWithRedirect(options);
+            await this.loginWithRedirect(options, forceSelectAccount);
         } else {
-            await this.loginWithPopup(options);
+            await this.loginWithPopup(options, forceSelectAccount);
         }
     }
 
@@ -161,8 +138,8 @@ export class JavascriptProvider implements IFastAuthProvider {
      * @returns The path for the user.
      */
     async getPath(): Promise<string> {
-        const token = await this.client.getTokenSilently();
-        const { sub } = jwt_decode<{ sub?: string }>(token);
+        const claims = await this.client.getIdTokenClaims();
+        const sub = (claims as { sub?: string } | undefined)?.sub;
         if (!sub) {
             throw new JavascriptProviderError(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN);
         }

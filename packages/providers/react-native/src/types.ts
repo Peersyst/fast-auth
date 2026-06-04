@@ -11,7 +11,6 @@ export type ReactNativeProviderOptions = {
     network: FastAuthNetwork;
     clientId: string;
     domain?: string;
-    audience?: string;
     signingAudience?: string;
 };
 

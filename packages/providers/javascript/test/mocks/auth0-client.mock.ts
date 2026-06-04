@@ -7,6 +7,7 @@ export const Auth0ClientMock = createMock({
     loginWithRedirect: new MethodMock("mockResolvedValue", undefined),
     loginWithPopup: new MethodMock("mockResolvedValue", undefined),
     logout: new MethodMock("mockResolvedValue", undefined),
+    getIdTokenClaims: new MethodMock("mockResolvedValue", undefined),
     getTokenSilently: new MethodMock("mockResolvedValue", undefined),
     checkSession: new MethodMock("mockResolvedValue", undefined),
 });

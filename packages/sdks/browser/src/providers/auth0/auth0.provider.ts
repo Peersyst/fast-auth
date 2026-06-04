@@ -16,7 +16,6 @@ import { IFastAuthProvider } from "../../client/providers/fast-auth.provider";
 export class Auth0Provider implements IFastAuthProvider {
     private readonly options: Auth0ProviderOptions & {
         domain: string;
-        audience: string;
         signingAudience: string;
     };
     private client: Auth0Client;
@@ -28,14 +27,12 @@ export class Auth0Provider implements IFastAuthProvider {
             clientId: options.clientId,
             redirectUri: options.redirectUri,
             domain: options.domain ?? defaults.domain,
-            audience: options.audience ?? defaults.audience,
             signingAudience: options.signingAudience ?? defaults.signingAudience,
         };
         this.client = new Auth0Client({
             domain: this.options.domain,
             clientId: this.options.clientId,
             authorizationParams: {
-                audience: this.options.audience,
                 redirect_uri: this.options.redirectUri,
             },
         });
@@ -55,7 +52,7 @@ export class Auth0Provider implements IFastAuthProvider {
                 await this.client.handleRedirectCallback();
                 return await this.client.isAuthenticated();
             }
-            return false;
+            return await this.client.isAuthenticated();
         } catch (_: unknown) {
             return false;
         }
@@ -89,8 +86,8 @@ export class Auth0Provider implements IFastAuthProvider {
      * @returns The path for the user.
      */
     async getPath(): Promise<string> {
-        const token = await this.client.getTokenSilently();
-        const { sub } = jwt_decode<{ sub?: string }>(token);
+        const claims = await this.client.getIdTokenClaims();
+        const sub = (claims as { sub?: string } | undefined)?.sub;
         if (!sub) {
             throw new Auth0ProviderError(Auth0ProviderErrorCodes.USER_NOT_LOGGED_IN);
         }

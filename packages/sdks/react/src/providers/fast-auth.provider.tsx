@@ -28,8 +28,7 @@ export const FastAuthContext = createContext<IFastAuthContext | null>(null);
  *     provider: new JavascriptProvider({
  *       domain: 'your-domain.auth0.com',
  *       clientId: 'your-client-id',
- *       redirectUri: window.location.origin,
- *       audience: 'your-audience'
+ *       redirectUri: window.location.origin
  *     })
  *   };
  *
