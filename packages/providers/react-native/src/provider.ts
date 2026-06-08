@@ -74,7 +74,7 @@ export class ReactNativeProvider implements IFastAuthProvider {
     async logout(): Promise<void> {
         this.signingCredentials = null;
         try {
-            await this.client.webAuth.clearSession({ federated: true });
+            await this.client.webAuth.clearSession();
             await this.client.credentialsManager.clearCredentials();
         } catch (error) {
             await this.client.credentialsManager.clearCredentials();
