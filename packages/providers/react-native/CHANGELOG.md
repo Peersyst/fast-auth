@@ -1,5 +1,11 @@
 # @fast-auth-near/react-native-provider
 
+## 1.5.0
+
+### Minor Changes
+
+-   return user information on logIn and transaction signatures
+
 ## 1.4.0
 
 ### Minor Changes
