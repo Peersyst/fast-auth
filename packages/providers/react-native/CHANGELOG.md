@@ -1,5 +1,11 @@
 # @fast-auth-near/react-native-provider
 
+## 1.5.1
+
+### Patch Changes
+
+-   fix build
+
 ## 1.5.0
 
 ### Minor Changes
