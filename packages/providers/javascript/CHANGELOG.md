@@ -1,5 +1,11 @@
 # @fast-auth-near/javascript-provider
 
+## 1.4.1
+
+### Patch Changes
+
+-   fix exports
+
 ## 1.4.0
 
 ### Minor Changes

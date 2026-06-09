@@ -1,5 +1,11 @@
 # @fast-auth-near/browser-sdk
 
+## 1.4.1
+
+### Patch Changes
+
+-   fix exports
+
 ## 1.4.0
 
 ### Minor Changes

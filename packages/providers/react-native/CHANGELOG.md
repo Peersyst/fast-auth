@@ -1,5 +1,11 @@
 # @fast-auth-near/react-native-provider
 
+## 1.6.1
+
+### Patch Changes
+
+-   fix exports
+
 ## 1.6.0
 
 ### Minor Changes
