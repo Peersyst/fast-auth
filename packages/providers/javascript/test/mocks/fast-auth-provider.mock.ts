@@ -1,5 +1,5 @@
 import { createMock, MethodMock } from "@shared/test";
-import { IFastAuthProvider } from "../../src/core";
+import { IFastAuthProvider } from "@shared/core";
 
 export const FastAuthProviderMock = createMock<IFastAuthProvider>({
     isLoggedIn: new MethodMock("mockReturnValue", undefined),

@@ -11,12 +11,18 @@ import {
     JavascriptLoginWithRedirectOptions,
     JavascriptLoginWithPopupOptions,
 } from "./types";
-import { FAST_AUTH_AUTH0_DEFAULTS } from "@shared/core";
+import {
+    FAST_AUTH_AUTH0_DEFAULTS,
+    GetSignatureRequestResponse,
+    IFastAuthProvider,
+    LoginResponse,
+    RequestDelegateActionSignatureResponse,
+    RequestTransactionSignatureResponse,
+    User,
+} from "@shared/core";
 import { encodeDelegateAction, encodeTransaction } from "./utils";
 import jwt_decode from "jwt-decode";
-import { SignatureRequest } from "./core/signer/types";
 import { JavascriptProviderError, JavascriptProviderErrorCodes } from "./errors";
-import { IFastAuthProvider } from "./core/provider/types";
 
 export class JavascriptProvider implements IFastAuthProvider {
     private readonly options: JavascriptProviderOptions & {
@@ -112,17 +118,31 @@ export class JavascriptProvider implements IFastAuthProvider {
     }
 
     /**
+     * Retrieves the user ID (sub) from the ID token claims.
+     * @returns A promise that resolves to the user ID (sub).
+     */
+    private async getUserId(): Promise<User> {
+        const idToken = await this.client.getIdTokenClaims();
+        const sub = (idToken as { sub?: string } | undefined)?.sub;
+        if (!sub) {
+            throw new JavascriptProviderError(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN);
+        }
+        return { userId: sub };
+    }
+
+    /**
      * Sign in to the client.
      * @param options The options for the login.
      * @param forceSelectAccount Wheter to force the user to reselect account.
      * @returns The void.
      */
-    async login(options?: JavascriptLoginOptions, forceSelectAccount?: boolean): Promise<void> {
+    async login(options?: JavascriptLoginOptions, forceSelectAccount?: boolean): Promise<LoginResponse> {
         if (options && "redirectUri" in options) {
             await this.loginWithRedirect(options, forceSelectAccount);
         } else {
             await this.loginWithPopup(options, forceSelectAccount);
         }
+        return this.getUserId();
     }
 
     /**
@@ -190,12 +210,15 @@ export class JavascriptProvider implements IFastAuthProvider {
      * @param requestSignatureOptions The options for the request signature.
      * @returns The signature.
      */
-    async requestTransactionSignature(requestSignatureOptions: JavascriptRequestTransactionSignatureOptions): Promise<void> {
+    async requestTransactionSignature(
+        requestSignatureOptions: JavascriptRequestTransactionSignatureOptions,
+    ): Promise<RequestTransactionSignatureResponse> {
         if (requestSignatureOptions.redirectUri) {
             await this.requestTransactionSignatureWithRedirect(requestSignatureOptions);
         } else {
             await this.requestTransactionSignatureWithPopup(requestSignatureOptions);
         }
+        return await this.getUserId();
     }
 
     /**
@@ -242,27 +265,32 @@ export class JavascriptProvider implements IFastAuthProvider {
      * @param options The options for the request delegate action signature.
      * @returns The void.
      */
-    async requestDelegateActionSignature(options: JavascriptBaseRequestDelegateActionSignatureOptions): Promise<void> {
+    async requestDelegateActionSignature(
+        options: JavascriptBaseRequestDelegateActionSignatureOptions,
+    ): Promise<RequestDelegateActionSignatureResponse> {
         if (options.redirectUri) {
             await this.requestDelegateActionSignatureWithRedirect(options);
         } else {
             await this.requestDelegateActionSignatureWithPopup(options);
         }
+        return this.getUserId();
     }
 
     /**
      * Get the signature request.
      * @returns The signature request.
      */
-    async getSignatureRequest(): Promise<SignatureRequest> {
+    async getSignatureRequest(): Promise<GetSignatureRequestResponse> {
         const token = await this.client.getTokenSilently({
             authorizationParams: { audience: this.options.signingAudience },
         });
         const decoded = jwt_decode<{ fatxn: Uint8Array }>(token);
-        return {
+        const signatureRequest = {
             guardId: `jwt#https://${this.options.domain}/`,
             verifyPayload: token,
             signPayload: decoded["fatxn"] as Uint8Array,
         };
+        const user = await this.getUserId();
+        return { user, signatureRequest };
     }
 }

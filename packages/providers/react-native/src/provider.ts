@@ -12,12 +12,10 @@ import {
     User,
     GetSignatureRequestResponse,
 } from "./types";
-import { FAST_AUTH_AUTH0_DEFAULTS } from "@shared/core";
+import { FAST_AUTH_AUTH0_DEFAULTS, IFastAuthProvider, SignatureRequest } from "@shared/core";
 import { encodeDelegateAction, encodeTransaction } from "./utils";
 import jwt_decode from "jwt-decode";
 import { ReactNativeProviderError, ReactNativeProviderErrorCodes } from "./errors";
-import { IFastAuthProvider } from "./core/provider/types";
-import { SignatureRequest } from "./core";
 
 /**
  * ReactNativeProvider adapts react-native-auth0 to the FastAuth provider interface.

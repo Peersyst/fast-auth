@@ -52,6 +52,10 @@ describe("JavascriptProvider", () => {
 
         mockAuth0Client.clearMocks();
 
+        // Default to a logged-in user so flows that resolve the user id (login,
+        // requestTransactionSignature, requestDelegateActionSignature) succeed.
+        mockAuth0Client.getIdTokenClaims.mockResolvedValue({ sub: "test-user-id" });
+
         mockOptions = {
             network: "testnet",
             domain: "test-domain.auth0.com",
@@ -633,7 +637,7 @@ describe("JavascriptProvider", () => {
 
             const result = await provider.getSignatureRequest();
 
-            expect(result).toEqual({
+            expect(result.signatureRequest).toEqual({
                 guardId: `jwt#https://${mockOptions.domain}/`,
                 verifyPayload: mockToken,
                 signPayload: mockDecodedToken.fatxn,
@@ -650,7 +654,7 @@ describe("JavascriptProvider", () => {
 
             const result = await provider.getSignatureRequest();
 
-            expect(result).toEqual({
+            expect(result.signatureRequest).toEqual({
                 guardId: `jwt#https://${mockOptions.domain}/`,
                 verifyPayload: mockToken,
                 signPayload: undefined,

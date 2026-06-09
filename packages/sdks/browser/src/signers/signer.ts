@@ -1,6 +1,5 @@
 import { Action, functionCall, Signature, SignedTransaction, Transaction } from "near-api-js/lib/transaction";
-import { CreateAccountOptions, CreateSignActionOptions, FastAuthSignerOptions, SignatureRequest } from "./signer.types";
-import { IFastAuthProvider } from "./providers/fast-auth.provider";
+import { CreateAccountOptions, CreateSignActionOptions, FastAuthSignerOptions } from "./signer.types";
 import { Connection } from "near-api-js";
 import { CodeResult } from "near-api-js/lib/providers/provider";
 import { ViewFunctionCallOptions } from "@near-js/accounts";
@@ -11,6 +10,7 @@ import { FastAuthSignerErrorCodes } from "./signer.error-codes";
 import { Algorithm } from "../common/signature/types";
 import { getDomainIdOrFail } from "./utils";
 import { getKeyTypeOrFail } from "./utils";
+import { GetSignatureRequestResponse, IFastAuthProvider, SignatureRequest } from "@shared/core";
 
 export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     private path: string | undefined;
@@ -109,7 +109,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
      * Get a signature request.
      * @returns The signature request.
      */
-    getSignatureRequest(): Promise<SignatureRequest> {
+    getSignatureRequest(): Promise<GetSignatureRequestResponse> {
         // Retrieve the signature request from the fast auth provider.
         return this.fastAuthProvider.getSignatureRequest();
     }

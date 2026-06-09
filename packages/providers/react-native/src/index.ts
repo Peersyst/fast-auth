@@ -10,9 +10,6 @@ export * from "./types";
 // Errors
 export * from "./errors";
 
-// Core types (for advanced use)
-export * from "./core";
-
 // Utils (for advanced use)
 export * from "./utils";
 

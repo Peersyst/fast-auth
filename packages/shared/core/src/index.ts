@@ -18,3 +18,5 @@ export const FAST_AUTH_AUTH0_DEFAULTS: Record<FastAuthNetwork, FastAuthAuth0Netw
         signingAudience: "auth0.jwt.fast-auth.testnet",
     },
 } as const;
+
+export * from "./provider";

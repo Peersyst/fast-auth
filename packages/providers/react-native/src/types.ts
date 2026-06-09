@@ -1,9 +1,6 @@
 import { Transaction } from "near-api-js/lib/transaction";
 import { DelegateAction } from "@near-js/transactions";
-import { FastAuthNetwork } from "@shared/core";
-import { SignatureRequest } from "./core";
-
-export type { FastAuthNetwork } from "@shared/core";
+import type { FastAuthNetwork, SignatureRequest } from "@shared/core";
 
 /**
  * Options for initializing the ReactNativeProvider

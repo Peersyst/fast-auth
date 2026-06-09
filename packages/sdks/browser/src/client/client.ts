@@ -1,9 +1,9 @@
 import { Connection } from "near-api-js";
 import { FastAuthSigner } from "../signers/signer";
-import { IFastAuthProvider } from "./providers/fast-auth.provider";
 import { FastAuthClientError } from "./client.errors";
 import { FastAuthClientErrorCodes } from "./client.error-codes";
 import { FastAuthClientOptions } from "./client.types";
+import { IFastAuthProvider } from "@shared/core";
 
 export class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider> {
     private provider: P;
