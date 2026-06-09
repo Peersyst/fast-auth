@@ -1,8 +1,16 @@
 import Auth0, { Credentials, WebAuthorizeParameters } from "react-native-auth0";
 import {
+    ReactNativeIdTokenClaims,
+    LoginResponse,
     ReactNativeProviderOptions,
-    ReactNativeRequestDelegateActionSignatureOptions,
-    ReactNativeRequestTransactionSignatureOptions,
+    RequestDelegateActionSignatureOptions,
+    RequestDelegateActionSignatureResponse,
+    RequestTransactionSignatureOptions,
+    RequestTransactionSignatureResponse,
+    ReactNativeResolvedProviderOptions,
+    ReactNativeSignatureTokenClaims,
+    User,
+    GetSignatureRequestResponse,
 } from "./types";
 import { FAST_AUTH_AUTH0_DEFAULTS } from "@shared/core";
 import { encodeDelegateAction, encodeTransaction } from "./utils";
@@ -19,10 +27,7 @@ import { SignatureRequest } from "./core";
  *
  */
 export class ReactNativeProvider implements IFastAuthProvider {
-    private readonly options: ReactNativeProviderOptions & {
-        domain: string;
-        signingAudience: string;
-    };
+    private readonly options: ReactNativeResolvedProviderOptions;
     private client: Auth0;
     // Signing credentials are kept in-memory only and consumed once by getSignatureRequest.
     // Session credentials live in the persistent credentialsManager.
@@ -59,13 +64,15 @@ export class ReactNativeProvider implements IFastAuthProvider {
      * @param forceSelectAccount Whether to force the user to reselect account.
      * @returns Promise that resolves when login is complete.
      */
-    async login(forceSelectAccount?: boolean): Promise<void> {
+    async login(forceSelectAccount?: boolean): Promise<LoginResponse> {
         const credentials = await this.client.webAuth.authorize({
             additionalParameters: {
                 ...(forceSelectAccount ? { prompt: "login" } : {}),
             },
         });
+        const response = this.getUserId(credentials);
         await this.client.credentialsManager.saveCredentials(credentials);
+        return response;
     }
 
     /**
@@ -83,6 +90,24 @@ export class ReactNativeProvider implements IFastAuthProvider {
     }
 
     /**
+     * Extract the Auth0 subject claim from credentials.
+     * @param credentials The Auth0 credentials returned by login or signing authorization.
+     * @returns The user id response derived from the subject claim.
+     */
+    private getUserId(credentials: Credentials): User {
+        const token = credentials.idToken ?? credentials.accessToken;
+        if (!token) {
+            throw new ReactNativeProviderError(ReactNativeProviderErrorCodes.CREDENTIALS_NOT_FOUND);
+        }
+
+        const { sub: userId } = jwt_decode<ReactNativeIdTokenClaims>(token);
+        if (!userId) {
+            throw new ReactNativeProviderError(ReactNativeProviderErrorCodes.INVALID_SUB);
+        }
+        return { userId };
+    }
+
+    /**
      * Get the path for the user.
      *
      * The path is constructed from the session id token's subject claim and the Auth0 domain.
@@ -96,13 +121,9 @@ export class ReactNativeProvider implements IFastAuthProvider {
             throw new ReactNativeProviderError(ReactNativeProviderErrorCodes.CREDENTIALS_NOT_FOUND);
         }
 
-        const { sub } = jwt_decode<{ sub?: string }>(credentials.idToken);
+        const { userId } = this.getUserId(credentials);
 
-        if (!sub) {
-            throw new ReactNativeProviderError(ReactNativeProviderErrorCodes.INVALID_TOKEN);
-        }
-
-        return `jwt#https://${this.options.domain}/#${sub}`;
+        return `jwt#https://${this.options.domain}/#${userId}`;
     }
 
     /**
@@ -112,8 +133,11 @@ export class ReactNativeProvider implements IFastAuthProvider {
      * in-memory until consumed by getSignatureRequest; they are NOT persisted, so the
      * session credentials in credentialsManager remain untouched.
      * @param _requestSignatureOptions The options containing the transaction to sign.
+     * @returns Promise resolving to the user id for the authenticated subject.
      */
-    async requestTransactionSignature(_requestSignatureOptions: ReactNativeRequestTransactionSignatureOptions): Promise<void> {
+    async requestTransactionSignature(
+        _requestSignatureOptions: RequestTransactionSignatureOptions,
+    ): Promise<RequestTransactionSignatureResponse> {
         const { transaction } = _requestSignatureOptions;
         const transactionString = encodeTransaction(transaction).toString();
 
@@ -125,14 +149,18 @@ export class ReactNativeProvider implements IFastAuthProvider {
             },
         };
 
-        this.signingCredentials = await this.client.webAuth.authorize(authorizeParams);
+        const signingCredentials = await this.client.webAuth.authorize(authorizeParams);
+        const response = this.getUserId(signingCredentials);
+        this.signingCredentials = signingCredentials;
+        return response;
     }
 
     /**
      * Request a delegate action signature from the user.
      * @param options The options containing the delegate action to sign.
+     * @returns Promise resolving to the user id for the authenticated subject.
      */
-    async requestDelegateActionSignature(options: ReactNativeRequestDelegateActionSignatureOptions): Promise<void> {
+    async requestDelegateActionSignature(options: RequestDelegateActionSignatureOptions): Promise<RequestDelegateActionSignatureResponse> {
         const { delegateAction } = options;
 
         const authorizeParams: WebAuthorizeParameters = {
@@ -143,7 +171,10 @@ export class ReactNativeProvider implements IFastAuthProvider {
             },
         };
 
-        this.signingCredentials = await this.client.webAuth.authorize(authorizeParams);
+        const signingCredentials = await this.client.webAuth.authorize(authorizeParams);
+        const response = this.getUserId(signingCredentials);
+        this.signingCredentials = signingCredentials;
+        return response;
     }
 
     /**
@@ -153,21 +184,26 @@ export class ReactNativeProvider implements IFastAuthProvider {
      * credentials in credentialsManager are not touched.
      * @returns Promise resolving to the signature request containing the guard id, verify payload, and sign payload.
      */
-    async getSignatureRequest(): Promise<SignatureRequest> {
+    async getSignatureRequest(): Promise<GetSignatureRequestResponse> {
         const credentials = this.signingCredentials;
 
         if (!credentials || !credentials.accessToken) {
             throw new ReactNativeProviderError(ReactNativeProviderErrorCodes.CREDENTIALS_NOT_FOUND);
         }
 
-        const decoded = jwt_decode<{ fatxn: Uint8Array }>(credentials.accessToken);
+        const decoded = jwt_decode<ReactNativeSignatureTokenClaims>(credentials.accessToken);
+        if (!decoded.sub) {
+            throw new ReactNativeProviderError(ReactNativeProviderErrorCodes.INVALID_SUB);
+        }
+        const user: User = { userId: decoded.sub };
 
-        this.signingCredentials = null;
-
-        return {
+        const signatureRequest: SignatureRequest = {
             guardId: `jwt#https://${this.options.domain}/`,
             verifyPayload: credentials.accessToken,
-            signPayload: decoded["fatxn"] as Uint8Array,
+            signPayload: Uint8Array.from(decoded.fatxn),
         };
+
+        this.signingCredentials = null;
+        return { user, signatureRequest };
     }
 }

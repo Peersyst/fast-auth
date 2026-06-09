@@ -1,4 +1,11 @@
-import { SignatureRequest } from "../signer/types";
+import {
+    GetSignatureRequestResponse,
+    LoginResponse,
+    RequestDelegateActionSignatureOptions,
+    RequestDelegateActionSignatureResponse,
+    RequestTransactionSignatureOptions,
+    RequestTransactionSignatureResponse,
+} from "../../types";
 
 /**
  * Interface for FastAuth providers
@@ -8,6 +15,12 @@ import { SignatureRequest } from "../signer/types";
  */
 export interface IFastAuthProvider {
     /**
+     * Sign in to the client
+     * @param forceSelectAccount Whether to force account selection
+     */
+    login(forceSelectAccount?: boolean): Promise<LoginResponse>;
+
+    /**
      * Check if the user is currently logged in
      * @returns Promise resolving to true if logged in, false otherwise
      */
@@ -15,21 +28,21 @@ export interface IFastAuthProvider {
 
     /**
      * Request a transaction signature from the user
-     * @param args Provider-specific arguments for the request
+     * @param options The options for the request
      */
-    requestTransactionSignature(...args: any[]): Promise<void>;
+    requestTransactionSignature(options: RequestTransactionSignatureOptions): Promise<RequestTransactionSignatureResponse>;
 
     /**
      * Request a delegate action signature from the user
-     * @param args Provider-specific arguments for the request
+     * @param options The options for the request
      */
-    requestDelegateActionSignature(...args: any[]): Promise<void>;
+    requestDelegateActionSignature(options: RequestDelegateActionSignatureOptions): Promise<RequestDelegateActionSignatureResponse>;
 
     /**
      * Get the current signature request
      * @returns Promise resolving to the signature request
      */
-    getSignatureRequest(): Promise<SignatureRequest>;
+    getSignatureRequest(): Promise<GetSignatureRequestResponse>;
 
     /**
      * Get the user's path (identifier)
