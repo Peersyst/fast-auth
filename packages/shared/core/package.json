@@ -2,7 +2,7 @@
     "name": "@shared/core",
     "private": true,
     "author": "Peersyst",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "license": "UNLICENSED",
     "scripts": {
         "build": "tsc -p tsconfig.build.json",

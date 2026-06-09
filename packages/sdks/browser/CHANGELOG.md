@@ -1,5 +1,11 @@
 # @fast-auth-near/browser-sdk
 
+## 1.4.0
+
+### Minor Changes
+
+-   5e825f2: move interfaces to shared/core
+
 ## 1.3.0
 
 ### Minor Changes

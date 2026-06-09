@@ -1,5 +1,11 @@
 # @fast-auth-near/react-native-provider
 
+## 1.6.0
+
+### Minor Changes
+
+-   5e825f2: move interfaces to shared/core
+
 ## 1.5.1
 
 ### Patch Changes
