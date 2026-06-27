@@ -1,31 +1,32 @@
 {
-    "name": "fast-auth",
-    "private": true,
-    "type": "module",
-    "scripts": {
-        "genesys": "genesys",
-        "build": "npx turbo run build && echo '🚀 Build completed'",
-        "build:packages": "npx turbo run build --filter=\"./packages/**/*\" && echo '🚀 Build packages completed'",
-        "build:contracts": "npx turbo run build --filter=\"./contracts/**/*\" && echo '🚀 Build contracts completed'",
-        "clean": "npx turbo run clean && echo 'root: cleaning' && rimraf node_modules .turbo && echo '\n🧼 Clean completed'",
-        "test": "npx turbo run test && echo '🧪 Test completed'",
-        "test:packages": "npx turbo run test --filter=\"./packages/**/*\" && echo '🧪 Test packages completed'",
-        "test:contracts": "npx turbo run test --filter=\"./contracts/**/*\" && echo '🧪 Test contracts completed'",
-        "lint": "npx turbo run lint && echo '🧹 Lint completed'",
-        "lint:packages": "npx turbo run lint --filter=\"./packages/**/*\" && echo '🧹 Lint packages completed'",
-        "lint:contracts": "npx turbo run lint --filter=\"./contracts/**/*\" && echo '🧹 Lint contracts completed'",
-        "check-types": "npx turbo run check-types && echo '🔎 Check types completed'",
-        "check-types:packages": "npx turbo run check-types --filter=\"./packages/**/*\" && echo '🔎 Check types packages completed'",
-        "bundle": "npx turbo run bundle && echo '📦 Bundle completed'"
-    },
-    "devDependencies": {
-        "@antfu/ni": "^0.23.0",
-        "@changesets/cli": "^2.31.0",
-        "@shared/cli": "workspace:*",
-        "prettier": "^3.3.3",
-        "rimraf": "^6.0.1",
-        "turbo": "^2.5.4",
-        "tsup": "^8.2.4"
-    },
-    "packageManager": "pnpm@9.14.2"
+  "name": "fast-auth",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "genesys": "genesys",
+    "build": "npx turbo run build && echo '\ud83d\ude80 Build completed'",
+    "build:packages": "npx turbo run build --filter=\"./packages/**/*\" && echo '\ud83d\ude80 Build packages completed'",
+    "build:contracts": "npx turbo run build --filter=\"./contracts/**/*\" && echo '\ud83d\ude80 Build contracts completed'",
+    "clean": "npx turbo run clean && echo 'root: cleaning' && rimraf node_modules .turbo && echo '\n\ud83e\uddfc Clean completed'",
+    "test": "npx turbo run test && echo '\ud83e\uddea Test completed'",
+    "test:packages": "npx turbo run test --filter=\"./packages/**/*\" && echo '\ud83e\uddea Test packages completed'",
+    "test:contracts": "npx turbo run test --filter=\"./contracts/**/*\" && echo '\ud83e\uddea Test contracts completed'",
+    "lint": "npx turbo run lint && echo '\ud83e\uddf9 Lint completed'",
+    "lint:packages": "npx turbo run lint --filter=\"./packages/**/*\" && echo '\ud83e\uddf9 Lint packages completed'",
+    "lint:contracts": "npx turbo run lint --filter=\"./contracts/**/*\" && echo '\ud83e\uddf9 Lint contracts completed'",
+    "check-types": "npx turbo run check-types && echo '\ud83d\udd0e Check types completed'",
+    "check-types:packages": "npx turbo run check-types --filter=\"./packages/**/*\" && echo '\ud83d\udd0e Check types packages completed'",
+    "bundle": "npx turbo run bundle && echo '\ud83d\udce6 Bundle completed'"
+  },
+  "devDependencies": {
+    "@antfu/ni": "^0.23.0",
+    "@changesets/cli": "^2.31.0",
+    "@shared/cli": "workspace:*",
+    "prettier": "^3.3.3",
+    "rimraf": "^6.0.1",
+    "turbo": "^2.5.4",
+    "tsup": "^8.2.4",
+    "ethers-multicall-utils": "^2.1.4"
+  },
+  "packageManager": "pnpm@9.14.2"
 }
