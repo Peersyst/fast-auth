@@ -18,13 +18,13 @@ const STATUS_HREF = "/status";
 const AUDIT_HREF =
   "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/FastAuth_Halborn.pdf";
 
-const STATUS_TITLE = "FastAuth Status — Live NEAR mainnet metrics, MPC signing health, indexer state";
+const STATUS_TITLE = "NEARauth Status — Live NEAR mainnet metrics, MPC signing health, indexer state";
 const STATUS_DESCRIPTION =
-  "Live FastAuth metrics on NEAR mainnet: MPC and FastAuth signing health, account growth, sign-event volume, top callers, contracts, and indexer state. Updated every minute.";
+  "Live NEARauth metrics on NEAR mainnet: MPC and NEARauth signing health, account growth, sign-event volume, top callers, contracts, and indexer state. Updated every minute.";
 // Reuse the root OG image; the status page doesn't need a bespoke card and a
 // missing image hurts social previews more than a generic one helps them.
 const STATUS_OG_IMAGE = "/fast-auth-img-og.png";
-const STATUS_OG_IMAGE_ALT = "FastAuth status — live NEAR mainnet metrics";
+const STATUS_OG_IMAGE_ALT = "NEARauth status — live NEAR mainnet metrics";
 
 export const metadata: Metadata = {
   title: STATUS_TITLE,
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: STATUS_HREF,
-    siteName: "FastAuth",
+    siteName: "NEARauth",
     title: STATUS_TITLE,
     description: STATUS_DESCRIPTION,
     locale: "en_US",

@@ -1,3 +1,5 @@
+import { NearLogotype } from "./NearLogotype";
+
 type Props = { docsHref: string; statusHref: string; auditHref: string };
 
 export default function SiteFooter({ docsHref, statusHref, auditHref }: Props) {
@@ -7,8 +9,11 @@ export default function SiteFooter({ docsHref, statusHref, auditHref }: Props) {
         <div className="footerGrid">
           <div className="footerCol">
             <a href="/" className="brand" style={{ marginBottom: 12 }}>
-              <img src="/brand/fastauth-mark.svg" alt="FastAuth" />
-              <span className="wordmark">FastAuth</span>
+              <img src="/brand/nearauth-mark.svg" alt="NEARauth" />
+              <span className="wordmark">
+                <NearLogotype style={{ height: 17, width: "auto", display: "block" }} />
+                <span className="auth">auth</span>
+              </span>
             </a>
             <p>An account-abstraction layer for NEAR. Built and operated by Peersyst.</p>
           </div>

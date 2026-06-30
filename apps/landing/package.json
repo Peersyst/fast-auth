@@ -1,7 +1,7 @@
 {
     "name": "landing",
     "version": "0.1.0",
-    "description": "FastAuth marketing site",
+    "description": "NEARauth marketing site",
     "private": true,
     "scripts": {
         "dev": "next dev",

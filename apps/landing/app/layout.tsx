@@ -6,12 +6,12 @@ import { resolveSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const SITE_URL = resolveSiteUrl();
-const SITE_TITLE = "FastAuth — Sign in with Google or Apple on NEAR · Social-login Web3 onboarding";
+const SITE_TITLE = "NEARauth — Sign in with Google or Apple on NEAR · Social-login Web3 onboarding";
 const SITE_DESCRIPTION =
-  "FastAuth is the Web3 onboarding layer for NEAR dApps: sign in with Google, Apple, email, or passkey and land on a real NEAR wallet — non-custodial via MPC, gasless through NEP-366 meta-transactions. Built and operated by Peersyst.";
-const SITE_NAME = "FastAuth";
+  "NEARauth is the Web3 onboarding layer for NEAR dApps: sign in with Google, Apple, email, or passkey and land on a real NEAR wallet — non-custodial via MPC, gasless through NEP-366 meta-transactions. Built and operated by Peersyst.";
+const SITE_NAME = "NEARauth";
 const OG_IMAGE = "/fast-auth-img-og.png";
-const OG_IMAGE_ALT = "FastAuth — Sign in with Google or Apple on NEAR";
+const OG_IMAGE_ALT = "NEARauth — Sign in with Google or Apple on NEAR";
 const PEERSYST_URL = "https://peersyst.com";
 const PEERSYST_LOGO = "https://peersyst.com/favicon.ico";
 const FASTAUTH_DOCS_URL = "https://peersyst.github.io/fast-auth/";
@@ -25,7 +25,7 @@ const SEO_KEYWORDS = [
   "non-custodial NEAR wallet",
   "Auth0 NEAR",
   "NEP-366 meta-transactions",
-  "FastAuth",
+  "NEARauth",
 ];
 
 export const metadata: Metadata = {
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   publisher: "Peersyst",
   category: "technology",
   icons: {
-    icon: "/brand/fastauth-mark.svg",
+    icon: "/brand/nearauth-mark.svg",
   },
   alternates: {
     canonical: "/",

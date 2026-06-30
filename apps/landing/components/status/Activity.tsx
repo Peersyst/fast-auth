@@ -28,7 +28,7 @@ export default function Activity({ data }: { data: StatusData }) {
   return (
     <section className="dashSection">
       <div className="container">
-        <SectionLabel num="03" title="Activity" hint="On-chain txs from FastAuth-derived accounts" />
+        <SectionLabel num="03" title="Activity" hint="On-chain txs from NEARauth-derived accounts" />
 
         {a.trackingStartedAt ? (
           <p className="trackingSince">

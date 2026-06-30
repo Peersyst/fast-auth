@@ -1,5 +1,5 @@
 /* =========================================================================
-   Peersyst / FastAuth — design tokens (single source of truth)
+   Peersyst / NEARauth — design tokens (single source of truth)
    ========================================================================= */
 :root {
   /* Neutrals (warm cream family) */
@@ -28,22 +28,17 @@
 
   /* Functional status. The base hex stays on the lighter side because it
      doubles as a pill / dot / sparkline background (where 3:1 against canvas
-     is fine and the visual identity matters). The `-text` variants are the
-     AA-safe shades to use when the same status is rendered as *text*, either
-     on canvas/surface or on top of the matching translucent bg pill.
-       status-ok-text   #117A52 on #F5F4ED ≈ 4.85:1 (clears AA 4.5:1)
-       status-ok-text   #117A52 on ok-bg pill composite (~#E4F5ED) ≈ 4.31:1
-       status-warn-text #8E6207 on #F5F4ED ≈ 4.85:1 (clears AA 4.5:1)
-       status-warn-text #8E6207 on warn-bg pill composite (~#F4ECDB) ≈ 4.21:1
-     The on-pill composites land ~0.2 below strict AA, but the change is
-     net-positive: the prior base tokens on the same pills measured 2.45:1
-     (ok) and 2.91:1 — both clear failures. The residual gap only affects
-     `/status` pills (12px / 600 weight, where AA Large does not apply). */
+     is fine per WCAG 1.4.11 and the visual identity matters). The `-text`
+     variants are the AA-safe shades to use when the same status is rendered
+     as *text* — cleared to ≥ 4.5:1 on BOTH the canvas and the translucent
+     bg-pill composite, so small status text passes WCAG AA everywhere:
+       status-ok-text   #0F7049 on #F5F4ED ≈ 5.55:1 · on ok-bg pill (~#DBEBDE) ≈ 4.94:1
+       status-warn-text #845906 on #F5F4ED ≈ 5.58:1 · on warn-bg pill (~#EBE3CD) ≈ 4.81:1 */
   --color-status-ok:       #1EA874;
-  --color-status-ok-text:  #117A52;
+  --color-status-ok-text:  #0F7049;
   --color-status-ok-bg:    rgba(30, 168, 116, 0.12);
   --color-status-warn:     #B07A08;
-  --color-status-warn-text:#8E6207;
+  --color-status-warn-text:#845906;
   --color-status-warn-bg:  rgba(176, 122, 8, 0.14);
   --color-status-err:      #C64545;
   --color-status-err-bg:   rgba(198, 69, 69, 0.12);
@@ -137,11 +132,22 @@ button > .plus, button > .checkbox { pointer-events: none; }
   gap: 10px;
 }
 .brand img { width: 28px; height: 28px; display: block; border-radius: 6px; }
+/* NEARauth wordmark lockup: NEAR logotype (ink) + "auth" in mint — the brand
+   signature from the design system (preview/10_logo.html). */
 .brand .wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--color-ink);
+}
+.brand .wordmark svg { height: 17px; width: auto; display: block; }
+.brand .wordmark .auth {
   font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: 17px;
+  font-weight: 600;
+  font-size: 18px;
+  line-height: 1;
   letter-spacing: -0.01em;
+  color: var(--color-mint);
 }
 .brand .by {
   font-family: var(--font-mono);
@@ -431,7 +437,7 @@ h2.sectionTitle {
   max-width: 52ch;
 }
 
-/* ========== WHAT IS FASTAUTH ========== */
+/* ========== WHAT IS NEARAUTH ========== */
 .what { padding: 96px 0; border-top: 1px solid var(--color-border); }
 .valueGrid {
   display: grid;
