@@ -1,0 +1,163 @@
+---
+title: "Network configuration"
+description: "Every per-network value an integrator sets — NEAR RPC, contract ids, and Auth0 — for mainnet and testnet."
+icon: "globe"
+---
+
+NEAR Auth runs on two networks: **testnet** for building and **mainnet** for production. Every value on this page is network-specific — swap the whole set together when you move an app from testnet to mainnet. Testnet uses shared credentials you can copy today; mainnet requires an [approved application](/home/apply).
+
+<Note>
+  Start on testnet with the values below — no sign-off needed. When you're ready to launch, [apply for production access](/home/apply) to get your own mainnet Auth0 `clientId`.
+</Note>
+
+---
+
+## All values, side by side
+
+Every setting your app needs, per network. The NEAR values feed `near-api-js` and the `FastAuthClient` config; the Auth0 values feed the [`JavascriptProvider`](/sdks/javascript-provider) (or `ReactNativeProvider`).
+
+| Setting | Mainnet | Testnet |
+| --- | --- | --- |
+| `networkId` | `mainnet` | `testnet` |
+| NEAR RPC (`nodeUrl`) | `https://rpc.mainnet.near.org` | `https://rpc.testnet.near.org` |
+| `fastAuthContractId` | `fast-auth.near` | `fast-auth.testnet` |
+| `mpcContractId` | `v1.signer` | `v1.signer-prod.testnet` |
+| Auth0 `domain` | `login.auth.near.org` | `login.testnet.fast-auth.com` |
+| Auth0 `signingAudience` | `auth0.jwt.fast-auth.near` | `auth0.jwt.fast-auth.testnet` |
+| Auth0 `clientId` | *your approved application* | `np8paqIpMWmNbzT4xAvOOapZBjsOpptl` |
+
+<Info>
+  `domain` and `signingAudience` are **optional** on the provider — the SDK ships the correct defaults for the `network` you pass, so you only set them to override a custom Auth0 setup. `clientId` is always required.
+</Info>
+
+<Warning>
+  There is no shared mainnet `clientId`. The testnet `clientId` above is a public, shared demo credential — never point a production app at it. Your mainnet `clientId` comes from your own approved application. [Apply for production access →](/home/apply)
+</Warning>
+
+---
+
+## What each value is for
+
+- **`networkId`** — the NEAR network your app talks to. Selects the RPC, contracts, and MPC signer for that environment.
+- **NEAR RPC (`nodeUrl`)** — the JSON-RPC endpoint `near-api-js` uses to build the connection you pass into `FastAuthClient`.
+- **`fastAuthContractId`** — the account of the on-chain [NEAR Auth contract](/protocol/contracts/fast-auth) that verifies the Auth0 JWT and requests the signature.
+- **`mpcContractId`** — the [MPC signer](/protocol/concepts/mpc) contract that produces the signature from distributed key shares. Full contract addresses live on the [Mainnet](/resources/mainnet) and [Testnet](/resources/testnet) reference pages.
+- **Auth0 `domain`** — the Auth0 tenant that hosts the login flow.
+- **Auth0 `signingAudience`** — the audience the issued JWT is scoped to; on-chain, the [Auth0 Guard](/protocol/concepts/auth0) checks this `aud` value.
+- **Auth0 `clientId`** — identifies your application to Auth0.
+
+---
+
+## Ready-to-copy config
+
+Drop one of these into your app and read from it. The `near` block configures the [Browser SDK](/sdks/browser-sdk) client; the `auth0` block configures the [JavaScript provider](/sdks/javascript-provider).
+
+<CodeGroup>
+
+```json config.testnet.json
+{
+  "networkId": "testnet",
+  "near": {
+    "nodeUrl": "https://rpc.testnet.near.org",
+    "fastAuthContractId": "fast-auth.testnet",
+    "mpcContractId": "v1.signer-prod.testnet"
+  },
+  "auth0": {
+    "network": "testnet",
+    "domain": "login.testnet.fast-auth.com",
+    "signingAudience": "auth0.jwt.fast-auth.testnet",
+    "clientId": "np8paqIpMWmNbzT4xAvOOapZBjsOpptl"
+  }
+}
+```
+
+```json config.mainnet.json
+{
+  "networkId": "mainnet",
+  "near": {
+    "nodeUrl": "https://rpc.mainnet.near.org",
+    "fastAuthContractId": "fast-auth.near",
+    "mpcContractId": "v1.signer"
+  },
+  "auth0": {
+    "network": "mainnet",
+    "domain": "login.auth.near.org",
+    "signingAudience": "auth0.jwt.fast-auth.near",
+    "clientId": "your-approved-application-client-id"
+  }
+}
+```
+
+</CodeGroup>
+
+## Wiring it into the SDK
+
+Once you've picked a config, only three things flow into the SDK: the `network` and `clientId` for the provider, and the `fastAuthContractId` / `mpcContractId` for the client. The NEAR connection is built from `networkId` and `nodeUrl`.
+
+<CodeGroup>
+
+```ts testnet.ts
+import { FastAuthClient } from "@fast-auth-near/browser-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+import { connect } from "near-api-js";
+
+const provider = new JavascriptProvider({
+  network: "testnet",
+  clientId: "np8paqIpMWmNbzT4xAvOOapZBjsOpptl",
+  // domain and signingAudience are optional — SDK defaults match the network
+});
+
+const { connection } = await connect({
+  networkId: "testnet",
+  nodeUrl: "https://rpc.testnet.near.org",
+});
+
+const client = new FastAuthClient(provider, connection, {
+  fastAuthContractId: "fast-auth.testnet",
+  mpcContractId: "v1.signer-prod.testnet",
+});
+```
+
+```ts mainnet.ts
+import { FastAuthClient } from "@fast-auth-near/browser-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+import { connect } from "near-api-js";
+
+const provider = new JavascriptProvider({
+  network: "mainnet",
+  clientId: "your-approved-application-client-id",
+  // domain and signingAudience are optional — SDK defaults match the network
+});
+
+const { connection } = await connect({
+  networkId: "mainnet",
+  nodeUrl: "https://rpc.mainnet.near.org",
+});
+
+const client = new FastAuthClient(provider, connection, {
+  fastAuthContractId: "fast-auth.near",
+  mpcContractId: "v1.signer",
+});
+```
+
+</CodeGroup>
+
+<Tip>
+  Keep both configs in your repo and select one by an environment variable so switching networks is a single toggle — never a code change.
+</Tip>
+
+---
+
+## Keep exploring
+
+<CardGroup cols={2}>
+  <Card title="Mainnet reference" icon="globe" href="/resources/mainnet" horizontal arrow>
+    Deployed contract addresses, RPC, and explorer for production.
+  </Card>
+  <Card title="Testnet reference" icon="globe" href="/resources/testnet" horizontal arrow>
+    The same lookup for the testnet environment.
+  </Card>
+  <Card title="Apply for production" icon="rocket" href="/home/apply" horizontal arrow>
+    Get your own mainnet Auth0 credentials.
+  </Card>
+</CardGroup>

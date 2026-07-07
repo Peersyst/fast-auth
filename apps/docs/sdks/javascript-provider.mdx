@@ -1,0 +1,353 @@
+---
+title: "JavaScript Provider"
+description: "Full reference for the JavascriptProvider — Auth0 login and signature requests for web apps, using popup or redirect flows."
+icon: "code"
+---
+
+`@fast-auth-near/javascript-provider` is the web provider for NEAR Auth. It wraps Auth0's single-page-app client to authenticate users and request signatures over their NEAR account, then hands those requests to a NEAR Auth SDK to submit on-chain. It exposes a single class, `JavascriptProvider`, which implements the shared `IFastAuthProvider` interface.
+
+A provider on its own only handles the Auth0 side — login, logout, and building the signature request. You inject it into a `FastAuthClient` from the [Browser SDK](/sdks/browser-sdk) or the [React SDK](/sdks/react-sdk), which take care of key derivation, on-chain verification, and MPC signing.
+
+<CardGroup cols={2}>
+  <Card title="Browser SDK" icon="globe" href="/sdks/browser-sdk" horizontal arrow>
+    Pair this provider with the framework-agnostic `FastAuthClient`.
+  </Card>
+  <Card title="React SDK" icon="atom" href="/sdks/react-sdk" horizontal arrow>
+    Use it through `FastAuthProvider` and hooks in a React app.
+  </Card>
+</CardGroup>
+
+---
+
+## Installation
+
+Install the provider alongside the SDK you plan to inject it into.
+
+<CodeGroup>
+
+```bash npm
+npm install @fast-auth-near/javascript-provider
+```
+
+```bash yarn
+yarn add @fast-auth-near/javascript-provider
+```
+
+```bash pnpm
+pnpm add @fast-auth-near/javascript-provider
+```
+
+</CodeGroup>
+
+The provider ships with `@auth0/auth0-spa-js`, `near-api-js`, and `@near-js/transactions` as dependencies, which are installed automatically.
+
+---
+
+## Create a provider
+
+The constructor takes your network and Auth0 client ID. Everything else — the Auth0 `domain` and the `signingAudience` used for signature requests — defaults to the shared NEAR Auth values for that network, so a typical setup is two lines.
+
+```ts
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+
+const provider = new JavascriptProvider({
+  network: "testnet",
+  clientId: "np8paqIpMWmNbzT4xAvOOapZBjsOpptl",
+});
+```
+
+<Note>
+  The client IDs above and below are the shared NEAR Auth testnet and mainnet Auth0 applications. You can build against testnet immediately; when you're ready for production, [apply for mainnet access](/home/apply).
+</Note>
+
+### Constructor options
+
+```ts
+new JavascriptProvider(options: JavascriptProviderOptions)
+```
+
+| Option | Type | Required | Description |
+| --- | --- | --- | --- |
+| `network` | `"mainnet" \| "testnet"` | Yes | Selects the NEAR Auth network and the default Auth0 `domain` / `signingAudience`. |
+| `clientId` | `string` | Yes | Your Auth0 application client ID. |
+| `domain` | `string` | No | Auth0 tenant domain. Defaults to the network's NEAR Auth domain (see below). |
+| `signingAudience` | `string` | No | Auth0 audience requested when signing. Defaults to the network's NEAR Auth signing audience. |
+
+### Network defaults
+
+When you omit `domain` and `signingAudience`, the provider fills them from the network defaults:
+
+| Network | `domain` | `signingAudience` | Shared `clientId` |
+| --- | --- | --- | --- |
+| `mainnet` | `login.auth.near.org` | `auth0.jwt.fast-auth.near` | `dsurLc47fOcWme5PkYeClBvuW0tYrmgW` |
+| `testnet` | `login.testnet.fast-auth.com` | `auth0.jwt.fast-auth.testnet` | `np8paqIpMWmNbzT4xAvOOapZBjsOpptl` |
+
+<Tip>
+  Only override `domain` and `signingAudience` if you run your own Auth0 tenant and NEAR Auth deployment. For the default Auth0 login, the two required fields are enough.
+</Tip>
+
+---
+
+## Methods
+
+`JavascriptProvider` implements `IFastAuthProvider`. Signature methods return the authenticated `User` (`{ userId }`), except `isLoggedIn` and `getPath`.
+
+### `login(options?, forceSelectAccount?)`
+
+Signs the user in through Auth0 and resolves to the authenticated `User`.
+
+```ts
+login(
+  options?: JavascriptLoginOptions,
+  forceSelectAccount?: boolean,
+): Promise<{ userId: string }>
+```
+
+The flow is chosen by whether `options` contains a `redirectUri`:
+
+- **Popup** — call `login()` with no options (or popup options without a `redirectUri`). Auth0 opens in a popup and the promise resolves in the same page.
+- **Redirect** — pass `{ redirectUri }`. The browser navigates to Auth0 and back to `redirectUri`; on return, call [`isLoggedIn()`](#isloggedin) to complete the callback.
+
+`forceSelectAccount: true` sets the Auth0 `prompt` to `"login"`, forcing the user to re-authenticate instead of resuming an existing session.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `options.redirectUri` | `string` | Present → redirect flow, and the URL Auth0 returns to. Absent → popup flow. |
+| `options` (other keys) | `RedirectLoginOptions` / `PopupLoginOptions` | Any other `@auth0/auth0-spa-js` login option except `authorizationParams`, which the provider manages. |
+| `forceSelectAccount` | `boolean` | Force re-authentication with the Auth0 login prompt. |
+
+<CodeGroup>
+
+```ts popup.ts
+// Popup flow (default): resolves in the current page.
+const user = await provider.login();
+console.log(user.userId);
+```
+
+```ts redirect.ts
+// Redirect flow: navigates away to Auth0 and back.
+await provider.login({ redirectUri: window.location.origin });
+// Force the user to re-authenticate.
+await provider.login({ redirectUri: window.location.origin }, true);
+```
+
+</CodeGroup>
+
+<Warning>
+  Popup login can be blocked by browser pop-up blockers unless it runs from a direct user gesture such as a button click. If you can't guarantee a gesture, prefer the redirect flow.
+</Warning>
+
+### `logout(options?)`
+
+Logs the user out and clears the Auth0 session. Accepts the standard `@auth0/auth0-spa-js` `LogoutOptions` (for example a `logoutParams.returnTo` URL).
+
+```ts
+logout(options?: LogoutOptions): Promise<void>
+```
+
+```ts
+await provider.logout();
+
+// Optionally return to a specific URL after logout.
+await provider.logout({ logoutParams: { returnTo: window.location.origin } });
+```
+
+### `isLoggedIn()`
+
+Returns whether the user is authenticated. It also completes the Auth0 redirect callback: if the current URL carries the `code` and `state` query parameters from a redirect login, it exchanges them before reporting status. Call it on page load to finish redirect-based logins.
+
+```ts
+isLoggedIn(): Promise<boolean>
+```
+
+```ts
+if (await provider.isLoggedIn()) {
+  console.log("User is authenticated");
+}
+```
+
+### `getPath()`
+
+Returns the NEAR Auth path identifier for the signed-in user, in the form `jwt#https://{domain}/#{sub}`, where `sub` is the Auth0 subject. Throws `JavascriptProviderError` with code `USER_NOT_LOGGED_IN` if there is no authenticated session.
+
+```ts
+getPath(): Promise<string>
+```
+
+```ts
+const path = await provider.getPath();
+// e.g. "jwt#https://login.testnet.fast-auth.com/#google-oauth2|1234567890"
+```
+
+### `requestTransactionSignature({ transaction, redirectUri? })`
+
+Asks Auth0 to approve a NEAR transaction. The provider Borsh-encodes the transaction and embeds it in the sign request, then routes through popup or redirect just like `login`. Resolves to the authenticated `User`.
+
+```ts
+requestTransactionSignature(
+  options: JavascriptRequestTransactionSignatureOptions,
+): Promise<{ userId: string }>
+```
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `transaction` | `Transaction` (`near-api-js`) | The NEAR transaction to sign. |
+| `redirectUri` | `string` (optional) | Present → redirect flow. Absent → popup flow. |
+| (other keys) | `RedirectLoginOptions` / `PopupLoginOptions` | Any other `@auth0/auth0-spa-js` login option except `authorizationParams`. |
+
+After the approval completes, read the resulting request with [`getSignatureRequest()`](#getsignaturerequest).
+
+<CodeGroup>
+
+```ts popup.ts
+import { Transaction } from "near-api-js/lib/transaction";
+
+// Popup: no redirectUri.
+await provider.requestTransactionSignature({ transaction });
+const { signatureRequest } = await provider.getSignatureRequest();
+```
+
+```ts redirect.ts
+import { Transaction } from "near-api-js/lib/transaction";
+
+// Redirect: pass a redirectUri to return to after approval.
+await provider.requestTransactionSignature({
+  transaction,
+  redirectUri: window.location.origin + "/callback",
+});
+```
+
+</CodeGroup>
+
+### `requestDelegateActionSignature({ delegateAction, redirectUri? })`
+
+Same as `requestTransactionSignature`, but for a NEAR delegate action — the meta-transaction shape a relayer submits to sponsor gas. The provider encodes the delegate action and requests approval over popup or redirect. Resolves to the authenticated `User`.
+
+```ts
+requestDelegateActionSignature(
+  options: JavascriptRequestDelegateActionSignatureOptions,
+): Promise<{ userId: string }>
+```
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `delegateAction` | `DelegateAction` (`@near-js/transactions`) | The delegate action to sign. |
+| `redirectUri` | `string` (optional) | Present → redirect flow. Absent → popup flow. |
+| (other keys) | `RedirectLoginOptions` / `PopupLoginOptions` | Any other `@auth0/auth0-spa-js` login option except `authorizationParams`. |
+
+```ts
+import { DelegateAction } from "@near-js/transactions";
+
+await provider.requestDelegateActionSignature({ delegateAction });
+const { signatureRequest } = await provider.getSignatureRequest();
+```
+
+<Note>
+  Delegate actions are how NEAR Auth enables gasless transactions: a relayer wraps the signed delegate action in a meta-transaction and pays the gas. See [Sign transactions](/home/guides/sign-transactions) for the end-to-end flow.
+</Note>
+
+### `getSignatureRequest()`
+
+Reads the approved signature request out of the Auth0 token after a signing approval. It fetches the token silently for the configured `signingAudience`, decodes the embedded payload, and returns both the `User` and the `SignatureRequest`.
+
+```ts
+getSignatureRequest(): Promise<{ user: User; signatureRequest: SignatureRequest }>
+```
+
+The returned `signatureRequest` is what a NEAR Auth SDK forwards on-chain:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `guardId` | `string` | The guard identifier, `jwt#https://{domain}/`. |
+| `verifyPayload` | `string` | The Auth0 JWT the guard verifies on-chain. |
+| `signPayload` | `Uint8Array` | The encoded transaction or delegate-action bytes to sign. |
+| `algorithm` | `"secp256k1" \| "eddsa" \| "ecdsa"` (optional) | The signing algorithm, when set. |
+
+```ts
+const { user, signatureRequest } = await provider.getSignatureRequest();
+console.log(user.userId);
+console.log(signatureRequest.guardId);
+```
+
+<Note>
+  In practice you rarely call `getSignatureRequest()` yourself — the SDK reads it for you when you sign through `FastAuthSigner`. It's exposed here for advanced flows and debugging.
+</Note>
+
+---
+
+## Error handling
+
+The provider throws `JavascriptProviderError` for provider-level failures. Today it carries a single code, `USER_NOT_LOGGED_IN`, thrown by `getPath()` (and internally when reading the user's subject) if no user is authenticated.
+
+```ts
+import {
+  JavascriptProviderError,
+  JavascriptProviderErrorCodes,
+} from "@fast-auth-near/javascript-provider";
+
+try {
+  const path = await provider.getPath();
+} catch (error) {
+  if (
+    error instanceof JavascriptProviderError &&
+    error.message === JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN
+  ) {
+    console.log("Please log in first");
+  }
+}
+```
+
+---
+
+## Full example
+
+A minimal popup-based integration with the Browser SDK: create the provider, wire it into a `FastAuthClient`, log in, and get a signer.
+
+```ts
+import { FastAuthClient } from "@fast-auth-near/browser-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+import { connect } from "near-api-js";
+
+const provider = new JavascriptProvider({
+  network: "testnet",
+  clientId: "np8paqIpMWmNbzT4xAvOOapZBjsOpptl",
+});
+
+const { connection } = await connect({
+  networkId: "testnet",
+  nodeUrl: "https://rpc.testnet.near.org",
+});
+
+const client = new FastAuthClient(provider, connection, {
+  fastAuthContractId: "fast-auth.testnet",
+  mpcContractId: "v1.signer-prod.testnet",
+});
+
+await client.login();
+const signer = await client.getSigner();
+```
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Browser SDK reference" icon="globe" href="/sdks/browser-sdk" horizontal arrow>
+    The `FastAuthClient` and `FastAuthSigner` you inject this provider into.
+  </Card>
+  <Card title="React SDK reference" icon="atom" href="/sdks/react-sdk" horizontal arrow>
+    Use the provider through `FastAuthProvider` and hooks.
+  </Card>
+  <Card title="Authenticate users" icon="log-in" href="/home/guides/authenticate-users" horizontal arrow>
+    Login, logout, and session handling end to end.
+  </Card>
+  <Card title="Sign transactions" icon="file-check" href="/home/guides/sign-transactions" horizontal arrow>
+    Request signatures and submit transactions, optionally gasless.
+  </Card>
+  <Card title="Network resources" icon="book-open" href="/resources/networks" horizontal arrow>
+    Domains, audiences, and contract ids per network.
+  </Card>
+  <Card title="Choose your SDK" icon="git-compare" href="/home/guides/choose-your-sdk" horizontal arrow>
+    Which library fits your stack.
+  </Card>
+</CardGroup>

@@ -6,6 +6,12 @@
             "runtimeExecutable": "npx",
             "runtimeArgs": ["--yes", "http-server", "packages/auth0", "-p", "5174", "-c-1"],
             "port": 5174
+        },
+        {
+            "name": "near-auth-docs",
+            "runtimeExecutable": "bash",
+            "runtimeArgs": ["-lc", "cd apps/docs && npx --yes mint@latest dev --port 3111"],
+            "port": 3111
         }
     ]
 }

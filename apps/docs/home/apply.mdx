@@ -1,0 +1,117 @@
+---
+title: "Apply for production access"
+description: "Get your app whitelisted for NEAR Auth on mainnet with dedicated production credentials."
+icon: "clipboard-check"
+---
+
+Going live on **mainnet requires whitelisting**: NEAR Auth issues you dedicated production Auth0 credentials and grants access to the mainnet contracts. This page explains what you get and walks you through the approval process.
+
+<Tip>
+  Building locally? You can develop against testnet using the values in [Resources → Testnet](/resources/testnet), then come back here when you're ready to ship on mainnet.
+</Tip>
+
+---
+
+## What whitelisting grants you
+
+On **mainnet**, each production app gets its **own** Auth0 domain, `clientId`, and `signingAudience`, plus access to the mainnet NEAR Auth contract at `fast-auth.near`. This is what the whitelisting process below grants you.
+
+| Item | What you receive |
+|------|------------------|
+| **Auth0 credentials** | Dedicated production `domain`, `clientId`, and `signingAudience` |
+| **Contract access** | Access to the mainnet NEAR Auth contract at `fast-auth.near` |
+| **Deployment guidance** | Support for taking your integration to production |
+
+---
+
+## Apply for production access
+
+<Card title="Submit the production access form" icon="clipboard-check" href="https://docs.google.com/forms/d/e/1FAIpQLSftBL_EKeu02gYSTPg4luCpnGLsRyp6Fcbqxl0tKDK9T11aIg/viewform" horizontal arrow>
+  Open the application form to request mainnet whitelisting for your app.
+</Card>
+
+---
+
+## How the approval process works
+
+<Steps>
+  <Step title="Submit your application" icon="send">
+    Fill out the [production access form](https://docs.google.com/forms/d/e/1FAIpQLSftBL_EKeu02gYSTPg4luCpnGLsRyp6Fcbqxl0tKDK9T11aIg/viewform) with details about your app and how you plan to use NEAR Auth. See [what to prepare](#what-to-prepare) below so you can fill it out in one pass.
+  </Step>
+  <Step title="Review" icon="search">
+    The NEAR Auth team reviews your submission and may reach out for additional information about your use case or expected volume.
+  </Step>
+  <Step title="Approval" icon="circle-check">
+    Once approved, you receive everything you need to go live:
+
+    - **Production Auth0 credentials** — your dedicated `domain`, `clientId`, and `signingAudience` (the JWT `aud`).
+    - **Access to the mainnet NEAR Auth contract** at `fast-auth.near`.
+    - **Guidance for production deployment.**
+  </Step>
+</Steps>
+
+<Tip>
+  Drop your production credentials into your provider config with `network: "mainnet"` — the rest of your integration stays the same.
+</Tip>
+
+---
+
+## What to prepare
+
+Have this information ready before you open the form so you can submit in a single pass:
+
+- **Application name and description** — what your app does and who it's for.
+- **Expected user volume** — a rough estimate of how many users or transactions you anticipate.
+- **Use case details** — how you intend to use NEAR Auth (login, transaction signing, gasless flows, and so on).
+- **Contact information** — how the NEAR Auth team can reach you during review.
+
+---
+
+## Go live on mainnet
+
+Once you're whitelisted, point your provider at mainnet using your production credentials.
+
+```ts main.ts
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+
+const provider = new JavascriptProvider({
+  network: "mainnet",
+  clientId: "<your-auth0-client-id>",
+  // domain and signingAudience default from the mainnet network,
+  // override them only if your production credentials differ.
+});
+```
+
+Use the mainnet contract account ids when you construct the client:
+
+```ts client.ts
+import { FastAuthClient } from "@fast-auth-near/browser-sdk";
+
+const client = new FastAuthClient(provider, connection, {
+  fastAuthContractId: "fast-auth.near",
+  mpcContractId: "v1.signer",
+});
+```
+
+<Warning>
+  Production requires your own approved credentials. Only the dedicated `clientId`, domain, and signing audience you receive from whitelisting will authenticate against the mainnet NEAR Auth contract.
+</Warning>
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Networks" icon="network" href="/resources/networks" arrow>
+    Compare testnet and mainnet configuration side by side.
+  </Card>
+  <Card title="Mainnet resources" icon="globe" href="/resources/mainnet" arrow>
+    Production contract addresses, RPC, and explorer links.
+  </Card>
+  <Card title="Testnet resources" icon="server" href="/resources/testnet" arrow>
+    Shared testnet credentials to keep building right now.
+  </Card>
+  <Card title="Authenticate users" icon="log-in" href="/home/guides/authenticate-users" arrow>
+    Wire up login and logout with your provider.
+  </Card>
+</CardGroup>

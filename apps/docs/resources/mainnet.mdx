@@ -1,0 +1,80 @@
+---
+title: "Mainnet contracts"
+description: "Deployed NEAR Auth contract addresses and network configuration for NEAR mainnet."
+icon: "server"
+---
+
+The addresses below are the production NEAR Auth deployment on **NEAR mainnet**. Use them when you configure an SDK or inspect on-chain activity in an explorer.
+
+<Warning>
+  Mainnet access is gated. You must be whitelisted before your app can authenticate real users against this deployment. [Apply for production access](/home/apply) — or build against the open [testnet contracts](/resources/testnet) first, which need no sign-off.
+</Warning>
+
+---
+
+## Contract addresses
+
+| Contract | Account id | Description |
+|----------|------------|-------------|
+| NEAR Auth | [`fast-auth.near`](https://nearblocks.io/address/fast-auth.near) | The entry-point contract. Verifies a JWT through a guard and requests an MPC signature. |
+| JWT Guard Router | [`jwt.fast-auth.near`](https://nearblocks.io/address/jwt.fast-auth.near) | Registry that routes a `guard_id` to the guard contract responsible for verifying the JWT. |
+| Auth0 Guard | [`auth0.jwt.fast-auth.near`](https://nearblocks.io/address/auth0.jwt.fast-auth.near) | Guard that RS256-verifies Auth0 JWTs and validates the `iss`, `aud`, and `fatxn` claims. |
+| MPC signer | [`v1.signer`](https://nearblocks.io/address/v1.signer) | NEAR's Multi-Party Computation network. Produces signatures from distributed key shares. |
+
+<Note>
+  On mainnet, `auth0.jwt.fast-auth.near` is also the Auth0 **signing audience** — every JWT the guard verifies must list it in the `aud` claim. See the [Auth0 concept](/protocol/concepts/auth0) for details.
+</Note>
+
+---
+
+## Network information
+
+| Setting | Value |
+|---------|-------|
+| Network | NEAR Mainnet |
+| Chain id | `mainnet` |
+| RPC endpoint | `https://rpc.mainnet.near.org` |
+| Explorer | [nearblocks.io](https://nearblocks.io) |
+
+When you construct a client, point `near-api-js` at the mainnet RPC and pass the mainnet account ids:
+
+```ts main.ts
+import { FastAuthClient } from "@fast-auth-near/browser-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+import { connect } from "near-api-js";
+
+const provider = new JavascriptProvider({
+  network: "mainnet",
+  clientId: "your-auth0-client-id",
+});
+
+const { connection } = await connect({
+  networkId: "mainnet",
+  nodeUrl: "https://rpc.mainnet.near.org",
+});
+
+const client = new FastAuthClient(provider, connection, {
+  fastAuthContractId: "fast-auth.near",
+  mpcContractId: "v1.signer",
+});
+```
+
+<Tip>
+  The MPC signer derives each user's key at the path `{guard_id}#{sub}`, so the same login always controls the same NEAR account across sessions.
+</Tip>
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Apply for mainnet access" icon="rocket" href="/home/apply" horizontal arrow>
+    Get whitelisted to authenticate real users in production.
+  </Card>
+  <Card title="Testnet contracts" icon="server" href="/resources/testnet" horizontal arrow>
+    The open deployment for building and testing without approval.
+  </Card>
+  <Card title="Network configuration" icon="globe" href="/resources/networks" horizontal arrow>
+    RPC URLs, chain ids, and explorers side by side.
+  </Card>
+</CardGroup>

@@ -1,0 +1,181 @@
+---
+title: "Auth0 Guard"
+description: "The NEAR Auth guard contract that verifies Auth0 JWTs on-chain — RS256 signature, issuer, expiry, audience, and the fatxn transaction binding."
+icon: "shield-check"
+---
+
+The **Auth0 Guard** is the on-chain contract that proves an Auth0 login is authentic before NEAR Auth ever asks the MPC network to sign. It verifies the RS256 signature on an Auth0-issued [JWT](/protocol/concepts/jwt), checks the standard claims, and — most importantly — confirms the JWT was minted for *this exact deployment* and *this exact transaction*. It is deployed on mainnet at `auth0.jwt.fast-auth.near` and on testnet at `auth0.jwt.fast-auth.testnet`.
+
+It is the reference implementation of the `JwtGuard` trait and the default guard for the [Auth0 provider](/protocol/concepts/auth0). The [JWT Guard Router](/protocol/contracts/jwt-guard-router) routes verification requests to it under the guard name `jwt#auth0`.
+
+<Info>
+  The guard only **verifies**. It never holds keys or produces signatures. When verification succeeds it returns the JWT's `sub` claim, which the [NEAR Auth contract](/protocol/contracts/fast-auth) uses to derive the per-user MPC signing path.
+</Info>
+
+---
+
+## What it verifies
+
+Every call to `verify` runs the full `JwtGuard` pipeline, then layers Auth0-specific custom-claim checks on top. All of the following must pass, or verification fails:
+
+<CardGroup cols={2}>
+  <Card title="RS256 signature" icon="file-check" horizontal>
+    The JWT signature is verified with RSA PKCS#1 v1.5 (SHA-256) against the guard's stored 2048-bit public keys.
+  </Card>
+  <Card title="Issuer (iss)" icon="globe" horizontal>
+    The token's `iss` claim must match the `issuer` argument passed by the caller.
+  </Card>
+  <Card title="Expiry & not-before" icon="clock" horizontal>
+    `exp` must be in the future and `nbf` (if present) must already be in effect at the current block time.
+  </Card>
+  <Card title="Audience (aud)" icon="shield-check" horizontal>
+    `aud` must contain the guard's own account id — the account the contract is deployed to.
+  </Card>
+  <Card title="Transaction binding (fatxn)" icon="fingerprint" horizontal>
+    The custom `fatxn` claim must be byte-for-byte equal to the `sign_payload` passed in.
+  </Card>
+  <Card title="Size" icon="scroll-text" horizontal>
+    The JWT is bounded (max 7&nbsp;KB) before any parsing or cryptography runs.
+  </Card>
+</CardGroup>
+
+### The two custom claims
+
+The base `JwtGuard` trait handles the signature and the standard `iss` / `exp` / `nbf` claims. The Auth0 Guard adds its own `verify_custom_claims` step, which deserializes the JWT payload into this structure:
+
+```rust custom_claims.rs
+pub struct CustomClaims {
+    pub fatxn: Vec<u8>,       // the encoded transaction payload
+    pub aud: serde_json::Value, // string or array, per the OIDC spec
+}
+```
+
+It then enforces two independent binding checks.
+
+**Audience must contain the guard's own account id.** Per the OIDC spec, `aud` may be a single string or an array of strings, so the guard accepts either form and looks for its own `env::current_account_id()` among them:
+
+```rust verify_custom_claims.rs
+let expected = env::current_account_id().to_string();
+if !audience_matches(&claims.aud, &expected) {
+    return (false, "audience mismatch".to_string());
+}
+```
+
+This prevents a JWT minted for one deployment from being replayed against another — a token targeting the testnet guard cannot be used against mainnet, and vice versa.
+
+**`fatxn` must equal the `sign_payload`.** The `fatxn` claim is the encoded transaction or delegate-action payload the user authorized at login time. The guard requires it to match the `sign_payload` the caller is asking to sign, exactly:
+
+```rust verify_custom_claims.rs
+if claims.fatxn != sign_payload {
+    return (false, "Transaction payload mismatch".to_string());
+}
+```
+
+<Warning>
+  The `fatxn` binding is what makes NEAR Auth safe against a compromised relayer or frontend. A valid JWT can only ever authorize the one transaction it was issued for — a signature for any other payload is impossible, because the guard rejects the request before the MPC network is ever consulted.
+</Warning>
+
+If both binding checks pass, `verify_custom_claims` returns success and the guard returns the token's `sub` claim to the caller.
+
+---
+
+## Methods
+
+### `verify`
+
+The main entry point, called by the [NEAR Auth contract](/protocol/contracts/fast-auth) or the [JWT Guard Router](/protocol/contracts/jwt-guard-router) during a signing flow. It is a read-only method (no state change) and runs the full verification pipeline described above.
+
+```rust
+pub fn verify(
+    &self,
+    issuer: String,
+    jwt: String,
+    sign_payload: Vec<u8>,
+    predecessor: AccountId,
+) -> (bool, String)
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `issuer` | `String` | The expected JWT issuer, e.g. `https://login.testnet.fast-auth.com/`. Must equal the token's `iss` claim. |
+| `jwt` | `String` | The full Auth0-issued JWT to verify. |
+| `sign_payload` | `Vec<u8>` | The encoded transaction payload; must equal the token's `fatxn` claim. |
+| `predecessor` | `AccountId` | The original caller's account id, forwarded through the routing chain. |
+
+**Returns** a `(bool, String)` tuple: the boolean is `true` when the JWT is valid, and the string carries the `sub` claim on success or an error message (`"audience mismatch"`, `"Transaction payload mismatch"`, and so on) on failure.
+
+### `set_public_keys`
+
+Replaces the guard's stored RSA public keys. Auth0's signing keys rotate, so the owner keeps the guard's key set current; the same method is used for emergency rotation after a suspected key compromise.
+
+```rust
+pub fn set_public_keys(&mut self, public_keys: Vec<JwtPublicKey>)
+```
+
+Each key is a modulus/exponent pair, and every key is validated before it is stored:
+
+```rust JwtPublicKey.rs
+pub struct JwtPublicKey {
+    pub n: Vec<u8>, // RSA modulus
+    pub e: Vec<u8>, // RSA exponent
+}
+```
+
+<Warning>
+  `set_public_keys` is **owner-only**. Any call from an account other than the stored owner panics with `"Only the owner can call this function"`. The guard's keys are owner-managed — this is the key distinction from the DAO- and attestation-managed guards described under [Advanced](/protocol/advanced/custom-issuer-guard).
+</Warning>
+
+The guard supports multiple public keys at once, so a signature verifies if it matches *any* stored key. That lets an operator publish the next key before the old one is retired, avoiding a verification gap during rotation.
+
+<Accordion title="Owner and lifecycle methods">
+  The guard also exposes standard owner-management and upgrade methods, all owner-gated:
+
+  - `owner()` — returns the current owner `AccountId`.
+  - `change_owner(new_owner)` — transfers ownership; only the current owner may call it.
+  - `update_contract()` — deploys new contract code to the guard account and runs a `migrate` state migration.
+
+  On initialization, `init(owner, public_keys)` sets the owner and validates every supplied public key before storing it.
+</Accordion>
+
+---
+
+## How it fits the signing flow
+
+The guard is invoked in the middle of a NEAR Auth signature request — it is never called directly by the SDK.
+
+<Steps>
+  <Step title="A JWT is minted with fatxn and aud">
+    The user authenticates through the [Auth0 provider](/protocol/concepts/auth0), which embeds the encoded transaction in the `fatxn` claim and sets `aud` to the target guard's account id.
+  </Step>
+  <Step title="The app calls FastAuth.sign">
+    The frontend calls `sign(guard_id, jwt, sign_payload, algorithm)` on the [NEAR Auth contract](/protocol/contracts/fast-auth) with `guard_id: "jwt#auth0"`.
+  </Step>
+  <Step title="The router forwards to this guard">
+    The [JWT Guard Router](/protocol/contracts/jwt-guard-router) resolves `jwt#auth0` to `auth0.jwt.fast-auth.near` (or `.testnet`) and calls `verify`.
+  </Step>
+  <Step title="The guard verifies everything">
+    RS256 signature, `iss`, `exp`/`nbf`, `aud` contains this account, and `fatxn == sign_payload`. On success it returns the `sub` claim.
+  </Step>
+  <Step title="MPC signs at the derived path">
+    NEAR Auth uses the returned `sub` to derive the deterministic MPC path and requests the signature. The verified transaction is signed and can be submitted, optionally gasless via a relayer.
+  </Step>
+</Steps>
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="JWTs in NEAR Auth" icon="scroll-text" href="/protocol/concepts/jwt" horizontal arrow>
+    How the token is structured, the `fatxn` claim, and on-chain RS256 verification.
+  </Card>
+  <Card title="The Auth0 provider" icon="globe" href="/protocol/concepts/auth0" horizontal arrow>
+    How Auth0 mints the JWT and sets the signing audience for this guard.
+  </Card>
+  <Card title="JWT Guard Router" icon="route" href="/protocol/contracts/jwt-guard-router" horizontal arrow>
+    The registry that maps `jwt#auth0` to this guard's account.
+  </Card>
+  <Card title="NEAR Auth contract" icon="layers" href="/protocol/contracts/fast-auth" horizontal arrow>
+    The entry point that calls into the guard during a signing flow.
+  </Card>
+</CardGroup>

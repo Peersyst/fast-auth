@@ -1,0 +1,139 @@
+---
+title: "NEAR Auth contract"
+description: "The entry-point contract that routes verification to guards and orchestrates MPC signing on NEAR."
+icon: "file-code"
+---
+
+The **NEAR Auth contract** (code name `FastAuth`, deployed at `fast-auth.near` on mainnet and `fast-auth.testnet` on testnet) is the on-chain entry point for the whole protocol. Every signature request from an SDK lands here. The contract verifies the request through the right guard, then asks the [MPC network](/protocol/concepts/mpc) to produce a signature — it never holds a private key itself.
+
+Think of it as the orchestrator: it owns a registry of guards, routes each request by `guard_id`, forwards verified requests to MPC, and refunds your deposit if anything fails along the way.
+
+<Info>
+  For deployed addresses on each network, see [Mainnet resources](/resources/mainnet). For the guard registry it routes into, see [JWT Guard Router](/protocol/contracts/jwt-guard-router).
+</Info>
+
+---
+
+## What it does
+
+<CardGroup cols={2}>
+  <Card title="Routes by guard_id" icon="route" horizontal>
+    Extracts the prefix from `guard_id` and dispatches to the matching guard contract — `jwt` routes to the JWT Guard Router.
+  </Card>
+  <Card title="Verifies before signing" icon="shield-check" horizontal>
+    Delegates JWT verification to the guard. No signature is ever produced unless the guard approves the request.
+  </Card>
+  <Card title="Coordinates MPC" icon="network" horizontal>
+    On success, forwards a signing request to the MPC contract at the deterministic path `{guard_id}#{sub}`.
+  </Card>
+  <Card title="Refunds on failure" icon="rotate-ccw" horizontal>
+    Returns your attached deposit to the caller if verification is rejected or MPC signing fails.
+  </Card>
+</CardGroup>
+
+---
+
+## Public methods
+
+The contract exposes a small surface: two call methods for end users (`verify` and `sign`), plus owner-only administration for the guard registry, MPC configuration, and the pause switch.
+
+| Method | Access | Description |
+| --- | --- | --- |
+| `sign(guard_id, verify_payload, sign_payload, algorithm)` | Public, `#[payable]` | Verify the payload through the guard, then sign `sign_payload` via MPC. Returns a `Promise` resolving to the signature. |
+| `verify(guard_id, verify_payload, sign_payload)` | Public (view-like call) | Verify the payload through the guard only. Returns a `Promise` resolving to `(bool, String)` — success flag and the user identifier. |
+| `add_guard(guard_id, guard_address)` | Owner only | Register a guard contract under `guard_id`. The id must not contain `#`. |
+| `remove_guard(guard_id)` | Owner only | Remove a guard from the registry. |
+| `get_guard(guard_id)` | Public view | Return the account id registered for `guard_id`. Panics if it does not exist. |
+| `set_mpc_address(mpc_address)` | Owner only | Set the MPC contract account the signing requests are sent to. |
+| `set_mpc_key_version(mpc_key_version)` | Owner only | Set the MPC key version (`u32`, default `0`) used by the legacy `secp256k1` request. |
+| `set_mpc_domain_id(mpc_domain_id)` | Owner only | Set the MPC domain id (`u64`, default `1`) used by `ecdsa` / `eddsa` requests. |
+| `pause()` | Pauser only | Halt the contract. Most methods panic while paused. |
+| `unpause()` | Owner only | Resume the contract after a pause. |
+| `change_owner(new_owner)` | Owner only | Transfer administrative ownership. |
+| `set_pauser(pauser)` | Owner only | Set the account allowed to call `pause()`. |
+| `paused()` / `owner()` / `mpc_address()` / `mpc_key_version()` / `mpc_domain_id()` / `version()` | Public view | Read the corresponding piece of contract state. |
+
+<Note>
+  `pause()` can be called by the dedicated **pauser** account for a fast emergency stop, but only the **owner** can `unpause()`. Adding/removing guards and changing MPC config are all owner-only.
+</Note>
+
+---
+
+## `guard_id` routing
+
+Every request is addressed to a guard through its `guard_id`. The contract supports a hierarchical id format that uses `#` as a separator, and routes on the **prefix** before the first `#`:
+
+| `guard_id` | Prefix used for routing | Meaning |
+| --- | --- | --- |
+| `jwt` | `jwt` | Routes to the guard registered as `jwt` (the JWT Guard Router). |
+| `jwt#auth0` | `jwt` | Routes to the same `jwt` guard, passing the full id so the router can sub-route to the Auth0 guard. |
+
+The prefix must be non-empty, so an id like `#auth0` or an empty string is rejected. Because the Auth0 happy path registers the router under `jwt`, a request with `guard_id` starting with `jwt` always reaches the [JWT Guard Router](/protocol/contracts/jwt-guard-router), which forwards to the correct downstream guard.
+
+```rust
+// Simplified routing inside the contract
+let guard_prefix = self.get_guard_prefix(guard_id.clone()); // "jwt#auth0" -> "jwt"
+let guard_address = self.guards.get(&guard_prefix)
+    .cloned()
+    .unwrap_or_else(|| env::panic_str("Guard does not exist"));
+
+external_guard::ext(guard_address)
+    .verify(guard_id, verify_payload, sign_payload, env::predecessor_account_id());
+```
+
+---
+
+## Supported algorithms
+
+The `algorithm` argument to `sign` is parsed case-insensitively into one of three values. Each maps to a different MPC request shape:
+
+| Algorithm | Curve / scheme | MPC request |
+| --- | --- | --- |
+| `secp256k1` | ECDSA on secp256k1 (legacy) | `SignRequest`, uses `mpc_key_version` |
+| `ecdsa` | ECDSA with domain support | `SignRequestV2`, uses `mpc_domain_id` |
+| `eddsa` | EdDSA (Ed25519) | `SignRequestV2`, uses `mpc_domain_id` |
+
+Any other value panics with an "Unsupported algorithm" error. In all three cases the contract SHA-256 hashes `sign_payload` before handing it to MPC, and derives the signing path deterministically as `{guard_id}#{sub}`, where `sub` is the user identifier returned by the guard.
+
+---
+
+## Deposit and refund
+
+`sign` is `#[payable]` because MPC signing has an on-chain cost. You attach a deposit when calling it, and the contract forwards that deposit to the MPC contract to cover the signature. The contract is careful to return your NEAR whenever the flow does not complete:
+
+<Steps>
+  <Step title="Verification fails or is rejected">
+    If the guard rejects the JWT (bad signature, wrong issuer/audience, expired, or mismatched `fatxn`), the contract transfers the full attached deposit back to the caller and stops.
+  </Step>
+  <Step title="MPC signing fails">
+    If verification passed but the MPC contract returns an error, the callback refunds the original deposit to the caller and returns `None`.
+  </Step>
+  <Step title="Success">
+    On a successful signature, the original deposit is still returned to the caller and the MPC signature is returned from the call.
+  </Step>
+</Steps>
+
+<Warning>
+  Always attach enough deposit to cover the MPC cost. If you underpay, the MPC request fails and the flow refunds and aborts without producing a signature.
+</Warning>
+
+---
+
+## Where it sits in the flow
+
+The NEAR Auth contract is step 3–5 of the end-to-end Auth0 flow: your app calls `sign(guard_id, jwt, sign_payload, algorithm)`, the contract routes to the guard for JWT verification, and on success it requests the MPC signature at path `{guard_id}#{sub}`. The returned signature can then be submitted to NEAR — optionally gasless via a relayer.
+
+<CardGroup cols={2}>
+  <Card title="JWT Guard Router" icon="route" href="/protocol/contracts/jwt-guard-router" horizontal arrow>
+    The registry the `jwt` prefix routes into, and how it dispatches to the Auth0 guard.
+  </Card>
+  <Card title="MPC signing" icon="key-round" href="/protocol/concepts/mpc" horizontal arrow>
+    How distributed key shares produce a signature at a deterministic derivation path.
+  </Card>
+  <Card title="Contracts overview" icon="boxes" href="/protocol/contracts/overview" horizontal arrow>
+    How the entry point, router, and guards fit together.
+  </Card>
+  <Card title="Deployed addresses" icon="server" href="/resources/mainnet" horizontal arrow>
+    Mainnet account ids for the contract, router, guards, and MPC.
+  </Card>
+</CardGroup>

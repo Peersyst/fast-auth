@@ -1,0 +1,399 @@
+---
+title: "Browser SDK"
+description: "Full reference for @fast-auth-near/browser-sdk — the framework-agnostic FastAuthClient, FastAuthSigner, and FastAuthSignature classes."
+icon: "globe"
+---
+
+`@fast-auth-near/browser-sdk` is the framework-agnostic NEAR Auth SDK. It exposes three classes — `FastAuthClient` to log users in and hand you a signer, `FastAuthSigner` to derive keys and build NEAR actions, and `FastAuthSignature` to turn a raw MPC signature into transaction-ready bytes. Use it in vanilla JS, Vue, Svelte, Angular, or any web app that is not React.
+
+Pair it with a platform provider — the [JavaScript provider](/sdks/javascript-provider) runs the Auth0 flow in the browser. The SDK itself only depends on the `IFastAuthProvider` interface from [`@shared/core`](/sdks/core), so the same client code works regardless of which provider you construct.
+
+<CardGroup cols={3}>
+  <Card title="FastAuthClient" icon="log-in" href="#fastauthclient" arrow>
+    Log in, log out, and obtain an initialized signer.
+  </Card>
+  <Card title="FastAuthSigner" icon="key-round" href="#fastauthsigner" arrow>
+    Derive keys, build actions, and submit transactions.
+  </Card>
+  <Card title="FastAuthSignature" icon="file-check" href="#fastauthsignature" arrow>
+    Decode an MPC signature and recover its bytes.
+  </Card>
+</CardGroup>
+
+---
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @fast-auth-near/browser-sdk @fast-auth-near/javascript-provider near-api-js
+```
+
+```bash yarn
+yarn add @fast-auth-near/browser-sdk @fast-auth-near/javascript-provider near-api-js
+```
+
+```bash pnpm
+pnpm add @fast-auth-near/browser-sdk @fast-auth-near/javascript-provider near-api-js
+```
+
+</CodeGroup>
+
+`near-api-js` is a peer dependency — the SDK uses it for the NEAR `Connection`, transaction types, and RPC calls. You also need one provider package; on the web that is `@fast-auth-near/javascript-provider`.
+
+<Tip>
+  New to NEAR Auth? Start with the [quickstart](/home/quickstart) for a copy-pasteable integration, then come back here for the full method surface.
+</Tip>
+
+---
+
+## Quick start
+
+Construct a provider, hand it to a `FastAuthClient`, log the user in, and get a signer. Everything after login flows through the signer.
+
+```ts main.ts
+import { FastAuthClient } from "@fast-auth-near/browser-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+import { connect } from "near-api-js";
+
+// 1. Build a provider for your platform (web = JavascriptProvider).
+const provider = new JavascriptProvider({
+  network: "testnet",
+  clientId: "your-auth0-client-id",
+});
+
+// 2. Set up a NEAR connection.
+const { connection } = await connect({
+  networkId: "testnet",
+  nodeUrl: "https://rpc.testnet.near.org",
+});
+
+// 3. Create the client with the deployed contract ids.
+const client = new FastAuthClient(provider, connection, {
+  fastAuthContractId: "fast-auth.testnet",
+  mpcContractId: "v1.signer-prod.testnet",
+});
+
+// 4. Authenticate, then obtain an initialized signer.
+await client.login();
+const signer = await client.getSigner();
+
+// 5. Derive the user's NEAR public key.
+const publicKey = await signer.getPublicKey();
+```
+
+<Note>
+  Contract ids live in [Resources](/resources/overview). Testnet uses `fast-auth.testnet` and the MPC signer `v1.signer-prod.testnet`; mainnet uses `fast-auth.near` and `v1.signer`.
+</Note>
+
+---
+
+## FastAuthClient
+
+The main entry point. `FastAuthClient` is a generic class that delegates authentication to the provider you pass in and produces a ready-to-use `FastAuthSigner` once the user is logged in.
+
+```ts
+class FastAuthClient<P extends IFastAuthProvider = IFastAuthProvider>
+```
+
+### Constructor
+
+```ts
+constructor(
+  provider: P,
+  connection: Connection,
+  options: FastAuthClientOptions,
+)
+```
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `provider` | `P extends IFastAuthProvider` | A provider instance, e.g. `JavascriptProvider`. Carries the Auth0 flow and session. |
+| `connection` | `Connection` | A NEAR network connection from `near-api-js`. |
+| `options` | `FastAuthClientOptions` | Contract ids the client and signer need. See below. |
+
+`FastAuthClientOptions` is the same shape the signer consumes:
+
+```ts
+type FastAuthClientOptions = {
+  fastAuthContractId: string; // the NEAR Auth contract, e.g. "fast-auth.testnet"
+  mpcContractId: string;      // the MPC signer contract, e.g. "v1.signer-prod.testnet"
+};
+```
+
+### Methods
+
+| Method | Signature | Returns | Description |
+| --- | --- | --- | --- |
+| `login` | `login(...args: Parameters<P["login"]>)` | Provider's login result | Starts the provider's login flow. Arguments are forwarded verbatim to `provider.login(...)`, so the accepted parameters match your provider. |
+| `logout` | `logout(...args: Parameters<P["logout"]>)` | Provider's logout result | Ends the session by delegating to `provider.logout(...)`. |
+| `getSigner` | `getSigner(): Promise<FastAuthSigner<P>>` | `Promise<FastAuthSigner<P>>` | Verifies the user is logged in, constructs a `FastAuthSigner`, calls `init()` on it, and returns it ready to use. |
+
+<Warning>
+  `getSigner()` throws a `FastAuthClientError` with code `USER_NOT_LOGGED_IN` if the user is not authenticated. Call it only after `login()` resolves, or guard it with the provider's `isLoggedIn()`.
+</Warning>
+
+```ts client.ts
+const client = new FastAuthClient(provider, connection, {
+  fastAuthContractId: "fast-auth.testnet",
+  mpcContractId: "v1.signer-prod.testnet",
+});
+
+// Arguments to login() are passed straight through to the provider.
+await client.login();
+
+try {
+  const signer = await client.getSigner();
+  // signer is already initialized — use it directly.
+} catch (error) {
+  // Thrown with code USER_NOT_LOGGED_IN if the session is missing.
+  console.error("Login required:", error);
+}
+
+await client.logout();
+```
+
+<Info>
+  Because the client is generic over `P`, `login` and `logout` inherit the exact parameter types of your provider. With the JavaScript provider, `login(options?, forceSelectAccount?)` — see the [JavaScript provider reference](/sdks/javascript-provider).
+</Info>
+
+---
+
+## FastAuthSigner
+
+The signer is where the NEAR-facing work happens: deriving the user's public key, building `create_account` and `sign` actions, requesting signatures through the provider, and submitting signed transactions to the network.
+
+```ts
+class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider>
+```
+
+You normally obtain a signer from `client.getSigner()`, which constructs it and calls `init()` for you. Constructing one by hand takes the same three arguments as the client and requires an explicit `init()`.
+
+### `init`
+
+```ts
+init(): Promise<void>
+```
+
+Retrieves the user's derivation path from the provider (via `provider.getPath()`) and stores it on the signer. **Must run before any other method** — `getSigner()` calls it automatically, so you only call it yourself when you construct a `FastAuthSigner` directly.
+
+### Account management
+
+| Method | Signature | Returns | Description |
+| --- | --- | --- | --- |
+| `createAccount` | `createAccount(accountId: string, options?: CreateAccountOptions): Promise<Action>` | `Promise<Action>` | Builds a `create_account` function-call `Action` that registers `accountId` with the user's derived public key. Does **not** submit it — add the action to a transaction and send it. |
+| `getPublicKey` | `getPublicKey(algorithm?: Algorithm): Promise<PublicKey>` | `Promise<PublicKey>` | Returns the user's derived NEAR public key by calling the MPC contract's `derived_public_key` method with the signer's path and the NEAR Auth contract as predecessor. |
+
+`createAccount` parameters:
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `accountId` | `string` | — | The account id to create. |
+| `options.gas` | `bigint` | `300000000000000n` (300 TGas) | Gas attached to the `create_account` call. |
+| `options.deposit` | `bigint` | `0n` | NEAR deposit attached to the call. |
+| `options.algorithm` | `Algorithm` | `"ed25519"` | Which key algorithm the new account's public key derives from. |
+
+`getPublicKey` parameters:
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `algorithm` | `Algorithm` | `"ed25519"` | Selects the key derivation domain. `"ed25519"` maps to domain id `1`, `"secp256k1"` to domain id `0`. |
+
+```ts account.ts
+// Derived public key (defaults to ed25519).
+const publicKey = await signer.getPublicKey();
+const secpKey = await signer.getPublicKey("secp256k1");
+
+// Build (but don't send) an account-creation action.
+const action = await signer.createAccount("alice.testnet", {
+  algorithm: "ed25519",
+});
+```
+
+### Requesting a signature
+
+These two methods forward to the provider, which drives the user through Auth0 and embeds the encoded transaction into the JWT the guard contract verifies on-chain. Their parameters are inferred from your provider's implementation.
+
+| Method | Signature | Description |
+| --- | --- | --- |
+| `requestTransactionSignature` | `requestTransactionSignature(...args: Parameters<P["requestTransactionSignature"]>)` | Requests a signature for a NEAR transaction. Delegates to `provider.requestTransactionSignature(...)`. |
+| `requestDelegateActionSignature` | `requestDelegateActionSignature(...args: Parameters<P["requestDelegateActionSignature"]>)` | Requests a signature for a delegate action (meta-transaction), enabling relayer-sponsored, gasless flows. Delegates to `provider.requestDelegateActionSignature(...)`. |
+| `getSignatureRequest` | `getSignatureRequest(): Promise<GetSignatureRequestResponse>` | Returns the pending signature request the provider produced after login/redirect. |
+
+<Warning>
+  With the web provider, requesting a signature typically triggers a popup or redirect to Auth0. Persist any application state you need to survive a full-page redirect before calling these methods.
+</Warning>
+
+`getSignatureRequest()` resolves to a `GetSignatureRequestResponse`, which wraps the `SignatureRequest` alongside the resolved user:
+
+```ts
+type GetSignatureRequestResponse = {
+  user: { userId: string };
+  signatureRequest: SignatureRequest;
+};
+
+type SignatureRequest = {
+  guardId: string;                    // JWT guard identifier
+  verifyPayload: string;              // the JWT to verify on-chain
+  signPayload: Uint8Array;            // the transaction bytes to sign
+  algorithm?: MPCContractAlgorithm;   // "secp256k1" | "eddsa" | "ecdsa"
+};
+```
+
+### Signing and submission
+
+| Method | Signature | Returns | Description |
+| --- | --- | --- | --- |
+| `createSignAction` | `createSignAction(request: SignatureRequest, options?: CreateSignActionOptions): Promise<Action>` | `Promise<Action>` | Builds a `sign` function-call `Action` against the NEAR Auth contract from a `SignatureRequest`. Defaults the on-chain algorithm to `"eddsa"` when the request omits one. |
+| `sendTransaction` | `sendTransaction(transaction: Transaction, signature: FastAuthSignature, algorithm?: Algorithm): Promise<FinalExecutionOutcome>` | `Promise<FinalExecutionOutcome>` | Recovers the signature bytes, attaches them to the transaction as a signed transaction, and broadcasts it through the connection's RPC provider. |
+
+`createSignAction` parameters:
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `request` | `SignatureRequest` | — | Contains `guardId`, `verifyPayload`, `signPayload`, and an optional `algorithm`. |
+| `options.gas` | `bigint` | `300000000000000n` (300 TGas) | Gas attached to the `sign` call. |
+| `options.deposit` | `bigint` | `0n` | NEAR deposit attached to the call. |
+
+`sendTransaction` parameters:
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `transaction` | `Transaction` | — | The `near-api-js` transaction to sign and broadcast. |
+| `signature` | `FastAuthSignature` | — | The MPC signature to attach — see [FastAuthSignature](#fastauthsignature). |
+| `algorithm` | `Algorithm` | `"ed25519"` | The algorithm used to recover the signature bytes and pick the key type. |
+
+```ts sign.ts
+// 1. Read the pending request the provider produced.
+const { signatureRequest } = await signer.getSignatureRequest();
+
+// 2. Build the on-chain `sign` action for the NEAR Auth contract.
+const signAction = await signer.createSignAction(signatureRequest);
+
+// 3. Submit that action in a transaction to obtain the MPC signature,
+//    decode it (see FastAuthSignature), then broadcast the real transaction.
+const signature = FastAuthSignature.fromBase64(base64Result);
+const outcome = await signer.sendTransaction(transaction, signature, "ed25519");
+```
+
+---
+
+## FastAuthSignature
+
+A thin wrapper around the raw payload the MPC network returns. It decodes a base64 result and recovers the signature bytes in the exact format `sendTransaction` needs, for either curve.
+
+```ts
+class FastAuthSignature
+```
+
+### Methods
+
+| Method | Signature | Returns | Description |
+| --- | --- | --- | --- |
+| `fromBase64` | `static fromBase64(base64Payload: string): FastAuthSignature` | `FastAuthSignature` | Decodes a base64 MPC payload (JSON) into a `FastAuthSignature`. |
+| `recover` | `recover(algorithm?: Algorithm): Buffer` | `Buffer` | Recovers the signature bytes for the given curve: 64-byte ed25519 (`R‖S`) or 65-byte secp256k1 (`r‖s‖v`). Defaults to `"ed25519"`. |
+
+<Note>
+  `sendTransaction` calls `recover(algorithm)` for you, so you rarely invoke it directly — pass the `FastAuthSignature` straight into `sendTransaction`. Call `recover()` yourself only when you need the raw bytes.
+</Note>
+
+```ts signature.ts
+import { FastAuthSignature } from "@fast-auth-near/browser-sdk";
+
+// Decode the MPC result returned from the `sign` call.
+const signature = FastAuthSignature.fromBase64(base64Result);
+
+// Recover raw bytes if you need them directly (defaults to ed25519).
+const ed25519Bytes = signature.recover();        // 64 bytes: R‖S
+const secp256k1Bytes = signature.recover("secp256k1"); // 65 bytes: r‖s‖v
+```
+
+<Warning>
+  Recovery is algorithm-specific. Pass the same `algorithm` to `recover()` / `sendTransaction()` that the account's key was derived with — an unsupported value throws a signature error.
+</Warning>
+
+---
+
+## The `Algorithm` type
+
+The SDK's client-facing algorithm type is:
+
+```ts
+type Algorithm = "secp256k1" | "ed25519";
+```
+
+It appears on `getPublicKey`, `createAccount` options, `sendTransaction`, and `FastAuthSignature.recover`, and it defaults to `"ed25519"` everywhere it is optional.
+
+<Info>
+  The on-chain `SignatureRequest.algorithm` uses a distinct `MPCContractAlgorithm` = `"secp256k1" | "eddsa" | "ecdsa"` — that is the value the NEAR Auth contract's `sign` method receives. `createSignAction` defaults it to `"eddsa"`. Read more in [How it works](/protocol/how-it-works).
+</Info>
+
+---
+
+## End-to-end example
+
+Putting the three classes together: log in, derive a key, request a signature, then decode and broadcast the result.
+
+```ts full-flow.ts
+import { FastAuthClient, FastAuthSignature } from "@fast-auth-near/browser-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+import { connect } from "near-api-js";
+
+const provider = new JavascriptProvider({
+  network: "testnet",
+  clientId: "your-auth0-client-id",
+});
+
+const { connection } = await connect({
+  networkId: "testnet",
+  nodeUrl: "https://rpc.testnet.near.org",
+});
+
+const client = new FastAuthClient(provider, connection, {
+  fastAuthContractId: "fast-auth.testnet",
+  mpcContractId: "v1.signer-prod.testnet",
+});
+
+// 1. Authenticate and obtain an initialized signer.
+await client.login();
+const signer = await client.getSigner();
+
+// 2. Derive the user's NEAR public key.
+const publicKey = await signer.getPublicKey();
+
+// 3. Ask the provider to embed a transaction into the JWT and sign it.
+await signer.requestTransactionSignature(/* provider-specific args */);
+const { signatureRequest } = await signer.getSignatureRequest();
+
+// 4. Build the on-chain `sign` action, submit it to get the MPC result,
+//    then decode and broadcast the final transaction.
+const signAction = await signer.createSignAction(signatureRequest);
+const signature = FastAuthSignature.fromBase64(base64Result);
+const outcome = await signer.sendTransaction(transaction, signature, "ed25519");
+```
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="JavaScript provider" icon="code" href="/sdks/javascript-provider" arrow>
+    The Auth0 adapter you pair with this SDK — `login`, redirect vs popup, and signature requests.
+  </Card>
+  <Card title="Core types" icon="scroll-text" href="/sdks/core" arrow>
+    `IFastAuthProvider`, `SignatureRequest`, `User`, and the shared type surface.
+  </Card>
+  <Card title="Sign transactions" icon="file-check" href="/home/guides/sign-transactions" arrow>
+    The full signing guide, including relayer-sponsored gasless flows.
+  </Card>
+  <Card title="How it works" icon="layers" href="/protocol/how-it-works" arrow>
+    From Auth0 JWT to on-chain verification to MPC signature.
+  </Card>
+  <Card title="Resources" icon="book-open" href="/resources/overview" arrow>
+    Deployed contract ids, RPC endpoints, and network config.
+  </Card>
+  <Card title="SDKs overview" icon="boxes" href="/sdks/overview" arrow>
+    How the SDKs and providers compose across web and mobile.
+  </Card>
+</CardGroup>

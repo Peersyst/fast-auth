@@ -1,0 +1,223 @@
+---
+title: "Attestation contract"
+description: "Decentralized, quorum-based public-key management that lets guards source their signing keys without trusting a single admin."
+icon: "badge-check"
+---
+
+Some guards verify JWTs signed by an issuer whose public keys rotate outside your control — an external OIDC issuer is the canonical example. The **Attestation contract** lets those guards source their trusted public keys from an on-chain, quorum-based process instead of from a single privileged account. Multiple independent attesters must agree on the exact same key set before it becomes active, and only then can a guard read it.
+
+This page explains the on-chain data model, how attesters reach quorum, how a guard consumes the keys, and why this decentralization matters for security.
+
+<Info>
+  This is an advanced topic. Guards that back keys with attestation — such as the [custom issuer guard](/protocol/advanced/custom-issuer-guard) — are the primary consumers of this contract. If you are integrating NEAR Auth with the default Auth0 provider, you do not need it.
+</Info>
+
+---
+
+## Why attestation exists
+
+A guard verifies a JWT's RS256 signature against a set of RSA public keys. Whoever controls those keys controls what the guard will accept — so key management is a security-critical surface. There are two ways to feed keys to a guard:
+
+- **Owner-managed keys.** A single admin account writes the keys directly. This is what the Auth0 guard does, and it is simple, but it concentrates trust in one key holder.
+- **Attestation-managed keys.** Keys are only accepted once a configurable number of independent attesters submit the *same* key set. No single party can rotate the keys on their own.
+
+The Attestation contract implements the second model. It gives issuers whose keys are outside NEAR Auth's control — like an external OIDC issuer — a trust-minimized way to keep on-chain keys in sync, where compromising key management requires colluding with a quorum of attesters rather than a single admin.
+
+---
+
+## The data model
+
+The contract keeps three pieces of state.
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `attestations` | `IterableMap<AccountId, Attestation>` | The current pending attestation from each attester |
+| `quorum` | `u32` | Number of matching attestations required to update the active keys |
+| `public_keys` | `Vector<PublicKey>` | The currently active public keys guards read |
+
+A public key is an RSA key expressed as its two components:
+
+```rust
+pub struct PublicKey {
+    n: Vec<u8>,  // RSA modulus
+    e: Vec<u8>,  // RSA exponent
+}
+```
+
+An attestation is one attester's proposal — the keys they want to install, plus a hash that fingerprints them:
+
+```rust
+pub struct Attestation {
+    hash: Vec<u8>,               // SHA256 hash of the public keys
+    public_keys: Vec<PublicKey>, // The attested public keys
+}
+```
+
+The `hash` is what lets the contract cheaply decide whether two attesters proposed the *same* keys. It is computed by concatenating every key's modulus and exponent bytes in order and hashing the result:
+
+```rust
+fn compute_public_keys_hash(&self, public_keys: &[PublicKey]) -> Vec<u8> {
+    let mut data = Vec::new();
+    for pk in public_keys {
+        data.extend_from_slice(&pk.n);
+        data.extend_from_slice(&pk.e);
+    }
+    env::sha256(&data).to_vec()
+}
+```
+
+Because the hash covers both the key bytes and their order, two attesters only match if they agree on the exact same keys arranged the exact same way. Any difference — a rotated key, a reordered list, a single flipped byte — produces a different hash and does not count toward quorum.
+
+---
+
+## Initializing the contract
+
+The contract is initialized once with the quorum and the initial roster of participants:
+
+```rust
+#[init]
+pub fn new(quorum: u32, super_admins: Vec<AccountId>, attesters: Vec<AccountId>) -> Self
+```
+
+<ParamField path="quorum" type="u32" required>
+  The number of attesters that must submit matching keys before the active key set is updated.
+</ParamField>
+
+<ParamField path="super_admins" type="Vec<AccountId>" required>
+  Accounts with full administrative privileges. Each is also granted the `DAO` role so it can manage quorum, attesters, pausing, and upgrades.
+</ParamField>
+
+<ParamField path="attesters" type="Vec<AccountId>" required>
+  The initial accounts authorized to submit attestations (granted the `Attester` role).
+</ParamField>
+
+Initialization enforces three invariants so the contract can never start in an unusable state:
+
+- `quorum` must be greater than `0`.
+- There must be at least one super admin.
+- `quorum` cannot exceed the number of attesters — otherwise no key set could ever reach quorum.
+
+Access to every mutating method is governed by role-based access control. The roles that matter here are `DAO` (full administrative access, and may also attest) and `Attester` (may submit attestations). The contract also defines operational roles — `CodeStager`, `CodeDeployer`, `DurationManager`, `PauseManager`, and `UnpauseManager` — for staged upgrades and emergency pausing.
+
+---
+
+## Reaching quorum
+
+Attesters install keys by calling `attest_public_keys`. Only accounts holding the `Attester` or `DAO` role may call it, and it is disabled while the contract is paused:
+
+```rust
+#[pause]
+#[access_control_any(roles(Role::Attester, Role::DAO))]
+pub fn attest_public_keys(&mut self, public_keys: Vec<PublicKey>)
+```
+
+Each call runs the same sequence:
+
+<Steps>
+  <Step title="Validate the input">
+    The submitted list must be non-empty, and every key must have a non-empty modulus (`n`) and exponent (`e`).
+  </Step>
+  <Step title="Fingerprint the keys">
+    The contract computes the SHA256 hash of the concatenated key data.
+  </Step>
+  <Step title="Record the attester's proposal">
+    The attestation (hash plus keys) is stored under the caller's account id, replacing any previous attestation from that same attester.
+  </Step>
+  <Step title="Count the agreement">
+    The contract counts how many stored attestations share this hash — that is, how many attesters currently agree on this exact key set.
+  </Step>
+  <Step title="Install on quorum">
+    If the matching count reaches `quorum`, the active `public_keys` are cleared and replaced with the agreed-upon set, and **all** pending attestations are cleared to start the next round fresh.
+  </Step>
+</Steps>
+
+Because a new call from an attester overwrites their previous proposal, an attester can change their mind by simply re-attesting with different keys — only their latest vote counts.
+
+### Example flow
+
+With a quorum of `2` and three attesters:
+
+1. **Attester A** submits `[PK1, PK2]`. The attestation is stored; the matching count is `1` — below quorum, so nothing changes.
+2. **Attester B** submits the same `[PK1, PK2]`. The hash matches A's, the count reaches `2`, quorum is met. The active keys become `[PK1, PK2]` and all attestations are cleared.
+3. If **Attester C** had instead submitted a *different* key set, its hash would not match, the count for `[PK1, PK2]` would stay at `1`, and the keys would not update.
+
+<Note>
+  Until quorum is reached for the very first time, `public_keys` is empty and any guard reading it gets an empty list — so no signatures can be verified against uninstalled keys.
+</Note>
+
+---
+
+## How a guard reads the keys
+
+A guard consumes attested keys through a single view method:
+
+```rust
+pub fn get_public_keys(&self) -> Vec<PublicKey>
+```
+
+It returns the currently active key set — the one that most recently reached quorum. A guard that backs its verification with attestation fetches these keys, validates and stores them locally, and then uses them to verify incoming JWT signatures. Concretely, the [custom issuer guard](/protocol/advanced/custom-issuer-guard):
+
+1. Calls `get_public_keys()` on this Attestation contract.
+2. Validates the returned keys and stores them.
+3. Uses them to verify the RS256 signatures on the issuer's JWTs.
+
+This cleanly separates two concerns: the guard focuses on *authentication* (verifying that a JWT is well-formed and correctly signed), while the Attestation contract owns *key management* (deciding which keys are trusted, and rotating them by consensus).
+
+The contract also exposes read-only helpers for inspecting the process:
+
+| Method | Returns |
+| --- | --- |
+| `get_public_keys()` | The currently active public keys (empty until quorum is first reached). |
+| `get_attestation(account_id)` | The pending attestation from a specific attester, if any. |
+| `get_quorum()` | The current quorum threshold. |
+| `get_attesters(from_index, limit)` | A paginated list of accounts holding the `Attester` role. |
+
+---
+
+## Managing quorum and attesters
+
+Only accounts with the `DAO` role can adjust the roster or the threshold, and each guarded method preserves the contract's core invariants.
+
+**Change the quorum** with `set_quorum(quorum)`. The new quorum must be greater than `0` and cannot exceed the current number of attesters.
+
+**Add an attester** with `grant_attester(account_id)`, granting them the `Attester` role.
+
+**Remove an attester** with `revoke_attester(account_id)`. This is guarded by a safety check: the revocation is rejected if it would leave fewer attesters than the quorum requires (`quorum >= remaining_attesters`), which would make quorum permanently unreachable. Add more attesters or lower the quorum first.
+
+```rust
+// DAO-only, and refuses to strand the contract below quorum
+#[pause]
+#[access_control_any(roles(Role::DAO))]
+pub fn revoke_attester(&mut self, account_id: AccountId)
+```
+
+<Warning>
+  In an emergency the whole contract can be paused. `attest_public_keys`, `set_quorum`, `grant_attester`, and `revoke_attester` are all disabled while paused — accounts with the `PauseManager` or `DAO` role can pause, and `UnpauseManager` or `DAO` can resume. Guards can still read `get_public_keys()`, so verification keeps working against the last-agreed keys while updates are frozen.
+</Warning>
+
+---
+
+## Why this matters for security
+
+The value of attestation is that it removes a single point of failure from key management:
+
+- **No unilateral key rotation.** Installing a new key set requires `quorum` independent attesters to submit byte-for-byte identical keys. Compromising one attester is not enough to change what a guard trusts.
+- **Tamper-evident agreement.** Because agreement is decided by a SHA256 fingerprint over the exact key bytes and their order, attesters cannot "almost" agree — a mismatched or reordered key silently fails to count, so subtle substitution attacks do not slip through.
+- **Recoverable by construction.** The quorum-vs-attester invariants — enforced at init, on `set_quorum`, and on `revoke_attester` — guarantee the contract can never be configured into a state where no key set could ever reach quorum.
+- **Clean trust boundary.** Guards trust the outcome of the attestation process, not any individual key holder, so authentication logic and key custody evolve independently.
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Custom issuer guard" icon="key-round" href="/protocol/advanced/custom-issuer-guard" horizontal arrow>
+    Verify JWTs from your own issuer with attestation-managed keys.
+  </Card>
+  <Card title="Contracts overview" icon="boxes" href="/protocol/contracts/overview" horizontal arrow>
+    How the NEAR Auth contract, router, and guards fit together.
+  </Card>
+  <Card title="Custom issuer" icon="fingerprint" href="/protocol/advanced/custom-issuer" horizontal arrow>
+    Bring your own identity provider to NEAR Auth.
+  </Card>
+</CardGroup>

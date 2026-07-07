@@ -1,0 +1,38 @@
+name: Lint Docs
+
+on:
+    pull_request:
+        types: [opened, synchronize]
+        paths:
+            - "apps/docs/**"
+    push:
+        branches:
+            - main
+        paths:
+            - "apps/docs/**"
+
+concurrency:
+    # Cancel old runs if there is a new commit in the same branch
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    lint:
+        name: Check content & links
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+
+            - uses: pnpm/action-setup@v2
+              with:
+                  version: 9
+                  run_install: false
+
+            # The docs app has no workspace dependencies — the Mintlify CLI is
+            # invoked via npx — so the link check runs without a full install.
+            - name: Validate docs (broken links)
+              run: pnpm --filter near-auth-docs lint

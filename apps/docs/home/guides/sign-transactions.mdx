@@ -1,0 +1,213 @@
+---
+title: "Sign transactions & delegate actions"
+description: "Request MPC signatures for NEAR transactions and gasless delegate actions after a user logs in with NEAR Auth."
+icon: "pen-line"
+---
+
+Once a user is [authenticated](/home/guides/authenticate-users), your app can request signatures for NEAR transactions on their behalf. You never touch a private key — you ask the user to approve a payload through Auth0, and a [Multi-Party Computation network](/protocol/concepts/mpc) produces the signature after the [NEAR Auth contract](/protocol/contracts/fast-auth) verifies the approval on-chain.
+
+This guide covers the two ways to sign: a **transaction signature** you submit yourself, and a **delegate action signature** a [relayer](/protocol/concepts/relayer) can submit gaslessly on the user's behalf.
+
+<Warning>
+  `requestTransactionSignature` and `requestDelegateActionSignature` may trigger a **browser redirect or open a popup**, depending on the SDK and how you configured the Auth0 provider. Design your UX to expect this context switch — persist any in-progress state and resume it on your callback route so the flow survives a full-page redirect.
+</Warning>
+
+---
+
+## Get a signer
+
+After login, obtain a `FastAuthSigner` from the client. The signer is bound to the logged-in identity and is what you use to request signatures, derive keys, and build the on-chain call.
+
+<Tabs>
+  <Tab title="Browser / JS">
+
+```ts
+const signer = await client.getSigner();
+```
+
+  </Tab>
+  <Tab title="React">
+
+Use the `useSigner` hook — it reads the client from `FastAuthProvider` and tracks loading and error state for you.
+
+```tsx
+import { useSigner } from "@fast-auth-near/react-sdk";
+
+function SignButton() {
+  const { signer, isLoading, error } = useSigner();
+
+  if (isLoading) return <span>Loading signer…</span>;
+  if (error) return <span>Error: {error.message}</span>;
+  if (!signer) return <span>Please log in</span>;
+
+  return <button onClick={() => {/* request a signature */}}>Sign</button>;
+}
+```
+
+  </Tab>
+</Tabs>
+
+---
+
+## Request a transaction signature
+
+Build a standard `near-api-js` transaction, then hand it to the signer. Use `getPublicKey()` to fetch the sender's MPC-derived key so the transaction is built against the correct account.
+
+```ts
+import { transactions } from "near-api-js";
+
+const publicKey = await signer.getPublicKey();
+
+// Build your transaction
+const transaction = transactions.createTransaction(
+  "sender.near",     // Sender account
+  publicKey,         // Sender's MPC-derived public key
+  "receiver.near",   // Receiver account
+  nonce,             // Account nonce
+  [
+    transactions.transfer(BigInt("1000000000000000000000000")), // 1 NEAR
+  ],
+  blockHash,         // Recent block hash
+);
+
+// Request approval (may redirect to Auth0 or open a popup)
+await signer.requestTransactionSignature({
+  transaction,
+  redirectUri: window.location.origin + "/callback",
+});
+```
+
+The `redirectUri` is where the flow returns after the user approves. Auth0 embeds the encoded transaction in the JWT's `fatxn` claim, which the [NEAR Auth contract](/protocol/contracts/fast-auth) verifies before any signature is produced.
+
+---
+
+## Complete the signing flow
+
+On your callback route, read the approved [signature request](/protocol/concepts/mpc) back out of the provider and turn it into an on-chain `sign` action. That action targets the NEAR Auth contract, which verifies the JWT and asks the MPC network to sign.
+
+```ts
+// On the callback page, retrieve the approved request.
+// The browser signer returns `{ user, signatureRequest }` — read `.signatureRequest`.
+const { signatureRequest } = await signer.getSignatureRequest();
+
+// Build the `sign` call for the NEAR Auth contract
+const signAction = await signer.createSignAction(signatureRequest, {
+  gas: 300000000000000n,
+  deposit: 1n,
+});
+
+// Add `signAction` to a transaction sent to the NEAR Auth contract.
+// The contract verifies the JWT and returns an MPC signature.
+```
+
+`createSignAction` wraps a `sign` function call with `guard_id`, `verify_payload`, `sign_payload`, and `algorithm` taken from the signature request — the exact arguments the contract's `sign` method expects. `gas` defaults to `300000000000000n` and `deposit` to `0n` if you omit the options. See [the NEAR Auth contract](/protocol/contracts/fast-auth) for how this call is processed.
+
+<Tip>
+  The React SDK offers one-call convenience methods that do the request, retrieve, and submit steps for you — see [Relayer-backed convenience methods](#relayer-backed-convenience-methods-react) below.
+</Tip>
+
+---
+
+## Delegate actions for gasless transactions
+
+A delegate action is a signed intent that a [relayer](/protocol/concepts/relayer) wraps in a meta-transaction and submits — paying the gas so your users can transact without holding NEAR. Build a `DelegateAction` and request a signature the same way you would a transaction.
+
+```ts
+import { buildDelegateAction } from "near-api-js/lib/transaction";
+import { transactions } from "near-api-js";
+
+const publicKey = await signer.getPublicKey();
+
+const delegateAction = buildDelegateAction({
+  senderId: "sender.near",
+  receiverId: "receiver.near",
+  actions: [
+    transactions.transfer(BigInt("1000000000000000000000000")),
+  ],
+  publicKey,
+  nonce,
+  maxBlockHeight,
+});
+
+// Request approval for the delegate action
+await signer.requestDelegateActionSignature({
+  delegateAction,
+  redirectUri: window.location.origin + "/callback",
+});
+```
+
+Once the user approves, you retrieve the signature request with `getSignatureRequest()` (read `.signatureRequest` off the result) and hand the signed delegate action to a relayer. The relayer wraps it in a [meta-transaction](https://docs.near.org/protocol/transactions/meta-tx) and submits it, covering the gas so nothing is charged to the end user. Read more about how submission works on the [relayer concept page](/protocol/concepts/relayer).
+
+---
+
+## Relayer-backed convenience methods (React)
+
+The React SDK's signer bundles a relayer, so you can request approval and submit in a single call. `signAndSendTransaction` and `signAndSendDelegateAction` handle the request, retrieve the signature request, relay it, and return the final execution outcome.
+
+```tsx
+import { useSigner } from "@fast-auth-near/react-sdk";
+
+function SendButton({ transaction }) {
+  const { signer } = useSigner();
+
+  const send = async () => {
+    if (!signer) return;
+
+    // Sign and submit a transaction through the relayer
+    const outcome = await signer.signAndSendTransaction({
+      transaction,
+      redirectUri: window.location.origin + "/callback",
+    });
+
+    // Or sign and submit a gasless delegate action
+    // const outcome = await signer.signAndSendDelegateAction({
+    //   delegateAction,
+    //   receiverId: "receiver.near",
+    //   redirectUri: window.location.origin + "/callback",
+    // });
+  };
+
+  return <button onClick={send}>Send</button>;
+}
+```
+
+Both methods default to the `eddsa` MPC algorithm; pass `algorithm` to override. Because they relay the transaction for you, they return a `FinalExecutionOutcome` rather than an action you have to submit yourself.
+
+<Note>
+  These convenience methods are specific to the React SDK. With the framework-agnostic Browser SDK you assemble and submit the transaction yourself using `createSignAction` and your own relayer or RPC connection.
+</Note>
+
+---
+
+## Get the user's public key
+
+Every identity deterministically derives its own NEAR key through the MPC network. Fetch it to build transactions or create an account for the user. `getPublicKey` defaults to `ed25519`; pass an algorithm to derive a different curve.
+
+```ts
+// Ed25519 public key (default)
+const publicKey = await signer.getPublicKey();
+
+// Or specify an algorithm
+const secp256k1Key = await signer.getPublicKey("secp256k1");
+```
+
+Under the hood this queries the MPC contract's `derived_public_key` view at the user's authentication path, so the same login always resolves to the same NEAR account.
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="How MPC signing works" icon="shield-check" href="/protocol/concepts/mpc" horizontal arrow>
+    How distributed key shares produce a signature without ever assembling a private key.
+  </Card>
+  <Card title="Relayer & gasless flows" icon="route" href="/protocol/concepts/relayer" horizontal arrow>
+    How a relayer wraps delegate actions in meta-transactions and sponsors gas.
+  </Card>
+  <Card title="The NEAR Auth contract" icon="file-check" href="/protocol/contracts/fast-auth" horizontal arrow>
+    How the on-chain contract verifies the JWT and requests the MPC signature.
+  </Card>
+  <Card title="Authenticate users" icon="log-in" href="/home/guides/authenticate-users" horizontal arrow>
+    Log users in and manage sessions before requesting signatures.
+  </Card>
+</CardGroup>

@@ -1,0 +1,174 @@
+---
+title: "SDKs overview"
+description: "The NEAR Auth library landscape — SDKs, platform providers, and shared core, and how they compose."
+icon: "boxes"
+mode: "wide"
+---
+
+NEAR Auth ships as a small family of TypeScript packages. An **SDK** gives you the `FastAuthClient` and `FastAuthSigner` classes that log users in and turn NEAR transactions into MPC-backed signatures. A **provider** is the platform adapter that actually talks to Auth0 — one for the web, one for React Native. You pick one SDK for your framework and one provider for your platform, and compose them.
+
+Everything is published under the `@fast-auth-near/*` scope on npm and lives in [`github.com/Peersyst/fast-auth`](https://github.com/Peersyst/fast-auth).
+
+---
+
+## The packages at a glance
+
+| Package | Layer | Platform | When to use |
+| --- | --- | --- | --- |
+| `@fast-auth-near/react-sdk` | SDK | React (web) | React apps — provider component plus `useFastAuth`, `useSigner`, `useIsLoggedIn`, `usePublicKey` hooks and a relayer-aware client. |
+| `@fast-auth-near/browser-sdk` | SDK | Any web framework | Vanilla JS, Vue, Svelte, Angular — the framework-agnostic `FastAuthClient` / `FastAuthSigner` classes. |
+| `@fast-auth-near/javascript-provider` | Provider | Web browsers | Pair with either web SDK to run the Auth0 flow via popup or redirect. |
+| `@fast-auth-near/react-native-provider` | Provider | iOS & Android | Pair with the React SDK to run the Auth0 flow with native mobile screens. |
+| `@shared/core` | Core | Shared | Internal shared types — `IFastAuthProvider`, `SignatureRequest`, `User`, and network defaults consumed by every package. |
+
+<CardGroup cols={3}>
+  <Card title="React SDK" icon="atom" href="/sdks/react-sdk" arrow>
+    `FastAuthProvider`, hooks, and the relayer-backed signer for React apps.
+  </Card>
+  <Card title="Browser SDK" icon="globe" href="/sdks/browser-sdk" arrow>
+    The framework-agnostic `FastAuthClient` and `FastAuthSigner` classes.
+  </Card>
+  <Card title="JavaScript Provider" icon="code" href="/sdks/javascript-provider" arrow>
+    `JavascriptProvider` — the Auth0 adapter for web, popup or redirect.
+  </Card>
+  <Card title="React Native Provider" icon="smartphone" href="/sdks/react-native-provider" arrow>
+    `ReactNativeProvider` — the Auth0 adapter for iOS and Android.
+  </Card>
+  <Card title="Core Types" icon="scroll-text" href="/sdks/core" arrow>
+    `IFastAuthProvider`, `SignatureRequest`, and the shared type surface.
+  </Card>
+</CardGroup>
+
+---
+
+## The SDK + provider composition model
+
+NEAR Auth splits **what to do** from **how to authenticate**. The SDK owns the NEAR-facing work — deriving the user's public key, building transactions, requesting MPC signatures, and (in the React SDK) coordinating a relayer. The provider owns the identity work — opening the Auth0 login screen, holding the session, and embedding the encoded transaction into the JWT the guard contract verifies on-chain.
+
+The two meet at a single contract: every provider implements the `IFastAuthProvider` interface from `@shared/core`.
+
+```ts IFastAuthProvider
+export interface IFastAuthProvider {
+  login(...args: any[]): Promise<LoginResponse>;
+  logout(...args: any[]): Promise<void>;
+  isLoggedIn(): Promise<boolean>;
+  requestTransactionSignature(...args: any[]): Promise<RequestTransactionSignatureResponse>;
+  requestDelegateActionSignature(...args: any[]): Promise<RequestDelegateActionSignatureResponse>;
+  getSignatureRequest(): Promise<GetSignatureRequestResponse>;
+  getPath(): Promise<string>;
+}
+```
+
+Because the SDK only depends on this interface, swapping platforms is a matter of swapping the provider you pass in. You construct a provider, hand it to the SDK, and the rest of your code is identical across web and mobile.
+
+<CodeGroup>
+
+```ts browser-sdk.ts
+import { FastAuthClient } from "@fast-auth-near/browser-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+
+// 1. Build a provider for your platform (web = JavascriptProvider).
+const provider = new JavascriptProvider({
+  network: "testnet",
+  clientId: "your-auth0-client-id",
+});
+
+// 2. Hand it to the SDK. The client only knows IFastAuthProvider.
+const client = new FastAuthClient(provider, connection, {
+  fastAuthContractId: "fast-auth.testnet",
+  mpcContractId: "v1.signer-prod.testnet",
+});
+
+await client.login();
+const signer = await client.getSigner();
+```
+
+```tsx react-sdk.tsx
+import { FastAuthProvider } from "@fast-auth-near/react-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+
+// Same provider, wrapped by the React SDK's context provider.
+const provider = new JavascriptProvider({
+  network: "testnet",
+  clientId: "your-auth0-client-id",
+});
+
+export default function App({ connection }) {
+  return (
+    <FastAuthProvider
+      providerConfig={{ provider }}
+      connection={connection}
+      network="testnet"
+    >
+      {/* useFastAuth(), useSigner(), useIsLoggedIn()… */}
+    </FastAuthProvider>
+  );
+}
+```
+
+</CodeGroup>
+
+<Info>
+  A provider carries the authentication flow; an SDK carries the NEAR flow. You always need one of each — one SDK for your framework and one provider for your platform.
+</Info>
+
+---
+
+## Which combination fits your stack
+
+<Tabs>
+  <Tab title="React web">
+    Use the **React SDK** with the **JavaScript provider**. You get the `FastAuthProvider` context, hooks, and a relayer-backed signer that exposes `signAndSendTransaction(...)` and `signAndSendDelegateAction(...)`.
+
+    ```bash
+    npm install @fast-auth-near/react-sdk @fast-auth-near/javascript-provider near-api-js
+    ```
+  </Tab>
+  <Tab title="Other web frameworks">
+    Use the **Browser SDK** with the **JavaScript provider** for vanilla JS, Vue, Svelte, or Angular — a class-based API with full control over the flow.
+
+    ```bash
+    npm install @fast-auth-near/browser-sdk @fast-auth-near/javascript-provider near-api-js
+    ```
+  </Tab>
+  <Tab title="React Native">
+    Use the **React SDK** with the **React Native provider** to bring the same login to iOS and Android with native screens and secure credential storage.
+
+    ```bash
+    npm install @fast-auth-near/react-sdk @fast-auth-near/react-native-provider
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  Not sure yet? The [choose your SDK](/home/guides/choose-your-sdk) guide walks through the decision for your framework and platform.
+</Note>
+
+---
+
+## Providers beyond Auth0
+
+Auth0 is the default identity provider across NEAR Auth, and both the JavaScript and React Native providers use it out of the box. Other identity setups — such as a custom issuer — are handled at the protocol layer by dedicated guard contracts rather than by these SDKs.
+
+<Warning>
+  Non-Auth0 identity setups are an advanced path with their own guard contract and key-management model. They are covered under [Protocol → Advanced](/protocol/advanced/custom-issuer-guard), not here.
+</Warning>
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/home/quickstart" arrow>
+    Log in and sign a testnet transaction in under five minutes.
+  </Card>
+  <Card title="Authenticate your users" icon="log-in" href="/home/guides/authenticate-users" arrow>
+    Login, logout, and session handling with the SDK of your choice.
+  </Card>
+  <Card title="Sign transactions" icon="file-check" href="/home/guides/sign-transactions" arrow>
+    Request signatures and submit NEAR transactions, optionally gasless.
+  </Card>
+  <Card title="How it works" icon="layers" href="/protocol/how-it-works" arrow>
+    The end-to-end Auth0 flow, from JWT to MPC signature.
+  </Card>
+</CardGroup>

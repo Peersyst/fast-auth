@@ -1,0 +1,12 @@
+{
+    "name": "near-auth-docs",
+    "version": "0.1.0",
+    "description": "NEAR Auth developer documentation (Mintlify)",
+    "private": true,
+    "scripts": {
+        "dev": "npx --yes mint@latest dev",
+        "lint": "npx --yes mint@latest broken-links",
+        "broken-links": "npx --yes mint@latest broken-links",
+        "clean": "rimraf .turbo .mint node_modules"
+    }
+}

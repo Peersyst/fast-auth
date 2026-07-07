@@ -1,0 +1,215 @@
+---
+title: "Custom issuer service"
+description: "Run an intermediary JWT issuer that re-signs tokens from Firebase or any OIDC provider so the CustomIssuer Guard can verify them on-chain."
+icon: "server-cog"
+---
+
+Most NEAR Auth integrations use the Auth0 happy path, where Auth0 issues the JWT and the on-chain [Auth0 Guard](/protocol/contracts/auth0-guard) verifies it. The **custom issuer service** is the advanced, non-Auth0 alternative: a small backend you run that takes a JWT from an external identity provider — Firebase, a custom OIDC provider, or anything that issues RS256 tokens — validates it, and re-signs a brand-new JWT with a key you control.
+
+That re-issued token is what the on-chain [CustomIssuer Guard](/protocol/advanced/custom-issuer-guard) verifies. The guard never trusts your upstream provider directly; it only trusts tokens signed by your issuer's key, which is registered on-chain through [attestation](/protocol/advanced/attestation).
+
+<Note>
+  The custom issuer service is **required** whenever you use the CustomIssuer Guard. The guard verifies JWTs signed by this service — not the tokens your identity provider originally issued.
+</Note>
+
+---
+
+## Why an intermediary issuer
+
+The NEAR Auth JWT format carries a custom `fatxn` claim: the encoded transaction (or delegate action) payload that the guard binds the signature to. External providers like Firebase don't know about NEAR Auth and won't put a `fatxn` claim in their tokens. They also sign with keys you don't control, which makes on-chain key management and rotation awkward.
+
+The custom issuer service solves both problems. It sits between your provider and the NEAR Auth contracts as a JWT re-signing proxy:
+
+<Steps>
+  <Step title="Your provider authenticates the user">
+    The user signs in with Firebase (or your OIDC provider) and your app obtains that provider's JWT.
+  </Step>
+  <Step title="The issuer validates the provider's JWT">
+    Your service verifies the token's signature against the provider's public keys and checks its issuer and time claims.
+  </Step>
+  <Step title="The issuer re-signs a NEAR Auth JWT">
+    It mints a new RS256 token that preserves the user's identity, embeds the transaction payload as `fatxn`, and is signed with your own private key.
+  </Step>
+  <Step title="The CustomIssuer Guard verifies on-chain">
+    Your app calls <code>FastAuth.sign(...)</code>; the guard checks the token against your issuer's public key, which lives on-chain via attestation.
+  </Step>
+</Steps>
+
+This lets you use **any** compliant identity provider while keeping full control over the signing keys that NEAR Auth ultimately trusts, and gives you a place to add custom validation before a token is ever accepted.
+
+---
+
+## Architecture
+
+```text
+┌─────────┐    ┌──────────────────┐    ┌───────────────────┐    ┌──────────────┐
+│  User   │───▶│ Identity provider│───▶│ Custom issuer     │───▶│ NEAR Auth    │
+│         │    │ (e.g. Firebase)  │    │ service           │    │ contracts    │
+└─────────┘    └──────────────────┘    └───────────────────┘    └──────────────┘
+                        │                        │
+                        ▼                        ▼
+                 Issues JWT with          Re-issues JWT with
+                 provider's key           your signing key
+```
+
+The service is a small NestJS backend. It fetches your provider's public keys from a URL you configure, verifies incoming tokens against them, and re-signs new tokens with an RSA private key you supply. The corresponding public key is registered with the CustomIssuer Guard through the [Attestation](/protocol/advanced/attestation) contract, so the guard can verify tokens the service produces.
+
+---
+
+## The `POST /issuer/issue` endpoint
+
+Your app calls a single endpoint to exchange a provider JWT for a NEAR Auth JWT.
+
+```http
+POST /issuer/issue
+Content-Type: application/json
+
+{
+  "jwt": "<your-identity-provider-jwt>",
+  "signPayload": [ /* transaction bytes, 0–255 each */ ]
+}
+```
+
+**Response**
+
+```json
+{
+  "token": "<re-issued-near-auth-jwt>"
+}
+```
+
+<ParamField path="jwt" type="string" required>
+  The JWT issued by your upstream identity provider (max 10,000 characters).
+</ParamField>
+
+<ParamField path="signPayload" type="number[]" required>
+  The encoded transaction or delegate-action payload, as an array of bytes (each `0–255`). The service copies this into the `fatxn` claim of the re-issued token so the guard can bind the eventual signature to exactly this payload.
+</ParamField>
+
+### What happens on each request
+
+When a request arrives, the service runs the following flow (see [`issuer.service.ts`](https://github.com/Peersyst/fast-auth)):
+
+1. **Verify the signature.** The incoming `jwt` is verified with RS256 against the public keys fetched from `validationPublicKeyUrl`. If none of the keys validate the token, the service returns `401 Unauthorized`.
+2. **Validate the issuer.** The token's `iss` claim must equal the configured `validationIssuerUrl`.
+3. **Validate the subject.** The `sub` claim must be present and a non-empty string.
+4. **Validate the time claims.** Unless expiration is ignored, `exp` must be in the future, `nbf` must not be in the future, and — when both are present — `exp` must be strictly after `nbf`.
+5. **Re-sign.** The service builds a new payload and signs it with your RSA private key (RS256), then returns it as `token`.
+
+The re-issued token deliberately preserves the caller's identity while re-anchoring trust to your issuer:
+
+| Claim | Source in the new token |
+| --- | --- |
+| `sub` | Copied from the incoming provider JWT |
+| `exp` | Copied from the incoming JWT (if present) |
+| `nbf` | Copied from the incoming JWT (if present) |
+| `iss` | **Set to your service's `issuerUrl`** |
+| `fatxn` | **Set to the `signPayload` bytes from the request** |
+
+<Info>
+  The `iss` of the re-issued token is your service's own `issuerUrl`, not the upstream provider's. This is the value the CustomIssuer Guard checks on-chain, so it must match the issuer you configure in the guard.
+</Info>
+
+---
+
+## Configuration
+
+The service reads its settings from environment variables into a typed `IssuerConfig`:
+
+```ts issuer.config.ts
+export type IssuerConfig = {
+  keyBase64: string;
+  validationPublicKeyUrl: string;
+  validationIssuerUrl: string;
+  issuerUrl: string;
+  ignoreExpiration: boolean;
+};
+```
+
+| Field | Env var | Required | Description |
+| --- | --- | --- | --- |
+| `keyBase64` | `KEY_BASE64` | Yes | Base64-encoded RSA private key used to sign re-issued tokens. Must decode to a PEM private key. |
+| `validationPublicKeyUrl` | `VALIDATION_PUBLIC_KEY_URL` | Yes | URL to fetch your provider's public keys from (e.g. a Firebase certificate URL). Must be a valid URL. |
+| `validationIssuerUrl` | `VALIDATION_ISSUER_URL` | Yes | The expected `iss` claim on incoming JWTs (e.g. `https://securetoken.google.com/<project-id>`). |
+| `issuerUrl` | `ISSUER_URL` | Yes | The `iss` claim written into re-issued tokens. **Must match what the CustomIssuer Guard expects.** |
+| `ignoreExpiration` | `IGNORE_EXPIRATION` | No | When `"true"`, skips `exp`/`nbf` validation on incoming tokens. Intended for testing only. |
+
+<Warning>
+  `ignoreExpiration` disables time-claim checks on incoming JWTs. Keep it `false` in production — an expired provider token would otherwise be re-issued as a fresh NEAR Auth token.
+</Warning>
+
+### Example (Firebase)
+
+```bash .env
+# Base64-encoded RSA private key (cat signing-key.pem | base64)
+KEY_BASE64="LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tLi4u"
+
+# Firebase public certificate URL for your service account
+VALIDATION_PUBLIC_KEY_URL="https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-xxxxx@your-project.iam.gserviceaccount.com"
+
+# Firebase issuer for your project
+VALIDATION_ISSUER_URL="https://securetoken.google.com/your-project-id"
+
+# Your custom issuer URL — must match the guard's configured issuer
+ISSUER_URL="https://your-custom-issuer.example.com"
+```
+
+### Generate a signing key
+
+The service signs with a 2048-bit RSA key. Generate the pair, then register the public half with the guard through attestation.
+
+```bash
+# Private key used by the service
+openssl genrsa -out signing-key.pem 2048
+
+# Public key — its modulus/exponent are registered on-chain
+openssl rsa -in signing-key.pem -pubout -out signing-public-key.pem
+
+# Base64-encode the private key for KEY_BASE64
+cat signing-key.pem | base64
+
+chmod 600 signing-key.pem
+```
+
+---
+
+## When to use this path
+
+Reach for the custom issuer service when the Auth0 happy path doesn't fit:
+
+<CardGroup cols={2}>
+  <Card title="You already use Firebase" icon="flame" horizontal>
+    Your users authenticate with Firebase Authentication and you want them signing NEAR transactions without adding Auth0.
+  </Card>
+  <Card title="You run your own OIDC" icon="server" horizontal>
+    You operate a custom OIDC-compliant provider and want to bridge its RS256 tokens into NEAR Auth.
+  </Card>
+  <Card title="You need to own the keys" icon="key-round" horizontal>
+    You want full control over the signing keys NEAR Auth trusts, and to manage rotation through attestation.
+  </Card>
+  <Card title="You need custom validation" icon="shield-check" horizontal>
+    You want to enforce extra checks on a user before any signable token is ever minted.
+  </Card>
+</CardGroup>
+
+If none of these apply, prefer the simpler Auth0 setup — no service to run, no keys to manage. See the [Auth0 concept](/protocol/concepts/auth0) and [how it works](/protocol/how-it-works).
+
+<Tip>
+  Deploy the service behind HTTPS, restrict CORS with `ALLOWED_ORIGINS`, add rate limiting, and store `KEY_BASE64` in a secrets manager. The private key is the root of trust for every signature the CustomIssuer Guard will accept.
+</Tip>
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="CustomIssuer Guard" icon="file-check" href="/protocol/advanced/custom-issuer-guard" horizontal arrow>
+    The on-chain guard that verifies tokens re-signed by this service.
+  </Card>
+  <Card title="Attestation" icon="scroll-text" href="/protocol/advanced/attestation" horizontal arrow>
+    How your issuer's public key is registered and rotated on-chain.
+  </Card>
+  <Card title="JWT format" icon="key-round" href="/protocol/concepts/jwt" horizontal arrow>
+    The RS256 claims — including `fatxn` — that guards verify.
+  </Card>
+</CardGroup>

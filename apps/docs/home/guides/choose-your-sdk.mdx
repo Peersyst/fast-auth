@@ -1,0 +1,150 @@
+---
+title: "Choose your SDK"
+description: "Pick the right NEAR Auth SDK and provider for your stack — React, browser, or mobile."
+icon: "git-compare"
+---
+
+NEAR Auth ships as a small set of composable libraries: an **SDK** for your framework and a **provider** for your platform. You always pick one of each and combine them. This page helps you choose the pair that fits your app.
+
+<Info>
+  Every combination uses the same Auth0 login flow and the same on-chain contracts — the SDK shapes the developer API, and the provider adapts the login to your platform.
+</Info>
+
+---
+
+## Choose your SDK
+
+The SDK gives you the `FastAuthClient` for logging users in and the `FastAuthSigner` for requesting signatures. Pick the one that matches your frontend framework.
+
+| SDK | Package | Use case |
+| --- | --- | --- |
+| **Browser SDK** | `@fast-auth-near/browser-sdk` | Vanilla JavaScript, TypeScript, Vue, Svelte, Angular, or any web framework |
+| **React SDK** | `@fast-auth-near/react-sdk` | React applications that want hooks and context providers |
+
+### Browser SDK
+
+The Browser SDK provides a framework-agnostic, class-based `FastAuthClient` that works in any JavaScript app. Reach for it when:
+
+- You're building with vanilla JavaScript, TypeScript, Vue, Svelte, or Angular.
+- You want full control over the authentication and signing flow.
+- You prefer an imperative, class-based API over hooks.
+
+```bash
+npm install @fast-auth-near/browser-sdk
+```
+
+You instantiate `FastAuthClient` yourself, call `login()`, and pull a `FastAuthSigner` out of it with `getSigner()`.
+
+### React SDK
+
+The React SDK wraps the Browser SDK with React-idiomatic ergonomics: a `FastAuthProvider` you mount at the root of your app, plus hooks like `useFastAuth()`, `useIsLoggedIn()`, `usePublicKey()`, and `useSigner()`. Reach for it when:
+
+- You're building a React application.
+- You want declarative, hook-based state for the client, login status, and signer.
+- You'd rather not wire up the client lifecycle by hand.
+
+```bash
+npm install @fast-auth-near/react-sdk
+```
+
+The React SDK's signer is relayer-aware, adding `signAndSendTransaction(...)` and `signAndSendDelegateAction(...)` on top of the core signing methods.
+
+<Tip>
+  The React SDK is built on the Browser SDK — anything the Browser SDK does, the React SDK can do too. Choose the Browser SDK only when you're not using React.
+</Tip>
+
+---
+
+## Choose your provider
+
+**Providers** are platform-specific adapters that run the actual login with Auth0. They abstract away the differences between web browsers and native mobile so the SDK stays the same. Pick the one that matches where your app runs.
+
+| Provider | Package | Platform |
+| --- | --- | --- |
+| **JavaScript provider** | `@fast-auth-near/javascript-provider` | Web browsers |
+| **React Native provider** | `@fast-auth-near/react-native-provider` | iOS and Android apps |
+
+### JavaScript provider
+
+`JavascriptProvider` is designed for web browsers and works with either the Browser SDK or the React SDK. It handles the Auth0 OAuth flow — via popup or redirect — and token management on the web.
+
+```bash
+npm install @fast-auth-near/javascript-provider
+```
+
+<Warning>
+  The web login uses an Auth0 popup or full-page redirect. If you use redirect mode, your app reloads on the way back from Auth0, so persist any in-progress state before requesting a login or signature.
+</Warning>
+
+### React Native provider
+
+`ReactNativeProvider` is designed for iOS and Android apps. It uses native authentication flows and secure credential storage, backed by `react-native-auth0`.
+
+```bash
+npm install @fast-auth-near/react-native-provider
+```
+
+---
+
+## How SDKs and providers combine
+
+Your dApp talks to an **SDK** (`FastAuthClient` / `FastAuthSigner`), which delegates the login to a **provider** (the Auth0 adapter for your platform). The provider talks to Auth0; the SDK talks to the NEAR Auth contracts.
+
+```text
+Your dApp  ─▶  NEAR Auth SDK        ─▶  Provider          ─▶  Auth0
+              (FastAuthClient /         (JavascriptProvider /
+               FastAuthSigner)           ReactNativeProvider)
+```
+
+You construct a provider and pass it into the SDK. Here's how the three supported pairings install:
+
+<CodeGroup>
+
+```bash React (web)
+npm install @fast-auth-near/react-sdk @fast-auth-near/javascript-provider near-api-js
+```
+
+```bash Browser (web)
+npm install @fast-auth-near/browser-sdk @fast-auth-near/javascript-provider near-api-js
+```
+
+```bash React Native (mobile)
+npm install @fast-auth-near/react-sdk @fast-auth-near/react-native-provider
+```
+
+</CodeGroup>
+
+This gives you three practical combinations:
+
+| Your app | SDK | Provider |
+| --- | --- | --- |
+| React on the web | `@fast-auth-near/react-sdk` | `@fast-auth-near/javascript-provider` |
+| Any other web framework | `@fast-auth-near/browser-sdk` | `@fast-auth-near/javascript-provider` |
+| React Native mobile | `@fast-auth-near/react-sdk` | `@fast-auth-near/react-native-provider` |
+
+<Note>
+  The SDK and provider are chosen independently: the SDK follows your **framework** (React vs. everything else), and the provider follows your **platform** (web vs. mobile).
+</Note>
+
+---
+
+## Reference each library
+
+<CardGroup cols={2}>
+  <Card title="React SDK" icon="atom" href="/sdks/react-sdk" horizontal arrow>
+    `FastAuthProvider`, hooks, and the relayer-aware signer for React apps.
+  </Card>
+  <Card title="Browser SDK" icon="globe" href="/sdks/browser-sdk" horizontal arrow>
+    The framework-agnostic `FastAuthClient` and `FastAuthSigner` classes.
+  </Card>
+  <Card title="JavaScript provider" icon="code" href="/sdks/javascript-provider" horizontal arrow>
+    `JavascriptProvider` — the Auth0 adapter for web browsers.
+  </Card>
+  <Card title="React Native provider" icon="smartphone" href="/sdks/react-native-provider" horizontal arrow>
+    `ReactNativeProvider` — the Auth0 adapter for iOS and Android.
+  </Card>
+</CardGroup>
+
+<Card title="Start the quickstart" icon="rocket" href="/home/quickstart" horizontal arrow>
+  Once you've picked a pair, wire it up and sign your first transaction in under 5 minutes.
+</Card>

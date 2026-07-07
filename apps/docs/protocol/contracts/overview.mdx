@@ -1,0 +1,168 @@
+---
+title: "Contracts overview"
+description: "The modular on-chain system behind NEAR Auth — entry point, router, guards, and attestation working together to verify JWTs and drive MPC signing."
+icon: "boxes"
+---
+
+The on-chain half of NEAR Auth is a set of smart contracts that connect an authenticated user to the MPC network so transactions and payloads can be signed securely. The system is built to be **modular**: different identity providers (Auth0 and custom OIDC issuers) plug in as interchangeable **guard** contracts, without touching the entry point.
+
+This design gives you three properties out of the box:
+
+- **Flexible authentication** — support multiple identity providers through swappable guard contracts.
+- **Secure signing** — every JWT is cryptographically verified on-chain before any signature is produced.
+- **Decentralized key management** — verification keys are governed by the attestation contract and an attester quorum, not a single party.
+
+<Note>
+  Auth0 is the default provider for NEAR Auth. Custom issuers and attestation-managed keys are advanced topics covered under [Protocol → Advanced](/protocol/advanced/custom-issuer-guard).
+</Note>
+
+---
+
+## The contract categories
+
+The system is organized into four responsibilities. Each maps to one or more contracts.
+
+<CardGroup cols={2}>
+  <Card title="Entry point" icon="log-in">
+    The `FastAuth` contract is the single gateway users call. It resolves which guard should verify a request, and — on success — forwards the signing request to the MPC network.
+  </Card>
+  <Card title="Router" icon="route">
+    The `JwtGuardRouter` is a registry that maps a guard name to its guard contract account, delegating verification to the right provider.
+  </Card>
+  <Card title="Guards" icon="shield-check">
+    Middleware contracts that verify JWTs from a specific identity provider. Each implements the shared `JwtGuard` trait: RS256 signature checks, issuer/expiry validation, and provider-specific custom claims.
+  </Card>
+  <Card title="Attestation" icon="key-round">
+    The `Attestation` contract manages verification public keys through a quorum of trusted attesters, so keys can only change when multiple parties agree.
+  </Card>
+</CardGroup>
+
+---
+
+## How the contracts interact
+
+When a user wants to sign, the request flows through the entry point, into the router, out to a guard for verification, and — only on success — to the MPC network. The signature then travels back the same way.
+
+1. **User request** — the user calls `sign` on the `FastAuth` contract with their JWT and the payload to sign.
+2. **Guard resolution** — `FastAuth` resolves the guard from the `guard_id`. When the prefix is `jwt`, the request is routed to the `JwtGuardRouter`.
+3. **JWT verification** — the appropriate guard verifies the JWT signature (RS256) and its claims.
+4. **MPC signing** — on successful verification, `FastAuth` forwards the signing request to the MPC network.
+5. **Signature return** — the MPC signature is returned back through `FastAuth` to the user.
+
+```text
+┌─────────┐
+│  User   │
+└────┬────┘
+     │ 1. sign(JWT + payload)
+     ▼
+┌────────────────────────────────┐
+│           NEAR Auth            │
+│         (Entry Point)          │
+└────┬───────────────────────────┘
+     │ 2. guard_id prefix = 'jwt'
+     ▼
+┌────────────────────────────────┐
+│         JwtGuardRouter         │
+│            (Router)            │
+└────┬──────────────────┬────────┘
+     │ 3a               │ 3b
+     ▼                  ▼
+┌──────┐        ┌──────────────┐
+│Auth0 │        │CustomIssuer  │
+│Guard │        │Guard         │
+└───┬──┘        └──────┬───────┘
+    │                  │ verify
+    │                  │ public keys
+    │                  ▼
+    │      ┌──────────────────────────┐
+    │      │        Attestation       │
+    │      │      (Key Management)    │
+    │      └──────────────────────────┘
+    │
+    │ 4. verification success
+    ▼
+┌────────────────────────────────┐
+│           NEAR Auth            │
+└────┬───────────────────────────┘
+     │ 5. forward signing request
+     ▼
+┌────────────────────────────────┐
+│          MPC Network           │
+│        (Signing Service)       │
+└────┬───────────────────────────┘
+     │ 6. return signature → NEAR Auth → 7. User
+     ▼
+┌─────────┐
+│  User   │
+└─────────┘
+```
+
+<Tip>
+  For the end-to-end request lifecycle — including how Auth0 embeds the encoded transaction in the JWT and how the relayer submits the final transaction — see [How it works](/protocol/how-it-works).
+</Tip>
+
+---
+
+## Guards compared
+
+All guards implement the same `JwtGuard` trait, so `FastAuth` treats them uniformly. Where they differ is the provider they trust, how their verification keys are managed, and which custom claims they check.
+
+| Guard | Provider | Key management | Custom claims |
+|-------|----------|----------------|---------------|
+| `Auth0Guard` | Auth0 | Owner-managed | `fatxn` claim matching |
+| `CustomIssuerGuard` | Custom OIDC | DAO-managed (via attestation) | `fatxn` claim matching (no audience check) |
+
+- **`Auth0Guard`** is the default. It checks the `iss` and `aud` claims (the audience must contain the guard account) and matches the `fatxn` claim against the signing payload. Its RSA verification keys are owner-managed.
+- **`CustomIssuerGuard`** verifies JWTs from any custom OIDC provider. It checks `iss` and `fatxn` but performs **no audience check**, and its keys are DAO-managed through attestation.
+
+<Info>
+  Every guard verifies JWTs signed with **RS256** using RSA PKCS#1 v1.5 and 2048-bit keys. The JWT carries the standard `sub`, `iss`, `exp`, `nbf`, and `aud` claims, plus the NEAR Auth–specific `fatxn` claim, which holds the encoded transaction or delegate-action payload.
+</Info>
+
+---
+
+## Security model
+
+The architecture layers several independent defenses, so no single check is load-bearing on its own.
+
+<CardGroup cols={2}>
+  <Card title="JWT verification" icon="file-check">
+    Guards verify the cryptographic signature of every JWT using RS256 before trusting any of its contents.
+  </Card>
+  <Card title="Claim validation" icon="shield-check">
+    Each guard validates specific claims — issuer, expiration, and provider-specific custom claims like `fatxn` — so a valid signature alone is never enough.
+  </Card>
+  <Card title="Quorum key updates" icon="key-round">
+    The attestation contract only lets verification keys change when multiple trusted attesters agree, preventing unilateral key swaps.
+  </Card>
+  <Card title="Role-based access control" icon="fingerprint">
+    Administrative functions are gated by role-based permissions (DAO, CodeStager, CodeDeployer, and others).
+  </Card>
+  <Card title="Pause functionality" icon="octagon-x">
+    Critical contracts support pausing to contain and mitigate security incidents.
+  </Card>
+</CardGroup>
+
+---
+
+## Explore the contracts
+
+Start with the entry point and router, then dig into the default Auth0 guard. Custom issuers and attestation are covered under Advanced.
+
+<CardGroup cols={2}>
+  <Card title="NEAR Auth contract" icon="log-in" href="/protocol/contracts/fast-auth" horizontal arrow>
+    The entry-point contract — `sign`, `verify`, guard management, MPC config, and pause controls.
+  </Card>
+  <Card title="JWT Guard Router" icon="route" href="/protocol/contracts/jwt-guard-router" horizontal arrow>
+    The registry that maps guard names to guard contract accounts.
+  </Card>
+  <Card title="Auth0 Guard" icon="shield-check" href="/protocol/contracts/auth0-guard" horizontal arrow>
+    The default guard — Auth0 JWT verification, audience checks, and `fatxn` matching.
+  </Card>
+  <Card title="Custom issuer guard" icon="code" href="/protocol/advanced/custom-issuer-guard" horizontal arrow>
+    Bring your own OIDC provider with DAO-managed keys.
+  </Card>
+  <Card title="Attestation" icon="network" href="/protocol/advanced/attestation" horizontal arrow>
+    Quorum-based public-key management for guards.
+  </Card>
+</CardGroup>

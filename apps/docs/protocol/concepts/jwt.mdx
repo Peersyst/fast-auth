@@ -1,0 +1,164 @@
+---
+title: "JWT verification"
+description: "How NEAR Auth structures JWTs and verifies their signatures and claims entirely on-chain."
+icon: "scroll-text"
+---
+
+Every signature NEAR Auth produces starts with a JSON Web Token (JWT). The identity provider — Auth0 by default — issues a signed JWT that carries both the user's identity and the exact transaction they want to sign. A guard contract on NEAR then verifies that token's signature and claims **on-chain**, so no off-chain server needs to be trusted to authorize the operation.
+
+This page explains how those JWTs are shaped and exactly how the guard verifies them.
+
+---
+
+## JWT anatomy
+
+A JWT is three Base64URL-encoded segments joined by dots:
+
+```text
+header.payload.signature
+```
+
+- **header** — algorithm and key metadata. NEAR Auth's guards expect `alg: "RS256"` and use the `kid` (key id) to identify which signing key was used.
+- **payload** — the JSON claims describing the user and the request (see below).
+- **signature** — an RSA signature over the ASCII string `header.payload` (the first two segments, dots included, exactly as they appear in the token).
+
+The signed message is the concatenation of the encoded header and payload. The guard reconstructs it verbatim before checking the signature:
+
+```rust
+let (header, payload, signature) = decode_jwt(jwt);
+// The data that was signed is header + "." + payload
+let data_to_verify = format!("{header}.{payload}");
+```
+
+<Note>
+  Tokens are capped at **7168 bytes (7 KB)**. A JWT larger than that is rejected before any cryptography runs, which bounds gas usage and guards against oversized-input abuse.
+</Note>
+
+---
+
+## The claims
+
+The guard deserializes the payload into a small, strict set of standard claims:
+
+| Claim | Type | Meaning |
+| --- | --- | --- |
+| `sub` | string | Subject — the stable, unique identifier for the authenticated user. Must be non-empty; it becomes the identity component of the MPC derivation path. |
+| `iss` | string | Issuer — the identity provider that minted the token. Must match the issuer the guard is configured for. |
+| `exp` | number | Expiry, as a UNIX timestamp in seconds. The token is rejected once the current block time passes it. |
+| `nbf` | number (optional) | Not-before, as a UNIX timestamp in seconds. The token is rejected while the current block time is still below it. |
+| `aud` | string or array | Audience — who the token is intended for. Used by the Auth0 guard (see custom claims). |
+
+### The `fatxn` claim
+
+Alongside the standard claims, NEAR Auth relies on one custom claim:
+
+<ParamField path="fatxn" type="byte array">
+  The encoded transaction or delegate action the user is authorizing, embedded into the JWT at login-to-sign time.
+</ParamField>
+
+The `fatxn` claim is what binds a token to a specific action. When a user requests a signature, the provider asks the identity provider to mint a JWT whose `fatxn` claim is the Borsh-encoded transaction (or delegate action) payload. Because `fatxn` is signed as part of the token, an attacker cannot swap in a different transaction after the fact — the RSA signature would no longer verify.
+
+The guard compares `fatxn` against the `sign_payload` passed into the on-chain call. Only if they are byte-for-byte identical does verification proceed, guaranteeing that the transaction the MPC network signs is exactly the one the identity provider attested to.
+
+---
+
+## On-chain verification
+
+Guards implement a shared `JwtGuard` trait whose `internal_verify` routine runs the full check in two phases: first the RSA signature, then the claims. If either phase fails, the whole verification fails and no signature is ever produced.
+
+<Steps>
+  <Step title="Size check">
+    Reject the token immediately if it exceeds the 7 KB limit.
+  </Step>
+  <Step title="Signature verification (RS256)">
+    Recompute `header.payload`, then verify the RSA signature against every configured public key. If **any** key validates the signature, the token's signature is accepted.
+  </Step>
+  <Step title="Standard claim validation">
+    Parse the payload into claims and check `exp`, `nbf`, and `iss`.
+  </Step>
+  <Step title="Custom claim validation">
+    Run the guard-specific checks — for the Auth0 guard, that's the `aud` and `fatxn` checks.
+  </Step>
+</Steps>
+
+### RS256 signature check
+
+`RS256` means **RSASSA-PKCS1-v1_5 with SHA-256**. The guard verifies it from raw key components — the modulus `n` and exponent `e` — using 2048-bit keys:
+
+1. Hash the signed message with **SHA-256**.
+2. Interpret the signature, `n`, and `e` as big integers at 2048-bit precision.
+3. Reject the signature up front unless it is strictly less than the modulus `n`.
+4. Recover the padded message by computing `signature^e mod n` via square-and-multiply modular exponentiation.
+5. Validate the recovered bytes against the **PKCS#1 v1.5** layout — `0x00 || 0x01 || PS || 0x00 || DigestInfo || Hash`, where `PS` is at least eight `0xFF` bytes — and confirm the trailing hash equals the SHA-256 digest from step 1.
+
+Padding and hash comparisons use constant-time equality, and the function returns only a boolean — never a detailed error — so verification leaks no oracle about *why* a bad signature failed.
+
+```rust
+// Simplified: verify the SHA-256 / PKCS#1 v1.5 signature from key components
+pub fn verify_signature_from_components(
+    payload: String,       // "header.payload"
+    signature_bytes: Vec<u8>,
+    n: Vec<u8>,            // RSA modulus
+    e: Vec<u8>,            // RSA exponent
+) -> bool;
+```
+
+Because a token may have been signed by any of the provider's rotating keys, the guard tries **every configured public key** and accepts the token if a single one validates:
+
+```rust
+let public_keys = self.get_public_keys();
+
+public_keys.into_iter().any(|public_key| {
+    verify_signature_from_components(
+        data_to_verify.clone(),
+        signature_bytes.clone(),
+        public_key.n.clone(),
+        public_key.e.clone(),
+    )
+})
+```
+
+### The public key struct
+
+Each configured key is stored as its raw big-endian RSA components:
+
+```rust
+pub struct JwtPublicKey {
+    pub n: Vec<u8>, // modulus (2048-bit)
+    pub e: Vec<u8>, // exponent (commonly 65537, i.e. [0x01, 0x00, 0x01])
+}
+```
+
+How these keys get on-chain and who is allowed to change them differs by guard. The Auth0 guard keeps an owner-managed key set; other guards source their keys from the attestation system. See [the Auth0 guard](/protocol/contracts/auth0-guard) for the Auth0 case.
+
+### Standard claim checks
+
+Once the signature is trusted, the guard validates the claims against the current block time (`block_timestamp_ms` converted to seconds):
+
+- **Expiry** — fails with `Token expired` if `exp` is at or before now.
+- **Not-before** — fails with `Token not yet valid` if `nbf` is in the future.
+- **Issuer** — fails with `Invalid issuer` if `iss` does not match the guard's configured issuer.
+
+On success the guard returns the `sub` claim, which the NEAR Auth contract uses to derive the user's MPC key.
+
+### Guard-specific custom claims
+
+Standard claim checks are common to all guards, but each guard also enforces its own custom claims before the standard ones. For the **Auth0 guard** this means:
+
+- **`aud`** — the token's audience must contain the guard's own account id, so a token minted for a different audience can't be replayed against it.
+- **`fatxn`** — the embedded transaction payload must exactly equal the `sign_payload` supplied to the on-chain call.
+
+Other guards vary these rules — for example, a custom-issuer guard skips the audience check. The `fatxn` binding, however, is universal: a guard never authorizes a transaction it wasn't explicitly presented with.
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Auth0" icon="fingerprint" href="/protocol/concepts/auth0" horizontal arrow>
+    How Auth0 issues the JWTs NEAR Auth verifies, and which login methods it supports.
+  </Card>
+  <Card title="Auth0 guard" icon="shield-check" href="/protocol/contracts/auth0-guard" horizontal arrow>
+    The on-chain contract that runs this verification and manages its RSA keys.
+  </Card>
+</CardGroup>

@@ -1,0 +1,243 @@
+---
+title: "MPC signing"
+description: "How NEAR Auth derives per-user keys and produces signatures through a distributed Multi-Party Computation network — no single party ever holds a full private key."
+icon: "network"
+---
+
+NEAR Auth never stores a private key. Instead, it relies on a **Multi-Party Computation (MPC)** network to derive a unique key for every authenticated identity and to produce signatures collaboratively. The full private key is split into shares held by independent parties, and no single participant — including the NEAR Auth contract — can ever reconstruct it. This page explains how the MPC integration works: the derivation path, the supported signature algorithms, the on-chain configuration, and the end-to-end signing flow.
+
+<Info>
+  This is the last hop of the protocol. Before MPC ever signs, a guard contract must cryptographically verify the user's JWT. See [the NEAR Auth contract](/protocol/contracts/fast-auth) for how verification and signing are chained together in a single call.
+</Info>
+
+---
+
+## What MPC provides
+
+NEAR Auth uses the NEAR MPC network to deliver three properties that make Web2 login safe for controlling on-chain funds:
+
+<CardGroup cols={3}>
+  <Card title="Key derivation" icon="key-round" horizontal>
+    Each authenticated identity deterministically derives its own key pair. The same login always controls the same account.
+  </Card>
+  <Card title="Distributed signing" icon="network" horizontal>
+    Signatures are produced from distributed key shares. No party — not even the contract — ever sees the full private key.
+  </Card>
+  <Card title="Chain agnostic" icon="globe" horizontal>
+    The MPC can sign for many chains (NEAR, Ethereum, Bitcoin, and more) because the derivation and signing are curve-based, not NEAR-specific.
+  </Card>
+</CardGroup>
+
+---
+
+## The derivation path
+
+When a user authenticates, NEAR Auth constructs a deterministic signing path from two pieces: the **guard id** that verified the identity and the **subject** returned by that guard.
+
+```text
+{guard_id}#{user_subject}
+```
+
+The MPC uses this path to derive a unique key pair. Because the path is deterministic, the guarantees fall out naturally:
+
+- **Different identities get different keys** — the subject is part of the path.
+- **The same identity always gets the same key** — deriving twice yields the same key pair.
+- **Keys are isolated between providers** — the guard id namespaces every identity, so an Auth0 user and a custom-issuer user with the same subject never collide.
+
+Some example paths:
+
+| Path | Meaning |
+| --- | --- |
+| `jwt#auth0#google-oauth2\|123456789` | An Auth0 user who signed in with Google. |
+| `jwt#auth0#email\|abcdef123456` | An Auth0 user who signed in with email. |
+| `jwt#<custom-issuer>#user@example.com` | A custom-issuer user (an advanced, non-Auth0 issuer). |
+
+<Note>
+  The NEAR Auth contract splits the guard id on `#` to find the guard prefix, so guard ids themselves may not contain `#` — that separator is reserved for building the path. The subject returned by the guard is also validated on-chain: it must not contain `#` and must be at most 256 characters.
+</Note>
+
+---
+
+## Signature algorithms
+
+The NEAR Auth contract supports three signature algorithms, selected by the `algorithm` argument to `sign` — `"secp256k1"`, `"ecdsa"`, or `"eddsa"` (case-insensitive). The algorithm determines which MPC request format and which MPC contract interface is used.
+
+<Tabs>
+  <Tab title="secp256k1 (legacy)">
+    The legacy path uses the original `SignRequest` format against the legacy MPC interface. The payload is the raw SHA-256 hash of the data to sign, and the request carries the configured MPC **key version**.
+
+    ```rust
+    pub struct SignRequest {
+        pub payload: Vec<u8>,   // SHA-256 hash of the data to sign
+        pub path: String,       // {guard_id}#{user_subject}
+        pub key_version: u32,   // mpc_key_version
+    }
+    ```
+  </Tab>
+  <Tab title="ecdsa">
+    ECDSA uses the newer `SignRequestV2` format. The SHA-256 hash of the payload is hex-encoded and wrapped in the `Ecdsa` variant of `PayloadType`, and the request carries the configured **domain id**.
+
+    ```rust
+    pub enum PayloadType {
+        Ecdsa(String),  // hex-encoded SHA-256 hash
+        Eddsa(String),
+    }
+
+    pub struct SignRequestV2 {
+        pub path: String,           // {guard_id}#{user_subject}
+        pub payload_v2: PayloadType, // PayloadType::Ecdsa(hex_payload)
+        pub domain_id: u64,          // mpc_domain_id
+    }
+    ```
+  </Tab>
+  <Tab title="eddsa">
+    EdDSA also uses `SignRequestV2`, with the hex-encoded SHA-256 hash wrapped in the `Eddsa` variant of `PayloadType` and the configured **domain id**.
+
+    ```rust
+    pub struct SignRequestV2 {
+        pub path: String,            // {guard_id}#{user_subject}
+        pub payload_v2: PayloadType, // PayloadType::Eddsa(hex_payload)
+        pub domain_id: u64,          // mpc_domain_id
+    }
+    ```
+  </Tab>
+</Tabs>
+
+Both `SignRequestV2` variants target the current MPC interface, while `secp256k1` targets the legacy interface. In all three cases the request `path` is the `{guard_id}#{user_subject}` derivation path described above.
+
+---
+
+## MPC configuration
+
+The NEAR Auth contract stores the MPC parameters in its own state so they can be updated without redeploying. Each has a sensible default.
+
+| Setting | Description | Default |
+| --- | --- | --- |
+| `mpc_address` | Account id of the MPC contract that receives sign requests. | The contract's own account id. |
+| `mpc_key_version` | Key version used in the legacy `secp256k1` `SignRequest` (supports key rotation). | `0` |
+| `mpc_domain_id` | Domain id used in `SignRequestV2` for `ecdsa` / `eddsa`. | `1` |
+
+Each value has a public getter and an owner-only setter. The setters also require the contract to be unpaused:
+
+```rust
+// Getters (view)
+pub fn mpc_address(&self) -> AccountId
+pub fn mpc_key_version(&self) -> u32
+pub fn mpc_domain_id(&self) -> u64
+
+// Setters (owner only)
+pub fn set_mpc_address(&mut self, mpc_address: AccountId)
+pub fn set_mpc_key_version(&mut self, mpc_key_version: u32)
+pub fn set_mpc_domain_id(&mut self, mpc_domain_id: u64)
+```
+
+<Tip>
+  On the deployed networks, `mpc_address` points at the NEAR MPC signer — `v1.signer` on mainnet and `v1.signer-prod.testnet` on testnet. See [Resources](/resources/mainnet) for the full list of deployed addresses.
+</Tip>
+
+---
+
+## The signing flow
+
+A single call to `FastAuth.sign` chains JWT verification and MPC signing together. From the caller's perspective it is one request; on-chain it is a promise chain across the guard and the MPC contract.
+
+<Steps>
+  <Step title="User request">
+    The caller invokes `FastAuth.sign(guard_id, verify_payload, sign_payload, algorithm)`, attaching a deposit to cover MPC costs. The contract validates that `algorithm` is one of the supported values before doing anything else.
+  </Step>
+  <Step title="JWT verification">
+    NEAR Auth resolves the guard from the `guard_id` prefix and calls its `verify` method. The guard checks the JWT and returns whether verification succeeded along with the user's subject claim.
+  </Step>
+  <Step title="Path construction">
+    If verification succeeds, NEAR Auth validates the returned subject and builds the derivation path `{guard_id}#{user_subject}`.
+  </Step>
+  <Step title="Payload hashing">
+    The `sign_payload` is SHA-256 hashed. For `ecdsa` and `eddsa`, the hash is additionally hex-encoded before being placed in the request.
+  </Step>
+  <Step title="MPC request">
+    NEAR Auth calls the MPC contract at `mpc_address` with the algorithm-appropriate request (`SignRequest` for `secp256k1`, `SignRequestV2` for `ecdsa` / `eddsa`), forwarding the attached deposit.
+  </Step>
+  <Step title="Signature generation">
+    The MPC network collaboratively produces the signature from its distributed key shares.
+  </Step>
+  <Step title="Response">
+    The signature is returned to the caller, and the deposit is refunded. From here, a [relayer](/protocol/concepts/relayer) can submit the resulting (delegate) transaction — optionally sponsoring the gas.
+  </Step>
+</Steps>
+
+---
+
+## Signature responses
+
+The MPC returns one of two response shapes, wrapped in an untagged `SignResponseAny` enum. The variant depends on the signature scheme.
+
+<Tabs>
+  <Tab title="ECDSA">
+    ```rust
+    pub struct AffinePoint {
+        affine_point: String,
+    }
+
+    pub struct Scalar {
+        scalar: String,
+    }
+
+    pub struct EcdsaSignResponse {
+        pub scheme: String,
+        pub big_r: AffinePoint,
+        pub s: Scalar,
+        pub recovery_id: u8,
+    }
+    ```
+  </Tab>
+  <Tab title="EdDSA">
+    ```rust
+    pub struct EdDsaSignResponse {
+        pub scheme: String,
+        pub signature: Vec<u8>,
+    }
+    ```
+  </Tab>
+</Tabs>
+
+```rust
+pub enum SignResponseAny {
+    Ecdsa(EcdsaSignResponse),
+    EdDsa(EdDsaSignResponse),
+}
+```
+
+---
+
+## Deposit and refund behavior
+
+`FastAuth.sign` is `#[payable]`: the caller must attach a deposit that covers the gas and network fees for the MPC computation. NEAR Auth forwards that deposit to the MPC contract when it issues the sign request.
+
+The deposit is always returned to the original caller, whether or not signing succeeds:
+
+- **Verification fails** — if the guard rejects the JWT (or the cross-contract call errors), the flow stops before reaching the MPC and the full deposit is transferred back to the caller.
+- **MPC signing fails** — if the MPC call errors, the deposit is refunded to the caller and no signature is returned.
+- **Signing succeeds** — the deposit is refunded to the caller and the signature is returned.
+
+<Warning>
+  Because the deposit is refunded in every branch, the net cost to the caller is only the gas actually consumed — but the caller must still attach enough up front to cover the MPC computation, or the request will fail.
+</Warning>
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="The NEAR Auth contract" icon="file-check" href="/protocol/contracts/fast-auth" horizontal arrow>
+    How `verify` and `sign` chain guard verification into MPC signing.
+  </Card>
+  <Card title="Relayer" icon="route" href="/protocol/concepts/relayer" horizontal arrow>
+    Submit signed (delegate) transactions and sponsor gas for your users.
+  </Card>
+  <Card title="JWT verification" icon="fingerprint" href="/protocol/concepts/jwt" horizontal arrow>
+    What the guard checks before a signature is ever produced.
+  </Card>
+  <Card title="How it works" icon="layers" href="/protocol/how-it-works" horizontal arrow>
+    The full login-to-signature flow, end to end.
+  </Card>
+</CardGroup>

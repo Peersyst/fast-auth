@@ -1,0 +1,207 @@
+---
+title: "JWT Guard Router"
+description: "The on-chain registry that maps guard names to guard contracts and routes NEAR Auth verification to the right one."
+icon: "route"
+---
+
+The **JWT Guard Router** is the routing layer of NEAR Auth. It keeps a registry that maps a guard name to the account of a guard contract, and it forwards each verification request from the NEAR Auth contract to the correct guard. This is what lets NEAR Auth support many identity providers — Auth0 today, others later — without changing the core contract.
+
+On mainnet the router is deployed at `jwt.fast-auth.near`; on testnet at `jwt.fast-auth.testnet`. It is registered inside the [NEAR Auth contract](/protocol/contracts/fast-auth) as the guard named `jwt`, which is why every guard id that reaches it looks like `jwt#GUARD_NAME`.
+
+<Info>
+  The router itself never verifies JWTs. It only decides **which** guard should, then delegates. The actual RS256 verification and claim checks happen in the target guard, such as the [Auth0 Guard](/protocol/contracts/auth0-guard).
+</Info>
+
+---
+
+## Where the router sits
+
+NEAR Auth splits identity verification across three contracts so each layer stays small and replaceable:
+
+<Steps>
+  <Step title="NEAR Auth (FastAuth)">
+    Your app calls `sign(guard_id, verify_payload, sign_payload, algorithm)`. The `FastAuth` contract looks at the guard id prefix and routes JWT-based ids (`jwt#...`) to the router registered under the `jwt` name.
+  </Step>
+  <Step title="JWT Guard Router">
+    The router splits the guard id into `jwt` and `GUARD_NAME`, looks up `GUARD_NAME` in its registry, and forwards `verify(...)` to that guard contract.
+  </Step>
+  <Step title="Guard (e.g. Auth0 Guard)">
+    The guard performs the real work — RS256 signature verification, issuer/audience/expiry checks, and matching the `fatxn` claim — then returns whether the token is valid along with the user subject.
+  </Step>
+</Steps>
+
+---
+
+## Contract state
+
+The contract stores two fields:
+
+```rust
+#[near(contract_state)]
+pub struct JwtGuardRouter {
+    /// Mapping of guard names to their account IDs
+    guards: LookupMap<String, AccountId>,
+    /// Account ID of the contract owner
+    owner: AccountId,
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `guards` | `LookupMap<String, AccountId>` | Registry mapping each guard name to the account id of its guard contract. |
+| `owner` | `AccountId` | The account allowed to add or remove guards and transfer ownership. |
+
+The registry is a `LookupMap`, so lookups are O(1) and the contract only pays storage for the entries it actually holds. It is initialized with `init(owner)`, which sets the owner and starts with an empty registry.
+
+---
+
+## Guard id format
+
+Every id that reaches the router must follow the shape `jwt#GUARD_NAME`:
+
+- `jwt` — the prefix that routed the request here from the NEAR Auth contract.
+- `GUARD_NAME` — the name of a guard registered in this router.
+
+For example, if a guard named `auth0` is registered, the full guard id you pass to the NEAR Auth contract is `jwt#auth0`. The router validates this format before doing anything else and panics on an id that is not exactly `jwt#GUARD_NAME`. Because of this, guard names themselves may never contain the `#` character.
+
+---
+
+## Methods
+
+### `add_guard`
+
+Registers a new guard name and points it at a guard contract account. Owner-only and `#[payable]` — the caller must attach a deposit that covers storage plus a contingency amount.
+
+```rust
+#[payable]
+pub fn add_guard(&mut self, guard_name: String, guard_account: AccountId)
+```
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `guard_name` | `String` | Unique name for the guard. Must not contain `#`; max 2048 bytes. |
+| `guard_account` | `AccountId` | Account id of the guard contract. Max 64 bytes. |
+
+The call is rejected unless every rule holds:
+
+- The caller is the owner.
+- `guard_name` does not contain `#`.
+- `guard_name` is at most `GUARD_NAME_MAX_BYTES_LENGTH` (2048 bytes).
+- `guard_account` is at most `MAX_ACCOUNT_BYTES_LENGTH` (64 bytes).
+- `guard_name` is not already registered.
+- The attached deposit covers the required amount.
+
+<Info>
+  The required deposit is computed from the maximum possible entry size so an entry can always be stored, plus a fixed contingency:
+
+  ```rust
+  env::storage_byte_cost()
+    * (GUARD_NAME_MAX_BYTES_LENGTH + MAX_ACCOUNT_BYTES_LENGTH)
+    + CONTINGENCY_DEPOSIT
+  ```
+
+  | Constant | Value |
+  |----------|-------|
+  | `GUARD_NAME_MAX_BYTES_LENGTH` | 2048 bytes |
+  | `MAX_ACCOUNT_BYTES_LENGTH` | 64 bytes |
+  | `CONTINGENCY_DEPOSIT` | 1 NEAR |
+</Info>
+
+### `get_guard`
+
+Resolves a guard name to its contract account. This is a view method; it panics if the guard name is not registered.
+
+```rust
+pub fn get_guard(&self, guard_name: String) -> AccountId
+```
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `guard_name` | `String` | The registered guard name to look up (the `GUARD_NAME` part of a guard id). |
+
+Note that `get_guard` takes the bare guard name, not the full `jwt#GUARD_NAME` id — the `verify` flow strips the `jwt` prefix before calling it internally.
+
+### `remove_guard`
+
+Removes a guard from the registry, returning the storage deposit to the guard account. Owner-only; panics if the guard does not exist.
+
+```rust
+pub fn remove_guard(&mut self, guard_name: String)
+```
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `guard_name` | `String` | The registered guard name to remove. |
+
+<Warning>
+  Removing a guard immediately stops routing for that identity provider. Any guard id that resolves to the removed name will panic on the next `verify` call, so remove a guard only when you are certain no live integrations depend on it.
+</Warning>
+
+---
+
+## How verification is routed
+
+When the NEAR Auth contract delegates a JWT verification, it calls the router's `verify` method:
+
+```rust
+pub fn verify(
+    &self,
+    guard_id: String,       // "jwt#GUARD_NAME"
+    verify_payload: String, // the JWT to verify
+    sign_payload: Vec<u8>,  // the payload the MPC network will sign
+    predecessor: AccountId, // the original caller, passed through from FastAuth
+) -> Promise
+```
+
+Internally the router does three things and then hands off:
+
+1. **Validate and split the id.** It asserts `guard_id` is exactly `jwt#GUARD_NAME` and extracts `GUARD_NAME`.
+2. **Resolve the guard.** It calls `get_guard(GUARD_NAME)` to find the guard contract account (panicking if the name is unknown).
+3. **Delegate.** It makes a cross-contract call to that guard's `verify`, forwarding the guard name, the JWT, the sign payload, and the original `predecessor`, then attaches a callback.
+
+```rust
+jwt_guard::ext(guard_account)
+    .verify(guard_name.clone(), verify_payload, sign_payload, predecessor)
+    .then(Self::ext(env::current_account_id()).on_verify_callback(guard_name))
+```
+
+The `on_verify_callback` processes the guard's response and returns a tuple back up the chain:
+
+```rust
+(bool, String, String) // (valid, user_subject, guard_name)
+```
+
+- **`valid`** — whether the guard accepted the JWT.
+- **`user_subject`** — the `sub` claim identifying the user (empty when invalid).
+- **`guard_name`** — the guard that handled verification (empty when invalid).
+
+On success, NEAR Auth uses `guard_name` together with the user subject to derive the MPC signing path (`{guard_id}#{sub}`), so the same login always controls the same NEAR account. If the guard reports failure, or the cross-contract call errors, verification does not proceed to signing.
+
+---
+
+## Ownership and upgrades
+
+Administrative methods are gated by `only_owner`, which panics unless the caller matches the stored `owner`.
+
+| Method | Description |
+|--------|-------------|
+| `owner()` | Returns the current owner account id. |
+| `change_owner(new_owner)` | Transfers ownership. Owner-only. |
+| `update_contract()` | Deploys new contract code and calls `migrate` to run any state migration. Owner-only. |
+
+<Note>
+  Because guard registration is owner-controlled, the set of supported identity providers is governed rather than open — a new provider only becomes usable once its guard is deployed and registered here.
+</Note>
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="NEAR Auth contract" icon="file-check" href="/protocol/contracts/fast-auth" horizontal arrow>
+    The entry point that routes `jwt#...` guard ids to this router.
+  </Card>
+  <Card title="Auth0 Guard" icon="shield-check" href="/protocol/contracts/auth0-guard" horizontal arrow>
+    The default guard the router delegates to for Auth0 logins.
+  </Card>
+</CardGroup>

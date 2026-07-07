@@ -1,0 +1,159 @@
+---
+title: "How it works"
+description: "Follow a NEAR Auth signature end to end — from an Auth0 login to an MPC-produced signature verified on-chain."
+icon: "route"
+---
+
+NEAR Auth turns a Web2 login into a NEAR signature without ever exposing a private key. This page walks the full Auth0 signing flow, from the moment a user logs in to the moment a relayer submits the signed transaction on-chain. Along the way you'll see how the encoded transaction travels inside the JWT, how the on-chain contracts route and verify it, and how the MPC network derives a per-user key.
+
+For the individual building blocks, see [JWTs](/protocol/concepts/jwt), [Auth0](/protocol/concepts/auth0), and [MPC signing](/protocol/concepts/mpc). For the contracts themselves, start at the [contracts overview](/protocol/contracts/overview).
+
+---
+
+## The flow at a glance
+
+<Steps>
+  <Step title="User logs in through Auth0" icon="log-in">
+    The user authenticates through the provider (`JavascriptProvider` on web, `ReactNativeProvider` on mobile) via a popup or redirect. Auth0 issues an RS256-signed JWT identifying the user through its `sub` claim.
+  </Step>
+  <Step title="App requests a signature with a `fatxn` claim" icon="file-check">
+    To sign a NEAR transaction, the app calls `requestTransactionSignature({ transaction })` (or `requestDelegateActionSignature({ delegateAction })`). The provider re-authenticates against Auth0 with the encoded transaction bound into the JWT as the custom **`fatxn`** claim. The result is a fresh JWT whose signature covers the exact payload to be signed.
+  </Step>
+  <Step title="`FastAuth.sign` is called on-chain" icon="server">
+    The signer calls `sign(guard_id, verify_payload, sign_payload, algorithm)` on the NEAR Auth contract (`fast-auth.near` / `fast-auth.testnet`). Here `verify_payload` is the Auth0 JWT, `sign_payload` is the transaction hash to be signed, and `algorithm` is one of `secp256k1`, `ecdsa`, or `eddsa`.
+  </Step>
+  <Step title="`guard_id` prefix routes to the JWT Guard Router" icon="network">
+    `FastAuth` inspects the `guard_id`. When the prefix is **`jwt`**, it delegates verification to the `JwtGuardRouter` (`jwt.fast-auth.near` / `jwt.fast-auth.testnet`), which looks up the concrete guard by name.
+  </Step>
+  <Step title="`Auth0Guard` verifies the JWT with RS256" icon="shield-check">
+    The router forwards the request to the `Auth0Guard` (`auth0.jwt.fast-auth.near` / `auth0.jwt.fast-auth.testnet`). The guard verifies the RS256 signature using owner-managed RSA public keys, then validates the claims: the issuer (`iss`), the audience (`aud` must contain the guard account), token validity (`exp` / `nbf`), and — critically — that the **`fatxn`** claim equals the `sign_payload`. This last check binds the JWT to exactly the transaction being signed, so a token can never be replayed against a different payload.
+  </Step>
+  <Step title="MPC signs at `{guard_id}#{sub}`" icon="key-round">
+    On successful verification, the guard returns the user's `sub`, and `FastAuth` constructs the derivation path `{guard_id}#{sub}` (for example `jwt#auth0#google-oauth2|123456789`). It SHA-256 hashes the `sign_payload` and forwards the request to the MPC network (`v1.signer` / `v1.signer-prod.testnet`), which collaboratively produces a signature from distributed key shares — no single party ever holds the full key. Derivation is deterministic, so the same identity always controls the same NEAR account.
+  </Step>
+  <Step title="Relayer submits the transaction" icon="route">
+    The signature is returned to the caller. Your app can broadcast the signed transaction directly, or hand it to a [relayer](/protocol/concepts/relayer) to submit it — optionally gasless via a delegate action, so users transact without holding NEAR.
+  </Step>
+</Steps>
+
+<Note>
+  If verification or MPC computation fails, the deposit attached to cover gas and network fees is refunded to the original caller.
+</Note>
+
+---
+
+## Contract interaction diagram
+
+The diagram below traces a request through the on-chain contracts. The `FastAuth` entry point routes to the `JwtGuardRouter` when the `guard_id` prefix is `jwt`, the router delegates to the matching guard, and — for Auth0 — verification succeeds without touching the `Attestation` contract, since Auth0 keys are owner-managed rather than attestation-based.
+
+```text
+┌─────────┐
+│  User   │
+└────┬────┘
+     │ 1. sign(JWT + payload)
+     │
+     ▼
+┌─────────────────────────────────┐
+│        NEAR Auth                │
+│      (Entry Point)              │
+└────┬────────────────────────────┘
+     │ 2. guard_id prefix = 'jwt'
+     │
+     ▼
+┌─────────────────────────────────┐
+│      JwtGuardRouter             │
+│         (Router)                │
+└───┬──────────────────┬──────────┘
+    │                  │
+    │ 3a               │ 3b
+    │                  │
+    ▼                  ▼
+┌──────┐      ┌──────────────────┐
+│Auth0 │      │ CustomIssuer     │
+│Guard │      │ Guard            │
+└───┬──┘      └────────┬─────────┘
+    │                  │
+    │                  │ Verify
+    │                  │ public keys
+    │                  │
+    │                  ▼
+    │         ┌──────────────────────────┐
+    │         │     Attestation          │
+    │         │   (Key Management)       │
+    │         └──────────────────────────┘
+    │
+    │ 4. Verification success
+    │
+    ▼
+┌─────────────────────────────────┐
+│        NEAR Auth                │
+│      (Entry Point)              │
+└────┬────────────────────────────┘
+     │ 5. Forward signing request
+     │
+     ▼
+┌─────────────────────────────────┐
+│      MPC Network               │
+│    (Signing Service)           │
+└────┬────────────────────────────┘
+     │ 6. Return signature
+     │
+     ▼
+┌─────────────────────────────────┐
+│        NEAR Auth                │
+│      (Entry Point)              │
+└────┬────────────────────────────┘
+     │ 7. Return signature
+     │
+     ▼
+┌─────────┐
+│  User   │
+└─────────┘
+```
+
+The Auth0 path (3a) verifies keys directly on the guard. The Custom Issuer path (3b) resolves its keys through the `Attestation` contract instead — covered under [Protocol → Advanced](/protocol/advanced/custom-issuer-guard).
+
+---
+
+## Why `guard_id` routing matters
+
+The `guard_id` is more than a lookup key — it's the first segment of the MPC derivation path, and its prefix decides how verification happens.
+
+- **Prefix `jwt`** tells `FastAuth` to delegate to the `JwtGuardRouter`, which maintains a registry mapping each guard name to a guard contract account (`add_guard`, `get_guard`, `remove_guard`). For Auth0, the router resolves to the `Auth0Guard`.
+- **The full `guard_id`** becomes the leading component of the derivation path `{guard_id}#{sub}`. Because the guard is baked into the path, identities are isolated between providers: a Google user under Auth0 and a user under a different guard can never derive the same NEAR key, even if their subjects collide.
+
+This routing model is what lets NEAR Auth support multiple identity providers behind one entry point. Adding a new provider means registering a new guard in the router — the `FastAuth` entry point and the MPC signing step stay unchanged.
+
+<Tip>
+  The derivation path is deterministic. `jwt#auth0#google-oauth2|123456789` always maps to the same MPC key, so the same login reliably controls the same NEAR account across sessions and devices.
+</Tip>
+
+---
+
+## What each layer guarantees
+
+| Layer | Responsibility | Guarantee |
+|-------|----------------|-----------|
+| `FastAuth` | Entry point; routes by `guard_id`, coordinates MPC signing | The signature is only requested after a guard reports success |
+| `JwtGuardRouter` | Resolves the `jwt`-prefixed guard by name | Requests reach the correct provider's guard |
+| `Auth0Guard` | RS256 verification + `iss` / `aud` / `exp` / `fatxn` checks | The JWT is authentic, unexpired, addressed to this guard, and bound to the exact payload |
+| MPC network | Distributed signing at `{guard_id}#{sub}` | A valid signature is produced without any party holding the full key |
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="JWTs" icon="scroll-text" href="/protocol/concepts/jwt" horizontal arrow>
+    The RS256 token, its claims, and the `fatxn` payload binding.
+  </Card>
+  <Card title="Auth0" icon="fingerprint" href="/protocol/concepts/auth0" horizontal arrow>
+    How the default provider issues tokens and which claims the guard checks.
+  </Card>
+  <Card title="MPC signing" icon="key-round" href="/protocol/concepts/mpc" horizontal arrow>
+    Per-user key derivation, signature algorithms, and distributed signing.
+  </Card>
+  <Card title="Contracts overview" icon="boxes" href="/protocol/contracts/overview" horizontal arrow>
+    The entry point, router, guards, and supporting infrastructure.
+  </Card>
+</CardGroup>

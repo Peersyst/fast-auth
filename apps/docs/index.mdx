@@ -1,0 +1,251 @@
+---
+title: "NEAR Auth"
+sidebarTitle: "Home"
+description: "Sign NEAR transactions with a Web2 login — no seed phrases, no wallet extensions."
+icon: house
+mode: wide
+---
+
+<div class="flex justify-center gap-3 mb-6 flex-wrap">
+  <Badge color="green" icon="fingerprint">Web2 login</Badge>
+  <Badge color="green" icon="shield-check">MPC signing</Badge>
+  <Badge color="green" icon="key-round">Non-custodial</Badge>
+</div>
+
+<h1 class="text-5xl font-bold tracking-tight text-center pb-0 mb-0">
+  NEAR Auth
+</h1>
+<p class="text-xl text-center text-gray-500 max-w-2xl mx-auto py-0 pb-4">
+  Let your users sign NEAR transactions with the accounts they already have — Google, Apple, email, or passkeys — while keys stay secured by a Multi-Party Computation network.
+</p>
+
+<Tabs>
+  <Tab title="React">
+    <Columns cols={2}>
+      <div>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <Badge color="green" icon="clock">~5 min</Badge>
+          <Badge color="gray">React</Badge>
+          <Badge color="gray">TypeScript</Badge>
+        </div>
+        <h3 class="text-xl font-bold mb-2">Add social login to your dApp</h3>
+        <p class="text-gray-500 mt-2 mb-5">
+          Wrap your app in a provider and use hooks to authenticate users and request signatures — no wallet integration required.
+        </p>
+        <a href="/home/quickstart" style={{display:'inline-flex',alignItems:'center',gap:'8px',padding:'9px 18px',borderRadius:'8px',background:'#1fb858',color:'#fff',fontWeight:'600',textDecoration:'none',fontSize:'14px',marginBottom:'16px'}}>
+          Start the quickstart →
+        </a>
+        <Card title="React SDK reference" icon="atom" href="/sdks/react-sdk" horizontal arrow>
+          Providers, hooks, and the signer API.
+        </Card>
+        <Card title="Authenticate your users" icon="log-in" href="/home/guides/authenticate-users" horizontal arrow>
+          Login, logout, and session handling.
+        </Card>
+      </div>
+      <CodeGroup>
+
+```tsx App.tsx
+import { FastAuthProvider, useIsLoggedIn, useFastAuth } from "@fast-auth-near/react-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+
+const provider = new JavascriptProvider({
+  network: "mainnet",
+  clientId: "<your-auth0-client-id>",
+});
+
+function LoginButton() {
+  const { client } = useFastAuth();
+  const { isLoggedIn } = useIsLoggedIn();
+
+  return isLoggedIn
+    ? <span>You're signed in 🎉</span>
+    : <button onClick={() => client?.login()}>Sign in</button>;
+}
+
+export default function App({ connection }) {
+  return (
+    <FastAuthProvider
+      providerConfig={{ provider }}
+      connection={connection}
+      network="mainnet"
+    >
+      <LoginButton />
+    </FastAuthProvider>
+  );
+}
+```
+
+      </CodeGroup>
+    </Columns>
+  </Tab>
+  <Tab title="Browser / JS">
+    <Columns cols={2}>
+      <div>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <Badge color="green" icon="clock">~5 min</Badge>
+          <Badge color="gray">Vanilla JS</Badge>
+          <Badge color="gray">Vue</Badge>
+          <Badge color="gray">Svelte</Badge>
+        </div>
+        <h3 class="text-xl font-bold mb-2">Framework-agnostic client</h3>
+        <p class="text-gray-500 mt-2 mb-5">
+          Use the class-based <code>FastAuthClient</code> in any web app to log users in and obtain a signer.
+        </p>
+        <a href="/home/quickstart" style={{display:'inline-flex',alignItems:'center',gap:'8px',padding:'9px 18px',borderRadius:'8px',background:'#1fb858',color:'#fff',fontWeight:'600',textDecoration:'none',fontSize:'14px',marginBottom:'16px'}}>
+          Start the quickstart →
+        </a>
+        <Card title="Browser SDK reference" icon="globe" href="/sdks/browser-sdk" horizontal arrow>
+          The <code>FastAuthClient</code> and <code>FastAuthSigner</code> classes.
+        </Card>
+        <Card title="Choose your SDK" icon="git-compare" href="/home/guides/choose-your-sdk" horizontal arrow>
+          Which library fits your stack.
+        </Card>
+      </div>
+      <CodeGroup>
+
+```ts main.ts
+import { FastAuthClient } from "@fast-auth-near/browser-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+import { connect } from "near-api-js";
+
+const provider = new JavascriptProvider({
+  network: "mainnet",
+  clientId: "<your-auth0-client-id>",
+});
+
+const { connection } = await connect({
+  networkId: "mainnet",
+  nodeUrl: "https://rpc.mainnet.near.org",
+});
+
+const client = new FastAuthClient(provider, connection, {
+  fastAuthContractId: "fast-auth.near",
+  mpcContractId: "v1.signer",
+});
+
+await client.login();
+const signer = await client.getSigner();
+```
+
+      </CodeGroup>
+    </Columns>
+  </Tab>
+  <Tab title="React Native">
+    <Columns cols={2}>
+      <div>
+        <div class="flex flex-wrap gap-2 mb-4">
+          <Badge color="green" icon="clock">~10 min</Badge>
+          <Badge color="gray">iOS</Badge>
+          <Badge color="gray">Android</Badge>
+        </div>
+        <h3 class="text-xl font-bold mb-2">Native mobile login</h3>
+        <p class="text-gray-500 mt-2 mb-5">
+          Bring the same social login to iOS and Android with the React Native provider, backed by <code>react-native-auth0</code>.
+        </p>
+        <a href="/home/quickstart" style={{display:'inline-flex',alignItems:'center',gap:'8px',padding:'9px 18px',borderRadius:'8px',background:'#1fb858',color:'#fff',fontWeight:'600',textDecoration:'none',fontSize:'14px',marginBottom:'16px'}}>
+          Start the quickstart →
+        </a>
+        <Card title="React Native provider" icon="smartphone" href="/sdks/react-native-provider" horizontal arrow>
+          Login, credentials, and signature requests on mobile.
+        </Card>
+      </div>
+      <CodeGroup>
+
+```tsx App.tsx
+import { Auth0Provider } from "react-native-auth0";
+import { ReactNativeProvider } from "@fast-auth-near/react-native-provider";
+
+const provider = new ReactNativeProvider({
+  network: "mainnet",
+  clientId: "<your-auth0-client-id>",
+});
+
+export default function App() {
+  return (
+    <Auth0Provider domain="login.auth.near.org" clientId="<your-auth0-client-id>">
+      <YourApp provider={provider} />
+    </Auth0Provider>
+  );
+}
+
+// later, inside a component:
+await provider.login();
+```
+
+      </CodeGroup>
+    </Columns>
+  </Tab>
+</Tabs>
+
+---
+
+## Why NEAR Auth
+
+<CardGroup cols={3}>
+  <Card title="No seed phrases" icon="fingerprint" horizontal>
+    Users sign in with Google, Apple, email, or passkeys through Auth0 — nothing to install, nothing to write down.
+  </Card>
+  <Card title="Non-custodial by design" icon="shield-check" horizontal>
+    Keys are never held by a single party. A Multi-Party Computation network produces every signature from distributed key shares.
+  </Card>
+  <Card title="Per-user NEAR keys" icon="key-round" horizontal>
+    Each identity deterministically derives its own key, so the same login always controls the same NEAR account.
+  </Card>
+  <Card title="On-chain verification" icon="file-check" horizontal>
+    A guard contract cryptographically verifies the Auth0 JWT on NEAR before any signature is produced.
+  </Card>
+  <Card title="Gasless transactions" icon="fuel" horizontal>
+    Sponsor gas via delegate actions, so users transact without holding NEAR.
+  </Card>
+  <Card title="Drop-in SDKs" icon="package" horizontal>
+    Ship on web, React, or React Native with typed SDKs and a handful of lines of code.
+  </Card>
+</CardGroup>
+
+---
+
+## Get started in 2 steps
+
+<Steps>
+  <Step title="Install an SDK and provider">
+    Pick the SDK for your framework and install it alongside the JavaScript (Auth0) provider.
+
+    ```bash
+    npm install @fast-auth-near/react-sdk @fast-auth-near/javascript-provider near-api-js
+    ```
+  </Step>
+  <Step title="Log in and sign">
+    Authenticate the user, get a signer, and request a signature for a NEAR transaction.
+
+    <Card title="Open the quickstart" icon="rocket" href="/home/quickstart" horizontal arrow>
+      A complete, copy-pasteable integration in under 5 minutes.
+    </Card>
+  </Step>
+</Steps>
+
+<Note>
+  Mainnet requires approved credentials — [apply for production access](/home/apply) to get your Auth0 client ID.
+</Note>
+
+<Tip>
+  Building locally? You can develop against testnet using the values in [Resources → Testnet](/resources/testnet).
+</Tip>
+
+---
+
+## Explore the docs
+
+<CardGroup cols={2}>
+  <Card title="Home" icon="house" href="/home/what-is" cta="Get started" arrow>
+    What NEAR Auth is, quickstarts, integration guides, and going live.
+  </Card>
+  <Card title="Protocol" icon="layers" href="/protocol/overview" cta="Read docs" arrow>
+    Contracts, JWT verification, the Auth0 flow, MPC signing, and advanced topics.
+  </Card>
+  <Card title="SDKs" icon="code" href="/sdks/overview" cta="Browse" arrow>
+    Reference-style docs for every published library and provider.
+  </Card>
+  <Card title="Resources" icon="book-open" href="/resources/overview" cta="Look up" arrow>
+    Deployed contract addresses and network config.
+  </Card>
+</CardGroup>

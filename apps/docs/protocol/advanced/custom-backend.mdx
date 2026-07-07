@@ -1,0 +1,211 @@
+---
+title: "Custom backend integration"
+description: "Run your own off-chain service that participates in the NEAR Auth flow — validating identities and issuing the JWTs a custom guard verifies on-chain."
+icon: "boxes"
+---
+
+Most integrations never need a backend: the app authenticates through Auth0, and the Auth0 Guard verifies the resulting JWT entirely on-chain. But when you bring your own identity provider — or need authorization logic that lives off-chain — you can add a **custom backend** that sits between your users and the NEAR Auth contracts. This page explains what that backend does, how it pairs with a custom issuer guard, and the security boundaries you must respect.
+
+<Note>
+  Custom backends are an **advanced** topic. If Auth0 covers your use case, start with the [Auth0 flow](/protocol/concepts/auth0) instead — no server of your own is required.
+</Note>
+
+---
+
+## Why add a backend
+
+The NEAR Auth contract verifies JWTs, not user sessions. A guard checks that a token is correctly signed and carries the expected claims, then hands the subject to the MPC network for key derivation. That works out of the box for providers whose keys and issuer the guard already trusts.
+
+A custom backend earns its place when you need to do something the guards can't do alone:
+
+- **Bridge an unsupported provider.** Your users authenticate with an OIDC identity provider (Firebase, a corporate SSO, your own login) that the on-chain guards don't recognise directly.
+- **Re-sign under a key you control.** The [Custom Issuer Guard](/protocol/advanced/custom-issuer) trusts JWTs signed by *your* RSA key, not your upstream provider's — so a service must re-issue tokens under that key.
+- **Enforce off-chain authorization.** You want rate limiting, allow-lists, business rules, or transaction-level checks *before* a signable token is ever minted.
+
+<Warning>
+  A custom backend is code you own and operate. You take on the work of validating identities, protecting a signing key, and keeping the service available. Budget for that maintenance before committing to this path.
+</Warning>
+
+---
+
+## Where the backend fits
+
+The backend is a **JWT re-signing proxy**. It never touches the NEAR chain and never holds NEAR keys — it validates a token from your identity provider and returns a new token signed with a key that a custom issuer guard already trusts.
+
+```text
+┌────────┐   1. login    ┌──────────────────┐
+│  User  │──────────────▶│ Identity Provider│
+└────────┘               │  (e.g. Firebase) │
+    │                    └──────────────────┘
+    │  2. provider JWT + sign payload
+    ▼
+┌──────────────────┐   3. re-issued JWT   ┌───────────────────────────────┐
+│ Custom backend   │─────────────────────▶│ FastAuth.sign(guard_id, jwt,  │
+│ (issuer service) │                      │   sign_payload, algorithm)    │
+└──────────────────┘                      └───────────────────────────────┘
+                                                       │
+                                                       ▼
+                                          ┌───────────────────────────────┐
+                                          │ JWT Guard Router → your guard  │
+                                          │ RS256-verify → MPC signs at    │
+                                          │ {guard_id}#{sub}               │
+                                          └───────────────────────────────┘
+```
+
+1. The user signs in with your identity provider and your app receives a provider JWT.
+2. The app sends that JWT — plus the transaction it wants signed — to your backend.
+3. The backend validates the provider JWT, embeds the transaction, and re-issues a token under your RSA key.
+4. The app calls `FastAuth.sign(guard_id, verify_payload, sign_payload, algorithm)` with the re-issued token. The router forwards it to your guard, which RS256-verifies it before the MPC network signs at path `{guard_id}#{sub}`.
+
+The on-chain half of this — the guard, its key management via [Attestation](/protocol/advanced/attestation), and registration in the router — is covered in the [custom issuer guard](/protocol/advanced/custom-issuer) page. The rest of this page focuses on the off-chain service.
+
+---
+
+## The custom issuer service
+
+The repository ships a reference implementation of exactly this backend: a NestJS service under `apps/custom-issuer` in [github.com/Peersyst/fast-auth](https://github.com/Peersyst/fast-auth). It exposes a single endpoint that turns a provider JWT into a token the Custom Issuer Guard accepts.
+
+### The endpoint
+
+```http
+POST /issuer/issue
+Content-Type: application/json
+
+{
+  "jwt": "<your-identity-provider-jwt>",
+  "signPayload": [ /* the transaction/delegate-action bytes to sign */ ]
+}
+```
+
+```json
+{
+  "token": "<re-issued-jwt>"
+}
+```
+
+The `signPayload` is the encoded transaction (or delegate action) the user wants signed. The service writes it into the re-issued token's `fatxn` claim, which is what binds the JWT to a specific action — exactly the claim the guard checks on-chain.
+
+### What the service does with a request
+
+<Steps>
+  <Step title="Verify the incoming JWT">
+    The token is verified with RS256 against public keys fetched from your provider. For Firebase, the service reads the X.509 certificates from `VALIDATION_PUBLIC_KEY_URL` and refreshes them every five minutes so key rotation is handled automatically.
+  </Step>
+  <Step title="Validate the claims">
+    It requires a non-empty `sub`, checks that `iss` matches the configured `VALIDATION_ISSUER_URL`, and validates the `exp` / `nbf` time claims (unless expiration is explicitly ignored). Any failure returns `401 Unauthorized`.
+  </Step>
+  <Step title="Re-issue a new token">
+    A fresh JWT is signed with your RSA private key (RS256). It carries the same `sub`, `exp`, and `nbf`, sets `iss` to your service's `ISSUER_URL`, and adds the `fatxn` claim built from `signPayload`.
+  </Step>
+</Steps>
+
+The re-issued token is what your app passes to `FastAuth.sign()`. Because it is signed with your key and carries your issuer URL, only a guard configured with that key and issuer will verify it.
+
+### Configuration
+
+The service is driven entirely by environment variables:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `KEY_BASE64` | Yes | Base64-encoded RSA private key used to sign re-issued tokens. |
+| `VALIDATION_PUBLIC_KEY_URL` | Yes | URL that serves your provider's public keys (e.g. the Firebase certificate URL). |
+| `VALIDATION_ISSUER_URL` | Yes | Expected `iss` claim on incoming provider JWTs. |
+| `ISSUER_URL` | Yes | The `iss` claim written into re-issued tokens — must match what the guard trusts. |
+| `PORT` | No | Server port (default `3000`). |
+| `ALLOWED_ORIGINS` | No | Comma-separated CORS origins. |
+| `IGNORE_EXPIRATION` | No | Set to `true` to skip `exp`/`nbf` validation. Leave unset in production. |
+
+Generate the RSA key pair the service and guard share:
+
+```bash
+# Private key for the service to sign with
+openssl genrsa -out signing-key.pem 2048
+
+# Public key — its modulus/exponent go into the guard contract
+openssl rsa -in signing-key.pem -pubout -out signing-public-key.pem
+
+# Encode the private key for KEY_BASE64
+cat signing-key.pem | base64
+
+chmod 600 signing-key.pem
+```
+
+Run it locally with `pnpm install && pnpm start:dev` from `apps/custom-issuer`, or build and run the provided Docker image for production. The service also exposes a `/metrics` endpoint (issued vs. failed tokens, request duration) for observability.
+
+---
+
+## Connecting the backend to your guard
+
+The backend and the guard are two halves of one trust relationship: the service signs with a private key, and the guard is configured with the matching public key. The token flows from one to the other.
+
+<Steps>
+  <Step title="Deploy the service with your RSA key pair">
+    Set `KEY_BASE64` to the base64-encoded private key and point the validation variables at your identity provider.
+  </Step>
+  <Step title="Register the public key with the guard">
+    Extract the modulus and exponent from your public key and configure the [Custom Issuer Guard](/protocol/advanced/custom-issuer) with them. Because that guard sources keys through [Attestation](/protocol/advanced/attestation), key rotation is a governance action, not a redeploy.
+  </Step>
+  <Step title="Match issuer URLs">
+    The `ISSUER_URL` your service stamps into tokens must equal the issuer the guard validates. A mismatch here is the most common reason a technically valid token is rejected on-chain.
+  </Step>
+  <Step title="Register the guard in the router">
+    Add your guard to the JWT Guard Router (or directly to the NEAR Auth contract) under a `guard_id`, then call `FastAuth.sign()` with that id.
+  </Step>
+</Steps>
+
+<Tip>
+  The Custom Issuer Guard, unlike the Auth0 Guard, performs **no audience (`aud`) check** — it trusts your service's signature and issuer instead. That is why re-signing under a key you control is the whole point of the backend.
+</Tip>
+
+---
+
+## Relaying and gasless transactions
+
+Signing produces a signature; something still has to submit the transaction. A custom backend can take on that role too, either by relaying signed transactions itself or by delegating to a relayer so users transact without holding NEAR.
+
+**Delegate actions are the recommended path for gasless / meta-transactions**, and submitting them requires a relayer — a service that accepts an already-signed payload and broadcasts it, sponsoring gas on the user's behalf. If your backend issues tokens for delegate actions (pass the encoded delegate action as the `signPayload`), the resulting signature can be relayed gaslessly.
+
+For how meta-transactions work and how to run or integrate a relayer, see NEAR's official documentation on [meta-transactions](https://docs.near.org/protocol/transactions/meta-tx). See [the relayer](/protocol/concepts/relayer) for a conceptual overview of how signatures are submitted and how gas sponsorship works.
+
+---
+
+## Security responsibilities
+
+Running a backend means owning the security boundary it creates. Treat these as non-negotiable:
+
+<AccordionGroup>
+  <Accordion title="Protect the signing key" icon="key-round">
+    The RSA private key in `KEY_BASE64` is the trust anchor for every token your guard accepts. Store it in a secrets manager, never in client code or version control, and never return it in an API response.
+  </Accordion>
+  <Accordion title="Validate everything server-side" icon="shield-check">
+    Verify the incoming JWT signature, issuer, and time claims before re-issuing. The reference service enforces a 10&nbsp;KB request-size limit and strict input validation — keep those guarantees if you fork it.
+  </Accordion>
+  <Accordion title="Terminate TLS and scope CORS" icon="lock">
+    Serve only over HTTPS and set `ALLOWED_ORIGINS` to the exact origins that may call the service. Do not leave CORS open in production.
+  </Accordion>
+  <Accordion title="Rate-limit and monitor" icon="gauge">
+    A re-signing endpoint is an attractive target. Add rate limiting, watch the failed-token metric, and alert on spikes.
+  </Accordion>
+  <Accordion title="Plan key rotation" icon="rotate-cw">
+    Rotating the signing key means updating both the service (`KEY_BASE64`) and the guard's trusted public keys. Coordinate the two so no valid tokens are rejected mid-rotation.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Custom issuer guard" icon="fingerprint" href="/protocol/advanced/custom-issuer" horizontal arrow>
+    The on-chain half — how the guard verifies your re-issued tokens.
+  </Card>
+  <Card title="The relayer" icon="route" href="/protocol/concepts/relayer" horizontal arrow>
+    Submit signed transactions and sponsor gas via delegate actions.
+  </Card>
+  <Card title="Attestation" icon="shield-check" href="/protocol/advanced/attestation" horizontal arrow>
+    Quorum-based management of the public keys your guard trusts.
+  </Card>
+  <Card title="How it works" icon="network" href="/protocol/how-it-works" horizontal arrow>
+    The full path from login to an on-chain signature.
+  </Card>
+</CardGroup>

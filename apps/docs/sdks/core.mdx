@@ -1,0 +1,240 @@
+---
+title: "Core Types"
+description: "The shared TypeScript interfaces every NEAR Auth SDK and provider is built on — including IFastAuthProvider, SignatureRequest, and User."
+icon: "boxes"
+---
+
+`@shared/core` holds the small set of TypeScript types shared across every NEAR Auth SDK and provider. It defines the contract each provider implements, the shapes returned by login and signature flows, and a handful of network constants.
+
+<Note>
+  `@shared/core` is an **internal** package — it is bundled into the published SDKs and providers, not installed on its own. You don't need it for a normal integration. It's documented here because these types are the seam you build against when you write a **custom provider**, or when you want precise types over the values the SDKs hand back.
+</Note>
+
+---
+
+## `IFastAuthProvider`
+
+Every provider — [`JavascriptProvider`](/sdks/javascript-provider), [`ReactNativeProvider`](/sdks/react-native-provider), or one you write yourself — implements this interface. The [browser SDK](/sdks/browser-sdk) and [React SDK](/sdks/react-sdk) accept any `IFastAuthProvider`, so conforming to it is all a custom provider needs to plug into the rest of the stack.
+
+```ts
+export interface IFastAuthProvider {
+  login(...args: any[]): Promise<LoginResponse>;
+  logout(...args: any[]): Promise<void>;
+  isLoggedIn(): Promise<boolean>;
+  requestTransactionSignature(...args: any[]): Promise<RequestTransactionSignatureResponse>;
+  requestDelegateActionSignature(...args: any[]): Promise<RequestDelegateActionSignatureResponse>;
+  getSignatureRequest(): Promise<GetSignatureRequestResponse>;
+  getPath(): Promise<string>;
+}
+```
+
+| Method | Returns | Description |
+| --- | --- | --- |
+| `login(...args)` | `Promise<LoginResponse>` | Authenticate the user and return their deterministic identifier. |
+| `logout(...args)` | `Promise<void>` | Clear the current session. |
+| `isLoggedIn()` | `Promise<boolean>` | Whether a user is currently authenticated. |
+| `requestTransactionSignature(...args)` | `Promise<RequestTransactionSignatureResponse>` | Ask the identity provider to authorize signing a transaction, embedding the encoded payload in the JWT. |
+| `requestDelegateActionSignature(...args)` | `Promise<RequestDelegateActionSignatureResponse>` | Same as above for a delegate action (gasless / meta-transaction). |
+| `getSignatureRequest()` | `Promise<GetSignatureRequestResponse>` | Retrieve the pending [`SignatureRequest`](#signaturerequest) and its user after a signature flow completes. |
+| `getPath()` | `Promise<string>` | Return the MPC derivation path for the current identity, of the form `{guardId}#{userSubject}`. |
+
+<Tip>
+  The `...args: any[]` signatures are intentionally open so each provider can accept its own options (for example the JavaScript provider's popup/redirect flags). Concrete providers narrow these in their own types — see the [JavaScript provider reference](/sdks/javascript-provider) for the real parameters.
+</Tip>
+
+---
+
+## Response types
+
+The provider methods resolve to a few thin shapes. `User` is the primitive they all build on.
+
+### `User`
+
+The deterministic identifier for an authenticated identity. The same login always resolves to the same `userId`, which is what lets NEAR Auth derive a stable NEAR key per user.
+
+```ts
+export type User = {
+  userId: string;
+};
+```
+
+### `LoginResponse`, `RequestTransactionSignatureResponse`, `RequestDelegateActionSignatureResponse`
+
+Each of these is an alias of `User` — login and both signature-request flows resolve to the identity they acted on.
+
+```ts
+export type LoginResponse = User;
+export type RequestTransactionSignatureResponse = User;
+export type RequestDelegateActionSignatureResponse = User;
+```
+
+### `GetSignatureRequestResponse`
+
+Returned by `getSignatureRequest()`. Pairs the authenticated `User` with the [`SignatureRequest`](#signaturerequest) the provider prepared for the on-chain `FastAuth.sign` call.
+
+```ts
+export type GetSignatureRequestResponse = {
+  user: User;
+  signatureRequest: SignatureRequest;
+};
+```
+
+---
+
+## `SignatureRequest`
+
+The data the SDK feeds into the [NEAR Auth contract](/protocol/contracts/fast-auth)'s `sign` method. Its fields map directly onto the contract's `sign(guard_id, verify_payload, sign_payload, algorithm)` arguments.
+
+```ts
+export type SignatureRequest = {
+  guardId: string;
+  verifyPayload: string;
+  signPayload: Uint8Array;
+  algorithm?: MPCContractAlgorithm;
+};
+```
+
+<ResponseField name="guardId" type="string">
+  The guard identifier — which [JWT guard](/protocol/contracts/jwt-guard-router) verifies this request on-chain (for the Auth0 flow, the [Auth0 guard](/protocol/contracts/auth0-guard)).
+</ResponseField>
+<ResponseField name="verifyPayload" type="string">
+  The payload to verify — typically the JWT issued by the identity provider, which the guard RS256-verifies before any signature is produced.
+</ResponseField>
+<ResponseField name="signPayload" type="Uint8Array">
+  The bytes to sign — the encoded transaction or delegate action.
+</ResponseField>
+<ResponseField name="algorithm" type="MPCContractAlgorithm" required={false}>
+  The signing algorithm the MPC network should use. Optional; defaults are resolved downstream.
+</ResponseField>
+
+---
+
+## Constants & unions
+
+### `MPCContractAlgorithm`
+
+The signing algorithms the MPC contract supports.
+
+```ts
+export type MPCContractAlgorithm = "secp256k1" | "eddsa" | "ecdsa";
+```
+
+<Note>
+  This is the on-chain / MPC-facing algorithm union. The SDK-facing signer key type in the [browser SDK](/sdks/browser-sdk) uses `"secp256k1" | "ed25519"` for public keys — they describe different layers, so don't mix them up.
+</Note>
+
+### `FastAuthNetwork`
+
+The two supported NEAR networks. Providers and SDKs take this to select endpoints and defaults.
+
+```ts
+export type FastAuthNetwork = "mainnet" | "testnet";
+```
+
+### `FAST_AUTH_AUTH0_DEFAULTS`
+
+Per-network Auth0 defaults, keyed by [`FastAuthNetwork`](#fastauthnetwork). Providers fall back to these when you don't pass an explicit `domain` or `signingAudience`.
+
+```ts
+export const FAST_AUTH_AUTH0_DEFAULTS: Record<FastAuthNetwork, FastAuthAuth0NetworkDefaults> = {
+  mainnet: {
+    domain: "login.auth.near.org",
+    audience: "https://api.auth.near.org",
+    signingAudience: "auth0.jwt.fast-auth.near",
+  },
+  testnet: {
+    domain: "login.testnet.fast-auth.com",
+    audience: "https://api.testnet.fast-auth.com",
+    signingAudience: "auth0.jwt.fast-auth.testnet",
+  },
+} as const;
+```
+
+The shape of each entry is `FastAuthAuth0NetworkDefaults`:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `domain` | `string` | The Auth0 tenant domain used for authentication. |
+| `audience` | `string` | The Auth0 API audience. |
+| `signingAudience` | `string` | The audience embedded in signing JWTs — the [Auth0 guard](/protocol/contracts/auth0-guard) account that must appear in the token's `aud` claim. |
+
+<Tip>
+  These are the same values documented on the [testnet](/resources/testnet) and [mainnet](/resources/mainnet) resource pages. Read them from `FAST_AUTH_AUTH0_DEFAULTS` instead of hard-coding strings so a network switch stays a one-line change.
+</Tip>
+
+---
+
+## Building a custom provider
+
+Because the SDKs depend only on `IFastAuthProvider`, you can implement your own provider — wrapping a different identity source or auth flow — and pass it straight into `FastAuthClient` or `FastAuthProvider`.
+
+```ts
+import type {
+  IFastAuthProvider,
+  LoginResponse,
+  RequestTransactionSignatureResponse,
+  RequestDelegateActionSignatureResponse,
+  GetSignatureRequestResponse,
+} from "@shared/core";
+
+class MyProvider implements IFastAuthProvider {
+  async login(): Promise<LoginResponse> {
+    // authenticate the user, then return their deterministic id
+    return { userId: "..." };
+  }
+
+  async logout(): Promise<void> {
+    // clear the session
+  }
+
+  async isLoggedIn(): Promise<boolean> {
+    return false;
+  }
+
+  async requestTransactionSignature(): Promise<RequestTransactionSignatureResponse> {
+    return { userId: "..." };
+  }
+
+  async requestDelegateActionSignature(): Promise<RequestDelegateActionSignatureResponse> {
+    return { userId: "..." };
+  }
+
+  async getSignatureRequest(): Promise<GetSignatureRequestResponse> {
+    return {
+      user: { userId: "..." },
+      signatureRequest: {
+        guardId: "auth0",
+        verifyPayload: "<jwt>",
+        signPayload: new Uint8Array(),
+      },
+    };
+  }
+
+  async getPath(): Promise<string> {
+    return "auth0#user-subject";
+  }
+}
+```
+
+<Warning>
+  Writing a custom provider for a **different identity issuer** touches on-chain territory — a matching guard has to verify your JWTs. That's an advanced topic outside the Auth0 happy path; see [Protocol → Advanced → Custom issuer](/protocol/advanced/custom-issuer) and [Custom issuer guard](/protocol/advanced/custom-issuer-guard) before you go down this road.
+</Warning>
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="SDK overview" icon="code" href="/sdks/overview" horizontal arrow>
+    How the SDKs, providers, and core types fit together.
+  </Card>
+  <Card title="JavaScript provider" icon="globe" href="/sdks/javascript-provider" horizontal arrow>
+    The reference `IFastAuthProvider` implementation for web.
+  </Card>
+  <Card title="Browser SDK" icon="boxes" href="/sdks/browser-sdk" horizontal arrow>
+    `FastAuthClient` and `FastAuthSigner`, built on these types.
+  </Card>
+  <Card title="How it works" icon="route" href="/protocol/how-it-works" horizontal arrow>
+    Where a `SignatureRequest` goes once it leaves the SDK.
+  </Card>
+</CardGroup>

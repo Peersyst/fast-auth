@@ -1,0 +1,165 @@
+---
+title: "Auth0 integration"
+description: "How NEAR Auth uses Auth0 as its default identity provider to authenticate users and authorize every transaction."
+icon: "key-round"
+---
+
+NEAR Auth uses [Auth0](https://auth0.com/) as its **primary, default identity provider**. Auth0 handles the login experience across many familiar methods, and — crucially — it re-authenticates the user for **every transaction**, embedding the transaction itself inside the JWT it issues. That JWT is later verified on-chain by the [Auth0 Guard](/protocol/contracts/auth0-guard) before any signature is produced.
+
+<Info>
+  Auth0 is the default provider for the whole product. Unless you configure a custom issuer, every login and every signature request in NEAR Auth flows through Auth0.
+</Info>
+
+---
+
+## Supported login methods
+
+Through Auth0, NEAR Auth supports several ways for users to sign in — no seed phrases and nothing to install:
+
+<CardGroup cols={2}>
+  <Card title="Google" icon="chrome" horizontal>
+    Users sign in with their existing Google account. No new credentials to create.
+  </Card>
+  <Card title="Apple" icon="apple" horizontal>
+    Apple Sign-In for a secure, privacy-preserving login on iOS and beyond.
+  </Card>
+  <Card title="Username & password" icon="key-round" horizontal>
+    Auth0's native email/password authentication for users who prefer a dedicated account.
+  </Card>
+  <Card title="Passkeys" icon="fingerprint" horizontal>
+    Passwordless, public-key authentication bound to the user's device.
+  </Card>
+</CardGroup>
+
+Each of these resolves to the same thing under the hood: a stable user identifier (the JWT `sub` claim) that deterministically maps to one NEAR key. The same login always controls the same account, regardless of which method the user picked.
+
+---
+
+## Per-transaction authentication
+
+NEAR Auth does not just authenticate users once at login. For **every transaction or delegate action**, the app asks Auth0 to issue a fresh JWT whose payload contains the encoded transaction. This means each sensitive operation is individually authorized by the user.
+
+The mechanism is a custom JWT claim called **`fatxn`**. When you request a signature, the provider Base64-encodes the transaction (or delegate action) and passes it to Auth0 as an authorization parameter. Auth0 mints a JWT that carries the encoded payload in `fatxn`, alongside the standard claims (`sub`, `iss`, `exp`, `aud`, …).
+
+On-chain, the [Auth0 Guard](/protocol/contracts/auth0-guard) verifies the JWT's RS256 signature and issuer, then checks that its `fatxn` claim **matches the transaction being signed**. If they don't match, verification fails and no signature is produced — so a JWT issued for one transaction can never be replayed to sign a different one.
+
+<Steps>
+  <Step title="App requests a signature">
+    Your app calls `requestTransactionSignature({ transaction })` (or `requestDelegateActionSignature({ delegateAction })`) on the provider.
+  </Step>
+  <Step title="Auth0 issues a JWT with the tx embedded">
+    The provider encodes the transaction and sends it to Auth0 with the `transaction:sign` scope and the network's `signingAudience`. Auth0 returns a JWT whose `fatxn` claim holds the encoded transaction.
+  </Step>
+  <Step title="The guard verifies on-chain">
+    The Auth0 Guard checks the JWT's signature, `iss`, `aud`, and that `fatxn` equals the payload being signed — then the MPC network produces the signature.
+  </Step>
+</Steps>
+
+<Note>
+  To retrieve the request afterward, call `getSignatureRequest()`. It fetches the token silently for the `signingAudience`, decodes the `fatxn` claim, and returns a `SignatureRequest` of `{ guardId, verifyPayload, signPayload }` ready to hand to the NEAR Auth contract.
+</Note>
+
+Read more about the token structure and claims in [JWT verification](/protocol/concepts/jwt).
+
+---
+
+## Login: popup vs. redirect
+
+The [JavaScript provider](/sdks/javascript-provider) supports two Auth0 flows, and it picks one based on the options you pass:
+
+- **Popup** (default) — call `login()` with no `redirectUri`. Auth0 opens in a popup window and control returns to your page when the user finishes. This keeps your app's state intact and is the smoothest experience for single-page apps.
+- **Redirect** — call `login({ redirectUri })` with a `redirectUri`. The browser navigates away to Auth0 and returns to your callback URL. The provider detects the `code`/`state` query parameters on return and completes the login automatically.
+
+The same choice applies to signature requests: `requestTransactionSignature({ transaction, redirectUri })` uses redirect when a `redirectUri` is present, and popup otherwise.
+
+<CodeGroup>
+
+```ts popup.ts
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+
+const provider = new JavascriptProvider({
+  network: "testnet",
+  clientId: "your-auth0-client-id",
+});
+
+// Popup: no redirectUri
+await provider.login();
+
+// Force the account picker on the next login
+await provider.login({}, true);
+```
+
+```ts redirect.ts
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+
+const provider = new JavascriptProvider({
+  network: "testnet",
+  clientId: "your-auth0-client-id",
+});
+
+// Redirect: pass a redirectUri to send the user to Auth0 and back
+await provider.login({ redirectUri: "https://yourapp.com/callback" });
+
+// On the callback page, isLoggedIn() completes the redirect handshake
+const signedIn = await provider.isLoggedIn();
+```
+
+</CodeGroup>
+
+<Warning>
+  With the redirect flow the browser leaves your app and returns to `redirectUri`, so any in-memory state is lost across the round trip. Make sure your callback page reconstructs the state it needs, or prefer the popup flow for single-page apps.
+</Warning>
+
+---
+
+## Configuration and network defaults
+
+You configure the JavaScript provider with a small options object:
+
+```ts
+new JavascriptProvider({
+  network: "mainnet" | "testnet",
+  clientId: string,
+  domain?: string,          // optional — defaults per network
+  signingAudience?: string, // optional — defaults per network
+});
+```
+
+- **`network`** selects mainnet or testnet and picks the default `domain` and `signingAudience`.
+- **`clientId`** is your Auth0 application client id.
+- **`domain`** is the Auth0 tenant that issues tokens.
+- **`signingAudience`** is the Auth0 API audience used specifically for **signature requests**. It is what routes a signing JWT to the Auth0 Guard: the audience value is the guard's on-chain account id, and the guard verifies that its own account appears in the token's `aud` claim.
+
+If you leave `domain` and `signingAudience` unset, NEAR Auth fills them in from `FAST_AUTH_AUTH0_DEFAULTS` for your network:
+
+| Network | `domain` | `signingAudience` | `clientId` |
+| --- | --- | --- | --- |
+| **mainnet** | `login.auth.near.org` | `auth0.jwt.fast-auth.near` | `dsurLc47fOcWme5PkYeClBvuW0tYrmgW` |
+| **testnet** | `login.testnet.fast-auth.com` | `auth0.jwt.fast-auth.testnet` | `np8paqIpMWmNbzT4xAvOOapZBjsOpptl` |
+
+<Note>
+  The `signingAudience` values (`auth0.jwt.fast-auth.near` / `auth0.jwt.fast-auth.testnet`) are the **Auth0 Guard contract accounts**. Requiring the guard's own account in `aud` is how the Auth0 Guard ensures a token was minted for it and not for some other consumer.
+</Note>
+
+The guard identifier the provider produces from these values takes the form `jwt#https://<domain>/`, and the MPC derivation path is `jwt#https://<domain>/#<sub>` — deterministic per user identity.
+
+---
+
+## Where this fits
+
+Auth0 is one layer of the NEAR Auth protocol: it authenticates users and authorizes transactions off-chain, while a guard contract enforces those tokens on-chain and the MPC network signs.
+
+<CardGroup cols={2}>
+  <Card title="Auth0 Guard contract" icon="shield-check" href="/protocol/contracts/auth0-guard" horizontal arrow>
+    The on-chain contract that RS256-verifies Auth0 JWTs and checks the `fatxn` claim.
+  </Card>
+  <Card title="JWT verification" icon="file-check" href="/protocol/concepts/jwt" horizontal arrow>
+    The token format, standard claims, and the custom `fatxn` payload.
+  </Card>
+  <Card title="JavaScript provider" icon="code" href="/sdks/javascript-provider" horizontal arrow>
+    The web provider that drives Auth0 login and signature requests.
+  </Card>
+  <Card title="How it works" icon="route" href="/protocol/how-it-works" horizontal arrow>
+    The end-to-end flow from login to on-chain signature.
+  </Card>
+</CardGroup>

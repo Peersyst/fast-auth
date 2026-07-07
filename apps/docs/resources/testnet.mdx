@@ -1,0 +1,117 @@
+---
+title: "Testnet contracts"
+description: "Deployed NEAR Auth contract addresses, network config, and credentials for NEAR testnet."
+icon: "server"
+---
+
+The addresses below are the live NEAR Auth deployment on **NEAR testnet**. Use them for development and integration testing — testnet needs no approval, and you can point your SDK at these contracts today with the shared credentials on this page.
+
+<Note>
+  Testnet requires no sign-off. When you're ready to go live, review the [mainnet contracts](/resources/mainnet) and [apply for production access](/home/apply).
+</Note>
+
+---
+
+## Contract addresses
+
+| Contract | Account id | Description | Explorer |
+|----------|------------|-------------|----------|
+| NEAR Auth | `fast-auth.testnet` | Entry-point contract that routes verification and requests MPC signatures. | [View](https://testnet.nearblocks.io/address/fast-auth.testnet) |
+| JWT Guard Router | `jwt.fast-auth.testnet` | Registry mapping each guard name to its guard contract. | [View](https://testnet.nearblocks.io/address/jwt.fast-auth.testnet) |
+| Auth0 Guard | `auth0.jwt.fast-auth.testnet` | Guard that RS256-verifies Auth0 JWTs and their claims on-chain. | [View](https://testnet.nearblocks.io/address/auth0.jwt.fast-auth.testnet) |
+| MPC | `v1.signer-prod.testnet` | Multi-Party Computation network that produces signatures from distributed key shares. | [View](https://testnet.nearblocks.io/address/v1.signer-prod.testnet) |
+
+<Tip>
+  In the SDKs, `fast-auth.testnet` is the `fastAuthContractId` and `v1.signer-prod.testnet` is the `mpcContractId`. To learn what each contract does, see the [contracts overview](/protocol/contracts/overview).
+</Tip>
+
+---
+
+## Network information
+
+| Setting | Value |
+|---------|-------|
+| Network | NEAR Testnet |
+| Chain id | `testnet` |
+| RPC endpoint | `https://rpc.testnet.near.org` |
+| Explorer | [testnet.nearblocks.io](https://testnet.nearblocks.io) |
+
+```ts
+import { connect } from "near-api-js";
+
+const { connection } = await connect({
+  networkId: "testnet",
+  nodeUrl: "https://rpc.testnet.near.org",
+});
+```
+
+---
+
+## Auth0 credentials
+
+Testnet ships with a shared Auth0 client so you can start authenticating users without registering your own tenant. The JavaScript provider fills in the domain and signing audience from the `testnet` network, so `clientId` is the only value you need to supply.
+
+| Setting | Value |
+|---------|-------|
+| clientId | `np8paqIpMWmNbzT4xAvOOapZBjsOpptl` |
+| domain | `login.testnet.fast-auth.com` |
+| signing audience | `auth0.jwt.fast-auth.testnet` |
+
+```ts
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+
+const provider = new JavascriptProvider({
+  network: "testnet",
+  clientId: "np8paqIpMWmNbzT4xAvOOapZBjsOpptl",
+});
+```
+
+<Info>
+  This `clientId` is shared across testnet apps and is intended for development only. Provision your own Auth0 credentials before moving to [mainnet](/resources/mainnet).
+</Info>
+
+---
+
+## Wire it up
+
+The full browser client config for testnet combines the contract addresses and the Auth0 provider above.
+
+```ts main.ts
+import { FastAuthClient } from "@fast-auth-near/browser-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+import { connect } from "near-api-js";
+
+const provider = new JavascriptProvider({
+  network: "testnet",
+  clientId: "np8paqIpMWmNbzT4xAvOOapZBjsOpptl",
+});
+
+const { connection } = await connect({
+  networkId: "testnet",
+  nodeUrl: "https://rpc.testnet.near.org",
+});
+
+const client = new FastAuthClient(provider, connection, {
+  fastAuthContractId: "fast-auth.testnet",
+  mpcContractId: "v1.signer-prod.testnet",
+});
+
+await client.login();
+const signer = await client.getSigner();
+```
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Mainnet contracts" icon="server" href="/resources/mainnet" horizontal arrow>
+    Production addresses and credentials for NEAR mainnet.
+  </Card>
+  <Card title="Networks" icon="globe" href="/resources/networks" horizontal arrow>
+    Compare testnet and mainnet configuration side by side.
+  </Card>
+  <Card title="Quickstart" icon="rocket" href="/home/quickstart" horizontal arrow>
+    Log in and sign your first transaction on testnet.
+  </Card>
+</CardGroup>

@@ -1,0 +1,95 @@
+---
+title: "What is NEAR Auth"
+description: "NEAR Auth lets Web2 users sign NEAR transactions with the accounts they already have — no seed phrases, no wallet extensions."
+icon: "book-open"
+---
+
+NEAR Auth is an authentication system for NEAR Protocol that lets people sign real on-chain transactions using the identities they already have — Google, Apple, email, or passkeys — instead of a seed phrase or a wallet extension. Logins run through [Auth0](/protocol/concepts/auth0), keys are secured by a Multi-Party Computation (MPC) network, and every signature is gated by an on-chain JWT verification. The result is a Web2 sign-in experience that produces genuine, non-custodial NEAR accounts.
+
+---
+
+## The problem
+
+NEAR's native account model is powerful, but it asks a lot of newcomers. To transact, a user typically has to install a wallet extension, generate and safeguard a seed phrase or full-access key, and fund the account with NEAR before they can do anything. For people arriving from a Web2 product, every one of those steps is a place to drop off — a lost seed phrase means a lost account, and "install this extension" is a hard ask on mobile.
+
+NEAR Auth removes those steps. Users authenticate with a login they already trust, and the cryptography that controls their NEAR account is handled for them — without any single party ever holding their key.
+
+## What it is
+
+NEAR Auth is made of a few cooperating pieces:
+
+- **Auth0 as the identity provider.** Auth0 is the default and primary provider. It handles Google, Apple, Auth0 username/password, and passkey logins, and it embeds the transaction the user is about to sign directly into the JWT it issues.
+- **On-chain contracts on NEAR.** The NEAR Auth contract (`FastAuth`) is the entry point. It routes each request to a guard contract that cryptographically verifies the Auth0 JWT — checking the issuer, the audience, and the embedded transaction claim — before any signature is allowed.
+- **An MPC network.** A distributed Multi-Party Computation network holds key shares and produces signatures without any single participant ever assembling the full private key. Each identity deterministically derives its own key, so the same login always controls the same NEAR account.
+- **Typed SDKs.** Drop-in libraries for web, React, and React Native (the `@fast-auth-near/*` packages) wrap all of this behind a few method calls, so you never touch the contracts or MPC directly.
+
+## Who it's for
+
+NEAR Auth is for teams building consumer-facing NEAR applications who want mainstream users to onboard in seconds:
+
+- **dApp and product teams** who want social login instead of a wallet-connect flow, so first-time users can transact without any Web3 setup.
+- **Web and mobile developers** shipping on React, vanilla JavaScript or another framework, or React Native — each has a matching SDK.
+- **Anyone who needs non-custodial accounts** without running key infrastructure. Keys live in the MPC network, not in your backend and not in a single vault you have to protect.
+
+## How it works
+
+At a high level, a signed transaction moves through five stages. You call two or three SDK methods; NEAR Auth handles the rest.
+
+<Steps>
+  <Step title="Log in" icon="log-in">
+    The user signs in through Auth0 — Google, Apple, email, or a passkey — using a popup or redirect. Their identity is now established and no seed phrase was ever involved.
+  </Step>
+  <Step title="Request a signature" icon="pen-line">
+    When the user wants to act on-chain, your app asks for a signature. Auth0 issues a JWT with the encoded transaction embedded in its `fatxn` claim, binding the login to that exact transaction.
+  </Step>
+  <Step title="Verify the JWT on-chain" icon="file-check">
+    The NEAR Auth contract routes the request to the Auth0 guard, which verifies the JWT on-chain: it confirms the RS256 signature, the issuer and audience, and that the embedded transaction matches what's being signed. No valid JWT, no signature.
+  </Step>
+  <Step title="MPC signs" icon="shield-check">
+    Once verification passes, NEAR Auth asks the MPC network to sign at a key path derived deterministically from the user's identity. The signature is produced from distributed key shares — never a reconstructed private key.
+  </Step>
+  <Step title="Submit the transaction" icon="send">
+    The signature comes back to your app, which submits the transaction to NEAR. Optionally, a relayer can submit a delegate action on the user's behalf and sponsor the gas — so users can transact without holding any NEAR.
+  </Step>
+</Steps>
+
+<Note>
+  Auth0 embeds the transaction in the JWT, and the on-chain guard checks that the embedded transaction matches the one being signed. A login can only authorize the exact action the user approved — it can't be replayed to sign something else.
+</Note>
+
+## Key benefits
+
+<CardGroup cols={2}>
+  <Card title="No seed phrases" icon="fingerprint" horizontal>
+    Users sign in with Google, Apple, email, or passkeys through Auth0 — nothing to install, nothing to write down, nothing to lose.
+  </Card>
+  <Card title="Non-custodial" icon="shield-check" horizontal>
+    Keys are never held by a single party. The MPC network produces every signature from distributed key shares, so no one — not even you — can unilaterally sign.
+  </Card>
+  <Card title="Per-user NEAR keys" icon="key-round" horizontal>
+    Each identity deterministically derives its own key, so the same login always controls the same NEAR account.
+  </Card>
+  <Card title="Gasless option" icon="fuel" horizontal>
+    Pair with a relayer to sponsor gas via delegate actions, letting users transact without ever holding NEAR.
+  </Card>
+</CardGroup>
+
+<Warning>
+  Because login runs through Auth0, the experience uses a popup or a full-page redirect back to your app. Design your flow to handle the return — the SDKs restore the session for you, but plan your UI around that round trip.
+</Warning>
+
+---
+
+## Next steps
+
+<CardGroup cols={3}>
+  <Card title="Quickstart" icon="rocket" href="/home/quickstart" arrow>
+    Add social login and sign your first NEAR transaction in under five minutes.
+  </Card>
+  <Card title="Choose your SDK" icon="git-compare" href="/home/guides/choose-your-sdk" arrow>
+    Pick the right library for React, vanilla JavaScript, or React Native.
+  </Card>
+  <Card title="How the protocol works" icon="layers" href="/protocol/overview" arrow>
+    Go under the hood into the contracts, JWT verification, and MPC signing.
+  </Card>
+</CardGroup>

@@ -1,0 +1,190 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "NEAR Auth",
+  "colors": {
+    "primary": "#1fb858",
+    "light": "#3ed67a",
+    "dark": "#1fb858"
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.svg",
+  "icons": {
+    "library": "lucide"
+  },
+  "fonts": {
+    "family": "Inter"
+  },
+  "appearance": {
+    "default": "system",
+    "strict": false
+  },
+  "styling": {
+    "eyebrows": "breadcrumbs",
+    "codeblocks": {
+      "theme": {
+        "light": "github-light",
+        "dark": "github-dark"
+      }
+    }
+  },
+  "search": {
+    "prompt": "Search NEAR Auth docs..."
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Apply for access",
+        "href": "https://docs.google.com/forms/d/e/1FAIpQLSftBL_EKeu02gYSTPg4luCpnGLsRyp6Fcbqxl0tKDK9T11aIg/viewform",
+        "icon": "clipboard-check"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "GitHub",
+      "href": "https://github.com/Peersyst/fast-auth"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Home",
+        "icon": "house",
+        "groups": [
+          {
+            "group": " ",
+            "pages": [
+              "index",
+              "home/what-is"
+            ]
+          },
+          {
+            "group": "Get Started",
+            "pages": [
+              "home/quickstart"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "home/guides/choose-your-sdk",
+              "home/guides/authenticate-users",
+              "home/guides/sign-transactions"
+            ]
+          },
+          {
+            "group": "Go Live",
+            "pages": [
+              "home/apply"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Protocol",
+        "icon": "layers",
+        "groups": [
+          {
+            "group": " ",
+            "pages": [
+              "protocol/overview",
+              "protocol/how-it-works"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "protocol/concepts/jwt",
+              "protocol/concepts/auth0",
+              "protocol/concepts/mpc",
+              "protocol/concepts/relayer"
+            ]
+          },
+          {
+            "group": "Smart Contracts",
+            "pages": [
+              "protocol/contracts/overview",
+              "protocol/contracts/fast-auth",
+              "protocol/contracts/jwt-guard-router",
+              "protocol/contracts/auth0-guard"
+            ]
+          },
+          {
+            "group": "Advanced",
+            "pages": [
+              "protocol/advanced/custom-issuer",
+              "protocol/advanced/custom-issuer-guard",
+              "protocol/advanced/attestation",
+              "protocol/advanced/custom-backend"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "SDKs",
+        "icon": "code",
+        "groups": [
+          {
+            "group": " ",
+            "pages": [
+              "sdks/overview"
+            ]
+          },
+          {
+            "group": "SDKs",
+            "pages": [
+              "sdks/react-sdk",
+              "sdks/browser-sdk"
+            ]
+          },
+          {
+            "group": "Providers",
+            "pages": [
+              "sdks/javascript-provider",
+              "sdks/react-native-provider"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "sdks/core"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Resources",
+        "icon": "book-open",
+        "groups": [
+          {
+            "group": " ",
+            "pages": [
+              "resources/overview"
+            ]
+          },
+          {
+            "group": "Deployments",
+            "pages": [
+              "resources/mainnet",
+              "resources/testnet"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "resources/networks"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/Peersyst/fast-auth"
+    }
+  }
+}

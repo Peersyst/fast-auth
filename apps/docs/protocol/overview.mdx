@@ -1,0 +1,101 @@
+---
+title: "Protocol overview"
+description: "The three layers behind NEAR Auth — smart contracts, an MPC signing network, and optional off-chain services."
+icon: "layers"
+---
+
+NEAR Auth lets users sign NEAR transactions with the Web2 identities they already have — Google, Apple, email, or passkeys — while their keys stay secured by a Multi-Party Computation network. This page introduces the architecture at a glance: the three layers that make it work and what each one is responsible for.
+
+Under the hood, an on-chain contract system verifies a signed JWT, an MPC network produces the signature from distributed key shares, and optional off-chain services stitch the pieces together for your app.
+
+---
+
+## The three layers
+
+NEAR Auth is composed of three cooperating layers. Only the first two are required; the third is optional and depends on your integration.
+
+<CardGroup cols={3}>
+  <Card title="Smart contracts" icon="file-check">
+    On-chain contracts that authenticate the user, verify the JWT, and coordinate with the MPC network to produce a signature.
+  </Card>
+  <Card title="MPC network" icon="network">
+    A distributed network that holds key shares and signs without any single party ever seeing the full private key.
+  </Card>
+  <Card title="Off-chain services" icon="server">
+    Optional services — such as a relayer for gasless transactions or a custom backend — that support the flow.
+  </Card>
+</CardGroup>
+
+---
+
+### 1. Smart contracts
+
+The smart contracts are the core of NEAR Auth. They enable the interaction between the end user and the MPC network to sign transactions or payloads securely, and they are the only component that decides whether a signature is allowed.
+
+The contract system is designed with modularity in mind. Different identity providers plug in as interchangeable **guard** contracts, so the same core can support Auth0 today and other providers later without changing its trust model. This design gives you:
+
+- **Flexible authentication** — support for multiple identity providers through interchangeable guard contracts.
+- **Secure signing** — JWT verification followed by MPC-based signature generation.
+- **Decentralized key management** — through an attestation contract and the MPC network.
+
+The main pieces are the `FastAuth` contract (the entry point that coordinates authentication and MPC signing), the `JwtGuardRouter` (which routes each verification request to the right guard), and the guards themselves. On the Auth0 happy path, the **Auth0 Guard** performs the actual RS256 JWT verification — checking the issuer, the audience, and that the `fatxn` claim matches the transaction being signed.
+
+<Card title="Contracts overview" icon="boxes" href="/protocol/contracts/overview" horizontal arrow>
+  The full contract system: `FastAuth`, the JWT Guard Router, and the guards.
+</Card>
+
+---
+
+### 2. MPC network
+
+The MPC network is a distributed system that holds key shares and produces signatures **without any single party having access to the full private key**. This is what makes NEAR Auth non-custodial: no server, and no NEAR Auth operator, can unilaterally sign on a user's behalf.
+
+Signing is deterministic per identity. Each user's key is derived at the path `{guard_id}#{user_subject}`, so the same login always controls the same NEAR account. The network only signs after the smart contract layer has verified the JWT, which keeps authorization and key custody cleanly separated.
+
+<Card title="MPC signing" icon="network" href="/protocol/concepts/mpc" horizontal arrow>
+  How distributed key shares, derivation paths, and threshold signing work.
+</Card>
+
+---
+
+### 3. Off-chain services <Badge color="gray">optional</Badge>
+
+Everything above runs on-chain. In practice, most integrations also lean on a few off-chain services to smooth out the user experience:
+
+- A **relayer** submits the signed transaction — and can sponsor gas via delegate actions, so users transact without holding NEAR.
+- A **custom backend** can implement bespoke authentication flows when the default Auth0 path is not enough.
+
+These services never hold keys and never bypass on-chain verification; they only orchestrate requests around the contracts and the MPC network.
+
+<Card title="Relayer" icon="server" href="/protocol/concepts/relayer" horizontal arrow>
+  How gasless, relayer-submitted transactions work with delegate actions.
+</Card>
+
+---
+
+## How the layers fit together
+
+At a high level, the identity provider issues a JWT that embeds the encoded transaction, the smart contracts verify that JWT on-chain, and the MPC network signs. The building blocks that recur across all three layers are the **JWT** (the signed proof of identity and intent) and the **MPC network** (the source of every signature).
+
+<CardGroup cols={2}>
+  <Card title="How it works" icon="route" href="/protocol/how-it-works" horizontal arrow>
+    Follow a login-to-signature request end to end across all three layers.
+  </Card>
+  <Card title="JWT verification" icon="scroll-text" href="/protocol/concepts/jwt" horizontal arrow>
+    The RS256 claims — including `fatxn` — that get verified on-chain.
+  </Card>
+</CardGroup>
+
+<Note>
+  New to the flow? Start with [How it works](/protocol/how-it-works) for the end-to-end walkthrough, then dive into [Contracts](/protocol/contracts/overview) and [MPC](/protocol/concepts/mpc) for the details.
+</Note>
+
+---
+
+## Going further
+
+The Auth0 guard is the default path. NEAR Auth's modular guard design also supports alternative providers and self-hosted infrastructure — plugging in your own custom OIDC issuer, attestation-based key management, or a custom backend. Those variants live under **Protocol → Advanced**.
+
+<Card title="Advanced provider variants" icon="git-compare" href="/protocol/advanced/custom-issuer" horizontal arrow>
+  Custom issuers, attestation, and custom backends.
+</Card>

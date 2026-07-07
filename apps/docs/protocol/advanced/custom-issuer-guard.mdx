@@ -1,0 +1,189 @@
+---
+title: "Custom Issuer Guard"
+description: "The on-chain guard that verifies JWTs from a custom OIDC issuer using RS256 keys managed by a DAO-governed attestation contract."
+icon: "shield-plus"
+---
+
+The **Custom Issuer Guard** is the on-chain contract that lets NEAR Auth accept JWTs from your own OpenID Connect (OIDC) issuer instead of Auth0. It verifies the RS256 signature, checks the `iss` and `fatxn` claims, and — unlike the [Auth0 Guard](/protocol/contracts/auth0-guard) — performs **no audience (`aud`) check**. Its RSA public keys are not owner-managed; they are pulled from a DAO-governed [Attestation contract](/protocol/advanced/attestation), so keys can rotate dynamically without redeploying the guard.
+
+<Info>
+  This is an **advanced** protocol topic. If you are building on the default Auth0 happy path, you do not need this guard — see [How it works](/protocol/how-it-works) instead. Use the Custom Issuer Guard only when you run your own [custom issuer](/protocol/advanced/custom-issuer) service.
+</Info>
+
+The Rust source lives in the [`Peersyst/fast-auth`](https://github.com/Peersyst/fast-auth) repo at `contracts/jwt-guards/custom-issuer-guard`, and the shared verification logic it inherits lives in `contracts/jwt-guards/base-jwt-guard`.
+
+---
+
+## Where it fits
+
+Like every guard, the Custom Issuer Guard implements the shared `JwtGuard` trait and is reached through the router:
+
+<Steps>
+  <Step title="An app calls FastAuth.sign">
+    The dApp submits `FastAuth.sign(guard_id, verify_payload, sign_payload, algorithm)` on the [NEAR Auth contract](/protocol/contracts/fast-auth), where `guard_id` resolves to your custom-issuer guard and `verify_payload` is the JWT re-issued by your custom issuer.
+  </Step>
+  <Step title="The router routes to this guard">
+    The [JWT Guard Router](/protocol/contracts/jwt-guard-router) looks up the guard account registered for that `guard_id` and forwards the verification request to this contract.
+  </Step>
+  <Step title="The guard verifies the JWT">
+    The Custom Issuer Guard checks the RS256 signature against its stored keys, then validates the issuer and the `fatxn` binding. On success it returns the token subject.
+  </Step>
+  <Step title="MPC signs at the derived path">
+    If verification passes, NEAR Auth asks the [MPC network](/protocol/concepts/mpc) to sign at the identity's deterministic path, and a [relayer](/protocol/concepts/relayer) can submit the resulting transaction.
+  </Step>
+</Steps>
+
+---
+
+## What it verifies
+
+Verification runs through the shared `internal_verify` flow inherited from `base-jwt-guard`, plus the custom-claims check implemented by this guard. A token is accepted only when **all** of the following hold:
+
+| Check | Rule |
+| --- | --- |
+| **Size** | The JWT must not exceed 7&nbsp;KB (`7168` bytes). |
+| **Signature** | The RS256 signature must verify against at least one stored RSA public key, using PKCS#1 v1.5 padding over the `header.payload` segment. |
+| **`fatxn`** | The `fatxn` claim (the encoded transaction / delegate-action payload) must byte-for-byte equal the `sign_payload` passed to `sign`. |
+| **`exp`** | The token must not be expired (`exp` &gt; current block time in seconds). |
+| **`nbf`** | The token must already be valid (`nbf` ≤ current block time), when present. |
+| **`iss`** | The `iss` claim must exactly match the `issuer` argument supplied by the caller. |
+
+<Warning>
+  Unlike the [Auth0 Guard](/protocol/contracts/auth0-guard), the Custom Issuer Guard **does not check the `aud` (audience) claim**. Trust in the token comes from the signature plus the `iss` match, so the RSA keys held by this guard must correspond only to issuers you control. Anyone who can mint a validly signed token for the configured issuer can pass verification.
+</Warning>
+
+The custom-claims portion is deliberately minimal — it parses only the `fatxn` field and compares it to the sign payload:
+
+```rust custom-issuer-guard/src/lib.rs
+/// Custom claims for a NEAR Auth custom-issuer JWT.
+pub struct CustomClaims {
+    pub fatxn: Vec<u8>,
+}
+
+// Inside verify_custom_claims:
+if claims.fatxn != sign_payload {
+    return (false, "Transaction payload mismatch".to_string());
+}
+(true, "".to_string())
+```
+
+The `iss`, `exp`, and `nbf` checks (and the RS256 verification itself) are handled by the shared `base-jwt-guard` logic, so this guard only has to bind the token to the exact transaction being signed.
+
+---
+
+## Methods
+
+### `verify`
+
+The public entry point the router calls during a signing request.
+
+```rust
+pub fn verify(
+    &self,
+    issuer: String,
+    jwt: String,
+    sign_payload: Vec<u8>,
+    predecessor: AccountId,
+) -> (bool, String)
+```
+
+It delegates to the shared `internal_verify` and returns a tuple of `(verified, message)`. On success, `verified` is `true` and the second element carries the token's `sub` (subject) claim; on failure it is `false` with a human-readable reason such as `"Invalid issuer"`, `"Token expired"`, or `"Transaction payload mismatch"`.
+
+### `set_public_keys`
+
+Refreshes the guard's RSA keys by pulling the current key set from the configured [Attestation contract](/protocol/advanced/attestation). This is the mechanism that enables dynamic key rotation — no redeploy required.
+
+```rust
+pub fn set_public_keys(&mut self) -> Promise
+```
+
+It issues a cross-contract call to `get_public_keys()` on the attestation contract, then in the `on_set_public_keys_callback` it validates every returned key with `assert_valid_public_key` and stores them. If the attestation call fails, the callback panics so no partial or invalid key set is ever persisted.
+
+<Note>
+  Because keys are sourced from attestation, **anyone** can call `set_public_keys` — it only mirrors what the DAO-governed attestation contract already publishes. Governance of which keys are trusted lives in the attestation contract, not here.
+</Note>
+
+### `set_attestation_contract` and `get_attestation_contract`
+
+Point the guard at a different attestation contract, or read the one currently configured.
+
+```rust
+#[access_control_any(roles(Role::DAO))]
+pub fn set_attestation_contract(&mut self, attestation_contract: AccountId)
+
+pub fn get_attestation_contract(&self) -> AccountId
+```
+
+Changing the attestation source is a privileged operation restricted to the `DAO` role; reading it is open.
+
+### `get_public_keys`
+
+The `JwtGuard` trait accessor that returns the RSA public keys the guard currently trusts.
+
+```rust
+fn get_public_keys(&self) -> Vec<JwtPublicKey>
+```
+
+Each `JwtPublicKey` is the RSA modulus (`n`) and exponent (`e`) as byte vectors — 2048-bit PKCS#1 v1.5 keys.
+
+---
+
+## Roles and access control
+
+The guard uses the `near-plugins` access-control and upgradable framework. Four roles govern administration and staged upgrades:
+
+| Role | Responsibility |
+| --- | --- |
+| `DAO` | Super-administrative role. Can repoint the attestation contract and holds every upgrade permission below. |
+| `CodeStager` | Can stage new contract code ahead of a deployment. |
+| `CodeDeployer` | Can deploy staged code updates. |
+| `DurationManager` | Can initialize and update the upgrade timelock (duration) settings. |
+
+Upgrades are staged and time-locked: the `code_stagers`, `code_deployers`, and the duration initializer/updater/applier permissions are each granted to the relevant role **and** to `DAO`, so the DAO can always act as a backstop. Roles are seeded at initialization from a `RolesConfig` of `super_admins`, `admins`, and `grantees`, alongside the initial `public_keys`.
+
+```rust
+#[init]
+pub fn init(config: CustomIssuerGuardConfig, attestation_contract: AccountId) -> Self
+```
+
+`CustomIssuerGuardConfig` carries the starting `public_keys` and the `roles` configuration; the attestation contract account is passed separately and can later be changed by the `DAO`.
+
+---
+
+## How it differs from the Auth0 Guard
+
+<CardGroup cols={2}>
+  <Card title="Audience check" icon="shield-off" horizontal>
+    Auth0 Guard requires `aud` to contain its own account id. The Custom Issuer Guard performs **no** audience check.
+  </Card>
+  <Card title="Key management" icon="refresh-cw" horizontal>
+    Auth0 Guard keys are owner-managed. Custom Issuer Guard keys are pulled from a DAO-governed attestation contract and rotate dynamically.
+  </Card>
+  <Card title="Issuer" icon="globe" horizontal>
+    Auth0 Guard trusts Auth0's issuer. This guard trusts whatever `iss` you supply, backed by keys you attest to.
+  </Card>
+  <Card title="Governance" icon="users" horizontal>
+    Auth0 Guard is single-owner. This guard is role-based (`DAO` and upgrade roles) with staged, time-locked upgrades.
+  </Card>
+</CardGroup>
+
+Everything else — the RS256 signature check, the 7&nbsp;KB size limit, the `fatxn`-to-`sign_payload` binding, and the `exp`/`nbf`/`iss` validation — is shared with the other guards through `base-jwt-guard`.
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Custom Issuer" icon="server" href="/protocol/advanced/custom-issuer" arrow>
+    Run your own OIDC issuer service that mints the JWTs this guard verifies.
+  </Card>
+  <Card title="Attestation" icon="database" href="/protocol/advanced/attestation" arrow>
+    The DAO-governed contract that publishes the RSA keys the guard fetches.
+  </Card>
+  <Card title="JWT Guard Router" icon="route" href="/protocol/contracts/jwt-guard-router" arrow>
+    How signing requests are routed to the right guard.
+  </Card>
+  <Card title="Auth0 Guard" icon="shield-check" href="/protocol/contracts/auth0-guard" arrow>
+    The default guard, and the audience-checking counterpart to this one.
+  </Card>
+</CardGroup>

@@ -1,0 +1,406 @@
+---
+title: "React Native Provider"
+description: "Native mobile Auth0 login and NEAR signature requests for React Native, backed by react-native-auth0."
+icon: "smartphone"
+---
+
+The `@fast-auth-near/react-native-provider` package ships `ReactNativeProvider`, the mobile identity provider for NEAR Auth. It adapts [`react-native-auth0`](https://github.com/auth0/react-native-auth0) to the shared provider interface so your iOS and Android app can authenticate users with Auth0 and request NEAR signatures using the platform's native Web Authentication browser.
+
+Like every provider, it implements `IFastAuthProvider` and is designed to be injected into a `FastAuthClient` from the [React SDK](/sdks/react-sdk). The provider handles Auth0 login and signature requests; the SDK handles NEAR account and transaction plumbing.
+
+<Note>
+  This is the mobile counterpart of the [JavaScript provider](/sdks/javascript-provider). It exposes the same method surface but authenticates through the native Auth0 SDK instead of a web popup or redirect. See [Key differences](#key-differences-vs-the-javascript-provider) below.
+</Note>
+
+---
+
+## Installation
+
+<CodeGroup>
+
+```bash npm
+npm install @fast-auth-near/react-native-provider
+```
+
+```bash yarn
+yarn add @fast-auth-near/react-native-provider
+```
+
+```bash pnpm
+pnpm add @fast-auth-near/react-native-provider
+```
+
+</CodeGroup>
+
+The package depends on `react-native-auth0`, `near-api-js`, `@near-js/transactions`, and `jose`. It requires `react` (>=16.8.0) and `react-native` (>=0.60.0) as peer dependencies.
+
+<Warning>
+  `react-native-auth0` includes native modules. After installing, run `pod install` in your `ios/` directory and configure your Auth0 callback URLs for iOS and Android per the [react-native-auth0 setup guide](https://github.com/auth0/react-native-auth0#getting-started). Login opens the system browser, so both platforms must register the app's URL scheme.
+</Warning>
+
+---
+
+## Constructor
+
+```ts
+import { ReactNativeProvider } from "@fast-auth-near/react-native-provider";
+
+const provider = new ReactNativeProvider({
+  network: "testnet",
+  clientId: "your-auth0-client-id",
+});
+```
+
+`ReactNativeProvider` takes a single options object. Only `network` and `clientId` are required — `domain` and `signingAudience` fall back to the NEAR Auth defaults for the chosen network.
+
+<ParamField path="network" type='"mainnet" | "testnet"' required>
+  The NEAR network to target. Selects the default Auth0 `domain` and `signingAudience` for that network.
+</ParamField>
+
+<ParamField path="clientId" type="string" required>
+  Your Auth0 application client ID.
+</ParamField>
+
+<ParamField path="domain" type="string">
+  The Auth0 domain. Defaults to `login.auth.near.org` on mainnet and `login.testnet.fast-auth.com` on testnet.
+</ParamField>
+
+<ParamField path="signingAudience" type="string">
+  The Auth0 API audience used when requesting signature tokens. Defaults to `auth0.jwt.fast-auth.near` on mainnet and `auth0.jwt.fast-auth.testnet` on testnet.
+</ParamField>
+
+Internally the constructor resolves these options against `FAST_AUTH_AUTH0_DEFAULTS[network]` and instantiates the underlying `Auth0` client with the resolved `domain` and `clientId`.
+
+### Network defaults
+
+| Network | `domain` | `signingAudience` |
+| --- | --- | --- |
+| `mainnet` | `login.auth.near.org` | `auth0.jwt.fast-auth.near` |
+| `testnet` | `login.testnet.fast-auth.com` | `auth0.jwt.fast-auth.testnet` |
+
+<Tip>
+  On testnet you can use the shared NEAR Auth Auth0 client ID `np8paqIpMWmNbzT4xAvOOapZBjsOpptl` to start building immediately — no sign-off required. When you are ready for mainnet, [apply for production access](/home/apply).
+</Tip>
+
+---
+
+## Setup with `<Auth0Provider>`
+
+`react-native-auth0` requires an `Auth0Provider` context around your component tree. The package re-exports `Auth0Provider` for convenience, so you can wrap your app and construct the `ReactNativeProvider` in one place.
+
+```tsx App.tsx
+import { Auth0Provider, ReactNativeProvider } from "@fast-auth-near/react-native-provider";
+
+const provider = new ReactNativeProvider({
+  network: "testnet",
+  clientId: "your-auth0-client-id",
+});
+
+export default function App() {
+  return (
+    <Auth0Provider
+      domain="login.testnet.fast-auth.com"
+      clientId="your-auth0-client-id"
+    >
+      <YourApp provider={provider} />
+    </Auth0Provider>
+  );
+}
+```
+
+The `domain` and `clientId` you pass to `<Auth0Provider>` must match the ones the `ReactNativeProvider` resolves, so both talk to the same Auth0 tenant.
+
+### Using it with the React SDK
+
+To drive the provider through the [React SDK](/sdks/react-sdk) hooks, use the `reactNativeProviderConfig` helper. It returns both the provider instance and a `reactProvider` render function that wraps children in the correct `<Auth0Provider>` for you — pass the whole config straight to `FastAuthProvider`.
+
+```tsx App.tsx
+import { FastAuthProvider } from "@fast-auth-near/react-sdk";
+import { reactNativeProviderConfig } from "@fast-auth-near/react-native-provider";
+import { Connection } from "near-api-js";
+
+const connection = new Connection({
+  networkId: "testnet",
+  provider: {
+    type: "JsonRpcProvider",
+    args: { url: "https://rpc.testnet.near.org" },
+  },
+});
+
+const providerConfig = reactNativeProviderConfig({
+  network: "testnet",
+  clientId: "your-auth0-client-id",
+});
+
+export default function App() {
+  return (
+    <FastAuthProvider
+      providerConfig={providerConfig}
+      connection={connection}
+      network="testnet"
+    >
+      <YourApp />
+    </FastAuthProvider>
+  );
+}
+```
+
+`reactNativeProviderConfig` accepts the same options as the constructor and returns `{ provider, reactProvider }`. From there, use `useFastAuth`, `useIsLoggedIn`, and `useSigner` exactly as documented in the [React SDK reference](/sdks/react-sdk).
+
+---
+
+## Methods
+
+`ReactNativeProvider` exposes the full `IFastAuthProvider` surface. Every method is asynchronous.
+
+| Method | Purpose |
+| --- | --- |
+| `login(forceSelectAccount?)` | Sign in via native Web Authentication and persist the session. |
+| `logout()` | Clear the remote Auth0 session and local credentials. |
+| `isLoggedIn()` | Check whether valid, unexpired session credentials exist. |
+| `getPath()` | Return the NEAR Auth path derived from the session subject. |
+| `requestTransactionSignature({ transaction })` | Open an authorization flow to approve signing a transaction. |
+| `requestDelegateActionSignature({ delegateAction })` | Open an authorization flow to approve signing a delegate action. |
+| `getSignatureRequest()` | Consume the one-shot signing credentials into a `SignatureRequest`. |
+
+### `login`
+
+```ts
+login(forceSelectAccount?: boolean): Promise<LoginResponse>
+```
+
+Starts the native Web Authentication flow in the system browser. On success it decodes the subject (`sub`) from the returned credentials and persists the session through the Auth0 `credentialsManager`, so the user stays signed in across app launches. Resolves to a `LoginResponse` (`{ userId }`).
+
+Pass `forceSelectAccount: true` to send Auth0 `prompt=login`, forcing the account picker instead of silently reusing an existing session.
+
+```ts
+// Standard login (reuses an existing Auth0 session if present)
+const { userId } = await provider.login();
+
+// Force the user to re-select an account
+await provider.login(true);
+```
+
+### `logout`
+
+```ts
+logout(): Promise<void>
+```
+
+Clears the in-memory signing credentials, then clears the remote Auth0 session and the persisted session credentials.
+
+<Warning>
+  If clearing the remote Auth0 session fails, `logout` still clears the local credentials and then re-throws the error. Wrap the call in `try/catch` if you want to surface remote sign-out failures to the user — the device is logged out regardless.
+</Warning>
+
+### `isLoggedIn`
+
+```ts
+isLoggedIn(): Promise<boolean>
+```
+
+Returns `true` only when the `credentialsManager` holds credentials whose `expiresAt` is still in the future. Any error while reading credentials resolves to `false`, so this is safe to call on startup.
+
+```ts
+if (await provider.isLoggedIn()) {
+  // show the authenticated experience
+}
+```
+
+### `getPath`
+
+```ts
+getPath(): Promise<string>
+```
+
+Returns the NEAR Auth path for the signed-in user, built from the session ID token's subject and the Auth0 domain:
+
+```text
+jwt#https://{domain}/#${sub}
+```
+
+This is the deterministic identifier NEAR Auth uses to derive the user's key. Throws a `ReactNativeProviderError` with code `CREDENTIALS_NOT_FOUND` when there is no session ID token.
+
+### `requestTransactionSignature`
+
+```ts
+requestTransactionSignature(
+  options: { transaction: Transaction }
+): Promise<RequestTransactionSignatureResponse>
+```
+
+Encodes the NEAR `Transaction`, then opens a fresh Web Authentication flow against the `signingAudience` with scope `transaction:sign`, embedding the encoded transaction as an authorization parameter. The resulting signing token is held **in memory only** — it does not touch the persisted session — and is decoded by [`getSignatureRequest`](#getsignaturerequest). Resolves to the authenticated `{ userId }`.
+
+```ts
+import { Transaction } from "near-api-js/lib/transaction";
+
+await provider.requestTransactionSignature({ transaction });
+const { signatureRequest } = await provider.getSignatureRequest();
+```
+
+<Note>
+  Options are passed directly — there is no wrapping `options` key. Pass `{ transaction }`, not `{ options: { transaction } }`.
+</Note>
+
+### `requestDelegateActionSignature`
+
+```ts
+requestDelegateActionSignature(
+  options: { delegateAction: DelegateAction }
+): Promise<RequestDelegateActionSignatureResponse>
+```
+
+Identical to `requestTransactionSignature` but for a [`DelegateAction`](/home/guides/sign-transactions) (the meta-transaction submitted through a relayer for gasless signing). It encodes the delegate action, opens the signing flow against the `signingAudience` with scope `transaction:sign`, and keeps the signing token in memory for `getSignatureRequest` to consume.
+
+```ts
+import { DelegateAction } from "@near-js/transactions";
+
+await provider.requestDelegateActionSignature({ delegateAction });
+const { signatureRequest } = await provider.getSignatureRequest();
+```
+
+### `getSignatureRequest`
+
+```ts
+getSignatureRequest(): Promise<{ user: User; signatureRequest: SignatureRequest }>
+```
+
+Consumes the in-memory signing credentials produced by the last `requestTransactionSignature` or `requestDelegateActionSignature` call and returns the `SignatureRequest` your app submits on-chain:
+
+```ts
+interface SignatureRequest {
+  guardId: string;        // `jwt#https://{domain}/`
+  verifyPayload: string;  // the signing access token (JWT with the fatxn claim)
+  signPayload: Uint8Array; // the encoded transaction / delegate action to sign
+}
+```
+
+It also returns the resolved `user` (`{ userId }`) from the token's subject.
+
+<Warning>
+  The signing credentials are **one-shot**. `getSignatureRequest` reads them, then sets the in-memory credentials back to `null`. Call it exactly once per signature request — a second call before the next `request*Signature` throws `CREDENTIALS_NOT_FOUND`. It also throws `CREDENTIALS_NOT_FOUND` if no signing flow has been run yet.
+</Warning>
+
+---
+
+## Key differences vs the JavaScript provider
+
+Both providers implement `IFastAuthProvider` and expose the same methods, so you can swap platforms with minimal code changes. The behavioral differences come from mobile Auth0:
+
+<CardGroup cols={2}>
+  <Card title="Native Web Authentication" icon="smartphone">
+    Login always uses the system browser via `react-native-auth0`. There is no popup-vs-redirect choice like on web — the [JavaScript provider](/sdks/javascript-provider) exposes both.
+  </Card>
+  <Card title="Persistent sessions" icon="database">
+    Session credentials are stored by the Auth0 `credentialsManager`, so users stay signed in across app restarts without re-authenticating.
+  </Card>
+  <Card title="In-memory, one-shot signing" icon="key-round">
+    Signing tokens are kept in memory and consumed once by `getSignatureRequest`. They never touch the persisted session, and a second read throws.
+  </Card>
+  <Card title="Params without an options wrapper" icon="code">
+    Signature methods take `{ transaction }` / `{ delegateAction }` directly. There is no `redirectUri` option, since mobile does not redirect the way the web provider can.
+  </Card>
+</CardGroup>
+
+---
+
+## Error handling
+
+Provider failures throw a `ReactNativeProviderError` carrying a typed code. Import both to branch on the failure reason:
+
+```ts
+import {
+  ReactNativeProviderError,
+  ReactNativeProviderErrorCodes,
+} from "@fast-auth-near/react-native-provider";
+
+try {
+  const path = await provider.getPath();
+} catch (error) {
+  if (error instanceof ReactNativeProviderError) {
+    switch (error.message) {
+      case ReactNativeProviderErrorCodes.CREDENTIALS_NOT_FOUND:
+        // no session or signing credentials available
+        break;
+      case ReactNativeProviderErrorCodes.INVALID_SUB:
+        // the token is missing a subject claim
+        break;
+    }
+  }
+}
+```
+
+| Code | Meaning |
+| --- | --- |
+| `USER_NOT_LOGGED_IN` | An operation needed an authenticated user but none was present. |
+| `CREDENTIALS_NOT_FOUND` | No session or signing credentials were found in storage or memory. |
+| `INVALID_SUB` | The token did not contain a valid `sub` (subject) claim. |
+| `INVALID_TOKEN` | The token was malformed or could not be decoded. |
+
+---
+
+## Full example
+
+```tsx App.tsx
+import { Auth0Provider, ReactNativeProvider } from "@fast-auth-near/react-native-provider";
+import { Transaction } from "near-api-js/lib/transaction";
+import { Button, View } from "react-native";
+import { useCallback } from "react";
+
+const provider = new ReactNativeProvider({
+  network: "testnet",
+  clientId: "your-auth0-client-id",
+});
+
+function Screen() {
+  const signIn = useCallback(async () => {
+    await provider.login();
+  }, []);
+
+  const sign = useCallback(async (transaction: Transaction) => {
+    await provider.requestTransactionSignature({ transaction });
+    const { signatureRequest } = await provider.getSignatureRequest();
+    // submit signatureRequest on-chain via the React SDK's FastAuthClient
+    return signatureRequest;
+  }, []);
+
+  return (
+    <View>
+      <Button title="Sign in" onPress={signIn} />
+    </View>
+  );
+}
+
+export default function App() {
+  return (
+    <Auth0Provider domain="login.testnet.fast-auth.com" clientId="your-auth0-client-id">
+      <Screen />
+    </Auth0Provider>
+  );
+}
+```
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="React SDK" icon="atom" href="/sdks/react-sdk" horizontal arrow>
+    Inject this provider into `FastAuthClient` and drive it with hooks.
+  </Card>
+  <Card title="JavaScript provider" icon="globe" href="/sdks/javascript-provider" horizontal arrow>
+    The web counterpart with popup and redirect login.
+  </Card>
+  <Card title="Authenticate users" icon="log-in" href="/home/guides/authenticate-users" horizontal arrow>
+    Login, logout, and session handling end to end.
+  </Card>
+  <Card title="Sign transactions" icon="file-check" href="/home/guides/sign-transactions" horizontal arrow>
+    Turn a signature request into a submitted NEAR transaction.
+  </Card>
+  <Card title="Choose your SDK" icon="git-compare" href="/home/guides/choose-your-sdk" horizontal arrow>
+    See how the providers and SDKs fit different stacks.
+  </Card>
+  <Card title="All SDKs" icon="code" href="/sdks/overview" horizontal arrow>
+    Browse every published NEAR Auth library.
+  </Card>
+</CardGroup>

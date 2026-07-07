@@ -1,0 +1,452 @@
+---
+title: "React SDK"
+description: "Full reference for the NEAR Auth React SDK — the FastAuthProvider, hooks, and the relayer-backed client and signer."
+icon: "atom"
+mode: "wide"
+---
+
+The React SDK is the fastest way to add NEAR Auth to a React app. It ships a single `<FastAuthProvider>` that wires up a relayer-backed `FastAuthClient`, plus a set of hooks (`useFastAuth`, `useSigner`, `useIsLoggedIn`, `usePublicKey`) that manage loading and error state for you. Under the hood the client and signer delegate to an auth provider — [`JavascriptProvider`](/sdks/javascript-provider) on web, [`ReactNativeProvider`](/sdks/react-native-provider) on mobile — for the Auth0 login and signature flow.
+
+<Info>
+  This SDK re-exports the framework-agnostic core (`FastAuthClient`, `FastAuthSigner`, `FastAuthSignature`) documented in the [Browser SDK](/sdks/browser-sdk). The React variants add automatic per-network contract configuration and relayer support, so you rarely touch the classes directly — the hooks do it for you.
+</Info>
+
+---
+
+## Installation
+
+The SDK requires React 19 and `near-api-js` as peer dependencies. Install it alongside `near-api-js` and the auth provider for your platform.
+
+<CodeGroup>
+
+```bash npm
+npm install @fast-auth-near/react-sdk near-api-js
+```
+
+```bash yarn
+yarn add @fast-auth-near/react-sdk near-api-js
+```
+
+```bash pnpm
+pnpm add @fast-auth-near/react-sdk near-api-js
+```
+
+</CodeGroup>
+
+| Peer dependency | Version | Why |
+| --- | --- | --- |
+| `react` | `^19.0.0` | The SDK is built on React 19 hooks and context. |
+| `near-api-js` | latest | Supplies the `Connection` used to talk to NEAR RPC. |
+
+Then add the web auth provider (`@fast-auth-near/javascript-provider`) or the mobile one (`@fast-auth-near/react-native-provider`) depending on your target. See [Choose your SDK](/home/guides/choose-your-sdk) if you are unsure which one fits your stack.
+
+---
+
+## `<FastAuthProvider>`
+
+Wrap your app once, near the root. The provider constructs a `FastAuthClient` from your auth provider, NEAR connection, and target network, then exposes it to the tree via context. Every hook in this SDK must be rendered inside it.
+
+```tsx App.tsx
+import { FastAuthProvider } from "@fast-auth-near/react-sdk";
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+import { connect } from "near-api-js";
+
+const provider = new JavascriptProvider({
+  network: "testnet",
+  clientId: "your-auth0-client-id",
+});
+
+const { connection } = await connect({
+  networkId: "testnet",
+  nodeUrl: "https://rpc.testnet.near.org",
+});
+
+export default function App() {
+  return (
+    <FastAuthProvider
+      providerConfig={{ provider }}
+      connection={connection}
+      network="testnet"
+    >
+      <YourApp />
+    </FastAuthProvider>
+  );
+}
+```
+
+### Props
+
+| Prop | Type | Required | Description |
+| --- | --- | --- | --- |
+| `providerConfig` | `FastAuthProviderConfig` | Yes | The auth provider plus an optional React wrapper. See the breakdown below. |
+| `connection` | `Connection` | Yes | A `near-api-js` connection pointed at your NEAR RPC. It backs all read/submit calls. |
+| `network` | `"mainnet" \| "testnet"` | Yes | Selects the network. NEAR Auth automatically resolves the matching contract addresses from this value — you do not pass contract ids. |
+| `children` | `ReactNode` | Yes | Your application tree. |
+
+### `providerConfig`
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `provider` | `IFastAuthProvider` | Yes | The auth provider instance — typically a `JavascriptProvider` (web) or `ReactNativeProvider` (mobile). It handles login, logout, and signature requests. |
+| `reactProvider` | `(children: ReactNode) => ReactNode` | No | An optional wrapper that mounts a React context around your tree. Use it when the auth provider needs its own React provider — for example wrapping in `Auth0Provider` from `react-native-auth0`. Defaults to passing `children` through unchanged. |
+
+<Accordion title="Using reactProvider with a mobile Auth0 wrapper">
+  Some providers ship their own React context. `reactProvider` lets you mount it without leaving `FastAuthProvider`. On React Native, wrap the tree in `Auth0Provider` so `ReactNativeProvider` can reach the native SDK:
+
+  ```tsx App.tsx
+  import { FastAuthProvider } from "@fast-auth-near/react-sdk";
+  import { ReactNativeProvider } from "@fast-auth-near/react-native-provider";
+  import { Auth0Provider } from "react-native-auth0";
+
+  const provider = new ReactNativeProvider({
+    network: "testnet",
+    clientId: "your-auth0-client-id",
+  });
+
+  <FastAuthProvider
+    providerConfig={{
+      provider,
+      reactProvider: (children) => (
+        <Auth0Provider domain="login.testnet.fast-auth.com" clientId="your-auth0-client-id">
+          {children}
+        </Auth0Provider>
+      ),
+    }}
+    connection={connection}
+    network="testnet"
+  >
+    <YourApp />
+  </FastAuthProvider>;
+  ```
+</Accordion>
+
+### Network defaults
+
+The `network` prop is the single source of truth for which contracts NEAR Auth talks to. You never wire contract ids by hand in the React SDK.
+
+| `network` | NEAR Auth contract | MPC contract |
+| --- | --- | --- |
+| `"testnet"` | `fast-auth-beta-001.testnet` | `v1.signer-prod.testnet` |
+| `"mainnet"` | `fast-auth.near` | `v1.signer` |
+
+<Note>
+  Make sure `network` matches the `network` you passed to your auth provider and the `networkId` of your `Connection`. Mixing testnet and mainnet across the three will produce signatures against the wrong contracts.
+</Note>
+
+---
+
+## Hooks
+
+All hooks read from `FastAuthProvider`'s context, so they only work inside the provider. Each data hook (`useSigner`, `useIsLoggedIn`, `usePublicKey`) follows the same shape: it returns the resolved value plus `isLoading`, `error`, and a `refetch` function, and by default fetches automatically once the client is ready. Pass `false` to the auto-fetch flag to fetch manually via `refetch`.
+
+### `useFastAuth`
+
+The root hook. It returns the client and a ready flag; every other hook is built on top of it. Throws if rendered outside a `FastAuthProvider`.
+
+```typescript
+function useFastAuth<P extends IFastAuthProvider = IFastAuthProvider>(): {
+  client: FastAuthClient<P> | null;
+  isReady: boolean;
+};
+```
+
+| Return field | Type | Description |
+| --- | --- | --- |
+| `client` | `FastAuthClient<P> \| null` | The client instance. `null` until the provider finishes initializing. |
+| `isReady` | `boolean` | `true` once the client is constructed and safe to call. |
+
+```tsx
+import { useFastAuth } from "@fast-auth-near/react-sdk";
+
+function AuthButtons() {
+  const { client, isReady } = useFastAuth();
+
+  if (!isReady || !client) return <div>Initializing…</div>;
+
+  return (
+    <>
+      <button onClick={() => client.login()}>Log in</button>
+      <button onClick={() => client.logout()}>Log out</button>
+    </>
+  );
+}
+```
+
+### `useIsLoggedIn`
+
+Checks the current authentication status through the client's provider, tracking loading and error state.
+
+```typescript
+function useIsLoggedIn<P extends IFastAuthProvider = IFastAuthProvider>(
+  autoCheck?: boolean,
+): {
+  isLoggedIn: boolean | null;
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => Promise<void>;
+};
+```
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `autoCheck` | `boolean` | `true` | Whether to check login status automatically once the client is ready. |
+
+| Return field | Type | Description |
+| --- | --- | --- |
+| `isLoggedIn` | `boolean \| null` | `true`, `false`, or `null` if the check hasn't run yet. |
+| `isLoading` | `boolean` | `true` while the check is in flight. |
+| `error` | `Error \| null` | The error if the check failed, otherwise `null`. |
+| `refetch` | `() => Promise<void>` | Re-runs the login-status check on demand. |
+
+```tsx
+import { useIsLoggedIn } from "@fast-auth-near/react-sdk";
+
+function Status() {
+  const { isLoggedIn, isLoading, error, refetch } = useIsLoggedIn();
+
+  if (isLoading) return <span>Checking…</span>;
+  if (error) return <button onClick={refetch}>Retry — {error.message}</button>;
+
+  return <span>{isLoggedIn ? "Signed in" : "Signed out"}</span>;
+}
+```
+
+<Warning>
+  On web, `isLoggedIn()` also processes the Auth0 callback parameters when the user is redirected back to your app. Call `refetch` after a redirect completes so the UI reflects the freshly established session.
+</Warning>
+
+### `useSigner`
+
+Resolves a relayer-backed `FastAuthSigner` from the client. The signer requires an authenticated user — the client throws `USER_NOT_LOGGED_IN` otherwise, which surfaces as `error`.
+
+```typescript
+function useSigner<P extends IFastAuthProvider = IFastAuthProvider>(
+  autoFetch?: boolean,
+): {
+  signer: FastAuthSigner<P> | null;
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => Promise<void>;
+};
+```
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `autoFetch` | `boolean` | `true` | Whether to fetch the signer automatically once the client is ready. |
+
+| Return field | Type | Description |
+| --- | --- | --- |
+| `signer` | `FastAuthSigner<P> \| null` | The initialized signer, or `null` if not authenticated or not yet fetched. |
+| `isLoading` | `boolean` | `true` while the signer is being fetched. |
+| `error` | `Error \| null` | The error if fetching failed, otherwise `null`. |
+| `refetch` | `() => Promise<void>` | Re-fetches the signer — call this after a login completes. |
+
+```tsx
+import { useSigner } from "@fast-auth-near/react-sdk";
+
+function SendButton({ transaction }) {
+  const { signer, isLoading, error } = useSigner();
+
+  if (isLoading) return <span>Loading signer…</span>;
+  if (error) return <span>Error: {error.message}</span>;
+  if (!signer) return <span>Please log in</span>;
+
+  return (
+    <button onClick={() => signer.signAndSendTransaction({ transaction })}>
+      Sign &amp; send
+    </button>
+  );
+}
+```
+
+### `usePublicKey`
+
+Derives the user's NEAR public key from the signer for the requested algorithm. It composes `useSigner`, so it becomes available as soon as a signer is ready.
+
+```typescript
+function usePublicKey<P extends IFastAuthProvider = IFastAuthProvider>(
+  algorithm?: Algorithm,
+  autoFetch?: boolean,
+): {
+  publicKey: PublicKey | null;
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => Promise<void>;
+};
+```
+
+| Param | Type | Default | Description |
+| --- | --- | --- | --- |
+| `algorithm` | `"ed25519" \| "secp256k1"` | `"ed25519"` | Which key to derive. Each algorithm yields a distinct public key. |
+| `autoFetch` | `boolean` | `true` | Whether to fetch the key automatically once the signer is available. |
+
+| Return field | Type | Description |
+| --- | --- | --- |
+| `publicKey` | `PublicKey \| null` | The derived key, or `null` if not authenticated or not yet fetched. |
+| `isLoading` | `boolean` | `true` while the key is being derived. |
+| `error` | `Error \| null` | The error if derivation failed, otherwise `null`. |
+| `refetch` | `() => Promise<void>` | Re-derives the public key on demand. |
+
+```tsx
+import { usePublicKey } from "@fast-auth-near/react-sdk";
+
+function AccountKey() {
+  const { publicKey, isLoading, error } = usePublicKey("ed25519");
+
+  if (isLoading) return <span>Deriving key…</span>;
+  if (error) return <span>Error: {error.message}</span>;
+  if (!publicKey) return <span>Please log in</span>;
+
+  return <code>{publicKey.toString()}</code>;
+}
+```
+
+<Accordion title="Deriving keys for multiple algorithms at once">
+  Call the hook once per algorithm — the keys are independent, so each identity has both an `ed25519` and a `secp256k1` public key.
+
+  ```tsx
+  function Keys() {
+    const ed = usePublicKey("ed25519");
+    const secp = usePublicKey("secp256k1");
+
+    return (
+      <ul>
+        {ed.publicKey && <li>ed25519: {ed.publicKey.toString()}</li>}
+        {secp.publicKey && <li>secp256k1: {secp.publicKey.toString()}</li>}
+      </ul>
+    );
+  }
+  ```
+</Accordion>
+
+---
+
+## Client &amp; signer
+
+The hooks hand you a `FastAuthClient` and a `FastAuthSigner`. Both share their surface with the [Browser SDK](/sdks/browser-sdk) classes, but the React variants are pre-wired: the client resolves contract ids from `network`, and the signer is created with relayer support so it can submit transactions on the user's behalf.
+
+### `FastAuthClient`
+
+Access it from `useFastAuth`. It orchestrates login state and produces the signer.
+
+| Method | Signature | Description |
+| --- | --- | --- |
+| `login` | `login(...args): void` | Delegates to the auth provider's login. On web this opens the Auth0 popup or redirect; extra args pass straight through to the provider. |
+| `logout` | `logout(...args): void` | Ends the session via the provider. |
+| `isLoggedIn` | `isLoggedIn(): Promise<boolean>` | Resolves the current authentication status through the provider. |
+| `getSigner` | `getSigner(): Promise<FastAuthSigner<P>>` | Returns an initialized, relayer-backed signer. Throws `FastAuthClientError` with code `USER_NOT_LOGGED_IN` if the user is not authenticated. |
+
+```tsx
+import { useFastAuth } from "@fast-auth-near/react-sdk";
+
+function LoginFlow() {
+  const { client } = useFastAuth();
+
+  const handleLogin = async () => {
+    await client?.login();
+    const loggedIn = await client?.isLoggedIn();
+    if (loggedIn) {
+      const signer = await client!.getSigner();
+      // signer is ready for transactions
+    }
+  };
+
+  return <button onClick={handleLogin}>Sign in</button>;
+}
+```
+
+### `FastAuthSigner`
+
+Access it from `useSigner`. In the React SDK the signer is relayer-backed, which unlocks two high-level, one-call methods that request the signature, relay it, and submit the result to NEAR for you. Submitting a delegate action requires a relayer to sponsor gas — see NEAR's [meta-transactions guide](https://docs.near.org/protocol/transactions/meta-tx) for how relayers work.
+
+| Method | Signature | Description |
+| --- | --- | --- |
+| `signAndSendTransaction` | `signAndSendTransaction(opts): Promise<FinalExecutionOutcome>` | Requests a transaction signature from the provider, relays the signature request through a relayer, then signs and submits the transaction. Returns the network's final execution outcome. |
+| `signAndSendDelegateAction` | `signAndSendDelegateAction(opts): Promise<FinalExecutionOutcome>` | Requests a delegate-action signature and relays it — the relayer pays gas, enabling gasless (meta) transactions. Returns the final execution outcome. |
+| `createAccount` | `createAccount(accountId, options?): Promise<string>` | Creates a NEAR account with the user's derived key via the relayer (gas and deposit handled for you). Returns the transaction hash. |
+| `getPublicKey` | `getPublicKey(algorithm?): Promise<PublicKey>` | Derives the user's public key. Defaults to `"ed25519"`. |
+| `getSignatureRequest` | `getSignatureRequest(): Promise<SignatureRequest>` | Retrieves the pending signature request (`guardId`, `verifyPayload`, `signPayload`, optional `algorithm`). |
+
+`signAndSendTransaction` accepts the transaction plus an optional algorithm; its remaining fields are forwarded to the provider's signature request. The MPC algorithm defaults to `"eddsa"`.
+
+<CodeGroup>
+
+```tsx signAndSendTransaction.tsx
+import { useSigner } from "@fast-auth-near/react-sdk";
+
+function Transfer({ transaction }) {
+  const { signer } = useSigner();
+
+  const send = async () => {
+    if (!signer) return;
+    const outcome = await signer.signAndSendTransaction({
+      transaction,
+      // algorithm defaults to "eddsa"
+    });
+    console.log("Included in block:", outcome.transaction_outcome.block_hash);
+  };
+
+  return <button onClick={send}>Send transaction</button>;
+}
+```
+
+```tsx signAndSendDelegateAction.tsx
+import { useSigner } from "@fast-auth-near/react-sdk";
+
+// Gasless: the relayer sponsors gas via a delegate action.
+function GaslessAction({ receiverId }) {
+  const { signer } = useSigner();
+
+  const send = async () => {
+    if (!signer) return;
+    const outcome = await signer.signAndSendDelegateAction({
+      receiverId,
+      // algorithm defaults to "eddsa"
+    });
+    console.log("Relayed:", outcome);
+  };
+
+  return <button onClick={send}>Send gasless</button>;
+}
+```
+
+```tsx createAccount.tsx
+import { useSigner } from "@fast-auth-near/react-sdk";
+
+function Onboard({ desiredAccountId }: { desiredAccountId: string }) {
+  const { signer } = useSigner();
+
+  const create = async () => {
+    if (!signer) return;
+    const hash = await signer.createAccount(desiredAccountId);
+    console.log("Created account, tx hash:", hash);
+  };
+
+  return <button onClick={create}>Create account</button>;
+}
+```
+
+</CodeGroup>
+
+<Tip>
+  Prefer `signAndSendDelegateAction` when you want users to transact without holding NEAR — the relayer covers gas. Use `signAndSendTransaction` when the user's account pays its own gas. See [Sign transactions](/home/guides/sign-transactions) for the end-to-end pattern.
+</Tip>
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Authenticate users" icon="log-in" href="/home/guides/authenticate-users" horizontal arrow>
+    Wire up login, logout, and session handling with the hooks.
+  </Card>
+  <Card title="Sign transactions" icon="file-check" href="/home/guides/sign-transactions" horizontal arrow>
+    Request signatures and relay transactions, gasless or not.
+  </Card>
+  <Card title="Browser SDK" icon="globe" href="/sdks/browser-sdk" horizontal arrow>
+    The framework-agnostic <code>FastAuthClient</code> and <code>FastAuthSigner</code>.
+  </Card>
+  <Card title="JavaScript provider" icon="code" href="/sdks/javascript-provider" horizontal arrow>
+    The Auth0 web provider you pass to <code>providerConfig</code>.
+  </Card>
+</CardGroup>

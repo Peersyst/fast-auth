@@ -1,0 +1,246 @@
+---
+title: "Authenticate your users"
+description: "Log users in with a Web2 identity, check their session on page load, and log them out — with the React and Browser SDKs."
+icon: "log-in"
+---
+
+Authentication is the first thing your app does with NEAR Auth: sign a user in through Auth0, remember them across page loads, and sign them out when they're done. Once a user is authenticated you can request a signer and [sign NEAR transactions](/home/guides/sign-transactions) on their behalf.
+
+This guide shows the full login lifecycle for both SDKs. Pick the one that matches your stack — the concepts are identical, only the wiring differs.
+
+<Info>
+  All examples use **mainnet** and the Auth0 (JavaScript) provider. Mainnet requires approved credentials — [apply for access](/home/apply) to get your Auth0 client id. See [Choose your SDK](/home/guides/choose-your-sdk) if you're not sure which library fits your app.
+</Info>
+
+<Tip>
+  Building locally? You can develop against testnet using the values in [Resources → Testnet](/resources/testnet).
+</Tip>
+
+---
+
+## How login works
+
+NEAR Auth authenticates users through **Auth0**. Under the hood, the `JavascriptProvider` wraps Auth0's SPA client and handles the OAuth handshake for you.
+
+<Steps>
+  <Step title="You call login()">
+    The SDK opens Auth0 in a **popup** (the default) or via a full-page **redirect**, where the user signs in with Google, Apple, email, or a passkey.
+  </Step>
+  <Step title="Auth0 returns an identity">
+    On success, Auth0 issues a JWT and the provider derives a stable user identity (the token's `sub` claim). With redirect login, the SDK completes the handshake automatically when the user lands back on your app.
+  </Step>
+  <Step title="The session is stored">
+    Auth0 persists the session in the browser, so a returning user stays logged in across reloads until they log out or the session expires.
+  </Step>
+</Steps>
+
+<Warning>
+  Redirect login navigates the browser away to Auth0 and back. On the return trip you **must** re-check the login status on page load (`isLoggedIn()`) so the SDK can finish the handshake and your UI reflects the authenticated state. Popup login keeps the user on your page and returns control to the same call.
+</Warning>
+
+---
+
+## Set up and authenticate
+
+<Tabs>
+  <Tab title="React SDK">
+    Install the [React SDK](/sdks/react-sdk) and the JavaScript provider, then wrap your app in `FastAuthProvider`.
+
+    ```bash
+    npm install @fast-auth-near/react-sdk @fast-auth-near/javascript-provider near-api-js
+    ```
+
+    ### Wrap your app in the provider
+
+    Create a `JavascriptProvider`, open a NEAR `Connection`, and pass both to `FastAuthProvider`. The provider builds a `FastAuthClient` for you and makes it available through hooks anywhere in the tree.
+
+    ```tsx App.tsx
+    import { FastAuthProvider } from "@fast-auth-near/react-sdk";
+    import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+    import { connect } from "near-api-js";
+    import { useEffect, useState } from "react";
+    import type { Connection } from "near-api-js";
+
+    const provider = new JavascriptProvider({
+      network: "mainnet",
+      clientId: "<your-auth0-client-id>",
+    });
+
+    export default function App() {
+      const [connection, setConnection] = useState<Connection | null>(null);
+
+      useEffect(() => {
+        connect({
+          networkId: "mainnet",
+          nodeUrl: "https://rpc.mainnet.near.org",
+        }).then(({ connection }) => setConnection(connection));
+      }, []);
+
+      if (!connection) return <p>Connecting to NEAR…</p>;
+
+      return (
+        <FastAuthProvider
+          providerConfig={{ provider }}
+          connection={connection}
+          network="mainnet"
+        >
+          <LoginButton />
+        </FastAuthProvider>
+      );
+    }
+    ```
+
+    <Note>
+      `network="mainnet"` tells the client which deployed contracts to use — it resolves `fast-auth.near` and the mainnet MPC signer for you, so you don't pass contract ids in React.
+    </Note>
+
+    ### Log in and read session state
+
+    Two hooks cover the whole lifecycle:
+
+    - `useFastAuth()` → `{ client, isReady }` — the underlying `FastAuthClient` and whether it has finished initializing.
+    - `useIsLoggedIn()` → `{ isLoggedIn, isLoading, error, refetch }` — the current session status. It **checks automatically on mount** (including finishing any redirect handshake), so a returning user is recognized without extra code.
+
+    ```tsx LoginButton.tsx
+    import { useFastAuth, useIsLoggedIn } from "@fast-auth-near/react-sdk";
+
+    export function LoginButton() {
+      const { client, isReady } = useFastAuth();
+      const { isLoggedIn, isLoading, refetch } = useIsLoggedIn();
+
+      if (!isReady || isLoading) {
+        return <p>Loading…</p>;
+      }
+
+      if (isLoggedIn) {
+        return (
+          <button onClick={() => client?.logout()}>
+            Sign out
+          </button>
+        );
+      }
+
+      return (
+        <button
+          onClick={async () => {
+            await client?.login();
+            // Refresh the session status after the popup resolves.
+            await refetch();
+          }}
+        >
+          Sign in
+        </button>
+      );
+    }
+    ```
+
+    <Tip>
+      Because `useIsLoggedIn()` auto-checks on mount, no extra page-load code is needed — even after a redirect login, the hook resolves to the authenticated state on its own. Call `refetch()` after a popup `login()` or after `logout()` to update the status immediately.
+    </Tip>
+  </Tab>
+
+  <Tab title="Browser SDK">
+    Install the [Browser SDK](/sdks/browser-sdk) and the JavaScript provider. The framework-agnostic `FastAuthClient` works in any web app — vanilla JS, Vue, Svelte, and more.
+
+    ```bash
+    npm install @fast-auth-near/browser-sdk @fast-auth-near/javascript-provider near-api-js
+    ```
+
+    ### Initialize the client
+
+    Create a `JavascriptProvider`, open a NEAR `Connection`, and construct a `FastAuthClient` with the mainnet contract ids.
+
+    ```ts main.ts
+    import { FastAuthClient } from "@fast-auth-near/browser-sdk";
+    import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+    import { connect } from "near-api-js";
+
+    const provider = new JavascriptProvider({
+      network: "mainnet",
+      clientId: "<your-auth0-client-id>",
+    });
+
+    const { connection } = await connect({
+      networkId: "mainnet",
+      nodeUrl: "https://rpc.mainnet.near.org",
+    });
+
+    const client = new FastAuthClient(provider, connection, {
+      fastAuthContractId: "fast-auth.near",
+      mpcContractId: "v1.signer",
+    });
+    ```
+
+    ### Log in
+
+    Call `login()` to start the Auth0 flow. By default this opens a popup; the promise resolves once the user has authenticated.
+
+    ```ts
+    await client.login();
+    ```
+
+    ### Check the session on page load
+
+    On every load, ask the provider whether there's an active session. This also completes the handshake automatically if the user is returning from a redirect login, so run it before rendering your authenticated UI.
+
+    ```ts
+    const isLoggedIn = await provider.isLoggedIn();
+
+    if (isLoggedIn) {
+      // Session is active — safe to request a signer.
+      const signer = await client.getSigner();
+    } else {
+      // Show your sign-in button.
+    }
+    ```
+
+    <Note>
+      `client.getSigner()` throws if the user isn't logged in, so always confirm the session first with `provider.isLoggedIn()` (or handle the error). See [Sign transactions](/home/guides/sign-transactions) for what to do with the signer.
+    </Note>
+  </Tab>
+</Tabs>
+
+---
+
+## Log out
+
+Logging out clears the Auth0 session. After this the user is unauthenticated and you can no longer get a signer until they log in again.
+
+<CodeGroup>
+
+```tsx React
+// From any component with the client:
+const { client } = useFastAuth();
+
+await client?.logout();
+// Then refresh status, e.g. useIsLoggedIn().refetch()
+```
+
+```ts Browser
+await client.logout();
+```
+
+</CodeGroup>
+
+<Warning>
+  With the default popup flow, `logout()` clears the session in place. If you configured a redirect logout in Auth0, the browser navigates to Auth0 and back — re-check `isLoggedIn()` on the return so your UI updates.
+</Warning>
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Sign transactions" icon="file-check" href="/home/guides/sign-transactions" horizontal arrow>
+    Turn an authenticated user into a signer and submit NEAR transactions.
+  </Card>
+  <Card title="Choose your SDK" icon="git-compare" href="/home/guides/choose-your-sdk" horizontal arrow>
+    Compare the React and Browser SDKs and pick the right fit.
+  </Card>
+  <Card title="React SDK reference" icon="atom" href="/sdks/react-sdk" horizontal arrow>
+    Providers, hooks, and the relayer-aware client.
+  </Card>
+  <Card title="Browser SDK reference" icon="globe" href="/sdks/browser-sdk" horizontal arrow>
+    The <code>FastAuthClient</code> and <code>FastAuthSigner</code> classes.
+  </Card>
+</CardGroup>

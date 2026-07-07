@@ -1,0 +1,73 @@
+---
+title: "Relayer & meta-transactions"
+description: "How a relayer sponsors gas by submitting MPC-signed delegate actions as NEP-366 meta-transactions."
+icon: "server"
+---
+
+A relayer is a service that turns an MPC signature into an on-chain transaction your users don't have to pay for. It takes a signed delegate action, wraps it as a NEP-366 meta-transaction, and submits it to NEAR from its own account — covering the gas so your users can transact without ever holding NEAR.
+
+Pairing NEAR Auth with a relayer is what makes fully gasless flows possible: users log in with a Web2 identity, the [MPC network](/protocol/concepts/mpc) produces a signature, and the relayer pays for and broadcasts the result.
+
+<Note>
+  A relayer is optional. You can always broadcast a fully signed transaction yourself and pay gas from the user's own account. A relayer exists specifically to sponsor gas on the user's behalf.
+</Note>
+
+---
+
+## Meta-transactions in one minute
+
+NEAR's [NEP-366 meta-transaction](https://nomicon.io/Standards/meta-transactions) standard separates the party that *authorizes* an action from the party that *pays* for it:
+
+- A **delegate action** describes what the user wants to do — a receiver account and a list of actions — and is signed with the user's key. It is not a transaction on its own.
+- A **relayer** wraps that signed delegate action inside a `SignedDelegate` action and submits it as its own transaction. The relayer's account pays the gas; the inner action still executes as if the user sent it.
+
+In NEAR Auth, the user's "key" is the [MPC-derived key](/protocol/concepts/mpc) for their identity. The user never signs with a local private key — the delegate action is authorized by an MPC signature produced only after the [Auth0 JWT is verified on-chain](/protocol/concepts/jwt) by the [NEAR Auth contract](/protocol/contracts/fast-auth). The relayer then supplies the gas.
+
+<Info>
+  Three pieces come together for a gasless call: the **delegate action** (what to do), the **MPC signature** (authorization, gated by JWT verification), and the **NEP-366 wrapper** the relayer submits (who pays).
+</Info>
+
+---
+
+## How the SDK uses it
+
+You don't drive the relayer by hand. The React SDK's signer exposes `signAndSendDelegateAction(...)`, which runs the whole gasless flow for you: it asks the [provider](/sdks/javascript-provider) to authorize the delegate action, collects the resulting signature request (the guard id, JWT, and payload), and submits it through a relayer, returning the `FinalExecutionOutcome`.
+
+Contrast this with `signAndSendTransaction`, which is *not* gasless: it fetches the MPC signature, then builds and broadcasts the final transaction from the user's own account, paying gas normally. Use `signAndSendDelegateAction` whenever you want a relayer to cover gas.
+
+<Note>
+  In the Browser SDK the signer has no `signAndSendDelegateAction`. There you drive the flow manually — `requestDelegateActionSignature` → `getSignatureRequest` → `createSignAction` — and submit through a relayer yourself.
+</Note>
+
+---
+
+## Running or integrating a relayer
+
+Running a relayer means operating a funded NEAR account that pays for every meta-transaction it submits, so it is a spend surface: put it behind your own authentication and rate limits, keep its signing accounts funded, and restrict the guard and issuer it accepts to exactly the ones your app uses.
+
+NEAR maintains the reference relayer implementation and the meta-transaction standard. Start here:
+
+<CardGroup cols={2}>
+  <Card title="Meta-transactions (NEAR docs)" icon="book" href="https://docs.near.org/protocol/transactions/meta-tx" horizontal arrow>
+    The NEP-366 meta-transaction standard and how delegate actions are relayed.
+  </Card>
+  <Card title="NEAR documentation" icon="globe" href="https://docs.near.org" horizontal arrow>
+    Reference relayer, RPC, and the rest of the NEAR protocol docs.
+  </Card>
+</CardGroup>
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Sign transactions" icon="file-check" href="/home/guides/sign-transactions" horizontal arrow>
+    Request a signature and send a NEAR transaction — gasless or self-paid — from an SDK.
+  </Card>
+  <Card title="MPC signing" icon="shield-check" href="/protocol/concepts/mpc" horizontal arrow>
+    How the MPC network derives per-identity keys and produces signatures.
+  </Card>
+  <Card title="How it works" icon="route" href="/protocol/how-it-works" horizontal arrow>
+    The full Auth0 → JWT → contract → MPC → relayer flow, end to end.
+  </Card>
+</CardGroup>
