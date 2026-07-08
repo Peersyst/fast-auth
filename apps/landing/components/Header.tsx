@@ -1,4 +1,5 @@
 import { ArrowRight, DocIcon } from "./icons";
+import { NearLogotype } from "./NearLogotype";
 
 type Props = { docsHref: string; statusHref: string };
 
@@ -7,8 +8,11 @@ export default function Header({ docsHref, statusHref }: Props) {
     <header className="siteHeader">
       <div className="container headerInner">
         <a href="/" className="brand">
-          <img src="/brand/fastauth-mark.svg" alt="FastAuth" />
-          <span className="wordmark">FastAuth</span>
+          <img src="/brand/nearauth-mark.svg" alt="NEARauth" />
+          <span className="wordmark">
+            <NearLogotype style={{ height: 17, width: "auto", display: "block" }} />
+            <span className="auth">auth</span>
+          </span>
           <span className="by">Peersyst × NEAR</span>
         </a>
         <nav className="nav">
