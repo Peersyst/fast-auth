@@ -26,7 +26,7 @@ On **mainnet**, each production app gets its **own** Auth0 domain, `clientId`, a
 
 ## Apply for production access
 
-<Card title="Submit the production access form" icon="clipboard-check" href="https://docs.google.com/forms/d/e/1FAIpQLSftBL_EKeu02gYSTPg4luCpnGLsRyp6Fcbqxl0tKDK9T11aIg/viewform" horizontal arrow>
+<Card title="Submit the production access form" icon="clipboard-check" href="https://form.typeform.com/to/VWHjf3HV" horizontal arrow>
   Open the application form to request mainnet whitelisting for your app.
 </Card>
 
@@ -36,7 +36,7 @@ On **mainnet**, each production app gets its **own** Auth0 domain, `clientId`, a
 
 <Steps>
   <Step title="Submit your application" icon="send">
-    Fill out the [production access form](https://docs.google.com/forms/d/e/1FAIpQLSftBL_EKeu02gYSTPg4luCpnGLsRyp6Fcbqxl0tKDK9T11aIg/viewform) with details about your app and how you plan to use NEAR Auth. See [what to prepare](#what-to-prepare) below so you can fill it out in one pass.
+    Fill out the [production access form](https://form.typeform.com/to/VWHjf3HV) with details about your app and how you plan to use NEAR Auth. See [what to prepare](#what-to-prepare) below so you can fill it out in one pass.
   </Step>
   <Step title="Review" icon="search">
     The NEAR Auth team reviews your submission and may reach out for additional information about your use case or expected volume.
@@ -58,12 +58,47 @@ On **mainnet**, each production app gets its **own** Auth0 domain, `clientId`, a
 
 ## What to prepare
 
-Have this information ready before you open the form so you can submit in a single pass:
+Have these details ready before you open the form so you can submit in a single pass. Each field maps to a setting on your production application.
 
-- **Application name and description** — what your app does and who it's for.
-- **Expected user volume** — a rough estimate of how many users or transactions you anticipate.
-- **Use case details** — how you intend to use NEAR Auth (login, transaction signing, gasless flows, and so on).
-- **Contact information** — how the NEAR Auth team can reach you during review.
+<ParamField body="Application name" required>
+  The name NEAR Auth displays to your users during login and when they approve a transaction. Use the public-facing name you want people to recognize — e.g. *Acme Wallet*.
+</ParamField>
+
+<ParamField body="Application description" required>
+  A short summary of what your application does. It appears next to your name on the NEAR Auth login and transaction-approval screens, so write it for end users. One or two sentences.
+</ParamField>
+
+<ParamField body="Application logo" required>
+  A square logo shown alongside your app name on the login and approval screens. Provide a PNG or SVG (recommended 256×256&nbsp;px) served over HTTPS. A recognizable logo helps users trust the request.
+</ParamField>
+
+<ParamField body="Expected monthly active users" required>
+  Your best estimate of monthly active users (MAU). This lets us provision capacity and set appropriate rate limits for your app. Choose one bracket: **Less than 1,000**, **1,000–10,000**, **10,000–25,000**, or **more than 25,000**.
+</ParamField>
+
+<ParamField body="Whitelisted Callback URL" required>
+  The exact HTTPS URL NEAR Auth is allowed to redirect back to after login and after a signature request. It **must match the `redirectUri` you configure in the SDK**. Any redirect to a non-whitelisted URL is rejected. Example: `https://app.example.com/callback`.
+</ParamField>
+
+<ParamField body="Whitelisted Logout URL">
+  *Optional.* An HTTPS URL users may be returned to after logging out. Only needed if you pass a return URL when calling `logout`; leave it blank otherwise. Example: `https://app.example.com`.
+</ParamField>
+
+<ParamField body="Whitelisted Web Origin" required>
+  The origin — scheme + domain, no path — where your app is served and from which it calls NEAR Auth. Used to authorize your domain and enforce CORS, so only your app can start the auth flow. Must be HTTPS. Example: `https://app.example.com`.
+</ParamField>
+
+<ParamField body="Primary contact email address" required>
+  A monitored email for the person we should contact about your application: approval, credential delivery, quota changes, and security notices. Example: `dev@example.com`.
+</ParamField>
+
+<Note>
+  **Multiple environments** — the Callback URL, Logout URL, and Web Origin fields each accept several comma-separated values, so you can register your production and staging URLs together. Developing locally? You don't need this form for testnet — use the shared [testnet credentials](/resources/testnet).
+</Note>
+
+<Warning>
+  **HTTPS is required** for the Callback, Logout, and Web Origin URLs on mainnet. Plain `http://` URLs are rejected.
+</Warning>
 
 ---
 
