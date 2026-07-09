@@ -19,4 +19,13 @@ export const FAST_AUTH_AUTH0_DEFAULTS: Record<FastAuthNetwork, FastAuthAuth0Netw
     },
 } as const;
 
-export * from "./provider";
+export type {
+    User,
+    LoginResponse,
+    RequestTransactionSignatureResponse,
+    RequestDelegateActionSignatureResponse,
+    GetSignatureRequestResponse,
+    IFastAuthProvider,
+    MPCContractAlgorithm,
+    SignatureRequest,
+} from "./provider";
