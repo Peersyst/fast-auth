@@ -1,5 +1,5 @@
 /* =========================================================================
-   Peersyst / FastAuth — design tokens (single source of truth)
+   Peersyst / NEAR Auth — design tokens (single source of truth)
    ========================================================================= */
 :root {
   /* Neutrals (warm cream family) */
@@ -10,21 +10,35 @@
   --color-border-subtle:   #D6D4CB;
   --color-border-ring:     #E1E0DA;
 
-  /* Ink (text) */
+  /* Ink (text) — WCAG AA tuned against the canvas / surface backgrounds.
+     Subtle / muted / translucent were lifted (Lighthouse 13 a11y audit, May
+     2026) so body text now clears 4.5:1 on both #F5F4ED and #FFFFFF:
+       ink-subtle   #5C5C59 on #F5F4ED ≈ 6.3:1
+       ink-muted    #6B6B68 on #F5F4ED ≈ 5.0:1
+       ink-translucent rgba(0,0,0,0.62) on #F5F4ED ≈ 6.2:1 */
   --color-ink:             #000000;
-  --color-ink-subtle:      #757571;
-  --color-ink-muted:       #93928E;
-  --color-ink-translucent: rgba(0, 0, 0, 0.48);
+  --color-ink-subtle:      #5C5C59;
+  --color-ink-muted:       #6B6B68;
+  --color-ink-translucent: rgba(0, 0, 0, 0.62);
 
   /* Brand accent — MINT */
   --color-mint:            #00F29B;
   --color-mint-light:      #92FFD8;
   --color-mint-soft:       #9CFFDB;
 
-  /* Functional status */
+  /* Functional status. The base hex stays on the lighter side because it
+     doubles as a pill / dot / sparkline background (where 3:1 against canvas
+     is fine per WCAG 1.4.11 and the visual identity matters). The `-text`
+     variants are the AA-safe shades to use when the same status is rendered
+     as *text* — cleared to ≥ 4.5:1 on BOTH the canvas and the translucent
+     bg-pill composite, so small status text passes WCAG AA everywhere:
+       status-ok-text   #0F7049 on #F5F4ED ≈ 5.55:1 · on ok-bg pill (~#DBEBDE) ≈ 4.94:1
+       status-warn-text #845906 on #F5F4ED ≈ 5.58:1 · on warn-bg pill (~#EBE3CD) ≈ 4.81:1 */
   --color-status-ok:       #1EA874;
+  --color-status-ok-text:  #0F7049;
   --color-status-ok-bg:    rgba(30, 168, 116, 0.12);
   --color-status-warn:     #B07A08;
+  --color-status-warn-text:#845906;
   --color-status-warn-bg:  rgba(176, 122, 8, 0.14);
   --color-status-err:      #C64545;
   --color-status-err-bg:   rgba(198, 69, 69, 0.12);
@@ -117,13 +131,16 @@ button > .plus, button > .checkbox { pointer-events: none; }
   align-items: center;
   gap: 10px;
 }
-.brand img { width: 28px; height: 28px; display: block; border-radius: 6px; }
-.brand .wordmark {
+.brandLockup { display: inline-flex; align-items: center; gap: 8px; line-height: 1; }
+.brandLockupMark { width: 24px; height: 24px; display: block; flex: none; }
+.brandLockupWord {
   font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: 17px;
-  letter-spacing: -0.01em;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: -0.02em;
 }
+.blNear { color: var(--color-ink); }
+.blAuth { color: #00EC97; }
 .brand .by {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -336,7 +353,7 @@ h1.heroTitle .accent {
   text-transform: uppercase;
   color: var(--color-ink-subtle);
 }
-.heroMeta .check { color: var(--color-status-ok); margin-right: 6px; }
+.heroMeta .check { color: var(--color-status-ok-text); margin-right: 6px; }
 
 /* Phone frame in hero */
 .heroVisual {
@@ -412,7 +429,7 @@ h2.sectionTitle {
   max-width: 52ch;
 }
 
-/* ========== WHAT IS FASTAUTH ========== */
+/* ========== WHAT IS NEAR AUTH ========== */
 .what { padding: 96px 0; border-top: 1px solid var(--color-border); }
 .valueGrid {
   display: grid;
@@ -533,7 +550,7 @@ h2.sectionTitle {
 }
 .heroMeta .auditPill:hover { border-color: var(--color-ink); background: var(--color-canvas); }
 .heroMeta .auditPill b { color: var(--color-ink); font-weight: 600; }
-.heroMeta .auditPill svg { color: var(--color-status-ok); }
+.heroMeta .auditPill svg { color: var(--color-status-ok-text); }
 
 /* ========== HOW IT WORKS ========== */
 .how { padding: 96px 0; border-top: 1px solid var(--color-border); background: var(--color-surface-muted); }
@@ -730,7 +747,9 @@ pre.code {
 }
 .tk-k { color: #ff7ab2; }
 .tk-s { color: var(--color-mint); }
-.tk-c { color: rgba(255,255,255,0.35); font-style: italic; }
+/* Code-highlighter comment token. Sits on the #0b0b0b code card; AA needs
+   ≥4.5:1 → bumped opacity from 0.35 (~3.1:1) to 0.55 (~6.2:1). */
+.tk-c { color: rgba(255,255,255,0.55); font-style: italic; }
 .tk-f { color: #82d9ff; }
 .tk-n { color: #ffd479; }
 .tk-p { color: rgba(255,255,255,0.6); }
@@ -816,7 +835,7 @@ pre.code {
 .statCard .delta {
   font-family: var(--font-mono);
   font-size: 12px;
-  color: var(--color-status-ok);
+  color: var(--color-status-ok-text);
   margin-top: 6px;
   display: flex;
   align-items: center;
@@ -849,7 +868,7 @@ pre.code {
   border-bottom: 1px dotted var(--color-ink);
   padding-bottom: 2px;
 }
-.statsLink:hover { color: var(--color-status-ok); border-color: var(--color-status-ok); }
+.statsLink:hover { color: var(--color-status-ok-text); border-color: var(--color-status-ok-text); }
 
 /* ========== FAQ ========== */
 .faq { padding: 96px 0; border-top: 1px solid var(--color-border); background: var(--color-surface-muted); }
@@ -885,6 +904,17 @@ pre.code {
   padding: 4px 0;
   position: relative;
   z-index: 1;
+}
+/* Reset the user-agent h3 defaults (margin, font-size, weight) so the FAQ
+   question carries `.faqQ`'s typography unchanged after promoting the inner
+   <span> to <h3> for semantics / rich-snippet eligibility. */
+.faqQ .faqQText {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  color: inherit;
 }
 .faqQ .plus {
   width: 24px; height: 24px;
@@ -948,7 +978,7 @@ pre.code {
   margin-bottom: 48px;
 }
 @media (max-width: 720px) { .footerGrid { grid-template-columns: 1fr 1fr; gap: 32px; } }
-.footerCol h4 {
+.footerCol h3 {
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.08em;
@@ -963,7 +993,7 @@ pre.code {
   color: var(--color-ink);
   transition: color 120ms ease;
 }
-.footerCol a:hover { color: var(--color-status-ok); }
+.footerCol a:hover { color: var(--color-status-ok-text); }
 .footerCol p {
   font-size: 14px;
   line-height: 22px;
@@ -1237,7 +1267,7 @@ pre.code {
 }
 .alLine { display: flex; gap: 8px; align-items: center; }
 .alLine .ts { color: var(--color-ink-muted); }
-.alLine .ok { color: var(--color-status-ok); }
+.alLine .ok { color: var(--color-status-ok-text); }
 .alLine .alDot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-mint); animation: blink 1s ease-in-out infinite; }
 
 .walHead { display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 0; }
@@ -1276,7 +1306,7 @@ pre.code {
 .walTxBody { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .walTxTitle { font-size: 13px; font-weight: 600; }
 .walTxMeta { font-family: var(--font-mono); font-size: 10px; color: var(--color-ink-subtle); }
-.walTxAmt { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--color-status-ok); font-variant-numeric: tabular-nums; }
+.walTxAmt { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--color-status-ok-text); font-variant-numeric: tabular-nums; }
 .walTxAmt--out { color: var(--color-ink); }
 
 .floatBadge {
@@ -1395,7 +1425,7 @@ pre.code {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
-.bannerStat--ok .bannerStatValue { color: var(--color-status-ok); }
+.bannerStat--ok .bannerStatValue { color: var(--color-status-ok-text); }
 
 /* ========== SECTIONS ========== */
 .dashSection {
@@ -1484,8 +1514,8 @@ pre.code {
   letter-spacing: 0.02em;
   font-variant-numeric: tabular-nums;
 }
-.healthBadge--ok   { background: var(--color-status-ok-bg);   color: var(--color-status-ok); }
-.healthBadge--warn { background: var(--color-status-warn-bg); color: var(--color-status-warn); }
+.healthBadge--ok   { background: var(--color-status-ok-bg);   color: var(--color-status-ok-text); }
+.healthBadge--warn { background: var(--color-status-warn-bg); color: var(--color-status-warn-text); }
 .healthBadge--err  { background: var(--color-status-err-bg);  color: var(--color-status-err); }
 
 .healthMeta {
@@ -1676,8 +1706,8 @@ pre.code {
   transition: color 120ms ease, border-color 120ms ease;
 }
 .explorerLink:hover {
-  color: var(--color-status-ok);
-  border-bottom-color: var(--color-status-ok);
+  color: var(--color-status-ok-text);
+  border-bottom-color: var(--color-status-ok-text);
 }
 
 /* ========== OVERVIEW (Accounts + Tx) ========== */
@@ -1762,7 +1792,7 @@ pre.code {
   color: var(--color-ink-subtle);
   font-family: var(--font-mono);
 }
-.kpiTile--warn .kpiValue { color: var(--color-status-warn); }
+.kpiTile--warn .kpiValue { color: var(--color-status-warn-text); }
 .kpiTile--err  .kpiValue { color: var(--color-status-err); }
 
 /* ========== DASH TABLE ========== */
@@ -1943,7 +1973,7 @@ pre.code {
   padding: 0 8px;
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--color-status-warn);
+  color: var(--color-status-warn-text);
   letter-spacing: 0.01em;
 }
 
@@ -1957,8 +1987,8 @@ pre.code {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.successPct--ok   { background: var(--color-status-ok-bg);   color: var(--color-status-ok); }
-.successPct--warn { background: var(--color-status-warn-bg); color: var(--color-status-warn); }
+.successPct--ok   { background: var(--color-status-ok-bg);   color: var(--color-status-ok-text); }
+.successPct--warn { background: var(--color-status-warn-bg); color: var(--color-status-warn-text); }
 .successPct--err  { background: var(--color-status-err-bg);  color: var(--color-status-err); }
 
 /* horizontal share bar in breakdown rows */
@@ -2083,7 +2113,7 @@ pre.code {
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.failureKind--guard_failure { background: var(--color-status-warn-bg); color: var(--color-status-warn); }
+.failureKind--guard_failure { background: var(--color-status-warn-bg); color: var(--color-status-warn-text); }
 .failureKind--mpc_failure   { background: var(--color-status-err-bg);  color: var(--color-status-err); }
 .failureKind--other         { background: var(--color-surface-muted);  color: var(--color-ink-subtle); }
 .failureExecutor code {

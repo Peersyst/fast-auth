@@ -21,7 +21,7 @@ export default function Overview({ data }: { data: StatusData }) {
             </div>
             <div className="kpiTileRow">
               <KPI label="Total" value={fmtN(a.total)} hint="Migrated + indexed" />
-              <KPI label="Migrated" value={fmtN(a.migrated)} hint="Legacy FastAuth" />
+              <KPI label="Migrated" value={fmtN(a.migrated)} hint="Legacy NEAR Auth" />
               <KPI label="Created · 24h" value={fmtN(a.firstSeen.last24h)} />
               <KPI label="Active · 24h" value={fmtN(a.active.last24h)} />
             </div>
