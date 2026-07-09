@@ -1,3 +1,5 @@
+import { NearLogotype } from "./NearLogotype";
+
 type Props = { docsHref: string; statusHref: string; auditHref: string };
 
 export default function SiteFooter({ docsHref, statusHref, auditHref }: Props) {
@@ -7,13 +9,16 @@ export default function SiteFooter({ docsHref, statusHref, auditHref }: Props) {
         <div className="footerGrid">
           <div className="footerCol">
             <a href="/" className="brand" style={{ marginBottom: 12 }}>
-              <img src="/brand/fastauth-mark.svg" alt="FastAuth" />
-              <span className="wordmark">FastAuth</span>
+              <img src="/brand/nearauth-mark.svg" alt="NEARauth" />
+              <span className="wordmark">
+                <NearLogotype style={{ height: 17, width: "auto", display: "block" }} />
+                <span className="auth">auth</span>
+              </span>
             </a>
             <p>An account-abstraction layer for NEAR. Built and operated by Peersyst.</p>
           </div>
           <div className="footerCol">
-            <h4>Product</h4>
+            <h3>Product</h3>
             <ul>
               <li><a href={docsHref}>Documentation</a></li>
               <li><a href="https://peersyst.github.io/fast-auth/docs/guides/select-your-sdk" target="_blank" rel="noopener">SDK</a></li>
@@ -21,7 +26,7 @@ export default function SiteFooter({ docsHref, statusHref, auditHref }: Props) {
             </ul>
           </div>
           <div className="footerCol">
-            <h4>Resources</h4>
+            <h3>Resources</h3>
             <ul>
               <li>
                 <a href="https://github.com/Peersyst/fast-auth" target="_blank" rel="noopener">
@@ -45,7 +50,7 @@ export default function SiteFooter({ docsHref, statusHref, auditHref }: Props) {
             </ul>
           </div>
           <div className="footerCol">
-            <h4>Company</h4>
+            <h3>Company</h3>
             <ul>
               <li><a href="https://peersyst.com/" target="_blank" rel="noopener">Peersyst</a></li>
               <li><a href="https://www.near.org/" target="_blank" rel="noopener">NEAR Protocol</a></li>

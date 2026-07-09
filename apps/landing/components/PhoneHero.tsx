@@ -69,10 +69,10 @@ function SignInScreen() {
     <div className="sc">
       <div className="scHead">
         <div className="scLogo">
-          <img src="/brand/fastauth-mark.svg" alt="" width={32} height={32} />
+          <img src="/brand/nearauth-mark.svg" alt="" width={32} height={32} />
         </div>
         <h3 className="scTitle">Welcome back</h3>
-        <p className="scLede">One login across every NEAR dApp on FastAuth.</p>
+        <p className="scLede">One login across every NEAR dApp on NEARauth.</p>
       </div>
 
       <div className="scField">

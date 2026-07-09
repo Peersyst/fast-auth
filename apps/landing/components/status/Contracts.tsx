@@ -15,7 +15,7 @@ export default function Contracts({ data }: { data: StatusData }) {
       <div className="container">
         <SectionLabel
           num="06"
-          title="FastAuth Contracts"
+          title="NEARauth Contracts"
           hint={
             data.contractsTrackedSince
               ? `Live view-call snapshot · history since ${fmtAbsolute(data.contractsTrackedSince)}`
