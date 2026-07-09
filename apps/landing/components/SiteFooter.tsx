@@ -1,3 +1,5 @@
+import { NearAuthLogo } from "./NearAuthLogo";
+
 type Props = { docsHref: string; statusHref: string; auditHref: string };
 
 export default function SiteFooter({ docsHref, statusHref, auditHref }: Props) {
@@ -7,7 +9,7 @@ export default function SiteFooter({ docsHref, statusHref, auditHref }: Props) {
         <div className="footerGrid">
           <div className="footerCol">
             <a href="/" className="brand" style={{ marginBottom: 12 }}>
-              <img src="/brand/NEARAuth_logo.svg" alt="NEAR Auth" />
+              <NearAuthLogo />
             </a>
             <p>An account-abstraction layer for NEAR. Built and operated by Peersyst.</p>
           </div>
