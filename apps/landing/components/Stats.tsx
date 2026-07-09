@@ -67,7 +67,7 @@ export default function Stats({ metrics, statusHref }: Props) {
           </article>
 
           <article className="statCard statCard--mint">
-            <h3>NEARauth uptime</h3>
+            <h3>FastAuth uptime</h3>
             <p className="v">{formatUptime(metrics?.health24h.uptimePct ?? null)}</p>
             <span className="delta">{formatUptimeWindow(metrics?.health24h.classified)}</span>
           </article>

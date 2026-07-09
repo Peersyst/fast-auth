@@ -11,13 +11,13 @@ export default function StatusBanner({ data }: { data: StatusData }) {
           <div>
             <h1>{ok ? "All systems operational" : "Degraded performance"}</h1>
             <p>
-              NEARauth metrics on NEAR mainnet · Updated {relativeTime(data.generatedAt)} · auto-refresh{" "}
+              FastAuth metrics on NEAR mainnet · Updated {relativeTime(data.generatedAt)} · auto-refresh{" "}
               {data.revalidateSeconds}s
             </p>
           </div>
         </div>
         <div className="statusBannerRight">
-          <BannerStat label="NEARauth · 24h" value={fmtPct(data.summary.fastAuthSuccess24h, 0)} ok />
+          <BannerStat label="FastAuth · 24h" value={fmtPct(data.summary.fastAuthSuccess24h, 0)} ok />
           <BannerStat label="MPC · 24h" value={fmtPct(data.summary.mpcSuccess24h, 0)} ok />
           <BannerStat label="Sign-events" value={fmtN(data.summary.txLast24h)} />
           <BannerStat label="Active users" value={fmtN(data.summary.activeUsers24h)} />
