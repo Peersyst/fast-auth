@@ -35,17 +35,15 @@ export default function Hero({ docsHref, statusHref, auditHref, metrics }: Props
         <div className="heroCopy">
           <span className="heroKicker">
             <span className="kdot" />
-            SOCIAL LOGIN FOR NEAR · LIVE ON MAINNET · {accountsLabel}
+            FASTAUTH · LIVE ON NEAR MAINNET · {accountsLabel}
           </span>
           <h1 className="heroTitle">
-            Sign in with <span className="accent">Google</span> or <span className="accent">Apple</span>.{" "}
-            Land on a <span className="accent">real NEAR wallet</span>.
+            Onboard users with an <span className="accent">email</span>.{" "}
+            Give them a <span className="accent">real wallet</span>.
           </h1>
           <p className="heroLede">
-            NEARauth is the Web3 onboarding layer for NEAR dApps — Google, Apple, email, and passkey sign-in
-            backed by a real NEAR account, non-custodial via MPC. No seed phrases, no extensions,
-            no wallet popups. One Auth0-backed identity, shared across every dApp in the NEAR ecosystem
-            that integrates NEARauth.
+            FastAuth onboards users in seconds with any Auth0 method — email, social, passkey, or enterprise SSO — no seed phrases, no extensions, no wallet popups.
+            One Auth0-backed identity, shared across every wallet and dApp in the NEAR ecosystem that integrates FastAuth.
           </p>
 
           <div className="heroCTAs">
@@ -54,14 +52,14 @@ export default function Hero({ docsHref, statusHref, auditHref, metrics }: Props
             </a>
             <a href={statusHref} className="btn btn--dark">
               <span className="heroDot" />
-              NEARauth status
+              FastAuth status
               <ArrowRight />
             </a>
           </div>
 
           <div className="heroMeta">
-            <span><span className="check">✓</span> Google · Apple · Email · Passkey · SSO</span>
-            <span><span className="check">✓</span> Non-custodial NEAR wallet via MPC</span>
+            <span><span className="check">✓</span> Email · Social · Passkey · SSO</span>
+            <span><span className="check">✓</span> Shared identity across NEAR</span>
             <a href={auditHref} target="_blank" rel="noopener" className="auditPill">
               <ShieldIcon /> Audited by <b>Halborn</b> · view report
             </a>

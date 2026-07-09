@@ -1,6 +1,6 @@
-# NEARauth Landing
+# FastAuth Landing
 
-Marketing site for [NEARauth](https://peersyst.github.io/fast-auth/) — the Auth0-backed account-abstraction layer for NEAR. Single-page Next.js App Router site that pulls live network metrics from the NEARauth metrics service.
+Marketing site for [FastAuth](https://peersyst.github.io/fast-auth/) — the Auth0-backed account-abstraction layer for NEAR. Single-page Next.js App Router site that pulls live network metrics from the FastAuth metrics service.
 
 ## Stack
 
@@ -35,7 +35,7 @@ app/
   globals.css       # All styles
 components/         # Section components (Hero, FAQ, Stats, ...)
 lib/
-  metrics.ts        # Server-side fetch of live NEARauth metrics
+  metrics.ts        # Server-side fetch of live FastAuth metrics
 public/brand/       # Logo marks
 ```
 

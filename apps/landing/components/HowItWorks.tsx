@@ -35,7 +35,7 @@ export default function HowItWorks() {
             <div className="stepNum"><b>STEP 02</b> Derive &amp; sign</div>
             <h3>The MPC network derives the user's key from their JWT.</h3>
             <p>
-              The NEARauth contract routes the JWT to the matching guard (Auth0, Firebase, custom
+              The FastAuth contract routes the JWT to the matching guard (Auth0, Firebase, custom
               issuer) for cryptographic verification. On success it builds a deterministic path —{" "}
               <code>{"{guard_id}#{sub}"}</code> — and asks NEAR's MPC network to sign for it. The
               nodes derive the same key for the same identity every time, and produce the
