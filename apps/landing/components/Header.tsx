@@ -7,7 +7,7 @@ export default function Header({ docsHref, statusHref }: Props) {
     <header className="siteHeader">
       <div className="container headerInner">
         <a href="/" className="brand">
-          <img src="/brand/NEARAuth_logo.svg" alt="NEARauth" />
+          <img src="/brand/NEARAuth_logo.svg" alt="NEAR Auth" />
           <span className="by">Peersyst × NEAR</span>
         </a>
         <nav className="nav">

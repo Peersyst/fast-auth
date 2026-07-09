@@ -13,7 +13,7 @@ export default function AuditBanner({ auditHref }: { auditHref: string }) {
         <div className="copy">
           <span className="kicker">Security · Audit</span>
           <span className="title">
-            NEARauth smart contracts audited by <b>Halborn</b>.
+            NEAR Auth smart contracts audited by <b>Halborn</b>.
           </span>
         </div>
         <a href={auditHref} target="_blank" rel="noopener" className="cta">

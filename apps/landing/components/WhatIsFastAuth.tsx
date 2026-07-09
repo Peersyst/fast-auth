@@ -4,11 +4,11 @@ export default function WhatIsFastAuth() {
       <div className="container">
         <div className="sectionHead">
           <div>
-            <p className="sectionKicker"><span className="kn">01</span>  What is NEARauth</p>
+            <p className="sectionKicker"><span className="kn">01</span>  What is NEAR Auth</p>
             <h2 className="sectionTitle">A wallet that doesn't feel like one.</h2>
           </div>
           <p className="sectionLede">
-            NEARauth is an account-abstraction layer for NEAR, powered by Auth0. Users sign in with the credentials they already have, and the same identity resolves to the same NEAR account in every dApp that integrates NEARauth.
+            NEAR Auth is an account-abstraction layer for NEAR, powered by Auth0. Users sign in with the credentials they already have, and the same identity resolves to the same NEAR account in every dApp that integrates NEAR Auth.
           </p>
         </div>
 
@@ -23,8 +23,8 @@ export default function WhatIsFastAuth() {
           </article>
           <article className="valueCard">
             <span className="vNum">02 · SHARED IDENTITY</span>
-            <h3>One account. Every NEARauth dApp.</h3>
-            <p>The user's MPC-controlled NEAR account is derived deterministically from their Auth0 identity. Sign into one NEARauth-integrated dApp, sign into the next with the same login — same account, same balance, no re-onboarding.</p>
+            <h3>One account. Every NEAR Auth dApp.</h3>
+            <p>The user's MPC-controlled NEAR account is derived deterministically from their Auth0 identity. Sign into one NEAR Auth-integrated dApp, sign into the next with the same login — same account, same balance, no re-onboarding.</p>
             <div className="valueIllu">
               <ValueIllu2 />
             </div>
@@ -32,7 +32,7 @@ export default function WhatIsFastAuth() {
           <article className="valueCard">
             <span className="vNum">03 · UX</span>
             <h3>Gasless. Silent. On-chain.</h3>
-            <p>Your dApp pays gas through the NEARauth relayer. Users authenticate with whichever Auth0 method they chose, and the action lands on NEAR mainnet wrapped as a NEP-366 meta-transaction.</p>
+            <p>Your dApp pays gas through the NEAR Auth relayer. Users authenticate with whichever Auth0 method they chose, and the action lands on NEAR mainnet wrapped as a NEP-366 meta-transaction.</p>
             <div className="valueIllu">
               <ValueIllu3 />
             </div>

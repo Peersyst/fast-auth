@@ -1,5 +1,5 @@
 /* =========================================================================
-   Peersyst / NEARauth — design tokens (single source of truth)
+   Peersyst / NEAR Auth — design tokens (single source of truth)
    ========================================================================= */
 :root {
   /* Neutrals (warm cream family) */
@@ -420,7 +420,7 @@ h2.sectionTitle {
   max-width: 52ch;
 }
 
-/* ========== WHAT IS NEARAUTH ========== */
+/* ========== WHAT IS NEAR AUTH ========== */
 .what { padding: 96px 0; border-top: 1px solid var(--color-border); }
 .valueGrid {
   display: grid;

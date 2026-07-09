@@ -6,15 +6,15 @@ import { resolveSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const SITE_URL = resolveSiteUrl();
-const SITE_TITLE = "NEARauth — Sign in with Google or Apple on NEAR · Social-login Web3 onboarding";
+const SITE_TITLE = "NEAR Auth — Sign in with Google or Apple on NEAR · Social-login Web3 onboarding";
 const SITE_DESCRIPTION =
-  "NEARauth is the Web3 onboarding layer for NEAR dApps: sign in with Google, Apple, email, or passkey and land on a real NEAR wallet — non-custodial via MPC, gasless through NEP-366 meta-transactions. Built and operated by Peersyst.";
-const SITE_NAME = "NEARauth";
+  "NEAR Auth is the Web3 onboarding layer for NEAR dApps: sign in with Google, Apple, email, or passkey and land on a real NEAR wallet — non-custodial via MPC, gasless through NEP-366 meta-transactions. Built and operated by Peersyst.";
+const SITE_NAME = "NEAR Auth";
 const OG_IMAGE = "/fast-auth-img-og.png";
-const OG_IMAGE_ALT = "NEARauth — Sign in with Google or Apple on NEAR";
+const OG_IMAGE_ALT = "NEAR Auth — Sign in with Google or Apple on NEAR";
 const PEERSYST_URL = "https://peersyst.com";
 const PEERSYST_LOGO = "https://peersyst.com/favicon.ico";
-const FASTAUTH_DOCS_URL = "https://peersyst.github.io/fast-auth/";
+const DOCS_URL = "https://docs.auth.near.org/";
 
 const SEO_KEYWORDS = [
   "NEAR social login",
@@ -25,7 +25,7 @@ const SEO_KEYWORDS = [
   "non-custodial NEAR wallet",
   "Auth0 NEAR",
   "NEP-366 meta-transactions",
-  "NEARauth",
+  "NEAR Auth",
 ];
 
 export const metadata: Metadata = {
@@ -120,7 +120,7 @@ const softwareApplicationJsonLd = {
   url: SITE_URL,
   description: SITE_DESCRIPTION,
   publisher: { "@id": `${PEERSYST_URL}/#organization` },
-  softwareHelp: { "@type": "CreativeWork", url: FASTAUTH_DOCS_URL },
+  softwareHelp: { "@type": "CreativeWork", url: DOCS_URL },
   offers: {
     "@type": "Offer",
     price: "0",

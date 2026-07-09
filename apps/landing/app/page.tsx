@@ -11,12 +11,12 @@ import WhatIsFastAuth from "@/components/WhatIsFastAuth";
 import { FAQ_ITEMS } from "@/lib/faq";
 import { fetchLiveMetrics } from "@/lib/metrics";
 
-const DOCS_HREF = "https://peersyst.github.io/fast-auth/";
+const DOCS_HREF = "https://docs.auth.near.org/";
 const STATUS_HREF = "/status";
 const AUDIT_HREF =
   "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/FastAuth_Halborn.pdf";
 const APPLY_HREF =
-  "https://peersyst.github.io/fast-auth/docs/guides/submit-your-application";
+  "https://docs.auth.near.org/home/apply";
 
 export const revalidate = 60;
 

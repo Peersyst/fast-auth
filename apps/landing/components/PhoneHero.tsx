@@ -72,7 +72,7 @@ function SignInScreen() {
           <img src="/brand/NEARAuth_logo_square.svg" alt="" width={30} height={32} />
         </div>
         <h3 className="scTitle">Welcome back</h3>
-        <p className="scLede">One login across every NEAR dApp on NEARauth.</p>
+        <p className="scLede">One login across every NEAR dApp on NEAR Auth.</p>
       </div>
 
       <div className="scField">

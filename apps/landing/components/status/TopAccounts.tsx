@@ -23,7 +23,7 @@ export default function TopAccounts({ data }: { data: StatusData }) {
         <SectionLabel
           num="04"
           title="Top accounts signing with fast-auth.near"
-          hint={`Ranked by NEARauth.sign() calls · ${fmtN(total)} of ${fmtN(data.topAccountsTotal)}`}
+          hint={`Ranked by NEAR Auth.sign() calls · ${fmtN(total)} of ${fmtN(data.topAccountsTotal)}`}
         />
 
         <div className="dashTable dashTable--scroll">

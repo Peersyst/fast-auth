@@ -7,7 +7,7 @@ export default function SiteFooter({ docsHref, statusHref, auditHref }: Props) {
         <div className="footerGrid">
           <div className="footerCol">
             <a href="/" className="brand" style={{ marginBottom: 12 }}>
-              <img src="/brand/NEARAuth_logo.svg" alt="NEARauth" />
+              <img src="/brand/NEARAuth_logo.svg" alt="NEAR Auth" />
             </a>
             <p>An account-abstraction layer for NEAR. Built and operated by Peersyst.</p>
           </div>
@@ -15,7 +15,7 @@ export default function SiteFooter({ docsHref, statusHref, auditHref }: Props) {
             <h3>Product</h3>
             <ul>
               <li><a href={docsHref}>Documentation</a></li>
-              <li><a href="https://peersyst.github.io/fast-auth/docs/guides/select-your-sdk" target="_blank" rel="noopener">SDK</a></li>
+              <li><a href="https://docs.auth.near.org/home/guides/choose-your-sdk" target="_blank" rel="noopener">SDK</a></li>
               <li><a href={statusHref}>Status</a></li>
             </ul>
           </div>
@@ -34,7 +34,7 @@ export default function SiteFooter({ docsHref, statusHref, auditHref }: Props) {
               </li>
               <li>
                 <a
-                  href="https://peersyst.github.io/fast-auth/docs/concepts/architecture_custom_issuer_service"
+                  href="https://docs.auth.near.org/protocol/advanced/custom-issuer"
                   target="_blank"
                   rel="noopener"
                 >

@@ -42,10 +42,10 @@ export default function Hero({ docsHref, statusHref, auditHref, metrics }: Props
             Land on a <span className="accent">real NEAR wallet</span>.
           </h1>
           <p className="heroLede">
-            NEARauth is the Web3 onboarding layer for NEAR dApps — Google, Apple, email, and passkey sign-in
+            NEAR Auth is the Web3 onboarding layer for NEAR dApps — Google, Apple, email, and passkey sign-in
             backed by a real NEAR account, non-custodial via MPC. No seed phrases, no extensions,
             no wallet popups. One Auth0-backed identity, shared across every dApp in the NEAR ecosystem
-            that integrates NEARauth.
+            that integrates NEAR Auth.
           </p>
 
           <div className="heroCTAs">
@@ -54,7 +54,7 @@ export default function Hero({ docsHref, statusHref, auditHref, metrics }: Props
             </a>
             <a href={statusHref} className="btn btn--dark">
               <span className="heroDot" />
-              NEARauth status
+              NEAR Auth status
               <ArrowRight />
             </a>
           </div>

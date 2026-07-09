@@ -10,11 +10,11 @@ export default function ServiceHealth({ data }: { data: StatusData }) {
   return (
     <section className="dashSection">
       <div className="container">
-        <SectionLabel num="01" title="Status" hint="Live signing pipeline · MPC + NEARauth router" />
+        <SectionLabel num="01" title="Status" hint="Live signing pipeline · MPC + NEAR Auth router" />
         <div className="healthGrid">
           <article className="healthCard">
             <div className="healthCardHead">
-              <h3>Fast Auth Status</h3>
+              <h3>NEAR Auth Status</h3>
               <span className="healthBadge healthBadge--ok">{fmtPct(fa?.successRatePct ?? null, 0)}</span>
             </div>
             {fa ? (
@@ -51,7 +51,7 @@ export default function ServiceHealth({ data }: { data: StatusData }) {
                 </div>
               </dl>
             ) : (
-              <p className="healthFootnote">No NEARauth health snapshot yet.</p>
+              <p className="healthFootnote">No NEAR Auth health snapshot yet.</p>
             )}
             <UptimeBar
               data={data.uptime24h.map((p) => p.fastAuth)}
@@ -59,7 +59,7 @@ export default function ServiceHealth({ data }: { data: StatusData }) {
               anchor={data.generatedAt}
             />
             <p className="healthFootnote">
-              Last 24h of NEARauth txs, classified by walking each tx&apos;s receipts. Share whose full receipt chain
+              Last 24h of NEAR Auth txs, classified by walking each tx&apos;s receipts. Share whose full receipt chain
               (guard → MPC) executed cleanly. Pending tx are excluded from the denominator until classified.
             </p>
           </article>

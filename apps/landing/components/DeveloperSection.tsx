@@ -50,7 +50,7 @@ export function Wallet() {
   if (!isLoggedIn)         return <button onClick={() => client.login()}>Sign in</button>;
 
   // Gas-free meta-transaction. Build the delegate action with near-api-js;
-  // the NEARauth relayer pays gas on behalf of the user.
+  // the NEAR Auth relayer pays gas on behalf of the user.
   const post = () => signer?.signAndSendDelegateAction({
     receiverId:     "guest-book.near",
     delegateAction: buildDelegateAction({ /* sender, actions, nonce, … */ }),
@@ -158,7 +158,7 @@ export default function DeveloperSection({ docsHref }: { docsHref: string }) {
             <h2 className="sectionTitle">Drop it in.<br />Ship today.</h2>
           </div>
           <p className="sectionLede">
-            React SDK or vanilla JS — pick your stack. The Auth0-backed JavaScript provider handles login; the NEARauth relayer pays gas. You write the dApp.
+            React SDK or vanilla JS — pick your stack. The Auth0-backed JavaScript provider handles login; the NEAR Auth relayer pays gas. You write the dApp.
           </p>
         </div>
 
@@ -182,7 +182,7 @@ export default function DeveloperSection({ docsHref }: { docsHref: string }) {
                 <div>
                   <strong>Four sign-in methods. One identity.</strong>
                   <span>
-                    Email, Google, Apple, or passkey — routed through Auth0. The same login resolves to the same NEAR account in every dApp on NEARauth.
+                    Email, Google, Apple, or passkey — routed through Auth0. The same login resolves to the same NEAR account in every dApp on NEAR Auth.
                   </span>
                 </div>
               </li>
@@ -200,7 +200,7 @@ export default function DeveloperSection({ docsHref }: { docsHref: string }) {
                 <div>
                   <strong>Open source. Extend the auth side.</strong>
                   <span>
-                    SDKs and contracts on GitHub. Run your own JWT guard or custom issuer service if Auth0 isn't enough — the NEARauth contract, router, and MPC network are shared mainnet infrastructure.
+                    SDKs and contracts on GitHub. Run your own JWT guard or custom issuer service if Auth0 isn't enough — the NEAR Auth contract, router, and MPC network are shared mainnet infrastructure.
                   </span>
                 </div>
               </li>
