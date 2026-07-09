@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   publisher: "Peersyst",
   category: "technology",
   icons: {
-    icon: "/brand/nearauth-mark.svg",
+    icon: "/brand/NEARAuth_logo_square.svg",
   },
   alternates: {
     canonical: "/",

@@ -131,24 +131,7 @@ button > .plus, button > .checkbox { pointer-events: none; }
   align-items: center;
   gap: 10px;
 }
-.brand img { width: 28px; height: 28px; display: block; border-radius: 6px; }
-/* NEARauth wordmark lockup: NEAR logotype (ink) + "auth" in mint — the brand
-   signature from the design system (preview/10_logo.html). */
-.brand .wordmark {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  color: var(--color-ink);
-}
-.brand .wordmark svg { height: 17px; width: auto; display: block; }
-.brand .wordmark .auth {
-  font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: 18px;
-  line-height: 1;
-  letter-spacing: -0.01em;
-  color: var(--color-mint);
-}
+.brand img { height: 30px; width: auto; display: block; }
 .brand .by {
   font-family: var(--font-mono);
   font-size: 11px;
