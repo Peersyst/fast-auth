@@ -65,6 +65,17 @@ describe("JavascriptProvider", () => {
         provider = new JavascriptProvider(mockOptions);
     });
 
+    describe("constructor", () => {
+        it("configures the network's API audience so a plain login does not inherit the tenant signing audience", () => {
+            const { Auth0Client } = jest.requireMock("@auth0/auth0-spa-js");
+            expect(Auth0Client).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    authorizationParams: { audience: "https://api.testnet.fast-auth.com" },
+                }),
+            );
+        });
+    });
+
     describe("isLoggedIn", () => {
         beforeEach(() => {
             mockLocation.search = "";
