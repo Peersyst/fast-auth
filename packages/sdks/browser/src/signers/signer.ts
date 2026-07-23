@@ -52,7 +52,7 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
             account_id: contractId,
             method_name: methodName,
             args_base64: encodedArgs.toString("base64"),
-            sync_checkpoint: "earliest_available",
+            finality: "final",
         });
 
         return JSON.parse(Buffer.from(result.result).toString());
