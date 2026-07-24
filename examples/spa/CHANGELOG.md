@@ -1,5 +1,28 @@
 # spa
 
+## 0.0.9
+
+### Patch Changes
+
+-   Updated dependencies
+    -   @fast-auth-near/browser-sdk@1.4.2
+
+## 0.0.8
+
+### Patch Changes
+
+-   Updated dependencies
+    -   @fast-auth-near/javascript-provider@1.4.1
+    -   @fast-auth-near/browser-sdk@1.4.1
+
+## 0.0.7
+
+### Patch Changes
+
+-   Updated dependencies [5e825f2]
+    -   @fast-auth-near/javascript-provider@1.4.0
+    -   @fast-auth-near/browser-sdk@1.4.0
+
 ## 0.0.6
 
 ### Patch Changes

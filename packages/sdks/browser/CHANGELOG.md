@@ -1,5 +1,11 @@
 # @fast-auth-near/browser-sdk
 
+## 1.4.2
+
+### Patch Changes
+
+-   fix nearcore rpc issue
+
 ## 1.4.1
 
 ### Patch Changes
