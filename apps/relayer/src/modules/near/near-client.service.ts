@@ -91,7 +91,7 @@ export class NearClientService {
             account_id: accountId,
             method_name: method,
             args_base64: encodedArgs.toString("base64"),
-            sync_checkpoint: "earliest_available",
+            finality: "final",
         });
         return JSON.parse(Buffer.from(result.result).toString());
     }

@@ -77,6 +77,7 @@ describe("FastAuthSigner", () => {
                     request_type: "call_function",
                     account_id: options.mpcContractId,
                     method_name: "derived_public_key",
+                    finality: "final",
                 }),
             );
 
