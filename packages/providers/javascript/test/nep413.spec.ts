@@ -6,6 +6,7 @@ import {
     encodeNep413Payload,
     generateNep413Nonce,
     serializeNep413Payload,
+    buildNep413SignedMessage,
 } from "../src/nep413";
 
 const FIXED_NONCE = Uint8Array.from(Array.from({ length: NEP413_NONCE_LENGTH }, (_, i) => (i * 3) % 256));
@@ -95,5 +96,61 @@ describe("encodeNep413Payload", () => {
         expect(Array.isArray(encoded)).toBe(true);
         expect(encoded).toEqual(Array.from(serializeNep413Payload(params)));
         expect(encoded.every((value) => Number.isInteger(value) && value >= 0 && value <= 255)).toBe(true);
+    });
+
+    it("encodes an arbitrary sign-in challenge, not just intents", () => {
+        // NEP-413 messages are arbitrary strings; the serializer must not assume JSON.
+        const encoded = encodeNep413Payload({
+            message: "Sign in to example.com",
+            nonce: FIXED_NONCE,
+            recipient: "example.com",
+        });
+        expect(encoded.length).toBeGreaterThan(0);
+    });
+});
+
+describe("buildNep413SignedMessage", () => {
+    const SIGNATURE = Uint8Array.from(Array.from({ length: 64 }, (_, i) => i));
+
+    it("returns the shape NEP-413 defines for a signed message", () => {
+        const signed = buildNep413SignedMessage({
+            accountId: "trader.near",
+            publicKey: "ed25519:abc",
+            signature: SIGNATURE,
+        });
+
+        expect(signed).toEqual({
+            accountId: "trader.near",
+            publicKey: "ed25519:abc",
+            signature: expect.any(String),
+        });
+    });
+
+    it("base64-encodes the signature", () => {
+        const signed = buildNep413SignedMessage({ accountId: "a.near", publicKey: "ed25519:k", signature: SIGNATURE });
+        // Round-trip through atob to prove the bytes survive intact.
+        const decoded = Uint8Array.from(globalThis.atob(signed.signature), (c) => c.charCodeAt(0));
+        expect(Array.from(decoded)).toEqual(Array.from(SIGNATURE));
+    });
+
+    it("accepts a plain number array as the signature", () => {
+        const fromArray = buildNep413SignedMessage({ accountId: "a.near", publicKey: "ed25519:k", signature: Array.from(SIGNATURE) });
+        const fromBytes = buildNep413SignedMessage({ accountId: "a.near", publicKey: "ed25519:k", signature: SIGNATURE });
+        expect(fromArray.signature).toBe(fromBytes.signature);
+    });
+
+    it("echoes the state when one was supplied", () => {
+        const signed = buildNep413SignedMessage({
+            accountId: "a.near",
+            publicKey: "ed25519:k",
+            signature: SIGNATURE,
+            state: "csrf-token",
+        });
+        expect(signed.state).toBe("csrf-token");
+    });
+
+    it("omits state entirely when none was supplied", () => {
+        const signed = buildNep413SignedMessage({ accountId: "a.near", publicKey: "ed25519:k", signature: SIGNATURE });
+        expect("state" in signed).toBe(false);
     });
 });

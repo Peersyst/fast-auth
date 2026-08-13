@@ -21,9 +21,9 @@ export type RequestTransactionSignatureResponse = User;
 export type RequestDelegateActionSignatureResponse = User;
 
 /**
- * Response of a NEP-413 intent signature request.
+ * Response of a NEP-413 message signature request.
  */
-export type RequestIntentSignatureResponse = User;
+export type RequestMessageSignatureResponse = User;
 
 /**
  * Response returned after a successful signature request
@@ -37,11 +37,12 @@ export interface IFastAuthProvider {
     requestTransactionSignature(...args: any[]): Promise<RequestTransactionSignatureResponse>;
     requestDelegateActionSignature(...args: any[]): Promise<RequestDelegateActionSignatureResponse>;
     /**
-     * Request a signature over a NEP-413 off-chain message, used to authorize NEAR Intents
-     * without submitting a transaction. Optional: providers that have not implemented the
-     * flow simply omit it, and callers must check for its presence before use.
+     * Request a signature over a NEP-413 off-chain message: wallet sign-in challenges, app
+     * authentication, or NEAR Intents authorized without submitting a transaction. Optional:
+     * providers that have not implemented the flow simply omit it, and callers must check for
+     * its presence before use.
      */
-    requestIntentSignature?(...args: any[]): Promise<RequestIntentSignatureResponse>;
+    requestMessageSignature?(...args: any[]): Promise<RequestMessageSignatureResponse>;
     getSignatureRequest(): Promise<GetSignatureRequestResponse>;
     getPath(): Promise<string>;
 }

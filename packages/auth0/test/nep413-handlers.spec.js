@@ -6,7 +6,7 @@
  * single-payload rule.
  */
 const { onExecutePostLogin } = require("../src/actions/authorize-app.action.js");
-const { buildIntentPayload, buildIntentMessage, buildTransaction, buildDelegateAction } = require("./fixtures/builders.js");
+const { buildNep413Payload, buildIntentMessage, buildTransaction, buildDelegateAction } = require("./fixtures/builders.js");
 
 const ONCHAIN_AUDIENCE = "https://onchain.example";
 
@@ -35,14 +35,14 @@ function makeApi() {
     return { api, calls };
 }
 
-function makeEvent({ query = {}, audience = ONCHAIN_AUDIENCE, intentsRecipient } = {}) {
+function makeEvent({ query = {}, audience = ONCHAIN_AUDIENCE, allowedRecipients } = {}) {
     return {
         secrets: {
             ONCHAIN_AUDIENCE,
             TRANSACTION_FORM: "modal_tx",
             DELEGATE_ACTION_FORM: "modal_delegate",
-            INTENT_FORM: "modal_intent",
-            ...(intentsRecipient ? { INTENTS_RECIPIENT: intentsRecipient } : {}),
+            NEP413_FORM: "modal_nep413",
+            ...(allowedRecipients ? { NEP413_ALLOWED_RECIPIENTS: allowedRecipients } : {}),
         },
         request: { query },
         resource_server: audience == null ? undefined : { identifier: audience },
@@ -53,12 +53,12 @@ function makeEvent({ query = {}, audience = ONCHAIN_AUDIENCE, intentsRecipient }
 describe("onExecutePostLogin — intent dispatch", () => {
     test("renders the intent form with signer, verifier and deadline", async () => {
         const { api, calls } = makeApi();
-        const { csv, message } = buildIntentPayload();
+        const { csv, message } = buildNep413Payload();
 
-        await onExecutePostLogin(makeEvent({ query: { intent: csv } }), api);
+        await onExecutePostLogin(makeEvent({ query: { nep413: csv } }), api);
 
         expect(calls.deny).toEqual([]);
-        expect(calls.render.modalId).toBe("modal_intent");
+        expect(calls.render.modalId).toBe("modal_nep413");
         expect(calls.render.opts.fields).toMatchObject({
             name: "Test App",
             imageUrl: "https://logo.example/x.png",
@@ -70,18 +70,18 @@ describe("onExecutePostLogin — intent dispatch", () => {
 
     test("hands the intents to the form as a JSON string", async () => {
         const { api, calls } = makeApi();
-        const { csv, message } = buildIntentPayload();
+        const { csv, message } = buildNep413Payload();
 
-        await onExecutePostLogin(makeEvent({ query: { intent: csv } }), api);
+        await onExecutePostLogin(makeEvent({ query: { nep413: csv } }), api);
 
         expect(JSON.parse(calls.render.opts.fields.intents)).toEqual(message.intents);
     });
 
     test("sets fatxn to the exact bytes received", async () => {
         const { api, calls } = makeApi();
-        const { csv, bytes } = buildIntentPayload();
+        const { csv, bytes } = buildNep413Payload();
 
-        await onExecutePostLogin(makeEvent({ query: { intent: csv } }), api);
+        await onExecutePostLogin(makeEvent({ query: { nep413: csv } }), api);
 
         // The guard compares fatxn to sign_payload byte for byte; any transformation here
         // would make every signature fail on-chain.
@@ -90,18 +90,18 @@ describe("onExecutePostLogin — intent dispatch", () => {
 
     test("strips the OIDC profile scopes like the other payload types", async () => {
         const { api, calls } = makeApi();
-        const { csv } = buildIntentPayload();
+        const { csv } = buildNep413Payload();
 
-        await onExecutePostLogin(makeEvent({ query: { intent: csv } }), api);
+        await onExecutePostLogin(makeEvent({ query: { nep413: csv } }), api);
 
         expect(calls.removedScopes).toEqual(["profile", "email", "offline_access"]);
     });
 
     test("honours a tenant-configured verifier", async () => {
         const { api, calls } = makeApi();
-        const { csv } = buildIntentPayload({ recipient: "intents.testnet" });
+        const { csv } = buildNep413Payload({ recipient: "intents.testnet" });
 
-        await onExecutePostLogin(makeEvent({ query: { intent: csv }, intentsRecipient: "intents.testnet" }), api);
+        await onExecutePostLogin(makeEvent({ query: { nep413: csv }, allowedRecipients: "intents.testnet" }), api);
 
         expect(calls.deny).toEqual([]);
         expect(calls.render.opts.fields.recipient).toBe("intents.testnet");
@@ -111,40 +111,50 @@ describe("onExecutePostLogin — intent dispatch", () => {
 describe("onExecutePostLogin — intent rejection", () => {
     test("denies instead of rendering when the payload cannot be decoded", async () => {
         const { api, calls } = makeApi();
-        const { csv } = buildIntentPayload({ tag: 7 });
+        const { csv } = buildNep413Payload({ tag: 7 });
 
-        await onExecutePostLogin(makeEvent({ query: { intent: csv } }), api);
+        await onExecutePostLogin(makeEvent({ query: { nep413: csv } }), api);
 
-        expect(calls.deny).toEqual(["Intent payload is missing the NEP-413 domain tag"]);
+        expect(calls.deny).toEqual(["Payload is missing the NEP-413 domain tag"]);
         expect(calls.render).toBeNull();
         expect(calls.customClaims.fatxn).toBeUndefined();
     });
 
-    test("denies an intent aimed at another verifier", async () => {
+    test("denies a recipient off the configured allowlist", async () => {
         const { api, calls } = makeApi();
-        const { csv } = buildIntentPayload({ recipient: "evil.near" });
+        const { csv } = buildNep413Payload({ recipient: "evil.near" });
 
-        await onExecutePostLogin(makeEvent({ query: { intent: csv } }), api);
+        await onExecutePostLogin(makeEvent({ query: { nep413: csv }, allowedRecipients: "intents.near" }), api);
 
-        expect(calls.deny).toEqual(["Intent payload targets an unexpected recipient: evil.near"]);
+        expect(calls.deny).toEqual(["NEP-413 message targets an unexpected recipient: evil.near"]);
         expect(calls.customClaims.fatxn).toBeUndefined();
     });
 
-    test("denies an intent whose message shows the user nothing", async () => {
+    test("allows any recipient when no allowlist is configured", async () => {
         const { api, calls } = makeApi();
-        const { csv } = buildIntentPayload({ message: buildIntentMessage({ intents: [] }) });
+        const { csv } = buildNep413Payload({ rawMessage: "Sign in to example.com", recipient: "example.com" });
 
-        await onExecutePostLogin(makeEvent({ query: { intent: csv } }), api);
+        await onExecutePostLogin(makeEvent({ query: { nep413: csv } }), api);
 
-        expect(calls.deny).toEqual(["Intent message carries no intents to approve"]);
+        expect(calls.deny).toEqual([]);
+        expect(calls.render.opts.fields.recipient).toBe("example.com");
+    });
+
+    test("denies a message with nothing to show the user", async () => {
+        const { api, calls } = makeApi();
+        const { csv } = buildNep413Payload({ rawMessage: "" });
+
+        await onExecutePostLogin(makeEvent({ query: { nep413: csv } }), api);
+
+        expect(calls.deny).toEqual(["NEP-413 message is empty"]);
         expect(calls.customClaims.fatxn).toBeUndefined();
     });
 
-    test("denies an intent sent to a non-signing audience", async () => {
+    test("denies a message sent to a non-signing audience", async () => {
         const { api, calls } = makeApi();
-        const { csv } = buildIntentPayload();
+        const { csv } = buildNep413Payload();
 
-        await onExecutePostLogin(makeEvent({ query: { intent: csv }, audience: "https://other.example" }), api);
+        await onExecutePostLogin(makeEvent({ query: { nep413: csv }, audience: "https://other.example" }), api);
 
         expect(calls.deny).toEqual(["Transaction payload only allowed with signing audience"]);
     });
@@ -153,10 +163,10 @@ describe("onExecutePostLogin — intent rejection", () => {
 describe("onExecutePostLogin — single payload rule", () => {
     test("denies when an intent arrives alongside a transaction", async () => {
         const { api, calls } = makeApi();
-        const { csv: intentCsv } = buildIntentPayload();
+        const { csv: intentCsv } = buildNep413Payload();
         const { csv: txCsv } = buildTransaction();
 
-        await onExecutePostLogin(makeEvent({ query: { intent: intentCsv, transaction: txCsv } }), api);
+        await onExecutePostLogin(makeEvent({ query: { nep413: intentCsv, transaction: txCsv } }), api);
 
         // Otherwise the screen could show one payload while a different one lands in fatxn.
         expect(calls.deny).toEqual(["Only one signing payload may be requested at a time"]);

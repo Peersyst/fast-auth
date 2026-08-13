@@ -568,16 +568,40 @@ function handleIntent(intent) {
 }
 
 /**
- * Build the details DOM tree for a NEP-413 intent approval.
+ * Render the message body of a NEP-413 request verbatim.
  *
- * Mirrors `renderDetails`, but walks `intents` (the NEAR Intents message body) instead of
- * NEAR transaction actions.
- *
- * @param {object} params
- * @param {Array<{label: string, value: string|undefined}>} params.fields - top-level fields (signer, recipient, deadline).
- * @param {string} params.intents - JSON string with the intents array.
+ * This is the default view, and the one that matters most: NEP-413 messages are arbitrary
+ * strings meant to be read by a human ("Sign in to example.com"), so showing the text exactly
+ * as it will be signed is the honest presentation. Pretty-printing is applied only when the
+ * message is JSON, purely for legibility.
  */
-function renderIntentDetails(params) {
+function messageContent(message) {
+    const container = document.createElement("div");
+    let display = message;
+    try {
+        const parsed = JSON.parse(message);
+        if (parsed && typeof parsed === "object") display = JSON.stringify(parsed, null, 2);
+    } catch (e) {
+        display = message;
+    }
+    container.appendChild(createTextContent("Message", display));
+    return container;
+}
+
+/**
+ * Build the details DOM tree for a NEP-413 signature approval.
+ *
+ * Two presentations, one payload: when the message carries NEAR Intents the intents are broken
+ * out one by one, and otherwise the raw message is shown as text. Either way the top-level
+ * fields — recipient above all — are rendered, because under NEP-413 the recipient is what
+ * tells the user which application their signature is addressed to.
+ * @param {object} params The render parameters.
+ * @param {Array<{label: string, value: string|undefined}>} params.fields Top-level fields (recipient, callback URL, signer, deadline).
+ * @param {string} params.message The raw NEP-413 message, shown when there are no intents to break out.
+ * @param {string} [params.intents] JSON string with the intents array, when the message is a NEAR Intents body.
+ * @returns {HTMLElement} The details node.
+ */
+function renderNep413Details(params) {
     ensureBufferPolyfill();
     const box = document.createElement("div");
     box.classList.add("box");
@@ -587,24 +611,29 @@ function renderIntentDetails(params) {
         box.appendChild(createTextContent(field.label, field.value));
     }
 
+    let parsedIntents = null;
+    if (params.intents) {
+        try {
+            const candidate = JSON.parse(params.intents);
+            if (Array.isArray(candidate) && candidate.length > 0) parsedIntents = candidate;
+        } catch (e) {
+            parsedIntents = null;
+        }
+    }
+
+    // No intents to break out (or they were unreadable) — show the message itself. Falling back
+    // to the raw text keeps every NEP-413 message approvable, not just the ones we model.
+    if (!parsedIntents) {
+        box.appendChild(messageContent(params.message || ""));
+        return box;
+    }
+
     const intentsContainer = document.createElement("div");
     intentsContainer.classList.add("actions-container");
     const intentsLabel = document.createElement("div");
     intentsLabel.classList.add("label");
     intentsLabel.textContent = "Intents";
     intentsContainer.appendChild(intentsLabel);
-
-    let parsedIntents = [];
-    try {
-        parsedIntents = JSON.parse(params.intents || "[]");
-    } catch (e) {
-        const errorNode = document.createElement("div");
-        errorNode.classList.add("warning-callout");
-        errorNode.textContent = "Failed to parse intents payload.";
-        intentsContainer.appendChild(errorNode);
-        box.appendChild(intentsContainer);
-        return box;
-    }
 
     for (const intent of parsedIntents) {
         intentsContainer.appendChild(handleIntent(intent));
@@ -642,7 +671,8 @@ var __auth0FormHelpers = {
     transferIntentContent: transferIntentContent,
     unknownIntentContent: unknownIntentContent,
     handleIntent: handleIntent,
-    renderIntentDetails: renderIntentDetails,
+    messageContent: messageContent,
+    renderNep413Details: renderNep413Details,
 };
 
 if (typeof module !== "undefined" && module.exports) {

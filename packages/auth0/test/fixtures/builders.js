@@ -286,7 +286,7 @@ const DELEGATE_ACTION_TYPES = ALL_ACTION_TYPES.filter(
 // Domain-separation tag from NEP-413 (2^31 + 413).
 const NEP413_PREFIX_TAG = Math.pow(2, 31) + 413;
 
-const DEFAULT_INTENTS_RECIPIENT = "intents.near";
+const INTENTS_RECIPIENT = "intents.near";
 
 /**
  * Borsh schema for the NEP-413 payload, transcribed from the NEP rather than imported from
@@ -324,10 +324,10 @@ function buildIntentMessage({
  *
  * @returns {{csv: string, bytes: Uint8Array, payload: object, message: object}}
  */
-function buildIntentPayload({
+function buildNep413Payload({
     message,
     tag = NEP413_PREFIX_TAG,
-    recipient = DEFAULT_INTENTS_RECIPIENT,
+    recipient = INTENTS_RECIPIENT,
     nonce = SAMPLE_NONCE,
     callbackUrl = null,
     rawMessage,
@@ -355,9 +355,9 @@ module.exports = {
     ALL_ACTION_TYPES,
     DELEGATE_ACTION_TYPES,
     NEP413_PREFIX_TAG,
-    DEFAULT_INTENTS_RECIPIENT,
+    INTENTS_RECIPIENT,
     NEP413_SCHEMA,
     SAMPLE_NONCE,
     buildIntentMessage,
-    buildIntentPayload,
+    buildNep413Payload,
 };

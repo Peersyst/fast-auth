@@ -31,19 +31,40 @@ export const NEP413_PAYLOAD_SCHEMA: Schema = {
 
 export type NEP413Payload = {
     /**
-     * The message to sign. For NEAR Intents this is the JSON-encoded intent body
-     * (`signer_id`, `deadline`, `intents`).
+     * The message to sign. Any string: a human-readable challenge such as "Sign in to
+     * example.com", or a structured body like the NEAR Intents JSON (`signer_id`, `deadline`,
+     * `intents`), which the approval screen renders as individual intents.
      */
     message: string;
     /**
-     * 32-byte nonce. Generated when omitted.
+     * 32-byte nonce guarding against replay. Generated when omitted.
      */
     nonce?: Uint8Array;
     /**
-     * Account the message is addressed to — the intents verifier, e.g. `intents.near`.
+     * Account the message is addressed to, e.g. `intents.near` or an app's own account. Under
+     * NEP-413 this is what stops a message from being relayed to a third party, and it is shown
+     * to the user on the approval screen.
      */
     recipient: string;
+    /**
+     * Optional URL the signing result is returned to. Part of the signed payload.
+     */
     callbackUrl?: string;
+};
+
+/**
+ * A NEP-413 signature result, in the shape the standard defines for `signMessage`.
+ * https://github.com/near/NEPs/blob/master/neps/nep-0413.md#output-interface
+ */
+export type NEP413SignedMessage = {
+    /** The signing account. */
+    accountId: string;
+    /** Public key as `<curve>:<base58>`. */
+    publicKey: string;
+    /** Base64-encoded signature over sha256 of the serialized payload. */
+    signature: string;
+    /** Echo of the caller's CSRF state, when one was supplied. */
+    state?: string;
 };
 
 /**
@@ -81,4 +102,27 @@ export function serializeNep413Payload(payload: NEP413Payload): Uint8Array {
  */
 export function encodeNep413Payload(payload: NEP413Payload): number[] {
     return Array.from(serializeNep413Payload(payload));
+}
+
+/**
+ * Assemble a NEP-413 SignedMessage from a signature produced through the FastAuth flow, so callers can hand verifiers the exact shape the standard defines.
+ * @param params The signing account, its public key, the raw signature and an optional state.
+ * @returns The signed message.
+ */
+export function buildNep413SignedMessage(params: {
+    accountId: string;
+    publicKey: string;
+    signature: Uint8Array | number[];
+    state?: string;
+}): NEP413SignedMessage {
+    const bytes = params.signature instanceof Uint8Array ? params.signature : Uint8Array.from(params.signature);
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+
+    return {
+        accountId: params.accountId,
+        publicKey: params.publicKey,
+        signature: globalThis.btoa(binary),
+        ...(params.state !== undefined ? { state: params.state } : {}),
+    };
 }

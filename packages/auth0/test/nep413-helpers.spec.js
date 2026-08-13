@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  *
- * Tests for `renderIntentDetails` — the approval screen for NEP-413 intents.
+ * Tests for `renderNep413Details` — the approval screen for NEP-413 intents.
  *
  * This is the half of the security model the contract cannot enforce: the user must be able
  * to read what they are about to sign. These tests assert the transfer details actually reach
@@ -13,10 +13,14 @@ const helpers = require("../src/forms/shared/helpers/index.js");
 const TRANSFER = { intent: "transfer", receiver_id: "deposit.near", tokens: { "nep141:usdc.near": "1000000" } };
 
 function render(intents, fields = []) {
-    return helpers.renderIntentDetails({ fields, intents: JSON.stringify(intents) });
+    return helpers.renderNep413Details({
+        fields,
+        message: JSON.stringify({ intents }),
+        intents: JSON.stringify(intents),
+    });
 }
 
-describe("renderIntentDetails — top-level fields", () => {
+describe("renderNep413Details — top-level fields", () => {
     test("renders the fields it is given", () => {
         const box = render(
             [TRANSFER],
@@ -43,7 +47,7 @@ describe("renderIntentDetails — top-level fields", () => {
     });
 });
 
-describe("renderIntentDetails — transfer intents", () => {
+describe("renderNep413Details — transfer intents", () => {
     test("shows the receiver and the token amount", () => {
         const box = render([TRANSFER]);
         const text = box.textContent;
@@ -77,7 +81,7 @@ describe("renderIntentDetails — transfer intents", () => {
     });
 });
 
-describe("renderIntentDetails — unrecognized intents", () => {
+describe("renderNep413Details — unrecognized intents", () => {
     test("flags an unknown intent kind with a warning", () => {
         const box = render([{ intent: "token_diff", diff: { "nep141:usdc.near": "-1" } }]);
         expect(box.querySelector(".warning-icon")).not.toBeNull();
@@ -104,19 +108,37 @@ describe("renderIntentDetails — unrecognized intents", () => {
     });
 });
 
-describe("renderIntentDetails — malformed payloads", () => {
-    test("shows a parse error instead of throwing", () => {
-        const box = helpers.renderIntentDetails({ fields: [], intents: "{not json" });
-        expect(box.querySelector(".warning-callout").textContent).toBe("Failed to parse intents payload.");
-    });
-
-    test("renders an empty section when there are no intents", () => {
-        const box = render([]);
+describe("renderNep413Details — plain messages", () => {
+    test("shows an arbitrary message verbatim", () => {
+        const box = helpers.renderNep413Details({ fields: [], message: "Sign in to example.com" });
+        expect(box.textContent).toContain("Sign in to example.com");
         expect(box.querySelectorAll(".accordion")).toHaveLength(0);
     });
 
-    test("treats a missing intents string as empty", () => {
-        const box = helpers.renderIntentDetails({ fields: [] });
+    test("pretty-prints a JSON message that is not an intents body", () => {
+        const box = helpers.renderNep413Details({ fields: [], message: JSON.stringify({ purpose: "login" }) });
+        expect(box.textContent).toContain("purpose");
+        expect(box.textContent).toContain("login");
+    });
+
+    test("falls back to the message when the intents payload is unreadable", () => {
+        // An unparseable structured view must never hide what is actually being signed.
+        const box = helpers.renderNep413Details({ fields: [], message: "the real message", intents: "{not json" });
+        expect(box.textContent).toContain("the real message");
+    });
+
+    test("falls back to the message when the intents array is empty", () => {
+        const box = helpers.renderNep413Details({ fields: [], message: "nothing to break out", intents: "[]" });
+        expect(box.textContent).toContain("nothing to break out");
         expect(box.querySelectorAll(".accordion")).toHaveLength(0);
+    });
+
+    test("shows the recipient even for a plain message", () => {
+        const box = helpers.renderNep413Details({
+            fields: [{ label: "Recipient", value: "example.com" }],
+            message: "Sign in",
+        });
+        // NEP-413 leans on the user seeing who the message is addressed to.
+        expect(box.textContent).toContain("example.com");
     });
 });

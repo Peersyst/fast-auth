@@ -1,7 +1,7 @@
 {
   "version": "4.0.0",
   "form": {
-    "name": "Intent form",
+    "name": "NEP-413 form",
     "languages": {
       "primary": "en"
     },
@@ -39,7 +39,7 @@
               "category": "BLOCK",
               "type": "RICH_TEXT",
               "config": {
-                "content": "<h2 style=\"text-align:center;\">{{ fields.name }} wants to sign an Intent</h2>"
+                "content": "<h2 style=\"text-align:center;\">{{ fields.name }} wants you to sign a message</h2>"
               }
             },
             {
@@ -54,9 +54,11 @@
                 "code": "",
                 "css": "",
                 "params": {
+                  "message": "{{ fields.message }}",
                   "intents": "{{ fields.intents }}",
-                  "signerId": "{{ fields.signerId }}",
                   "recipient": "{{ fields.recipient }}",
+                  "callbackUrl": "{{ fields.callbackUrl }}",
+                  "signerId": "{{ fields.signerId }}",
                   "deadline": "{{ fields.deadline }}"
                 }
               }
@@ -85,13 +87,33 @@
     ],
     "start": {
       "hidden_fields": [
-        { "key": "intents" },
-        { "key": "signerId" },
-        { "key": "recipient" },
-        { "key": "deadline" },
-        { "key": "name" },
-        { "key": "imageUrl" },
-        { "key": "decision" }
+        {
+          "key": "message"
+        },
+        {
+          "key": "intents"
+        },
+        {
+          "key": "recipient"
+        },
+        {
+          "key": "callbackUrl"
+        },
+        {
+          "key": "signerId"
+        },
+        {
+          "key": "deadline"
+        },
+        {
+          "key": "name"
+        },
+        {
+          "key": "imageUrl"
+        },
+        {
+          "key": "decision"
+        }
       ],
       "next_node": "step_in7K",
       "coordinates": {

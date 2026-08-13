@@ -5,7 +5,7 @@ const { deserialize } = require("borsh");
 
 const TRANSACTION_KEY = "transaction";
 const DELEGATE_ACTION_KEY = "delegateAction";
-const INTENT_KEY = "intent";
+const NEP413_KEY = "nep413";
 
 // NEP-413 CONSTANTS
 
@@ -18,9 +18,6 @@ const INTENT_KEY = "intent";
  * https://github.com/near/NEPs/blob/master/neps/nep-0413.md#how-to-ensure-the-message-is-not-a-transaction
  */
 const NEP413_PREFIX_TAG = 2147484061;
-
-/** Default verifier the intents are allowed to target when no secret is configured. */
-const DEFAULT_INTENTS_RECIPIENT = "intents.near";
 
 // SCHEMA definitions
 const SCHEMA = new (class BorshSchema {
@@ -234,52 +231,75 @@ function decodeDelegateAction(encodedDelegateAction) {
 }
 
 /**
- * Decode and validate a NEP-413 intent payload arriving on the authorize query string.
+ * Parse the optional recipient allowlist from tenant secrets.
  *
- * Every check here is load-bearing for the security model. The guard contract only verifies
- * that `fatxn` equals the bytes the MPC is asked to sign — it never inspects them — so this
- * function is the only place that establishes *what* the user is being asked to approve:
+ * NEP-413 places no constraint on `recipient` — it is the application the message is addressed
+ * to, and the standard's protection is that the user *sees* it, not that the wallet restricts
+ * it. So an unset secret means "any recipient", matching how NEAR wallets behave. A tenant that
+ * wants to serve exactly one application can still pin it here.
+ * @param {string|undefined} secret Comma-separated account list, or undefined.
+ * @returns {string[]|null} The allowlist, or null when unrestricted.
+ */
+function parseRecipientAllowlist(secret) {
+    if (!secret) return null;
+    const entries = String(secret)
+        .split(",")
+        .map((value) => value.trim())
+        .filter(Boolean);
+    return entries.length > 0 ? entries : null;
+}
+
+/**
+ * Decode and validate a NEP-413 payload arriving on the authorize query string.
  *
- *   1. The borsh payload must deserialize cleanly under the NEP-413 schema.
- *   2. The domain tag must be exactly NEP413_PREFIX_TAG, so the bytes cannot also be a valid
- *      NEAR transaction. Never trust the caller to have set it.
- *   3. The recipient must be the expected verifier, so a signed intent cannot be redirected
- *      to a different contract.
- *   4. The message must be JSON carrying a non-empty `intents` array — otherwise there is
- *      nothing meaningful to show the user, and an unrenderable payload must not be signed.
+ * The guard contract only verifies that `fatxn` equals the bytes the MPC is asked to sign — it
+ * never inspects them — so this function is the only place that establishes *what* the user is
+ * being asked to approve. Two checks carry that weight:
  *
- * @param {string} encodedIntent Comma-separated byte string from the query.
- * @param {string} expectedRecipient Verifier account the intents must target.
- * @returns {{payload: object, message: object}} The decoded payload and parsed message.
+ *   1. The borsh payload must deserialize cleanly under the NEP-413 schema, and the domain tag
+ *      must be exactly NEP413_PREFIX_TAG so the bytes cannot also be a valid NEAR transaction.
+ *      Never trust the caller to have set the tag.
+ *   2. There must be a message to show. Signing something the approval screen cannot display
+ *      would defeat the consent guarantee the whole flow rests on.
+ *
+ * The recipient is only constrained when a tenant opts in via the allowlist; per the standard it
+ * is shown to the user rather than restricted.
+ * @param {string} encodedPayload Comma-separated byte string from the query.
+ * @param {string[]|null} recipientAllowlist Accounts the message may target, or null for any.
+ * @returns {{payload: object, message: object|null}} The payload, plus the message parsed as JSON when it is JSON.
  * @throws {Error} With a user-facing reason when any check fails.
  */
-function decodeIntent(encodedIntent, expectedRecipient) {
-    const bytes = Uint8Array.from(String(encodedIntent).split(",").map((value) => Number(value)));
+function decodeNep413Payload(encodedPayload, recipientAllowlist) {
+    const bytes = Uint8Array.from(String(encodedPayload).split(",").map((value) => Number(value)));
 
     let payload;
     try {
         payload = deserialize(SCHEMA.NEP413Payload, bytes);
     } catch (e) {
-        throw new Error("Intent payload is not a valid NEP-413 message");
+        throw new Error("Payload is not a valid NEP-413 message");
     }
 
     if (payload.tag !== NEP413_PREFIX_TAG) {
-        throw new Error("Intent payload is missing the NEP-413 domain tag");
+        throw new Error("Payload is missing the NEP-413 domain tag");
     }
 
-    if (payload.recipient !== expectedRecipient) {
-        throw new Error(`Intent payload targets an unexpected recipient: ${payload.recipient}`);
+    if (typeof payload.message !== "string" || payload.message.length === 0) {
+        throw new Error("NEP-413 message is empty");
     }
 
-    let message;
+    if (recipientAllowlist && !recipientAllowlist.includes(payload.recipient)) {
+        throw new Error(`NEP-413 message targets an unexpected recipient: ${payload.recipient}`);
+    }
+
+    // A JSON message may be a structured payload the approval screen can render richly (NEAR
+    // Intents being the case we know about). Plain-text messages are equally valid and are
+    // shown verbatim, so failing to parse is not an error.
+    let message = null;
     try {
-        message = JSON.parse(payload.message);
+        const parsed = JSON.parse(payload.message);
+        if (parsed && typeof parsed === "object") message = parsed;
     } catch (e) {
-        throw new Error("Intent message is not valid JSON");
-    }
-
-    if (!message || !Array.isArray(message.intents) || message.intents.length === 0) {
-        throw new Error("Intent message carries no intents to approve");
+        message = null;
     }
 
     return { payload, message };
@@ -287,6 +307,19 @@ function decodeIntent(encodedIntent, expectedRecipient) {
 
 function stringifyIntents(intents) {
     return JSON.stringify(intents, (_, value) => (typeof value === "bigint" ? value.toString() : value), 2);
+}
+
+/**
+ * Extract the NEAR Intents body from a decoded message, when the message is one.
+ *
+ * Recognising it is what lets the approval screen show "transfer 1 USDC to X" instead of a wall
+ * of JSON. Anything else is not an error — it is just a message that gets displayed as text.
+ * @param {object|null} message The parsed message, or null when it was not JSON.
+ * @returns {Array|null} The intents array, or null when this is not an intents message.
+ */
+function extractIntents(message) {
+    if (!message || !Array.isArray(message.intents) || message.intents.length === 0) return null;
+    return message.intents;
 }
 
 function stringifyActions(actions) {
@@ -316,8 +349,8 @@ exports.onExecutePostLogin = async (event, api) => {
     const isOnchainAudience = event.resource_server?.identifier === onchainAudience;
     const hasTxParams = TRANSACTION_KEY in query;
     const hasDelegateParams = DELEGATE_ACTION_KEY in query;
-    const hasIntentParams = INTENT_KEY in query;
-    const payloadCount = [hasTxParams, hasDelegateParams, hasIntentParams].filter(Boolean).length;
+    const hasNep413Params = NEP413_KEY in query;
+    const payloadCount = [hasTxParams, hasDelegateParams, hasNep413Params].filter(Boolean).length;
     const hasSigningPayload = payloadCount > 0;
 
     if (isOnchainAudience && !hasSigningPayload) {
@@ -390,11 +423,11 @@ exports.onExecutePostLogin = async (event, api) => {
             query.delegateAction.split(",").map((value) => Number(value)),
         );
     } else {
-        const expectedRecipient = event.secrets.INTENTS_RECIPIENT || DEFAULT_INTENTS_RECIPIENT;
+        const recipientAllowlist = parseRecipientAllowlist(event.secrets.NEP413_ALLOWED_RECIPIENTS);
 
         let decoded;
         try {
-            decoded = decodeIntent(query.intent, expectedRecipient);
+            decoded = decodeNep413Payload(query.nep413, recipientAllowlist);
         } catch (error) {
             // A payload we cannot decode is a payload we cannot show the user. Signing it would
             // break the consent guarantee the whole flow rests on, so refuse instead.
@@ -402,18 +435,26 @@ exports.onExecutePostLogin = async (event, api) => {
         }
 
         const { payload, message } = decoded;
-        api.prompt.render(event.secrets.INTENT_FORM, {
+        const intents = extractIntents(message);
+
+        api.prompt.render(event.secrets.NEP413_FORM, {
             fields: {
                 ...branding,
-                signerId: message.signer_id ?? "",
+                // Always shown: per NEP-413 the recipient is the user's protection against a
+                // message being relayed to a third party, so it must be on screen either way.
                 recipient: payload.recipient,
-                deadline: message.deadline ?? "",
-                intents: stringifyIntents(message.intents),
+                callbackUrl: payload.callbackUrl ?? "",
+                // The raw message is always passed through. The form prefers the structured
+                // intents view when present and falls back to showing this verbatim.
+                message: payload.message,
+                signerId: (message && message.signer_id) ?? "",
+                deadline: (message && message.deadline) ?? "",
+                intents: intents ? stringifyIntents(intents) : "",
             },
         });
         api.accessToken.setCustomClaim(
             "fatxn",
-            query.intent.split(",").map((value) => Number(value)),
+            query.nep413.split(",").map((value) => Number(value)),
         );
     }
 };
@@ -437,9 +478,10 @@ exports.onContinuePostLogin = async (event, api) => {
 // `onContinuePostLogin`; extra exports are inert in production.
 exports.parseTransaction = parseTransaction;
 exports.decodeDelegateAction = decodeDelegateAction;
-exports.decodeIntent = decodeIntent;
+exports.decodeNep413Payload = decodeNep413Payload;
+exports.parseRecipientAllowlist = parseRecipientAllowlist;
+exports.extractIntents = extractIntents;
 exports.stringifyActions = stringifyActions;
 exports.stringifyIntents = stringifyIntents;
 exports.SCHEMA = SCHEMA;
 exports.NEP413_PREFIX_TAG = NEP413_PREFIX_TAG;
-exports.DEFAULT_INTENTS_RECIPIENT = DEFAULT_INTENTS_RECIPIENT;

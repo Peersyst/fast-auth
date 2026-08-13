@@ -32,7 +32,7 @@ const HELPERS_PATH = path.join(FORMS_DIR, "shared", "helpers", "index.js");
 const FORMS = [
     { name: "transaction", base: "transaction_form_base.json", out: "transaction_form.json" },
     { name: "delegate_action", base: "delegate_action_form_base.json", out: "delegate_action_form.json" },
-    { name: "intent", base: "intent_form_base.json", out: "intent_form.json" },
+    { name: "nep413", base: "nep413_form_base.json", out: "nep413_form.json" },
 ];
 
 function readHelpersPreamble() {

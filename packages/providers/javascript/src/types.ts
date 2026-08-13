@@ -53,16 +53,24 @@ export type JavascriptRequestDelegateActionSignatureOptions =
     | JavascriptRequestDelegateActionSignatureWithRedirectOptions
     | JavascriptRequestDelegateActionSignatureWithPopupOptions;
 
-export type JavascriptBaseRequestIntentSignatureOptions = JavascriptBaseRequestSignatureOptions & {
-    intent: NEP413Payload;
+export type JavascriptBaseRequestMessageSignatureOptions = JavascriptBaseRequestSignatureOptions & {
+    /**
+     * The NEP-413 payload to sign.
+     */
+    payload: NEP413Payload;
+    /**
+     * Optional CSRF state echoed back to the caller. Per NEP-413 it is not part of the signed
+     * bytes — it travels alongside the request and is returned with the result.
+     */
+    state?: string;
 };
 
-export type JavascriptRequestIntentSignatureWithRedirectOptions = JavascriptBaseRequestIntentSignatureOptions &
+export type JavascriptRequestMessageSignatureWithRedirectOptions = JavascriptBaseRequestMessageSignatureOptions &
     Omit<RedirectLoginOptions, "authorizationParams">;
 
-export type JavascriptRequestIntentSignatureWithPopupOptions = JavascriptBaseRequestIntentSignatureOptions &
+export type JavascriptRequestMessageSignatureWithPopupOptions = JavascriptBaseRequestMessageSignatureOptions &
     Omit<PopupLoginOptions, "authorizationParams">;
 
-export type JavascriptRequestIntentSignatureOptions =
-    | JavascriptRequestIntentSignatureWithRedirectOptions
-    | JavascriptRequestIntentSignatureWithPopupOptions;
+export type JavascriptRequestMessageSignatureOptions =
+    | JavascriptRequestMessageSignatureWithRedirectOptions
+    | JavascriptRequestMessageSignatureWithPopupOptions;

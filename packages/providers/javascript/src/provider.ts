@@ -10,9 +10,9 @@ import {
     JavascriptLoginOptions,
     JavascriptLoginWithRedirectOptions,
     JavascriptLoginWithPopupOptions,
-    JavascriptRequestIntentSignatureOptions,
-    JavascriptRequestIntentSignatureWithRedirectOptions,
-    JavascriptRequestIntentSignatureWithPopupOptions,
+    JavascriptRequestMessageSignatureOptions,
+    JavascriptRequestMessageSignatureWithRedirectOptions,
+    JavascriptRequestMessageSignatureWithPopupOptions,
 } from "./types";
 import { encodeNep413Payload } from "./nep413";
 import {
@@ -21,7 +21,7 @@ import {
     IFastAuthProvider,
     LoginResponse,
     RequestDelegateActionSignatureResponse,
-    RequestIntentSignatureResponse,
+    RequestMessageSignatureResponse,
     RequestTransactionSignatureResponse,
     User,
 } from "@shared/core";
@@ -282,56 +282,56 @@ export class JavascriptProvider implements IFastAuthProvider {
     }
 
     /**
-     * Request a NEP-413 intent signature with redirect.
-     * @param requestSignatureOptions The options for the request intent signature with redirect.
+     * Request a NEP-413 message signature with redirect.
+     * @param requestSignatureOptions The options for the request message signature with redirect.
      * @returns The void.
      */
-    private async requestIntentSignatureWithRedirect(
-        requestSignatureOptions: JavascriptRequestIntentSignatureWithRedirectOptions,
+    private async requestMessageSignatureWithRedirect(
+        requestSignatureOptions: JavascriptRequestMessageSignatureWithRedirectOptions,
     ): Promise<void> {
-        const { redirectUri, intent, ...opts } = requestSignatureOptions;
+        const { redirectUri, payload, state, ...opts } = requestSignatureOptions;
         await this.client.loginWithRedirect({
             authorizationParams: {
                 audience: this.options.signingAudience,
                 scope: "transaction:sign",
-                intent: encodeNep413Payload(intent),
+                nep413: encodeNep413Payload(payload),
                 redirect_uri: redirectUri,
+                ...(state !== undefined ? { state } : {}),
             },
             ...opts,
         });
     }
 
     /**
-     * Request a NEP-413 intent signature with popup.
-     * @param requestSignatureOptions The options for the request intent signature with popup.
+     * Request a NEP-413 message signature with popup.
+     * @param requestSignatureOptions The options for the request message signature with popup.
      * @returns The void.
      */
-    private async requestIntentSignatureWithPopup(
-        requestSignatureOptions: JavascriptRequestIntentSignatureWithPopupOptions,
+    private async requestMessageSignatureWithPopup(
+        requestSignatureOptions: JavascriptRequestMessageSignatureWithPopupOptions,
     ): Promise<void> {
-        const { intent, ...opts } = requestSignatureOptions;
+        const { payload, state, ...opts } = requestSignatureOptions;
         await this.client.loginWithPopup({
             authorizationParams: {
                 audience: this.options.signingAudience,
                 scope: "transaction:sign",
-                intent: encodeNep413Payload(intent),
+                nep413: encodeNep413Payload(payload),
+                ...(state !== undefined ? { state } : {}),
             },
             ...opts,
         });
     }
 
     /**
-     * Request a signature over a NEP-413 off-chain message. Unlike a transaction signature, the
-     * signed bytes are an intent published to the solver relay, which executes it against the
-     * intents contract and pays the gas, so the signer needs no on-chain NEAR account or balance.
-     * @param options The options for the request intent signature.
+     * Request a signature over a NEP-413 off-chain message, covering wallet sign-in challenges, app authentication and NEAR Intents alike. The signed bytes are not a NEAR transaction, so nothing is broadcast and no gas is spent; for intents the result is published to the solver relay, which executes it and pays the gas, leaving the signer with no need for an on-chain account.
+     * @param options The options for the request message signature.
      * @returns The user.
      */
-    async requestIntentSignature(options: JavascriptRequestIntentSignatureOptions): Promise<RequestIntentSignatureResponse> {
+    async requestMessageSignature(options: JavascriptRequestMessageSignatureOptions): Promise<RequestMessageSignatureResponse> {
         if ("redirectUri" in options && options.redirectUri) {
-            await this.requestIntentSignatureWithRedirect(options as JavascriptRequestIntentSignatureWithRedirectOptions);
+            await this.requestMessageSignatureWithRedirect(options as JavascriptRequestMessageSignatureWithRedirectOptions);
         } else {
-            await this.requestIntentSignatureWithPopup(options);
+            await this.requestMessageSignatureWithPopup(options);
         }
         return this.getUserId();
     }
