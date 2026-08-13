@@ -16,7 +16,7 @@
  * the same way NEAR wallets behave. Restricting it here would also be the wrong granularity: a
  * recipient belongs to an application, not to a tenant that hosts many of them.
  */
-const { decodeNep413Payload, extractIntents, NEP413_PREFIX_TAG } = require("../src/actions/authorize-app.action.js");
+const { decodeNep413Payload, extractIntents, stringifyIntents, NEP413_PREFIX_TAG } = require("../src/actions/authorize-app.action.js");
 const { buildNep413Payload, buildIntentMessage, buildTransaction, toCsv, INTENTS_RECIPIENT } = require("./fixtures/builders.js");
 
 describe("decodeNep413Payload — any valid message", () => {
@@ -131,5 +131,33 @@ describe("decodeNep413Payload — malformed input", () => {
         expect(() => decodeNep413Payload(toCsv(bytes.slice(0, Math.floor(bytes.length / 2))))).toThrow(
             /not a valid NEP-413 message/,
         );
+    });
+});
+
+describe("extractIntents", () => {
+    test("returns the intents array of a NEAR Intents body", () => {
+        const message = buildIntentMessage();
+        expect(extractIntents(message)).toEqual(message.intents);
+    });
+
+    test("returns null for anything that is not one", () => {
+        for (const value of [null, {}, { intents: [] }, { intents: "transfer" }, { intents: {} }]) {
+            expect(extractIntents(value)).toBeNull();
+        }
+    });
+});
+
+describe("stringifyIntents", () => {
+    test("pretty-prints the intents for the approval screen", () => {
+        const serialized = stringifyIntents(buildIntentMessage().intents);
+        expect(JSON.parse(serialized)).toEqual(buildIntentMessage().intents);
+        expect(serialized).toContain("\n");
+    });
+
+    test("renders bigint amounts instead of throwing on them", () => {
+        // JSON.stringify throws on BigInt by default, and token amounts are a plausible place
+        // for one to arrive.
+        const serialized = stringifyIntents([{ intent: "transfer", tokens: { "nep141:usdc.near": BigInt("1000000") } }]);
+        expect(JSON.parse(serialized).tokens ?? JSON.parse(serialized)[0].tokens).toEqual({ "nep141:usdc.near": "1000000" });
     });
 });
