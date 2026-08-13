@@ -58,11 +58,6 @@ export type JavascriptBaseRequestMessageSignatureOptions = JavascriptBaseRequest
      * The NEP-413 payload to sign.
      */
     payload: NEP413Payload;
-    /**
-     * Optional CSRF state echoed back to the caller. Per NEP-413 it is not part of the signed
-     * bytes — it travels alongside the request and is returned with the result.
-     */
-    state?: string;
 };
 
 export type JavascriptRequestMessageSignatureWithRedirectOptions = JavascriptBaseRequestMessageSignatureOptions &

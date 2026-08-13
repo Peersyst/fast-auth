@@ -289,14 +289,13 @@ export class JavascriptProvider implements IFastAuthProvider {
     private async requestMessageSignatureWithRedirect(
         requestSignatureOptions: JavascriptRequestMessageSignatureWithRedirectOptions,
     ): Promise<void> {
-        const { redirectUri, payload, state, ...opts } = requestSignatureOptions;
+        const { redirectUri, payload, ...opts } = requestSignatureOptions;
         await this.client.loginWithRedirect({
             authorizationParams: {
                 audience: this.options.signingAudience,
                 scope: "transaction:sign",
                 nep413: encodeNep413Payload(payload),
                 redirect_uri: redirectUri,
-                ...(state !== undefined ? { state } : {}),
             },
             ...opts,
         });
@@ -310,13 +309,12 @@ export class JavascriptProvider implements IFastAuthProvider {
     private async requestMessageSignatureWithPopup(
         requestSignatureOptions: JavascriptRequestMessageSignatureWithPopupOptions,
     ): Promise<void> {
-        const { payload, state, ...opts } = requestSignatureOptions;
+        const { payload, ...opts } = requestSignatureOptions;
         await this.client.loginWithPopup({
             authorizationParams: {
                 audience: this.options.signingAudience,
                 scope: "transaction:sign",
                 nep413: encodeNep413Payload(payload),
-                ...(state !== undefined ? { state } : {}),
             },
             ...opts,
         });

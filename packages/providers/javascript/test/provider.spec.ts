@@ -749,6 +749,18 @@ describe("JavascriptProvider", () => {
             });
         });
 
+        it("should not forward a caller state to Auth0", async () => {
+            // auth0-spa-js mints its own `state` for the OAuth exchange and overwrites anything
+            // passed in authorizationParams, so a NEP-413 state routed through here would be
+            // dropped without a trace. It is held caller-side and attached to the result instead.
+            mockAuth0Client.loginWithPopup.mockResolvedValue(undefined);
+
+            await provider.requestMessageSignature({ payload, state: "csrf-token" } as any);
+
+            const params = mockAuth0Client.loginWithPopup.mock.calls[0][0].authorizationParams;
+            expect(params.state).toBeUndefined();
+        });
+
         it("should return the user id after signing", async () => {
             mockAuth0Client.loginWithPopup.mockResolvedValue(undefined);
 

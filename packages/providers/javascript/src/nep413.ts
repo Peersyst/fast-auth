@@ -63,7 +63,15 @@ export type NEP413SignedMessage = {
     publicKey: string;
     /** Base64-encoded signature over sha256 of the serialized payload. */
     signature: string;
-    /** Echo of the caller's CSRF state, when one was supplied. */
+    /**
+     * Echo of the caller's CSRF state, when one was supplied.
+     *
+     * NEP-413's `state` never leaves the client: the standard defines it as a value the caller
+     * generates, holds, and matches when the result comes back. It is deliberately absent from
+     * the signed payload and from the authorization request — Auth0 mints its own `state` for
+     * the OAuth exchange and overwrites anything passed alongside it, so routing NEP-413's state
+     * through there would silently drop it. Hold it caller-side and attach it here.
+     */
     state?: string;
 };
 
