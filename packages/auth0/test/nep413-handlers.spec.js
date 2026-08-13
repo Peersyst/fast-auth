@@ -35,14 +35,13 @@ function makeApi() {
     return { api, calls };
 }
 
-function makeEvent({ query = {}, audience = ONCHAIN_AUDIENCE, allowedRecipients } = {}) {
+function makeEvent({ query = {}, audience = ONCHAIN_AUDIENCE } = {}) {
     return {
         secrets: {
             ONCHAIN_AUDIENCE,
             TRANSACTION_FORM: "modal_tx",
             DELEGATE_ACTION_FORM: "modal_delegate",
             NEP413_FORM: "modal_nep413",
-            ...(allowedRecipients ? { NEP413_ALLOWED_RECIPIENTS: allowedRecipients } : {}),
         },
         request: { query },
         resource_server: audience == null ? undefined : { identifier: audience },
@@ -97,11 +96,11 @@ describe("onExecutePostLogin — intent dispatch", () => {
         expect(calls.removedScopes).toEqual(["profile", "email", "offline_access"]);
     });
 
-    test("honours a tenant-configured verifier", async () => {
+    test("passes the recipient through unchanged whatever it is", async () => {
         const { api, calls } = makeApi();
         const { csv } = buildNep413Payload({ recipient: "intents.testnet" });
 
-        await onExecutePostLogin(makeEvent({ query: { nep413: csv }, allowedRecipients: "intents.testnet" }), api);
+        await onExecutePostLogin(makeEvent({ query: { nep413: csv } }), api);
 
         expect(calls.deny).toEqual([]);
         expect(calls.render.opts.fields.recipient).toBe("intents.testnet");
@@ -120,17 +119,7 @@ describe("onExecutePostLogin — intent rejection", () => {
         expect(calls.customClaims.fatxn).toBeUndefined();
     });
 
-    test("denies a recipient off the configured allowlist", async () => {
-        const { api, calls } = makeApi();
-        const { csv } = buildNep413Payload({ recipient: "evil.near" });
-
-        await onExecutePostLogin(makeEvent({ query: { nep413: csv }, allowedRecipients: "intents.near" }), api);
-
-        expect(calls.deny).toEqual(["NEP-413 message targets an unexpected recipient: evil.near"]);
-        expect(calls.customClaims.fatxn).toBeUndefined();
-    });
-
-    test("allows any recipient when no allowlist is configured", async () => {
+    test("accepts any recipient and shows it to the user", async () => {
         const { api, calls } = makeApi();
         const { csv } = buildNep413Payload({ rawMessage: "Sign in to example.com", recipient: "example.com" });
 

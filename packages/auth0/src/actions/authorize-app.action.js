@@ -231,25 +231,6 @@ function decodeDelegateAction(encodedDelegateAction) {
 }
 
 /**
- * Parse the optional recipient allowlist from tenant secrets.
- *
- * NEP-413 places no constraint on `recipient` — it is the application the message is addressed
- * to, and the standard's protection is that the user *sees* it, not that the wallet restricts
- * it. So an unset secret means "any recipient", matching how NEAR wallets behave. A tenant that
- * wants to serve exactly one application can still pin it here.
- * @param {string|undefined} secret Comma-separated account list, or undefined.
- * @returns {string[]|null} The allowlist, or null when unrestricted.
- */
-function parseRecipientAllowlist(secret) {
-    if (!secret) return null;
-    const entries = String(secret)
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean);
-    return entries.length > 0 ? entries : null;
-}
-
-/**
  * Decode and validate a NEP-413 payload arriving on the authorize query string.
  *
  * The guard contract only verifies that `fatxn` equals the bytes the MPC is asked to sign — it
@@ -262,14 +243,15 @@ function parseRecipientAllowlist(secret) {
  *   2. There must be a message to show. Signing something the approval screen cannot display
  *      would defeat the consent guarantee the whole flow rests on.
  *
- * The recipient is only constrained when a tenant opts in via the allowlist; per the standard it
- * is shown to the user rather than restricted.
+ * The recipient is not restricted. Under NEP-413 it names the application a message is addressed
+ * to, and the standard's protection is that the user sees it — which is why the approval screen
+ * always renders it. Restricting it here would be the wrong granularity anyway: a recipient
+ * belongs to an application, not to the tenant that hosts many of them.
  * @param {string} encodedPayload Comma-separated byte string from the query.
- * @param {string[]|null} recipientAllowlist Accounts the message may target, or null for any.
  * @returns {{payload: object, message: object|null}} The payload, plus the message parsed as JSON when it is JSON.
  * @throws {Error} With a user-facing reason when any check fails.
  */
-function decodeNep413Payload(encodedPayload, recipientAllowlist) {
+function decodeNep413Payload(encodedPayload) {
     const bytes = Uint8Array.from(String(encodedPayload).split(",").map((value) => Number(value)));
 
     let payload;
@@ -285,10 +267,6 @@ function decodeNep413Payload(encodedPayload, recipientAllowlist) {
 
     if (typeof payload.message !== "string" || payload.message.length === 0) {
         throw new Error("NEP-413 message is empty");
-    }
-
-    if (recipientAllowlist && !recipientAllowlist.includes(payload.recipient)) {
-        throw new Error(`NEP-413 message targets an unexpected recipient: ${payload.recipient}`);
     }
 
     // A JSON message may be a structured payload the approval screen can render richly (NEAR
@@ -423,11 +401,9 @@ exports.onExecutePostLogin = async (event, api) => {
             query.delegateAction.split(",").map((value) => Number(value)),
         );
     } else {
-        const recipientAllowlist = parseRecipientAllowlist(event.secrets.NEP413_ALLOWED_RECIPIENTS);
-
         let decoded;
         try {
-            decoded = decodeNep413Payload(query.nep413, recipientAllowlist);
+            decoded = decodeNep413Payload(query.nep413);
         } catch (error) {
             // A payload we cannot decode is a payload we cannot show the user. Signing it would
             // break the consent guarantee the whole flow rests on, so refuse instead.
@@ -479,7 +455,6 @@ exports.onContinuePostLogin = async (event, api) => {
 exports.parseTransaction = parseTransaction;
 exports.decodeDelegateAction = decodeDelegateAction;
 exports.decodeNep413Payload = decodeNep413Payload;
-exports.parseRecipientAllowlist = parseRecipientAllowlist;
 exports.extractIntents = extractIntents;
 exports.stringifyActions = stringifyActions;
 exports.stringifyIntents = stringifyIntents;
