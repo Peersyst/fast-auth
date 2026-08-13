@@ -170,6 +170,15 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     }
 
     /**
+     * Derive the NEAR implicit account id for this signer: the hex encoding of its ed25519 public key. The account needs no on-chain creation to receive funds or to authorize NEP-413 messages, which is what lets an app operate without provisioning an account per user.
+     * @returns The implicit account id.
+     */
+    async getImplicitAccountId(): Promise<string> {
+        const publicKey = await this.getPublicKey("ed25519");
+        return Buffer.from(publicKey.data).toString("hex");
+    }
+
+    /**
      * Get the public key of the account.
      * @param algorithm The algorithm to use.
      * @returns The public key.

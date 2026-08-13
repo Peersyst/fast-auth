@@ -59,6 +59,51 @@ describe("FastAuthSigner", () => {
         });
     });
 
+    describe("requestMessageSignature", () => {
+        it("should delegate to the provider when it supports NEP-413", async () => {
+            const args = [{ payload: { message: "Sign in", recipient: "example.com" } }];
+            (mockProvider as any).requestMessageSignature = jest.fn().mockResolvedValue({ userId: "u" });
+            // @ts-ignore testing spread args passthrough
+            await signer.requestMessageSignature(...(args as any));
+            expect((mockProvider as any).requestMessageSignature).toHaveBeenCalledWith(...args);
+        });
+
+        it("should raise a clear error when the provider does not implement it", async () => {
+            // The method is optional on the interface, so an unimplemented provider must fail
+            // with an explanation rather than "is not a function".
+            delete (mockProvider as any).requestMessageSignature;
+            await expect(signer.requestMessageSignature({} as any)).rejects.toThrow(/does not support NEP-413/);
+        });
+    });
+
+    describe("getImplicitAccountId", () => {
+        beforeEach(async () => {
+            mockProvider.getPath.mockResolvedValue("jwt#path/");
+            await signer.init();
+        });
+
+        it("should hex-encode the ed25519 public key", async () => {
+            const data = Uint8Array.from(Array.from({ length: 32 }, (_, i) => i));
+            (mockConnection.provider.query as jest.Mock).mockResolvedValue({
+                result: Buffer.from(JSON.stringify("pk")),
+            });
+            jest.spyOn(signer, "getPublicKey").mockResolvedValue({ data } as any);
+
+            const accountId = await signer.getImplicitAccountId();
+
+            // A NEAR implicit account id is exactly the 64-char hex of its public key.
+            expect(accountId).toBe(Buffer.from(data).toString("hex"));
+            expect(accountId).toHaveLength(64);
+            expect(accountId).toMatch(/^[0-9a-f]{64}$/);
+        });
+
+        it("should always ask for the ed25519 key", async () => {
+            const spy = jest.spyOn(signer, "getPublicKey").mockResolvedValue({ data: new Uint8Array(32) } as any);
+            await signer.getImplicitAccountId();
+            expect(spy).toHaveBeenCalledWith("ed25519");
+        });
+    });
+
     describe("getPublicKey (viewFunction)", () => {
         beforeEach(async () => {
             mockProvider.getPath.mockResolvedValue("jwt#path/");
