@@ -106,6 +106,18 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     }
 
     /**
+     * Request a signature over a NEP-413 off-chain message, covering wallet sign-in challenges, app authentication and NEAR Intents alike. The method is optional on the provider interface, so providers that have not implemented the flow raise a clear error instead of failing on an undefined call.
+     * @param args The arguments to request a message signature.
+     * @returns The signed message response.
+     */
+    async requestMessageSignature(...args: any[]) {
+        if (typeof this.fastAuthProvider.requestMessageSignature !== "function") {
+            throw new Error("The configured FastAuth provider does not support NEP-413 message signatures");
+        }
+        return await this.fastAuthProvider.requestMessageSignature(...args);
+    }
+
+    /**
      * Get a signature request.
      * @returns The signature request.
      */
@@ -155,6 +167,15 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
         });
 
         return await this.connection.provider.sendTransaction(signedTransaction);
+    }
+
+    /**
+     * Derive the NEAR implicit account id for this signer: the hex encoding of its ed25519 public key. The account needs no on-chain creation to receive funds or to authorize NEP-413 messages, which is what lets an app operate without provisioning an account per user.
+     * @returns The implicit account id.
+     */
+    async getImplicitAccountId(): Promise<string> {
+        const publicKey = await this.getPublicKey("ed25519");
+        return Buffer.from(publicKey.data).toString("hex");
     }
 
     /**

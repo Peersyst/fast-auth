@@ -25,6 +25,7 @@ const {
     GlobalContractIdentifier,
 } = require("@near-js/transactions");
 const { PublicKey } = require("near-api-js").utils;
+const { serialize: borshSerialize } = require("borsh");
 
 // jest-environment-jsdom (jest 29) ships an older jsdom without TextEncoder. Fall back to util.
 const SafeTextEncoder = typeof TextEncoder !== "undefined" ? TextEncoder : require("util").TextEncoder;
@@ -280,6 +281,66 @@ const DELEGATE_ACTION_TYPES = ALL_ACTION_TYPES.filter(
     (a) => !["signedDelegate", "deployGlobalContract", "useGlobalContract"].includes(a.name.split(" ")[0]),
 );
 
+// ----- NEP-413 intent payloads -----
+
+// Domain-separation tag from NEP-413 (2^31 + 413).
+const NEP413_PREFIX_TAG = Math.pow(2, 31) + 413;
+
+const INTENTS_RECIPIENT = "intents.near";
+
+/**
+ * Borsh schema for the NEP-413 payload, transcribed from the NEP rather than imported from
+ * the action under test. Duplicating it deliberately: if someone edits the action's schema,
+ * these fixtures keep encoding per the spec and the round-trip test fails — which is the
+ * point. Importing the action's own schema would make the test circular.
+ *
+ * https://github.com/near/NEPs/blob/master/neps/nep-0413.md#input-interface
+ */
+const NEP413_SCHEMA = {
+    struct: {
+        tag: "u32",
+        message: "string",
+        nonce: { array: { type: "u8", len: 32 } },
+        recipient: "string",
+        callbackUrl: { option: "string" },
+    },
+};
+
+const SAMPLE_NONCE = Uint8Array.from(Array.from({ length: 32 }, (_, i) => (i * 5) % 256));
+
+/**
+ * Build the JSON message body NEAR Intents expects inside a NEP-413 payload.
+ */
+function buildIntentMessage({
+    signerId = "trader.near",
+    deadline = "2026-01-01T00:00:00.000Z",
+    intents = [{ intent: "transfer", receiver_id: "deposit.near", tokens: { "nep141:usdc.near": "1000000" } }],
+} = {}) {
+    return { signer_id: signerId, deadline, intents };
+}
+
+/**
+ * Encode a NEP-413 payload the way the client SDK puts it on the authorize query string.
+ *
+ * @returns {{csv: string, bytes: Uint8Array, payload: object, message: object}}
+ */
+function buildNep413Payload({
+    message,
+    tag = NEP413_PREFIX_TAG,
+    recipient = INTENTS_RECIPIENT,
+    nonce = SAMPLE_NONCE,
+    callbackUrl = null,
+    rawMessage,
+} = {}) {
+    const messageObject = message === undefined ? buildIntentMessage() : message;
+    const messageString = rawMessage !== undefined ? rawMessage : JSON.stringify(messageObject);
+
+    const payload = { tag, message: messageString, nonce, recipient, callbackUrl };
+    const bytes = borshSerialize(NEP413_SCHEMA, payload);
+
+    return { csv: toCsv(bytes), bytes, payload, message: messageObject };
+}
+
 module.exports = {
     DELEGATE_ACTION_PREFIX,
     ZERO_BLOCK_HASH,
@@ -293,4 +354,10 @@ module.exports = {
     toCsv,
     ALL_ACTION_TYPES,
     DELEGATE_ACTION_TYPES,
+    NEP413_PREFIX_TAG,
+    INTENTS_RECIPIENT,
+    NEP413_SCHEMA,
+    SAMPLE_NONCE,
+    buildIntentMessage,
+    buildNep413Payload,
 };

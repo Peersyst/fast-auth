@@ -500,6 +500,149 @@ function renderDetails(params) {
     return box;
 }
 
+// --- NEP-413 intent content factories ---
+
+/**
+ * Render the token map of a transfer intent (`{ "<tokenId>": "<amount>" }`).
+ *
+ * Amounts stay in the token's smallest unit: the form has no token metadata, so converting
+ * would mean guessing decimals — and a wrong guess here understates what the user is
+ * approving. Showing the raw amount alongside its token id is honest and unambiguous.
+ */
+function intentTokensContent(tokens) {
+    const container = document.createElement("div");
+    if (!tokens || typeof tokens !== "object") return container;
+    for (const tokenId of Object.keys(tokens)) {
+        container.appendChild(createTextContent(tokenId, String(tokens[tokenId])));
+    }
+    return container;
+}
+
+function transferIntentContent(intent) {
+    const container = document.createElement("div");
+    container.appendChild(createDescription("By approving this request, the following tokens will be transferred."));
+    container.appendChild(createTextContent("Receiver ID", intent.receiver_id));
+
+    const tokensLabel = document.createElement("div");
+    tokensLabel.classList.add("label");
+    tokensLabel.textContent = "Tokens";
+    container.appendChild(tokensLabel);
+    container.appendChild(intentTokensContent(intent.tokens));
+    return container;
+}
+
+/**
+ * Fallback for intent kinds this form does not model explicitly. It is deliberately shown
+ * with a warning: the user is approving something the UI cannot describe in plain terms.
+ */
+function unknownIntentContent(intent) {
+    const container = document.createElement("div");
+    container.appendChild(createDescription("This request contains an intent type this app does not recognize. Review it carefully."));
+    let serialized;
+    try {
+        serialized = JSON.stringify(intent, null, 2);
+    } catch (e) {
+        serialized = "<unserializable>";
+    }
+    container.appendChild(createTextContent("Intent", serialized));
+    return container;
+}
+
+const INTENT_DISPATCH = {
+    transfer: {
+        label: "Transfer",
+        warn: false,
+        render: function (i) {
+            return transferIntentContent(i);
+        },
+    },
+};
+
+function handleIntent(intent) {
+    const kind = intent && typeof intent === "object" ? intent.intent : null;
+    const entry = kind ? INTENT_DISPATCH[kind] : null;
+    if (!entry) {
+        return createAccordion(kind ? `Unknown: ${kind}` : "Unknown", unknownIntentContent(intent), true);
+    }
+    return createAccordion(entry.label, entry.render(intent), !!entry.warn);
+}
+
+/**
+ * Render the message body of a NEP-413 request verbatim.
+ *
+ * This is the default view, and the one that matters most: NEP-413 messages are arbitrary
+ * strings meant to be read by a human ("Sign in to example.com"), so showing the text exactly
+ * as it will be signed is the honest presentation. Pretty-printing is applied only when the
+ * message is JSON, purely for legibility.
+ */
+function messageContent(message) {
+    const container = document.createElement("div");
+    let display = message;
+    try {
+        const parsed = JSON.parse(message);
+        if (parsed && typeof parsed === "object") display = JSON.stringify(parsed, null, 2);
+    } catch (e) {
+        display = message;
+    }
+    container.appendChild(createTextContent("Message", display));
+    return container;
+}
+
+/**
+ * Build the details DOM tree for a NEP-413 signature approval.
+ *
+ * Two presentations, one payload: when the message carries NEAR Intents the intents are broken
+ * out one by one, and otherwise the raw message is shown as text. Either way the top-level
+ * fields — recipient above all — are rendered, because under NEP-413 the recipient is what
+ * tells the user which application their signature is addressed to.
+ * @param {object} params The render parameters.
+ * @param {Array<{label: string, value: string|undefined}>} params.fields Top-level fields (recipient, callback URL, signer, deadline).
+ * @param {string} params.message The raw NEP-413 message, shown when there are no intents to break out.
+ * @param {string} [params.intents] JSON string with the intents array, when the message is a NEAR Intents body.
+ * @returns {HTMLElement} The details node.
+ */
+function renderNep413Details(params) {
+    ensureBufferPolyfill();
+    const box = document.createElement("div");
+    box.classList.add("box");
+
+    for (const field of params.fields || []) {
+        if (field.value === undefined || field.value === null || field.value === "") continue;
+        box.appendChild(createTextContent(field.label, field.value));
+    }
+
+    let parsedIntents = null;
+    if (params.intents) {
+        try {
+            const candidate = JSON.parse(params.intents);
+            if (Array.isArray(candidate) && candidate.length > 0) parsedIntents = candidate;
+        } catch (e) {
+            parsedIntents = null;
+        }
+    }
+
+    // No intents to break out (or they were unreadable) — show the message itself. Falling back
+    // to the raw text keeps every NEP-413 message approvable, not just the ones we model.
+    if (!parsedIntents) {
+        box.appendChild(messageContent(params.message || ""));
+        return box;
+    }
+
+    const intentsContainer = document.createElement("div");
+    intentsContainer.classList.add("actions-container");
+    const intentsLabel = document.createElement("div");
+    intentsLabel.classList.add("label");
+    intentsLabel.textContent = "Intents";
+    intentsContainer.appendChild(intentsLabel);
+
+    for (const intent of parsedIntents) {
+        intentsContainer.appendChild(handleIntent(intent));
+    }
+
+    box.appendChild(intentsContainer);
+    return box;
+}
+
 var __auth0FormHelpers = {
     ensureBufferPolyfill: ensureBufferPolyfill,
     base58Encode: base58Encode,
@@ -524,6 +667,12 @@ var __auth0FormHelpers = {
     useGlobalContractContent: useGlobalContractContent,
     handleNearAction: handleNearAction,
     renderDetails: renderDetails,
+    intentTokensContent: intentTokensContent,
+    transferIntentContent: transferIntentContent,
+    unknownIntentContent: unknownIntentContent,
+    handleIntent: handleIntent,
+    messageContent: messageContent,
+    renderNep413Details: renderNep413Details,
 };
 
 if (typeof module !== "undefined" && module.exports) {
