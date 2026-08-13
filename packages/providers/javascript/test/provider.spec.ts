@@ -678,4 +678,92 @@ describe("JavascriptProvider", () => {
             await expect(provider.getSignatureRequest()).rejects.toThrow("JWT decode failed");
         });
     });
+
+    describe("requestIntentSignature", () => {
+        const intent = {
+            message: JSON.stringify({
+                signer_id: "trader.near",
+                deadline: "2026-01-01T00:00:00.000Z",
+                intents: [{ intent: "transfer", receiver_id: "deposit.near", tokens: { "nep141:usdc.near": "1000000" } }],
+            }),
+            nonce: Uint8Array.from(Array.from({ length: 32 }, (_, i) => i)),
+            recipient: "intents.near",
+        };
+
+        beforeEach(() => {
+            jest.clearAllMocks();
+            mockAuth0Client.getIdTokenClaims.mockResolvedValue({ sub: "test-user-id" });
+        });
+
+        describe("with redirect", () => {
+            it("should call loginWithRedirect with the encoded intent", async () => {
+                mockAuth0Client.loginWithRedirect.mockResolvedValue(undefined);
+
+                await provider.requestIntentSignature({ intent, redirectUri: "http://localhost:3000/callback" });
+
+                const params = mockAuth0Client.loginWithRedirect.mock.calls[0][0].authorizationParams;
+                expect(params.audience).toBe("auth0.jwt.fast-auth.testnet");
+                expect(params.scope).toBe("transaction:sign");
+                expect(params.redirect_uri).toBe("http://localhost:3000/callback");
+                expect(Array.isArray(params.intent)).toBe(true);
+                expect(mockAuth0Client.loginWithPopup).not.toHaveBeenCalled();
+            });
+
+            it("should encode the intent with the NEP-413 domain tag first", async () => {
+                mockAuth0Client.loginWithRedirect.mockResolvedValue(undefined);
+
+                await provider.requestIntentSignature({ intent, redirectUri: "http://localhost:3000/callback" });
+
+                // The tag is a little-endian u32 at offset 0 — the first thing the action checks.
+                const encoded: number[] = mockAuth0Client.loginWithRedirect.mock.calls[0][0].authorizationParams.intent;
+                const tag = encoded[0] | (encoded[1] << 8) | (encoded[2] << 16) | (encoded[3] << 24);
+                expect(tag >>> 0).toBe(Math.pow(2, 31) + 413);
+            });
+
+            it("should propagate errors from loginWithRedirect", async () => {
+                mockAuth0Client.loginWithRedirect.mockRejectedValue(new Error("Login redirect failed"));
+
+                await expect(provider.requestIntentSignature({ intent, redirectUri: "http://localhost:3000/callback" })).rejects.toThrow(
+                    "Login redirect failed",
+                );
+            });
+        });
+
+        describe("with popup", () => {
+            it("should call loginWithPopup when no redirectUri is provided", async () => {
+                mockAuth0Client.loginWithPopup.mockResolvedValue(undefined);
+
+                await provider.requestIntentSignature({ intent });
+
+                const params = mockAuth0Client.loginWithPopup.mock.calls[0][0].authorizationParams;
+                expect(params.audience).toBe("auth0.jwt.fast-auth.testnet");
+                expect(params.scope).toBe("transaction:sign");
+                expect(Array.isArray(params.intent)).toBe(true);
+                expect(mockAuth0Client.loginWithRedirect).not.toHaveBeenCalled();
+            });
+
+            it("should propagate errors from loginWithPopup", async () => {
+                mockAuth0Client.loginWithPopup.mockRejectedValue(new Error("Login popup failed"));
+
+                await expect(provider.requestIntentSignature({ intent })).rejects.toThrow("Login popup failed");
+            });
+        });
+
+        it("should return the user id after signing", async () => {
+            mockAuth0Client.loginWithPopup.mockResolvedValue(undefined);
+
+            const result = await provider.requestIntentSignature({ intent });
+
+            expect(result).toEqual({ userId: "test-user-id" });
+        });
+
+        it("should throw when the user is not logged in", async () => {
+            mockAuth0Client.loginWithPopup.mockResolvedValue(undefined);
+            mockAuth0Client.getIdTokenClaims.mockResolvedValue(undefined);
+
+            await expect(provider.requestIntentSignature({ intent })).rejects.toThrow(
+                new JavascriptProviderError(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN),
+            );
+        });
+    });
 });

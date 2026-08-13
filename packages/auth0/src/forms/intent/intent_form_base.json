@@ -1,0 +1,112 @@
+{
+  "version": "4.0.0",
+  "form": {
+    "name": "Intent form",
+    "languages": {
+      "primary": "en"
+    },
+    "nodes": [
+      {
+        "id": "step_in7K",
+        "type": "STEP",
+        "coordinates": {
+          "x": 463,
+          "y": -81
+        },
+        "alias": "New step",
+        "config": {
+          "components": [
+            {
+              "$source": "shared/image",
+              "id": "custom_4Mqg",
+              "category": "FIELD",
+              "type": "CUSTOM",
+              "required": false,
+              "sensitive": false,
+              "config": {
+                "schema": {},
+                "code": "",
+                "css": "",
+                "params": {
+                  "iconUrl": "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/1b54f479-7990-4834-9b37-95b26e2023fb.png",
+                  "leftImageUrl": "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/db9f38ff-53ea-4f76-a1c0-33c728386e5b.png",
+                  "rightImageUrl": "{{ fields.imageUrl }}"
+                }
+              }
+            },
+            {
+              "id": "rich_text_iN9x",
+              "category": "BLOCK",
+              "type": "RICH_TEXT",
+              "config": {
+                "content": "<h2 style=\"text-align:center;\">{{ fields.name }} wants to sign an Intent</h2>"
+              }
+            },
+            {
+              "$source": "details",
+              "id": "custom_I420",
+              "category": "FIELD",
+              "type": "CUSTOM",
+              "required": false,
+              "sensitive": false,
+              "config": {
+                "schema": {},
+                "code": "",
+                "css": "",
+                "params": {
+                  "intents": "{{ fields.intents }}",
+                  "signerId": "{{ fields.signerId }}",
+                  "recipient": "{{ fields.recipient }}",
+                  "deadline": "{{ fields.deadline }}"
+                }
+              }
+            },
+            {
+              "$source": "shared/decision",
+              "id": "custom_decision_intent",
+              "category": "FIELD",
+              "type": "CUSTOM",
+              "required": false,
+              "sensitive": false,
+              "config": {
+                "schema": {},
+                "code": "",
+                "css": "",
+                "params": {
+                  "approveText": "Approve",
+                  "denyText": "Deny"
+                }
+              }
+            }
+          ],
+          "next_node": "$ending"
+        }
+      }
+    ],
+    "start": {
+      "hidden_fields": [
+        { "key": "intents" },
+        { "key": "signerId" },
+        { "key": "recipient" },
+        { "key": "deadline" },
+        { "key": "name" },
+        { "key": "imageUrl" },
+        { "key": "decision" }
+      ],
+      "next_node": "step_in7K",
+      "coordinates": {
+        "x": 132,
+        "y": -102
+      }
+    },
+    "ending": {
+      "resume_flow": true,
+      "coordinates": {
+        "x": 1060,
+        "y": -118
+      }
+    }
+  },
+  "flows": {},
+  "connections": {}
+}

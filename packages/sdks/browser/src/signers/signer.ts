@@ -106,6 +106,18 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     }
 
     /**
+     * Request a signature over a NEP-413 off-chain message, used to authorize NEAR Intents without submitting a transaction. The method is optional on the provider interface, so providers that have not implemented the flow raise a clear error instead of failing on an undefined call.
+     * @param args The arguments to request an intent signature.
+     * @returns The signed intent response.
+     */
+    async requestIntentSignature(...args: any[]) {
+        if (typeof this.fastAuthProvider.requestIntentSignature !== "function") {
+            throw new Error("The configured FastAuth provider does not support NEP-413 intent signatures");
+        }
+        return await this.fastAuthProvider.requestIntentSignature(...args);
+    }
+
+    /**
      * Get a signature request.
      * @returns The signature request.
      */

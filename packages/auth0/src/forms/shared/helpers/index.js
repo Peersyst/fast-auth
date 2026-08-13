@@ -500,6 +500,120 @@ function renderDetails(params) {
     return box;
 }
 
+// --- NEP-413 intent content factories ---
+
+/**
+ * Render the token map of a transfer intent (`{ "<tokenId>": "<amount>" }`).
+ *
+ * Amounts stay in the token's smallest unit: the form has no token metadata, so converting
+ * would mean guessing decimals — and a wrong guess here understates what the user is
+ * approving. Showing the raw amount alongside its token id is honest and unambiguous.
+ */
+function intentTokensContent(tokens) {
+    const container = document.createElement("div");
+    if (!tokens || typeof tokens !== "object") return container;
+    for (const tokenId of Object.keys(tokens)) {
+        container.appendChild(createTextContent(tokenId, String(tokens[tokenId])));
+    }
+    return container;
+}
+
+function transferIntentContent(intent) {
+    const container = document.createElement("div");
+    container.appendChild(createDescription("By approving this request, the following tokens will be transferred."));
+    container.appendChild(createTextContent("Receiver ID", intent.receiver_id));
+
+    const tokensLabel = document.createElement("div");
+    tokensLabel.classList.add("label");
+    tokensLabel.textContent = "Tokens";
+    container.appendChild(tokensLabel);
+    container.appendChild(intentTokensContent(intent.tokens));
+    return container;
+}
+
+/**
+ * Fallback for intent kinds this form does not model explicitly. It is deliberately shown
+ * with a warning: the user is approving something the UI cannot describe in plain terms.
+ */
+function unknownIntentContent(intent) {
+    const container = document.createElement("div");
+    container.appendChild(createDescription("This request contains an intent type this app does not recognize. Review it carefully."));
+    let serialized;
+    try {
+        serialized = JSON.stringify(intent, null, 2);
+    } catch (e) {
+        serialized = "<unserializable>";
+    }
+    container.appendChild(createTextContent("Intent", serialized));
+    return container;
+}
+
+const INTENT_DISPATCH = {
+    transfer: {
+        label: "Transfer",
+        warn: false,
+        render: function (i) {
+            return transferIntentContent(i);
+        },
+    },
+};
+
+function handleIntent(intent) {
+    const kind = intent && typeof intent === "object" ? intent.intent : null;
+    const entry = kind ? INTENT_DISPATCH[kind] : null;
+    if (!entry) {
+        return createAccordion(kind ? `Unknown: ${kind}` : "Unknown", unknownIntentContent(intent), true);
+    }
+    return createAccordion(entry.label, entry.render(intent), !!entry.warn);
+}
+
+/**
+ * Build the details DOM tree for a NEP-413 intent approval.
+ *
+ * Mirrors `renderDetails`, but walks `intents` (the NEAR Intents message body) instead of
+ * NEAR transaction actions.
+ *
+ * @param {object} params
+ * @param {Array<{label: string, value: string|undefined}>} params.fields - top-level fields (signer, recipient, deadline).
+ * @param {string} params.intents - JSON string with the intents array.
+ */
+function renderIntentDetails(params) {
+    ensureBufferPolyfill();
+    const box = document.createElement("div");
+    box.classList.add("box");
+
+    for (const field of params.fields || []) {
+        if (field.value === undefined || field.value === null || field.value === "") continue;
+        box.appendChild(createTextContent(field.label, field.value));
+    }
+
+    const intentsContainer = document.createElement("div");
+    intentsContainer.classList.add("actions-container");
+    const intentsLabel = document.createElement("div");
+    intentsLabel.classList.add("label");
+    intentsLabel.textContent = "Intents";
+    intentsContainer.appendChild(intentsLabel);
+
+    let parsedIntents = [];
+    try {
+        parsedIntents = JSON.parse(params.intents || "[]");
+    } catch (e) {
+        const errorNode = document.createElement("div");
+        errorNode.classList.add("warning-callout");
+        errorNode.textContent = "Failed to parse intents payload.";
+        intentsContainer.appendChild(errorNode);
+        box.appendChild(intentsContainer);
+        return box;
+    }
+
+    for (const intent of parsedIntents) {
+        intentsContainer.appendChild(handleIntent(intent));
+    }
+
+    box.appendChild(intentsContainer);
+    return box;
+}
+
 var __auth0FormHelpers = {
     ensureBufferPolyfill: ensureBufferPolyfill,
     base58Encode: base58Encode,
@@ -524,6 +638,11 @@ var __auth0FormHelpers = {
     useGlobalContractContent: useGlobalContractContent,
     handleNearAction: handleNearAction,
     renderDetails: renderDetails,
+    intentTokensContent: intentTokensContent,
+    transferIntentContent: transferIntentContent,
+    unknownIntentContent: unknownIntentContent,
+    handleIntent: handleIntent,
+    renderIntentDetails: renderIntentDetails,
 };
 
 if (typeof module !== "undefined" && module.exports) {

@@ -5,6 +5,22 @@ const { deserialize } = require("borsh");
 
 const TRANSACTION_KEY = "transaction";
 const DELEGATE_ACTION_KEY = "delegateAction";
+const INTENT_KEY = "intent";
+
+// NEP-413 CONSTANTS
+
+/**
+ * Domain-separation tag mandated by NEP-413 (2^31 + 413). It is prepended to every signed
+ * off-chain message so the bytes can never be reinterpreted as a NEAR transaction, whose
+ * borsh encoding starts with the signerId length — a small u32. Verifying this tag is what
+ * keeps the new payload type from becoming a way to smuggle transaction bytes past the user.
+ *
+ * https://github.com/near/NEPs/blob/master/neps/nep-0413.md#how-to-ensure-the-message-is-not-a-transaction
+ */
+const NEP413_PREFIX_TAG = 2147484061;
+
+/** Default verifier the intents are allowed to target when no secret is configured. */
+const DEFAULT_INTENTS_RECIPIENT = "intents.near";
 
 // SCHEMA definitions
 const SCHEMA = new (class BorshSchema {
@@ -177,6 +193,20 @@ const SCHEMA = new (class BorshSchema {
             signature: this.Signature,
         },
     };
+    /**
+     * NEP-413 off-chain message payload. Field order is normative — it must match the
+     * serializer the client signs with, or the recovered bytes will not match `fatxn`.
+     * https://github.com/near/NEPs/blob/master/neps/nep-0413.md#input-interface
+     */
+    NEP413Payload = {
+        struct: {
+            tag: "u32",
+            message: "string",
+            nonce: { array: { type: "u8", len: 32 } },
+            recipient: "string",
+            callbackUrl: { option: "string" },
+        },
+    };
 })();
 
 // UTILS
@@ -201,6 +231,62 @@ function decodeDelegateAction(encodedDelegateAction) {
     const delegateAction = deserialize(SCHEMA.DelegateAction, delegateActionBytes);
 
     return delegateAction;
+}
+
+/**
+ * Decode and validate a NEP-413 intent payload arriving on the authorize query string.
+ *
+ * Every check here is load-bearing for the security model. The guard contract only verifies
+ * that `fatxn` equals the bytes the MPC is asked to sign — it never inspects them — so this
+ * function is the only place that establishes *what* the user is being asked to approve:
+ *
+ *   1. The borsh payload must deserialize cleanly under the NEP-413 schema.
+ *   2. The domain tag must be exactly NEP413_PREFIX_TAG, so the bytes cannot also be a valid
+ *      NEAR transaction. Never trust the caller to have set it.
+ *   3. The recipient must be the expected verifier, so a signed intent cannot be redirected
+ *      to a different contract.
+ *   4. The message must be JSON carrying a non-empty `intents` array — otherwise there is
+ *      nothing meaningful to show the user, and an unrenderable payload must not be signed.
+ *
+ * @param {string} encodedIntent Comma-separated byte string from the query.
+ * @param {string} expectedRecipient Verifier account the intents must target.
+ * @returns {{payload: object, message: object}} The decoded payload and parsed message.
+ * @throws {Error} With a user-facing reason when any check fails.
+ */
+function decodeIntent(encodedIntent, expectedRecipient) {
+    const bytes = Uint8Array.from(String(encodedIntent).split(",").map((value) => Number(value)));
+
+    let payload;
+    try {
+        payload = deserialize(SCHEMA.NEP413Payload, bytes);
+    } catch (e) {
+        throw new Error("Intent payload is not a valid NEP-413 message");
+    }
+
+    if (payload.tag !== NEP413_PREFIX_TAG) {
+        throw new Error("Intent payload is missing the NEP-413 domain tag");
+    }
+
+    if (payload.recipient !== expectedRecipient) {
+        throw new Error(`Intent payload targets an unexpected recipient: ${payload.recipient}`);
+    }
+
+    let message;
+    try {
+        message = JSON.parse(payload.message);
+    } catch (e) {
+        throw new Error("Intent message is not valid JSON");
+    }
+
+    if (!message || !Array.isArray(message.intents) || message.intents.length === 0) {
+        throw new Error("Intent message carries no intents to approve");
+    }
+
+    return { payload, message };
+}
+
+function stringifyIntents(intents) {
+    return JSON.stringify(intents, (_, value) => (typeof value === "bigint" ? value.toString() : value), 2);
 }
 
 function stringifyActions(actions) {
@@ -230,7 +316,9 @@ exports.onExecutePostLogin = async (event, api) => {
     const isOnchainAudience = event.resource_server?.identifier === onchainAudience;
     const hasTxParams = TRANSACTION_KEY in query;
     const hasDelegateParams = DELEGATE_ACTION_KEY in query;
-    const hasSigningPayload = hasTxParams || hasDelegateParams;
+    const hasIntentParams = INTENT_KEY in query;
+    const payloadCount = [hasTxParams, hasDelegateParams, hasIntentParams].filter(Boolean).length;
+    const hasSigningPayload = payloadCount > 0;
 
     if (isOnchainAudience && !hasSigningPayload) {
         return api.access.deny("Signing audience requested without transaction payload");
@@ -239,6 +327,12 @@ exports.onExecutePostLogin = async (event, api) => {
         return api.access.deny("Transaction payload only allowed with signing audience");
     }
     if (!isOnchainAudience) return;
+
+    // Exactly one payload may be present. Accepting several and silently picking by precedence
+    // would let a caller show the user one payload while a different one lands in `fatxn`.
+    if (payloadCount > 1) {
+        return api.access.deny("Only one signing payload may be requested at a time");
+    }
 
     // Strip OIDC profile scopes from the issued access token.
     //
@@ -280,7 +374,7 @@ exports.onExecutePostLogin = async (event, api) => {
             "fatxn",
             query.transaction.split(",").map((value) => Number(value)),
         );
-    } else {
+    } else if (hasDelegateParams) {
         const delegateAction = decodeDelegateAction(query.delegateAction);
         api.prompt.render(event.secrets.DELEGATE_ACTION_FORM, {
             fields: {
@@ -294,6 +388,32 @@ exports.onExecutePostLogin = async (event, api) => {
         api.accessToken.setCustomClaim(
             "fatxn",
             query.delegateAction.split(",").map((value) => Number(value)),
+        );
+    } else {
+        const expectedRecipient = event.secrets.INTENTS_RECIPIENT || DEFAULT_INTENTS_RECIPIENT;
+
+        let decoded;
+        try {
+            decoded = decodeIntent(query.intent, expectedRecipient);
+        } catch (error) {
+            // A payload we cannot decode is a payload we cannot show the user. Signing it would
+            // break the consent guarantee the whole flow rests on, so refuse instead.
+            return api.access.deny(error.message);
+        }
+
+        const { payload, message } = decoded;
+        api.prompt.render(event.secrets.INTENT_FORM, {
+            fields: {
+                ...branding,
+                signerId: message.signer_id ?? "",
+                recipient: payload.recipient,
+                deadline: message.deadline ?? "",
+                intents: stringifyIntents(message.intents),
+            },
+        });
+        api.accessToken.setCustomClaim(
+            "fatxn",
+            query.intent.split(",").map((value) => Number(value)),
         );
     }
 };
@@ -317,5 +437,9 @@ exports.onContinuePostLogin = async (event, api) => {
 // `onContinuePostLogin`; extra exports are inert in production.
 exports.parseTransaction = parseTransaction;
 exports.decodeDelegateAction = decodeDelegateAction;
+exports.decodeIntent = decodeIntent;
 exports.stringifyActions = stringifyActions;
+exports.stringifyIntents = stringifyIntents;
 exports.SCHEMA = SCHEMA;
+exports.NEP413_PREFIX_TAG = NEP413_PREFIX_TAG;
+exports.DEFAULT_INTENTS_RECIPIENT = DEFAULT_INTENTS_RECIPIENT;
