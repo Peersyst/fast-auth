@@ -2198,15 +2198,6 @@ pre.code {
 .statusDot--ok  { background: var(--color-status-ok); box-shadow: 0 0 0 0 rgba(30,168,116,0.6); animation: pulse 1.8s ease-out infinite; }
 .statusDot--err { background: var(--color-status-err); }
 
-.rangeBadge { font-size: 10px; padding: 2px 8px; }
-.rangeReason {
-  white-space: normal;
-  font-size: 12px;
-  color: var(--color-ink-subtle);
-  line-height: 18px;
-  max-width: 360px;
-}
-
 /* =========================================================================
    Mobile responsive — overflow guards
    ========================================================================= */
