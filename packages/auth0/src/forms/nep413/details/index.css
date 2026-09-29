@@ -1,0 +1,153 @@
+.box {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    width: 100%;
+
+    border-radius: 1rem;
+    border: 1px solid #e5e5e5;
+}
+
+.text-content {
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+    justify-content: left;
+    width: 100%;
+}
+
+.label {
+    font-size: 0.75rem;
+    color: #999999;
+    font-weight: 500;
+}
+
+.value {
+    color: #3f4246;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.json-content {
+    display: flex;
+    padding: 0.5rem;
+    flex-direction: column;
+    align-items: left;
+    justify-content: left;
+    width: 100%;
+    border-radius: 12px;
+    background-color: #fafafa;
+
+    color: #3f4246;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.accordion {
+    width: 100%;
+    border: 1px solid #e5e5e5;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.accordion-header {
+    background: #fff;
+    padding: 12px 16px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.accordion-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.accordion-left-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.accordion-header-label {
+    font-size: 0.75rem;
+    color: black;
+    font-weight: 500;
+}
+
+.warning-icon {
+    font-size: 1rem;
+    color: #ff4444;
+}
+
+.expand-icon {
+    font-size: 1.2rem;
+    color: #666;
+    font-weight: bold;
+    line-height: 1;
+    transition: transform 0.2s ease;
+    user-select: none;
+    min-width: 20px;
+    text-align: center;
+}
+
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    font-size: 0.75rem;
+    background-color: #fafafa;
+    color: #0a0a0a;
+    font-weight: 400;
+    transition:
+        max-height 0.3s ease,
+        padding 0.3s ease;
+    padding: 0 1rem;
+}
+
+.accordion-content.open {
+    padding: 12px 16px;
+    max-height: 500px;
+}
+
+.actions-container {
+    display: flex;
+    flex-direction: column;
+    align-items: left;
+    justify-content: left;
+    width: 100%;
+    gap: 0.25rem;
+}
+
+.accordion-content .label {
+    font-size: 0.75rem;
+}
+
+.accordion-content .value {
+    font-size: 0.75rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.accordion-content > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.action-description {
+    font-size: 0.75rem;
+    color: #3f4246;
+    margin: 0;
+}
+
+.warning-callout {
+    background-color: #ffebee;
+    padding: 16px;
+    border-radius: 4px;
+    margin: 0;
+    color: #c62828;
+}

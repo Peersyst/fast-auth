@@ -10,13 +10,18 @@ import {
     JavascriptLoginOptions,
     JavascriptLoginWithRedirectOptions,
     JavascriptLoginWithPopupOptions,
+    JavascriptRequestMessageSignatureOptions,
+    JavascriptRequestMessageSignatureWithRedirectOptions,
+    JavascriptRequestMessageSignatureWithPopupOptions,
 } from "./types";
+import { encodeNep413Payload } from "./nep413";
 import {
     FAST_AUTH_AUTH0_DEFAULTS,
     GetSignatureRequestResponse,
     IFastAuthProvider,
     LoginResponse,
     RequestDelegateActionSignatureResponse,
+    RequestMessageSignatureResponse,
     RequestTransactionSignatureResponse,
     User,
 } from "@shared/core";
@@ -272,6 +277,59 @@ export class JavascriptProvider implements IFastAuthProvider {
             await this.requestDelegateActionSignatureWithRedirect(options);
         } else {
             await this.requestDelegateActionSignatureWithPopup(options);
+        }
+        return this.getUserId();
+    }
+
+    /**
+     * Request a NEP-413 message signature with redirect.
+     * @param requestSignatureOptions The options for the request message signature with redirect.
+     * @returns The void.
+     */
+    private async requestMessageSignatureWithRedirect(
+        requestSignatureOptions: JavascriptRequestMessageSignatureWithRedirectOptions,
+    ): Promise<void> {
+        const { redirectUri, payload, ...opts } = requestSignatureOptions;
+        await this.client.loginWithRedirect({
+            authorizationParams: {
+                audience: this.options.signingAudience,
+                scope: "transaction:sign",
+                nep413: encodeNep413Payload(payload),
+                redirect_uri: redirectUri,
+            },
+            ...opts,
+        });
+    }
+
+    /**
+     * Request a NEP-413 message signature with popup.
+     * @param requestSignatureOptions The options for the request message signature with popup.
+     * @returns The void.
+     */
+    private async requestMessageSignatureWithPopup(
+        requestSignatureOptions: JavascriptRequestMessageSignatureWithPopupOptions,
+    ): Promise<void> {
+        const { payload, ...opts } = requestSignatureOptions;
+        await this.client.loginWithPopup({
+            authorizationParams: {
+                audience: this.options.signingAudience,
+                scope: "transaction:sign",
+                nep413: encodeNep413Payload(payload),
+            },
+            ...opts,
+        });
+    }
+
+    /**
+     * Request a signature over a NEP-413 off-chain message, covering wallet sign-in challenges, app authentication and NEAR Intents alike. The signed bytes are not a NEAR transaction, so nothing is broadcast and no gas is spent; for intents the result is published to the solver relay, which executes it and pays the gas, leaving the signer with no need for an on-chain account.
+     * @param options The options for the request message signature.
+     * @returns The user.
+     */
+    async requestMessageSignature(options: JavascriptRequestMessageSignatureOptions): Promise<RequestMessageSignatureResponse> {
+        if ("redirectUri" in options && options.redirectUri) {
+            await this.requestMessageSignatureWithRedirect(options as JavascriptRequestMessageSignatureWithRedirectOptions);
+        } else {
+            await this.requestMessageSignatureWithPopup(options);
         }
         return this.getUserId();
     }

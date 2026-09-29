@@ -24,6 +24,7 @@ export type {
     LoginResponse,
     RequestTransactionSignatureResponse,
     RequestDelegateActionSignatureResponse,
+    RequestMessageSignatureResponse,
     GetSignatureRequestResponse,
     IFastAuthProvider,
     MPCContractAlgorithm,
