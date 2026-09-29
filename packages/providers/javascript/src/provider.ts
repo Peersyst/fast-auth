@@ -42,7 +42,12 @@ export class JavascriptProvider implements IFastAuthProvider {
         this.client = new Auth0Client({
             domain: this.options.domain,
             clientId: this.options.clientId,
-            authorizationParams: {},
+            // Default to the network's API audience so a plain login requests it
+            // explicitly. Without it, Auth0 falls back to the tenant's Default Audience
+            // (the on-chain signing audience), which the post-login Action rejects for a
+            // login that carries no transaction payload. Signature requests override this
+            // with `signingAudience`.
+            authorizationParams: { audience: defaults.audience },
         });
     }
 
