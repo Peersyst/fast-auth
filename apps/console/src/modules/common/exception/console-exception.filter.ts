@@ -11,9 +11,9 @@ import type { ConsoleErrorCode } from "./error-codes";
 
 const CODE_BY_STATUS: Partial<Record<number, ConsoleErrorCode>> = {
     400: CommonErrorCode.VALIDATION_FAILED,
+    401: "UNAUTHENTICATED",
     404: CommonErrorCode.NOT_FOUND,
     405: CommonErrorCode.VALIDATION_FAILED,
-    406: CommonErrorCode.VALIDATION_FAILED,
     413: CommonErrorCode.VALIDATION_FAILED,
     415: CommonErrorCode.VALIDATION_FAILED,
 };
