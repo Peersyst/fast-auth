@@ -9,9 +9,10 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { ClientConfigModule } from "./modules/client-config/client-config.module";
 import { DappsModule } from "./modules/dapps/dapps.module";
 import { HealthModule } from "./modules/health/health.module";
+import { SettingsModule } from "./modules/settings/settings.module";
 
 @Module({
-    imports: [AuthModule, HealthModule, ClientConfigModule, DappsModule, AdminModule],
+    imports: [AuthModule, HealthModule, ClientConfigModule, DappsModule, AdminModule, SettingsModule],
 })
 export class AppModule {
     static forRoot(config: ConsoleConfig): DynamicModule {

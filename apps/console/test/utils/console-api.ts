@@ -11,7 +11,7 @@ import type { SlackAlertKind, SlackNotifier } from "../../src/modules/notificati
 import { SLACK_NOTIFIER } from "../../src/modules/notifications/slack-notifier";
 import { AUTH0_PROVISIONER } from "../../src/modules/provisioning/auth0-provisioner";
 import type { FakeHold, FakeProvisioner, FakeProvisionerCall } from "../../src/modules/provisioning/fake.provisioner";
-import type { AdminDapp, DappEvent, DappFormFields, ErrorBody, OwnerDapp } from "./contract";
+import type { AdminDapp, DappEvent, DappFormFields, ErrorBody, OwnerDapp, Settings } from "./contract";
 import { ADMIN_EMAIL } from "./contract";
 import { createTestApp, resetDatabase } from "./test-app";
 import { signToken } from "./tokens";
@@ -192,6 +192,14 @@ export class ConsoleApi {
         return this.send("post", `/admin/dapps/${id}/remove`, this.admin, { expectedVersion, reason });
     }
 
+    getSettings(admin = this.admin): Promise<request.Response> {
+        return this.send("get", "/admin/settings", admin);
+    }
+
+    putSettings(settings: Settings, admin = this.admin): Promise<request.Response> {
+        return this.send("put", "/admin/settings", admin, settings);
+    }
+
     async submitDapp(owner: Actor, form = dappForm()): Promise<OwnerDapp> {
         return expectStatus<OwnerDapp>(await this.submit(owner, form), 201);
     }
@@ -226,6 +234,16 @@ export class ConsoleApi {
         return expectStatus<OwnerDapp>(
             await this.edit(owner, dapp.id, { ...syncedFieldsOf(dapp), ...directFieldsOf(dapp), ...change }, dapp.version),
             200,
+        );
+    }
+
+    async setAutoApproval(enabled: boolean): Promise<void> {
+        expectStatus(await this.putSettings({ autoApproval: { enabled } }), 200);
+    }
+
+    async settingEvents(): Promise<{ key: string; oldValue: unknown; newValue: unknown; actorEmail: string }[]> {
+        return this.dataSource.query(
+            `SELECT "key", "old_value" AS "oldValue", "new_value" AS "newValue", "actor_email" AS "actorEmail" FROM "setting_events" ORDER BY "created_at"`,
         );
     }
 

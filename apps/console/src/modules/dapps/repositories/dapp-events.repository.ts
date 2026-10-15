@@ -31,6 +31,15 @@ export class DappEventsRepository {
         });
     }
 
+    countChosenForAutoApprovalInLastDay(manager: EntityManager): Promise<number> {
+        return manager
+            .createQueryBuilder(DappEventEntity, "e")
+            .where("e.type = 'submitted'")
+            .andWhere("e.details @> CAST(:chosen AS jsonb)", { chosen: JSON.stringify({ chosenForAutoApproval: true }) })
+            .andWhere("e.createdAt > now() - interval '24 hours'")
+            .getCount();
+    }
+
     async listForDapp(dappId: DappId): Promise<StoredDappEvent[]> {
         const rows = await this.dataSource.manager.find(DappEventEntity, {
             select: { id: true, type: true, details: true, actorEmail: true, actorRole: true, createdAt: true },

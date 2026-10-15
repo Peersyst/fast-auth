@@ -180,7 +180,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "",
+                        "description": "The new dApp. Its status is `pending` until an admin reviews it, or `approved` with an Auth0 client when auto-approval approved it.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -302,6 +302,86 @@
                 },
                 "tags": [
                     "dapp"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/console/admin/settings": {
+            "get": {
+                "operationId": "SettingsController_get",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "`autoApproval.enabled` says whether new submissions can be approved without an admin.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SettingsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "admin"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            },
+            "put": {
+                "operationId": "SettingsController_update",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateSettingsRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "The settings after the change. Turning auto-approval on does not approve dApps already pending. Turning it off also leaves pending a chosen submission whose Auth0 calls have not started.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SettingsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "admin"
                 ],
                 "security": [
                     {
@@ -1352,6 +1432,50 @@
                     "webOrigins",
                     "contactEmail",
                     "expectedVersion"
+                ]
+            },
+            "AutoApprovalSettingsResponse": {
+                "type": "object",
+                "properties": {
+                    "enabled": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "enabled"
+                ]
+            },
+            "SettingsResponse": {
+                "type": "object",
+                "properties": {
+                    "autoApproval": {
+                        "$ref": "#/components/schemas/AutoApprovalSettingsResponse"
+                    }
+                },
+                "required": [
+                    "autoApproval"
+                ]
+            },
+            "AutoApprovalSettingsRequest": {
+                "type": "object",
+                "properties": {
+                    "enabled": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "enabled"
+                ]
+            },
+            "UpdateSettingsRequest": {
+                "type": "object",
+                "properties": {
+                    "autoApproval": {
+                        "$ref": "#/components/schemas/AutoApprovalSettingsRequest"
+                    }
+                },
+                "required": [
+                    "autoApproval"
                 ]
             },
             "DappOrderBy": {

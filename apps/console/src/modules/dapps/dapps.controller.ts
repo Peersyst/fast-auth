@@ -26,7 +26,11 @@ export class DappsController {
 
     @Post()
     @SubmitDappThrottle()
-    @ApiCreatedResponse({ type: OwnerDappResponse })
+    @ApiCreatedResponse({
+        type: OwnerDappResponse,
+        description:
+            "The new dApp. Its status is `pending` until an admin reviews it, or `approved` with an Auth0 client when auto-approval approved it.",
+    })
     async submit(@CurrentUser() user: SessionUser, @Body() body: UpsertDappRequest): Promise<OwnerDappResponse> {
         return toOwnerDappResponse(await this.dapps.submit(user, toDappFields(body)));
     }

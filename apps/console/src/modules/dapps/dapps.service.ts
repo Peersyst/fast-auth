@@ -4,7 +4,7 @@ import { DataSource } from "typeorm";
 import type { ConsoleConfig } from "../../config/console-config";
 import { CONSOLE_CONFIG } from "../../config/console-config";
 import type { Auth0ClientId, Dapp, DappFields, DappId, DappStatus, SyncedFields } from "../../domain/dapp";
-import { DAPP_FIELDS, directFieldsOf, SYNCED_FIELDS, syncedFieldsOf } from "../../domain/dapp";
+import { AUTO_APPROVAL_DAILY_CAP, DAPP_FIELDS, directFieldsOf, SYNCED_FIELDS, syncedFieldsOf } from "../../domain/dapp";
 import type { PendingChangeOutcome } from "../../domain/dapp-edits";
 import { classifyEdit, diffFields } from "../../domain/dapp-edits";
 import type { Auth0Op, DappEventDetails } from "../../domain/dapp-event";
@@ -21,6 +21,7 @@ import type { SlackAlert, SlackNotifier } from "../notifications/slack-notifier"
 import { SLACK_NOTIFIER } from "../notifications/slack-notifier";
 import type { Auth0Provisioner, ProvisioningErrorKind } from "../provisioning/auth0-provisioner";
 import { AUTH0_PROVISIONER, ProvisioningError } from "../provisioning/auth0-provisioner";
+import { SettingsRepository } from "../settings/settings.repository";
 import type { TransitionAction } from "./dapps.metrics";
 import { DappsMetrics } from "./dapps.metrics";
 import type { Actor, StoredDappEvent } from "./repositories/dapp-events.repository";
@@ -37,6 +38,10 @@ type Apply<T> = (manager: EntityManager, dapp: Dapp, next: DappStatus) => Promis
 type Auth0WriteEvent = Extract<DappEventDetails, { type: "auth0_created" | "auth0_updated" }>;
 
 type Effects = { columns: DappChanges; events: DappEventDetails[] };
+
+class AutoApprovalTurnedOff extends Error {
+    override readonly name = "AutoApprovalTurnedOff";
+}
 
 class Auth0CallFailed extends Error {
     constructor(
@@ -111,6 +116,7 @@ export class DappsService {
         private readonly dataSource: DataSource,
         private readonly dapps: DappsRepository,
         private readonly events: DappEventsRepository,
+        private readonly settings: SettingsRepository,
         private readonly metrics: DappsMetrics,
         @Inject(AUTH0_PROVISIONER) private readonly provisioner: Auth0Provisioner,
         @Inject(EMAILER) private readonly emailer: Emailer,
@@ -140,8 +146,15 @@ export class DappsService {
     submit(user: SessionUser, fields: DappFields): Promise<Dapp> {
         return this.counted("submit", async () => {
             const submission = this.dataSource.transaction(async (manager) => {
+                // Lock the owner's dApp before the settings row. An admin action can hold that dApp through its Auth0 calls,
+                // and waiting for it while holding the settings row would stall every submission and settings change.
                 if ((await this.dapps.findLiveByOwnerForUpdate(manager, user.email)) !== null)
                     throw new ConsoleException("DAPP_ALREADY_EXISTS");
+                const autoApproval = await this.settings.findAutoApprovalForUpdate(manager);
+                const chosen =
+                    autoApproval.enabled &&
+                    !(await this.dapps.hasHadDapp(manager, user.email)) &&
+                    (await this.events.countChosenForAutoApprovalInLastDay(manager)) < AUTO_APPROVAL_DAILY_CAP;
                 const dapp = await this.dapps.insert(manager, {
                     ...fields,
                     ownerEmail: user.email,
@@ -149,18 +162,28 @@ export class DappsService {
                 });
                 await this.events.append(manager, dapp.id, ownerActor(user), {
                     type: "submitted",
-                    details: { chosenForAutoApproval: false },
+                    details: { chosenForAutoApproval: chosen },
                 });
-                return dapp;
+                return { dapp, chosen };
             });
-            const dapp = await submission.catch((error: unknown) => {
+            const { dapp, chosen } = await submission.catch((error: unknown) => {
                 this.logger.log(`submit by user ${refusedOrFailed(error)}: ${describeError(error)}`);
                 throw error;
             });
-            this.logger.log(`submit dApp ${dapp.id} by user: -> pending`);
-            await this.sendEmails([this.adminAlert(dapp, "submitted")]);
-            await this.notifySlack({ kind: "submitted", dapp });
-            return dapp;
+            this.logger.log(`submit dApp ${dapp.id} by user: -> pending${chosen ? ", chosen for auto-approval" : ""}`);
+
+            const approved = chosen ? await this.autoApprove(dapp) : null;
+            if (approved === null) {
+                await this.sendEmails([this.adminAlert(dapp, "submitted")]);
+                await this.notifySlack({ kind: "submitted", dapp });
+                return dapp;
+            }
+            await this.sendEmails([
+                { template: "dapp_approved", to: approved.ownerEmail, dapp: approved, clientId: clientIdOf(approved) },
+                this.adminAlert(approved, "auto_approved"),
+            ]);
+            await this.notifySlack({ kind: "auto_approved", dapp: approved });
+            return approved;
         });
     }
 
@@ -200,7 +223,7 @@ export class DappsService {
         return this.counted("approve", async () => {
             const actor = adminActor(admin);
             const dapp = await this.mutate("approve", actor, { id }, expectedVersion, (manager, live, next) =>
-                this.approveIn(manager, live, next, actor),
+                this.approveIn(manager, live, next, actor, "approved"),
             );
             await this.sendEmails([{ template: "dapp_approved", to: dapp.ownerEmail, dapp, clientId: clientIdOf(dapp) }]);
             return dapp;
@@ -315,6 +338,24 @@ export class DappsService {
         });
     }
 
+    private async autoApprove(dapp: Dapp): Promise<Dapp | null> {
+        try {
+            return await this.counted("autoApprove", () =>
+                this.mutate("approve", SYSTEM, { id: dapp.id }, dapp.version, async (manager, live, next) => {
+                    // Read before the Auth0 calls, so a turned-off switch creates no client. No FOR UPDATE, since this transaction
+                    // holds the dApp row through the Auth0 calls, and holding the settings row too would stall submissions.
+                    if (!(await this.settings.findAutoApproval(manager)).enabled) throw new AutoApprovalTurnedOff();
+                    return this.approveIn(manager, live, next, SYSTEM, "auto_approved");
+                }),
+            );
+        } catch (error) {
+            const message = `Auto-approval of dApp ${dapp.id} failed, leaving it pending: ${describeError(error)}`;
+            if (error instanceof ConsoleException || error instanceof AutoApprovalTurnedOff) this.logger.warn(message);
+            else this.logger.error(message, error instanceof Error ? error.stack : String(error));
+            return null;
+        }
+    }
+
     private async editInPlace(
         manager: EntityManager,
         live: Dapp,
@@ -353,7 +394,13 @@ export class DappsService {
         return { dapp, alert: pendingChange.kind === "replaced" ? "change_requested" : null };
     }
 
-    private async approveIn(manager: EntityManager, live: Dapp, next: DappStatus, actor: Actor): Promise<Dapp> {
+    private async approveIn(
+        manager: EntityManager,
+        live: Dapp,
+        next: DappStatus,
+        actor: Actor,
+        event: "approved" | "auto_approved",
+    ): Promise<Dapp> {
         const auth0 = await this.provisionClient(live);
         const now = new Date();
         const dapp = await this.dapps.update(manager, live.id, {
@@ -364,7 +411,7 @@ export class DappsService {
             auth0SyncedAt: now,
             auth0Error: null,
         });
-        await this.appendEvents(manager, live.id, actor, [{ type: "approved", details: {} }, auth0]);
+        await this.appendEvents(manager, live.id, actor, [{ type: event, details: {} }, auth0]);
         return dapp;
     }
 

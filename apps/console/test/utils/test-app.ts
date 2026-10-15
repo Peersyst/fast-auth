@@ -26,5 +26,6 @@ export async function createTestApp(): Promise<NestExpressApplication> {
 
 export async function resetDatabase(app: NestExpressApplication): Promise<void> {
     const dataSource = app.get(DataSource);
-    await dataSource.query('TRUNCATE "dapp_events", "dapps"');
+    await dataSource.query('TRUNCATE "dapp_events", "dapps", "setting_events", "settings"');
+    await dataSource.query(`INSERT INTO "settings" ("key", "value") VALUES ('auto_approval', '{"enabled": false}')`);
 }
