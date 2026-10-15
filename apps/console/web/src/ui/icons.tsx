@@ -21,6 +21,15 @@ function Icon({ size, strokeWidth = 2, children }: { size: number; strokeWidth?:
     );
 }
 
+export const GridIcon = ({ size = 24 }: IconProps) => (
+    <Icon size={size}>
+        <rect width="7" height="7" x="3" y="3" rx="1" />
+        <rect width="7" height="7" x="14" y="3" rx="1" />
+        <rect width="7" height="7" x="14" y="14" rx="1" />
+        <rect width="7" height="7" x="3" y="14" rx="1" />
+    </Icon>
+);
+
 export const CopyIcon = ({ size = 14 }: IconProps) => (
     <Icon size={size}>
         <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
@@ -78,5 +87,38 @@ export const CloseIcon = ({ size = 16 }: IconProps) => (
     <Icon size={size}>
         <path d="M18 6 6 18" />
         <path d="m6 6 12 12" />
+    </Icon>
+);
+
+export const CheckIcon = ({ size = 14 }: IconProps) => (
+    <Icon size={size} strokeWidth={3}>
+        <path d="M20 6 9 17l-5-5" />
+    </Icon>
+);
+
+export const ClockIcon = ({ size = 18 }: IconProps) => (
+    <Icon size={size}>
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 6v6l4 2" />
+    </Icon>
+);
+
+export const KeyIcon = ({ size = 18 }: IconProps) => (
+    <Icon size={size}>
+        <path d="m21 2-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0 3 3L22 7l-3-3m-3.5 3.5L19 4" />
+    </Icon>
+);
+
+export const PencilIcon = ({ size = 14 }: IconProps) => (
+    <Icon size={size}>
+        <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+        <path d="m15 5 4 4" />
+    </Icon>
+);
+
+export const BackIcon = ({ size = 14 }: IconProps) => (
+    <Icon size={size}>
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
     </Icon>
 );

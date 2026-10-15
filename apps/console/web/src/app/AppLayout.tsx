@@ -18,11 +18,11 @@ export function AppLayout() {
     const session = isAuthenticated && me.data?.emailVerified ? me.data : undefined;
 
     return (
-        <>
+        <div className={styles.layout}>
             <AppHeader account={isAuthenticated ? { email: user?.email, session } : undefined} onSignOut={signOut} />
             <main className={styles.main}>
                 <Outlet />
             </main>
-        </>
+        </div>
     );
 }

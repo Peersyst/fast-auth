@@ -1,4 +1,12 @@
+.layout {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 100vh;
+}
+
 .main {
+    width: 100%;
     max-width: var(--content-width);
     margin: 0 auto;
     padding: var(--space-10) var(--space-4);

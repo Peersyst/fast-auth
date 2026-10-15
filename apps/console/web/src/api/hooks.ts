@@ -1,16 +1,23 @@
 import { useAuth0 } from "@auth0/auth0-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { createAuthFetch } from "./auth-fetch";
-import { createApiClient, unwrap } from "./client";
+import { createApiClient, unwrap, type DappFormFields, type NearNetwork, type OwnerDapp, type UpdateDappRequest } from "./client";
 
 const publicApi = createApiClient();
 
 export const ME_QUERY_KEY = ["me"];
 export const CONFIG_QUERY_KEY = ["config"];
+const DAPP_QUERY_KEY = ["dapp"];
 
 export function useConfig() {
     return useQuery({ queryKey: CONFIG_QUERY_KEY, queryFn: () => unwrap(publicApi.GET("/api/console/config")), staleTime: Infinity });
+}
+
+export function useNearNetwork(): NearNetwork {
+    const { data } = useConfig();
+    if (!data) throw new Error("The config is not loaded");
+    return data.nearNetwork;
 }
 
 function useApi() {
@@ -28,5 +35,32 @@ export function useMe(enabled: boolean) {
 
 export function useMyDapp() {
     const api = useApi();
-    return useQuery({ queryKey: ["dapp"], queryFn: async () => (await unwrap(api.GET("/api/console/dapp"))).dapp });
+    return useQuery({ queryKey: DAPP_QUERY_KEY, queryFn: async () => (await unwrap(api.GET("/api/console/dapp"))).dapp });
+}
+
+function useOwnerDappMutation<V>(mutationFn: (variables: V) => Promise<OwnerDapp | null>) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn,
+        onSuccess: (dapp) => queryClient.setQueryData(DAPP_QUERY_KEY, dapp),
+        onError: () => queryClient.invalidateQueries({ queryKey: DAPP_QUERY_KEY }),
+    });
+}
+
+export function useSubmitDapp() {
+    const api = useApi();
+    return useOwnerDappMutation((body: DappFormFields) => unwrap(api.POST("/api/console/dapp", { body })));
+}
+
+export function useUpdateDapp(id: string) {
+    const api = useApi();
+    return useOwnerDappMutation((body: UpdateDappRequest) => unwrap(api.PUT("/api/console/dapp/{id}", { params: { path: { id } }, body })));
+}
+
+export function useRemoveDapp(id: string) {
+    const api = useApi();
+    return useOwnerDappMutation(async (expectedVersion: number) => {
+        await unwrap(api.DELETE("/api/console/dapp/{id}", { params: { path: { id }, query: { expectedVersion } } }));
+        return null;
+    });
 }
