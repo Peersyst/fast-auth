@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ApiError } from "../../../../src/api/client";
 import { ownerDapp } from "../../../utils/api";
-import { DappForm } from "../../../../src/features/my-dapp/DappForm";
+import { DappForm } from "../../../../src/features/dapp/DappForm";
 
 const PROPOSED = {
     name: "Acme Wallet 2",

@@ -123,9 +123,48 @@ export const BackIcon = ({ size = 14 }: IconProps) => (
     </Icon>
 );
 
+export const CheckCircleIcon = ({ size = 16 }: IconProps) => (
+    <Icon size={size}>
+        <circle cx="12" cy="12" r="10" />
+        <path d="m9 12 2 2 4-4" />
+    </Icon>
+);
+
+export const XCircleIcon = ({ size = 16 }: IconProps) => (
+    <Icon size={size}>
+        <circle cx="12" cy="12" r="10" />
+        <path d="m15 9-6 6" />
+        <path d="m9 9 6 6" />
+    </Icon>
+);
+
+export const TrashIcon = ({ size = 16 }: IconProps) => (
+    <Icon size={size}>
+        <path d="M3 6h18" />
+        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+        <path d="M10 11v6" />
+        <path d="M14 11v6" />
+    </Icon>
+);
+
 export const ZapIcon = ({ size = 16 }: IconProps) => (
     <Icon size={size}>
         <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
+    </Icon>
+);
+
+export const UserPenIcon = ({ size = 16 }: IconProps) => (
+    <Icon size={size}>
+        <path d="M11.5 15H7a4 4 0 0 0-4 4v2" />
+        <path d="M21.378 16.626a1 1 0 0 0-3.004-3.004l-4.01 4.012a2 2 0 0 0-.506.854l-.837 2.87a.5.5 0 0 0 .62.62l2.87-.837a2 2 0 0 0 .854-.506z" />
+        <circle cx="10" cy="7" r="4" />
+    </Icon>
+);
+
+export const ChevronRightIcon = ({ size = 16 }: IconProps) => (
+    <Icon size={size}>
+        <path d="m9 18 6-6-6-6" />
     </Icon>
 );
 
@@ -133,5 +172,14 @@ export const SearchIcon = ({ size = 16 }: IconProps) => (
     <Icon size={size}>
         <circle cx="11" cy="11" r="8" />
         <path d="m21 21-4.3-4.3" />
+    </Icon>
+);
+
+export const ServerIcon = ({ size = 16 }: IconProps) => (
+    <Icon size={size}>
+        <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
+        <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+        <path d="M6 6h.01" />
+        <path d="M6 18h.01" />
     </Icon>
 );

@@ -3,20 +3,17 @@ import type { DappFormFields } from "../../api/client";
 import { initials } from "../../lib/initials";
 import { Button } from "../../ui/Button";
 import { PencilIcon } from "../../ui/icons";
-import { myDappClasses } from "./classes";
-import { FieldList, Value } from "./FieldValues";
+import { FieldList, Value } from "../dapp/FieldValues";
+import styles from "./dapp.module.css";
 
 export function DappSummary({ dapp, onEdit }: { dapp: DappFormFields; onEdit: () => void }) {
     return (
-        <article className={`flex flex-col overflow-hidden ${myDappClasses.card} [&>dl]:border-t [&>dl]:border-t-border`}>
-            <div className="flex flex-wrap items-center gap-4 p-6">
-                <span
-                    className="flex size-12 flex-none items-center justify-center rounded-[12px] bg-surface-muted text-[16px] font-bold text-ink-2"
-                    aria-hidden="true"
-                >
+        <article className={styles.summary}>
+            <div className={styles.summaryHeader}>
+                <span className={styles.avatar} aria-hidden="true">
                     {initials(dapp.name)}
                 </span>
-                <div className="flex min-w-0 flex-[1_1_280px] flex-col gap-0.5 wrap-anywhere [&_h2]:text-[20px] [&_h2]:font-bold [&_h2]:tracking-[-0.015em] [&_p]:text-[14px] [&_p]:text-ink-subtle">
+                <div className={styles.summaryTitle}>
                     <h2>{dapp.name}</h2>
                     {dapp.description && <p>{dapp.description}</p>}
                 </div>

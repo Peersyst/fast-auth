@@ -13,17 +13,12 @@ import { Callout } from "../../ui/Callout";
 import { ConfirmDialog } from "../../ui/Dialog";
 import { BackIcon, GridIcon, PlusIcon } from "../../ui/icons";
 import { useSession } from "../auth/session";
+import { DappForm } from "../dapp/DappForm";
 import { StatusBadge } from "../dapp/StatusBadge";
-import { myDappClasses } from "./classes";
-import { DappForm } from "./DappForm";
+import { useHeadingFocus } from "../dapp/useHeadingFocus";
+import styles from "./dapp.module.css";
 import { ChangeUnderReview, Credentials, PendingStatus, RejectedStatus } from "./DappStatus";
 import { DappSummary } from "./DappSummary";
-
-const CONTAINER = "mx-auto my-0 flex w-full max-w-[848px] flex-col gap-6";
-const KICKER = "font-mono text-xs font-medium tracking-kicker text-ink-subtle uppercase";
-const HEADING = "flex flex-col gap-2";
-const TITLE = "text-[40px] leading-[1.05] font-bold tracking-[-0.025em] wrap-anywhere focus:outline-none";
-const INLINE_CODE_CHIP = "rounded-[4px] bg-surface-muted px-1.5 py-px font-mono text-[14px]";
 
 export function MyDappPage() {
     const dapp = useMyDapp();
@@ -46,9 +41,9 @@ export function MyDappPage() {
         );
     }
     return (
-        <div className="flex min-h-full flex-col gap-10 pb-20 text-md leading-[1.5] text-ink">
+        <div className={styles.page}>
             {dapp.isError && (
-                <div className={CONTAINER}>
+                <div className={styles.container}>
                     <RefreshError error={dapp.error} />
                 </div>
             )}
@@ -74,30 +69,30 @@ function NoDapp({ focus, onRegister }: { focus: "heading" | "register" | undefin
     }, [focus]);
 
     return (
-        <div className="flex flex-auto flex-col items-center justify-center gap-4">
-            <section className={`flex w-full max-w-[520px] flex-col items-center gap-6 px-10 py-12 text-center ${myDappClasses.card}`}>
-                <span className="flex size-14 items-center justify-center rounded-lg border border-dashed border-border-strong bg-canvas text-ink-subtle">
+        <div className={styles.empty}>
+            <section className={styles.emptyCard}>
+                <span className={styles.emptyIcon}>
                     <GridIcon />
                 </span>
-                <div className="flex flex-col items-center gap-2 [&_h1]:text-[30px] [&_h1]:leading-[1.05] [&_h1]:font-bold [&_h1]:tracking-[-0.025em] [&_h1:focus]:outline-none">
-                    <p className={KICKER}>{NEAR_NETWORKS[network].name} access</p>
+                <div className={styles.emptyText}>
+                    <p className={styles.kicker}>{NEAR_NETWORKS[network].name} access</p>
                     <h1 ref={heading} tabIndex={-1}>
                         You haven&apos;t registered a dApp yet
                     </h1>
-                    <p className="max-w-[42ch] text-ink-subtle wrap-anywhere">
-                        Register your dApp to get a dedicated Auth0 <code className={INLINE_CODE_CHIP}>clientId</code> and access to the{" "}
+                    <p className={styles.emptyLede}>
+                        Register your dApp to get a dedicated Auth0 <code className={styles.inlineCode}>clientId</code> and access to the{" "}
                         {network} NEAR Auth contract. Each email address can have one dApp at a time, and yours is <strong>{email}</strong>.
                     </p>
                 </div>
-                <Button ref={register} className="h-[52px] px-6 py-0" onClick={onRegister}>
+                <Button ref={register} className={styles.register} onClick={onRegister}>
                     <PlusIcon size={18} />
                     Register your dApp
                 </Button>
-                <a className={`${KICKER} no-underline`} href={APPLY_DOCS_URL}>
+                <a className={styles.quietLink} href={APPLY_DOCS_URL}>
                     How approval works
                 </a>
             </section>
-            <p className="m-0 max-w-[520px] text-center text-sm leading-[1.5] text-ink-subtle [&_a]:text-link">
+            <p className={styles.legacyNote}>
                 Already approved through the earlier application form? That client keeps working but isn&apos;t managed here.{" "}
                 <a href={SUPPORT_URL}>Contact the NEAR Auth team</a> to change it.
             </p>
@@ -113,14 +108,14 @@ function RegisterDapp({ onCancel }: { onCancel: () => void }) {
 
     return (
         <>
-            <div className={CONTAINER}>
-                <div className={HEADING}>
-                    <p className={KICKER}>{NEAR_NETWORKS[network].name} access</p>
-                    <h1 ref={heading} tabIndex={-1} className={TITLE}>
+            <div className={styles.container}>
+                <div className={styles.heading}>
+                    <p className={styles.kicker}>{NEAR_NETWORKS[network].name} access</p>
+                    <h1 ref={heading} tabIndex={-1} className={styles.title}>
                         Register your dApp
                     </h1>
-                    <p className="text-[16px] text-ink-subtle">
-                        Tell us about your app. Once approved you get a dedicated Auth0 <code className={INLINE_CODE_CHIP}>clientId</code>{" "}
+                    <p className={styles.lede}>
+                        Tell us about your app. Once approved you get a dedicated Auth0 <code className={styles.inlineCode}>clientId</code>{" "}
                         and access to the {network} NEAR Auth contract.
                     </p>
                 </div>
@@ -131,7 +126,7 @@ function RegisterDapp({ onCancel }: { onCancel: () => void }) {
                     </p>
                 </Callout>
             </div>
-            <div className={CONTAINER}>
+            <div className={styles.container}>
                 <DappForm
                     mode="owner"
                     values={null}
@@ -184,16 +179,10 @@ function DappView({ dapp, focusTitle }: { dapp: LiveDapp; focusTitle: boolean })
     const withdraw = useUpdateDapp(dapp.id);
     const remove = useRemoveDapp(dapp.id);
     const copy = EDIT_COPY[dapp.status];
-    const heading = useRef<HTMLHeadingElement>(null);
-    const moveFocus = useRef(focusTitle);
-    useEffect(() => {
-        if (!moveFocus.current) return;
-        moveFocus.current = false;
-        heading.current?.focus();
-    });
+    const { heading, focusHeadingAfterRender } = useHeadingFocus(focusTitle);
 
     const switchView = (next: OwnerDapp | null) => {
-        moveFocus.current = true;
+        focusHeadingAfterRender();
         setEditing(next);
     };
     const openDialog = (kind: Dialog["kind"]) => {
@@ -219,8 +208,8 @@ function DappView({ dapp, focusTitle }: { dapp: LiveDapp; focusTitle: boolean })
     };
 
     const title = (
-        <div className="flex flex-wrap items-center gap-3">
-            <h1 ref={heading} tabIndex={-1} className={TITLE}>
+        <div className={styles.titleRow}>
+            <h1 ref={heading} tabIndex={-1} className={styles.title}>
                 {dapp.name}
             </h1>
             <StatusBadge status={dapp.status} />
@@ -242,25 +231,21 @@ function DappView({ dapp, focusTitle }: { dapp: LiveDapp; focusTitle: boolean })
     if (editing) {
         content = (
             <>
-                <div className={CONTAINER}>
-                    <button
-                        type="button"
-                        className={`${KICKER} inline-flex cursor-pointer items-center gap-1.5 self-start border-0 p-0 no-underline bg-transparent`}
-                        onClick={() => switchView(null)}
-                    >
+                <div className={styles.container}>
+                    <button type="button" className={styles.back} onClick={() => switchView(null)}>
                         <BackIcon />
                         Back to My dApp
                     </button>
-                    <div className={HEADING}>
-                        <p className={KICKER}>Edit details</p>
+                    <div className={styles.heading}>
+                        <p className={styles.kicker}>Edit details</p>
                         {title}
                     </div>
-                    <Callout tone="info" className="bg-surface">
+                    <Callout tone="info" className={styles.surfaceNotice}>
                         <p>{copy.note}</p>
                     </Callout>
                     {changeUnderReview}
                 </div>
-                <div className={CONTAINER}>
+                <div className={styles.container}>
                     <DappForm
                         key={editing.version}
                         mode="owner"
@@ -280,7 +265,7 @@ function DappView({ dapp, focusTitle }: { dapp: LiveDapp; focusTitle: boolean })
         );
     } else {
         content = (
-            <div className={CONTAINER}>
+            <div className={styles.container}>
                 {title}
                 {changedNotice}
                 {dapp.status === "pending" && <PendingStatus submittedAt={dapp.submittedAt} email={email} />}
@@ -288,7 +273,7 @@ function DappView({ dapp, focusTitle }: { dapp: LiveDapp; focusTitle: boolean })
                 {changeUnderReview}
                 {dapp.status === "approved" && dapp.auth0ClientId && <Credentials clientId={dapp.auth0ClientId} />}
                 {dapp.status === "approved" && (
-                    <div className="flex flex-col gap-1 pt-4 [&_h2]:text-[20px] [&_h2]:font-bold [&_h2]:tracking-[-0.015em] [&_p]:text-[14px] [&_p]:text-ink-subtle">
+                    <div className={styles.settingsHeading}>
                         <h2>Application settings</h2>
                         <p>{APPROVAL_RULE}</p>
                     </div>
