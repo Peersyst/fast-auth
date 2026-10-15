@@ -1,4 +1,4 @@
-import type { ConsoleConfig, ManagementAuth0Config } from "../../src/config/console-config";
+import type { ConsoleConfig, ManagementAuth0Config, SesEmailConfig } from "../../src/config/console-config";
 
 export const TEST_CONFIG: ConsoleConfig = {
     server: { env: "test", port: 3000, publicUrl: "https://console.example.test" },
@@ -31,3 +31,5 @@ export const MANAGEMENT_AUTH0: ManagementAuth0Config = {
     m2mClientSecret: "m2m-secret",
     templateClientId: "template-client",
 };
+
+export const SES_EMAIL: SesEmailConfig = { provider: "ses", from: "no-reply@auth.example.test", region: "eu-west-1" };
