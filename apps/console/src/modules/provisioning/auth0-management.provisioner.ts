@@ -2,6 +2,7 @@ import { AuthApiError, ManagementApiError, ManagementClient, ResponseError } fro
 import type { ApiResponse, Client, ClientCreate, ClientUpdate, GetClients200ResponseOneOf1 } from "auth0";
 import type { ConfigEnv, ManagementAuth0Config } from "../../config/console-config";
 import type { Auth0ClientId, DappId, SyncedFields } from "../../domain/dapp";
+import { causeChain } from "../common/exception/cause-chain";
 import type { Auth0Provisioner, ManagedClient } from "./auth0-provisioner";
 import { ProvisioningError } from "./auth0-provisioner";
 import type { Auth0Call, Auth0Outcome, ProvisioningMetrics } from "./provisioning.metrics";
@@ -53,17 +54,6 @@ function classify(op: Auth0Call, error: unknown): Failure {
         return { outcome: "failed", retryAfterMs: op === "create" ? null : DEFAULT_RETRY_AFTER_MS, message };
     }
     return { outcome: "failed", retryAfterMs: null, message: `Auth0 ${op} failed: ${causeChain(error)}` };
-}
-
-// The SDK reports a network failure as "fetch failed" and keeps what failed, such as DNS, in `cause`.
-// Node's fetch reports a host whose every address refused as an AggregateError with an empty message and an errno `code`.
-function causeChain(error: unknown): string {
-    const messages: string[] = [];
-    for (let current = error; current instanceof Error; current = current.cause) {
-        const text = current.message || ("code" in current && typeof current.code === "string" ? current.code : "");
-        if (text && messages.at(-1) !== text) messages.push(text);
-    }
-    return messages.length > 0 ? messages.join(": ") : String(error);
 }
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));

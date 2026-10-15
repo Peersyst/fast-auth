@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { AppModule } from "../app.module";
 import { loadConfig } from "../config";
 import { API_PREFIX, createOpenApiDocument } from "../configure-app";
+import { runScript } from "./run-script";
 
 const SPEC_PATH = join(__dirname, "..", "..", "openapi-spec.json");
 
@@ -14,7 +15,4 @@ async function main(): Promise<void> {
     await app.close();
 }
 
-main().catch((error: unknown) => {
-    process.stderr.write(`spec failed: ${error instanceof Error ? error.message : String(error)}\n`);
-    process.exit(1);
-});
+runScript("spec", main);
