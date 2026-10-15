@@ -2,7 +2,7 @@
 
 Self-service dApp registration for NEAR Auth. A dApp team submits its app, an admin reviews it unless auto-approval approves it, and the console creates the team's Auth0 client and emails them the result.
 
-`apps/console` is a NestJS API that also serves its own React SPA from `web/`, configured only by environment variables.
+`apps/console` is a NestJS API that also serves its own React SPA from `web/`. It ships as one Docker image, configured only by environment variables.
 
 The SPA is built for ES2022, so it needs Safari 16.4, Chrome 94, Firefox 93 or Edge 94, or newer.
 
@@ -48,9 +48,25 @@ For a chosen submission, the console creates the Auth0 client at once and `POST 
 
 Turning it on does not approve dApps that are already pending. Edits, resubmissions of rejected dApps, and change requests always go to an admin.
 
+## Running the image
+
+The image runs `node dist/main.js`. On every start it applies pending migrations under a Postgres advisory lock, so several containers can start at once. Whoever runs it provides:
+
+-   the environment variables from `.env.example`
+-   a Postgres 16 the container can reach, with `DB_SSL=true` when the server requires TLS
+-   AWS credentials allowed `ses:SendEmail` from `SES_FROM`, through the default AWS credential chain, such as a task role or the `AWS_*` variables
+-   a TLS-terminating proxy in front of `APP_PORT`
+-   health checks on `/api/console/livez` and `/api/console/readyz`, and a Prometheus scrape of port 9464 kept off the public host
+
 ## Operations
 
-Run the scripts from a build. In `apps/console`, run `pnpm --filter console-web build` and then `pnpm build`, since the API build copies the SPA from `web/dist`. Export the environment of the deployment you target, then start the script with `node`.
+The image holds the scripts. Run one in a new container from the image the deployment runs, with that deployment's environment. CI tags each image it pushes from `main` with the first 8 characters of the commit.
+
+```sh
+docker run --rm --env-file <deployment env file> ghcr.io/peersyst/fast-auth-console:<tag> node dist/scripts/reconcile.js
+```
+
+The container must reach the same Postgres and Auth0 tenant as the console. To run a script from a checkout instead, run `pnpm --filter console-web build` and then `pnpm build` in `apps/console`, since the API build copies the SPA from `web/dist`. Export the deployment's environment, then run `node dist/scripts/<script>.js`.
 
 ### Find orphan and missing Auth0 clients
 
