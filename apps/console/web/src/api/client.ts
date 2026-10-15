@@ -3,8 +3,11 @@ import type { components, paths } from "./schema.gen";
 
 type Schemas = components["schemas"];
 export type Me = Schemas["MeResponse"];
+export type OwnerDapp = Schemas["OwnerDappResponse"];
+export type SyncedFields = Schemas["SyncedFieldsResponse"];
 export type ClientConfig = Schemas["ClientConfigResponse"];
 export type NearNetwork = ClientConfig["nearNetwork"];
+export type DappFormFields = Schemas["UpsertDappRequest"];
 export type ErrorCode = Schemas["ErrorCode"];
 export type ErrorDetail = Schemas["ErrorDetail"];
 type ErrorResponse = Schemas["ErrorResponse"];

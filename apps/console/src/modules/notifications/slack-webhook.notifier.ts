@@ -1,15 +1,8 @@
 import type { DappField, DappFields } from "@shared/console-domain/dapp";
-import { DAPP_FIELDS, MauBracket } from "@shared/console-domain/dapp";
+import { DAPP_FIELDS, FIELD_LABELS, MAU_LABELS } from "@shared/console-domain/dapp";
 import { diffFields } from "@shared/console-domain/dapp-edits";
 import type { SlackAlert, SlackNotifier } from "./slack-notifier";
 import { ADMIN_ALERTS, adminDappUrl } from "./templates/templates";
-
-const MAU_LABELS: Record<MauBracket, string> = {
-    [MauBracket.LT_1K]: "Less than 1,000",
-    [MauBracket.FROM_1K_TO_10K]: "1,000 – 10,000",
-    [MauBracket.FROM_10K_TO_25K]: "10,000 – 25,000",
-    [MauBracket.GT_25K]: "More than 25,000",
-};
 
 /**
  * Escapes Slack mrkdwn and collapses whitespace and control characters to spaces. Every field is one line of the message, so
@@ -34,15 +27,15 @@ function urlList(urls: readonly string[]): string {
     return urls.length === 0 ? "—" : urls.map(escapeMrkdwn).join(", ");
 }
 
-const FIELD_LINES: Record<DappField, { label: string; format: (fields: DappFields) => string }> = {
-    name: { label: "Name", format: (fields) => escapeMrkdwn(fields.name) },
-    description: { label: "Description", format: (fields) => (fields.description === "" ? "—" : escapeMrkdwn(fields.description)) },
-    logoUrl: { label: "Logo", format: (fields) => escapeMrkdwn(fields.logoUrl) },
-    mauBracket: { label: "Expected MAU", format: (fields) => MAU_LABELS[fields.mauBracket] },
-    callbackUrls: { label: "Callback URLs", format: (fields) => urlList(fields.callbackUrls) },
-    logoutUrls: { label: "Logout URLs", format: (fields) => urlList(fields.logoutUrls) },
-    webOrigins: { label: "Web origins", format: (fields) => urlList(fields.webOrigins) },
-    contactEmail: { label: "Contact", format: (fields) => escapeMrkdwn(fields.contactEmail) },
+const FIELD_LINES: Record<DappField, (fields: DappFields) => string> = {
+    name: (fields) => escapeMrkdwn(fields.name),
+    description: (fields) => (fields.description === "" ? "—" : escapeMrkdwn(fields.description)),
+    logoUrl: (fields) => escapeMrkdwn(fields.logoUrl),
+    mauBracket: (fields) => MAU_LABELS[fields.mauBracket],
+    callbackUrls: (fields) => urlList(fields.callbackUrls),
+    logoutUrls: (fields) => urlList(fields.logoutUrls),
+    webOrigins: (fields) => urlList(fields.webOrigins),
+    contactEmail: (fields) => escapeMrkdwn(fields.contactEmail),
 };
 
 /**
@@ -64,11 +57,12 @@ export function slackMessage(alert: SlackAlert, publicUrl: string): { text: stri
                   ...(changed.size === 0 ? ["Nothing was changed since the rejection."] : []),
               ]
             : [];
-    const fields = Object.entries(FIELD_LINES).map(([field, { label, format }]) =>
-        rejected !== null && changed.has(field)
+    const fields = Object.entries(FIELD_LINES).map(([field, format]) => {
+        const label = FIELD_LABELS[field as DappField];
+        return rejected !== null && changed.has(field)
             ? `*${label} (changed):* ${format(dapp)} (was: ${format(rejected)})`
-            : `*${label}:* ${format(dapp)}`,
-    );
+            : `*${label}:* ${format(dapp)}`;
+    });
     return {
         text: [
             `*${copy.subject}*`,

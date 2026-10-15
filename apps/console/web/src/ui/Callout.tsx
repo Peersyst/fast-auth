@@ -1,24 +1,32 @@
 import type { ReactNode } from "react";
-import { cn } from "../lib/cn";
-
-const TONES = { warning: "border-warning-border bg-warning-bg", error: "border-danger-border bg-danger-bg" } as const;
+import styles from "./Callout.module.css";
+import { ErrorIcon, InfoIcon, TipIcon, WarningIcon } from "./icons";
 
 type CalloutProps = {
-    tone: "warning" | "error";
+    tone: "info" | "tip" | "warning" | "error";
     id?: string;
-    title: string;
+    title?: string;
     children: ReactNode;
+    className?: string;
 };
 
-export function Callout({ tone, id, title, children }: CalloutProps) {
+const ICONS = { info: InfoIcon, tip: TipIcon, warning: WarningIcon, error: ErrorIcon };
+
+export function Callout({ tone, id, title, children, className }: CalloutProps) {
+    const Icon = ICONS[tone];
     return (
         <div
             id={id}
-            className={cn("grid gap-1 rounded-sm border-l-4 px-4 py-3 text-ink", TONES[tone])}
+            className={[styles.callout, styles[tone], className].filter(Boolean).join(" ")}
             role={tone === "error" ? "alert" : undefined}
         >
-            <p className="font-semibold">{title}</p>
-            {children}
+            <span className={styles.icon}>
+                <Icon />
+            </span>
+            <div className={styles.body}>
+                {title && <p className={styles.title}>{title}</p>}
+                {children}
+            </div>
         </div>
     );
 }
