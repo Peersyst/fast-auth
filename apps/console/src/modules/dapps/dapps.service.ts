@@ -4,9 +4,9 @@ import { DataSource } from "typeorm";
 import type { ConsoleConfig } from "../../config/console-config";
 import { CONSOLE_CONFIG } from "../../config/console-config";
 import type { Auth0ClientId, Dapp, DappFields, DappId, DappStatus, SyncedFields } from "../../domain/dapp";
-import { AUTO_APPROVAL_DAILY_CAP, DAPP_FIELDS, directFieldsOf, SYNCED_FIELDS, syncedFieldsOf } from "../../domain/dapp";
+import { AUTO_APPROVAL_DAILY_CAP, DAPP_FIELDS, directFieldsOf, syncedFieldsOf } from "../../domain/dapp";
 import type { PendingChangeOutcome } from "../../domain/dapp-edits";
-import { classifyEdit, diffFields } from "../../domain/dapp-edits";
+import { classifyEdit, diffFields, diffSyncedFields } from "../../domain/dapp-edits";
 import type { Auth0Op, DappEventDetails } from "../../domain/dapp-event";
 import type { DappAction } from "../../domain/dapp-transitions";
 import { transition } from "../../domain/dapp-transitions";
@@ -267,7 +267,7 @@ export class DappsService {
                     ...sync.columns,
                 });
                 await this.appendEvents(manager, live.id, actor, [
-                    { type: "change_approved", details: { changes: diffFields(SYNCED_FIELDS, live, change) } },
+                    { type: "change_approved", details: { changes: diffSyncedFields(live, change) } },
                     ...sync.events,
                 ]);
                 return changed;
@@ -304,7 +304,7 @@ export class DappsService {
                 const changes = diffFields(DAPP_FIELDS, live, fields);
                 const events: DappEventDetails[] = changes.length > 0 ? [{ type: "edited", details: { changes } }] : [];
                 const sync: Effects =
-                    live.status === "approved" && (live.auth0Error !== null || diffFields(SYNCED_FIELDS, live, fields).length > 0)
+                    live.status === "approved" && (live.auth0Error !== null || diffSyncedFields(live, fields).length > 0)
                         ? await this.syncClient(live, syncedFieldsOf(fields))
                         : { columns: {}, events: [] };
                 const edited = await this.dapps.update(manager, live.id, { ...fields, status: next, ...sync.columns });

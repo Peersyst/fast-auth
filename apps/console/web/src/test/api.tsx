@@ -2,7 +2,7 @@ import { type Auth0ContextInterface, type IdToken } from "@auth0/auth0-react";
 import { focusManager } from "@tanstack/react-query";
 import { act } from "@testing-library/react";
 import { vi } from "vitest";
-import type { ErrorCode, ErrorDetail } from "../api/client";
+import type { ErrorCode, ErrorDetail, OwnerDapp } from "../api/client";
 import type { paths } from "../api/schema.gen";
 
 type MockAnswer = { status?: number; body?: unknown };
@@ -61,5 +61,31 @@ export function signedInAuth0(getAccessTokenSilently = vi.fn(async () => "access
         isAuthenticated: true,
         getIdTokenClaims: async () => ({ __raw: "id-token", exp: Math.floor(Date.now() / 1000) + 3600 }) as IdToken,
         getAccessTokenSilently: getAccessTokenSilently as unknown as Auth0ContextInterface["getAccessTokenSilently"],
+    };
+}
+
+const DAPP_FIELDS = {
+    name: "Acme Wallet",
+    description: "A wallet for NEAR.",
+    logoUrl: "https://cdn.acme.xyz/logo.png",
+    mauBracket: "1k_10k",
+    callbackUrls: ["https://app.acme.xyz/callback"],
+    logoutUrls: [],
+    webOrigins: ["https://app.acme.xyz"],
+    contactEmail: "dev@acme.xyz",
+} satisfies Partial<OwnerDapp>;
+
+export function ownerDapp(overrides: Partial<OwnerDapp> = {}): OwnerDapp {
+    return {
+        ...DAPP_FIELDS,
+        id: "0d9f3b8e-1c5e-4a40-9c0e-6a6f7f0b5a11",
+        status: "pending",
+        rejectionReason: null,
+        pendingChange: null,
+        pendingChangeAt: null,
+        auth0ClientId: null,
+        version: 3,
+        submittedAt: "2026-10-01T10:00:00.000Z",
+        ...overrides,
     };
 }

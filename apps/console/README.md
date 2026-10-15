@@ -4,6 +4,8 @@ Self-service dApp registration for NEAR Auth. A dApp team submits its app, an ad
 
 `apps/console` is a NestJS API that also serves its own React SPA from `web/`, configured only by environment variables.
 
+The SPA is built for ES2022, so it needs Safari 16.4, Chrome 94, Firefox 93 or Edge 94, or newer.
+
 ## Run it locally
 
 1. Start Postgres with `docker compose up -d`. The first start also creates `console_e2e` for the e2e tests.

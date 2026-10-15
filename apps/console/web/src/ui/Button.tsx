@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ForwardedRef } from "react";
 import styles from "./Button.module.css";
 import { Spinner } from "./Spinner";
 
@@ -12,19 +12,14 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
     loading?: boolean;
 };
 
-export function Button({
-    variant = "primary",
-    size = "medium",
-    loading = false,
-    type = "button",
-    className,
-    onClick,
-    children,
-    ...rest
-}: ButtonProps) {
+export const Button = forwardRef(function Button(
+    { variant = "primary", size = "medium", loading = false, type = "button", className, onClick, children, ...rest }: ButtonProps,
+    ref: ForwardedRef<HTMLButtonElement>,
+) {
     return (
         <button
             {...rest}
+            ref={ref}
             type={type}
             className={[styles.button, styles[variant], styles[size], className].filter(Boolean).join(" ")}
             aria-busy={loading || undefined}
@@ -35,4 +30,4 @@ export function Button({
             {children}
         </button>
     );
-}
+});

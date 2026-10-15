@@ -33,15 +33,31 @@
         "console-web#build": {
             "dependsOn": ["^build"],
             "outputs": ["dist/**"],
-            "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/console/openapi-spec.json"]
+            "inputs": [
+                "$TURBO_DEFAULT$",
+                "$TURBO_ROOT$/apps/console/openapi-spec.json",
+                "$TURBO_ROOT$/apps/console/src/domain/**"
+            ]
         },
         "console-web#check-types": {
             "dependsOn": ["transit"],
-            "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/console/openapi-spec.json"]
+            "inputs": [
+                "$TURBO_DEFAULT$",
+                "$TURBO_ROOT$/apps/console/openapi-spec.json",
+                "$TURBO_ROOT$/apps/console/src/domain/**"
+            ]
         },
         "console-web#lint": {
             "dependsOn": ["transit"],
-            "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/console/openapi-spec.json"]
+            "inputs": [
+                "$TURBO_DEFAULT$",
+                "$TURBO_ROOT$/apps/console/openapi-spec.json",
+                "$TURBO_ROOT$/apps/console/src/domain/**"
+            ]
+        },
+        "console-web#test": {
+            "dependsOn": ["transit"],
+            "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/console/src/domain/**"]
         }
     }
 }
