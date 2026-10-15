@@ -4,5 +4,6 @@
     "testRegex": "integration/.*\\.spec\\.ts$",
     "setupFiles": ["<rootDir>/env.cjs"],
     "globalSetup": "<rootDir>/integration/setup.ts",
-    "globalTeardown": "<rootDir>/integration/teardown.ts"
+    "globalTeardown": "<rootDir>/integration/teardown.ts",
+    "restoreMocks": true
 }

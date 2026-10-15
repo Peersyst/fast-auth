@@ -2,6 +2,7 @@ import type { ArgumentsHost, ExceptionFilter } from "@nestjs/common";
 import { Catch, HttpException, Logger } from "@nestjs/common";
 import type { Response } from "express";
 import { error as OpenApiError } from "express-openapi-validator";
+import { QueryFailedError } from "typeorm";
 import { AuthErrorCode } from "../../auth/error/auth-error-codes";
 import type { RequestLocals } from "../middleware/request-logger";
 import type { ErrorDetail } from "../responses/error.response";
@@ -18,6 +19,14 @@ const CODE_BY_STATUS: Partial<Record<number, ConsoleErrorCode>> = {
     413: CommonErrorCode.VALIDATION_FAILED,
     415: CommonErrorCode.VALIDATION_FAILED,
 };
+
+export function postgresErrorCode(exception: unknown): ConsoleErrorCode | undefined {
+    if (!(exception instanceof QueryFailedError)) return undefined;
+    const { code, constraint } = exception.driverError as { code?: string; constraint?: string };
+    if (code === "23505" && constraint === "dapps_owner_email_live") return "DAPP_ALREADY_EXISTS";
+    if (code === "55P03") return "DAPP_CHANGED";
+    return undefined;
+}
 
 /**
  * Reads the HTTP status of a Nest exception or of any error that carries a numeric status, such as body-parser's.
@@ -75,6 +84,9 @@ export class ConsoleExceptionFilter implements ExceptionFilter {
      */
     toErrorResponse(exception: unknown, requestId: string | undefined): ErrorResponse {
         if (exception instanceof ConsoleException) return exception.body;
+
+        const postgresCode = postgresErrorCode(exception);
+        if (postgresCode) return new ConsoleException(postgresCode).body;
 
         const status = statusOf(exception);
         const code = status === undefined ? undefined : CODE_BY_STATUS[status];

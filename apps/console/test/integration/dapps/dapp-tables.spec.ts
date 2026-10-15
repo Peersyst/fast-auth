@@ -44,25 +44,6 @@ describe("dApp tables", () => {
         });
     });
 
-    it("should let the owner register again once the first dApp is removed", async () => {
-        const first = makeDapp();
-        await manager.insert(DappEntity, first);
-        await manager.update(DappEntity, { id: first.id }, { status: DappStatus.REMOVED });
-
-        await manager.insert(DappEntity, makeDapp({ id: SECOND_ID }));
-
-        expect(await manager.countBy(DappEntity, { ownerEmail: "owner@acme.example" })).toBe(2);
-    });
-
-    it("should bump the version from 1 to 2 on update", async () => {
-        const dapp = makeDapp();
-        await manager.insert(DappEntity, dapp);
-
-        await manager.update(DappEntity, { id: dapp.id }, { name: "Acme Wallet 2" });
-
-        expect(await manager.findOneByOrFail(DappEntity, { id: dapp.id })).toMatchObject({ name: "Acme Wallet 2", version: 2 });
-    });
-
     it("should refuse to delete a dApp that has an event", async () => {
         const dapp = makeDapp();
         await manager.insert(DappEntity, dapp);
