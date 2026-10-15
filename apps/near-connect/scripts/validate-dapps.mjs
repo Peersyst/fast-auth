@@ -1,4 +1,3 @@
-// Refuses a dapps.json that would misroute users. Runs before every production build (the "prebuild" script).
 import { readFileSync } from "node:fs";
 
 const NETWORKS = ["mainnet", "testnet"];
@@ -11,14 +10,11 @@ const isHttpsUrl = (value) => typeof value === "string" && URL.canParse(value) &
 const checkNetworks = (where, networks) => {
     for (const [network, dapp] of Object.entries(networks)) {
         if (!NETWORKS.includes(network)) errors.push(`${where}: unknown network "${network}"`);
-        if (!isObject(dapp) || Object.keys(dapp).some((key) => key !== "auth0ClientId" && key !== "relayerBaseUrl")) {
-            errors.push(`${where}.${network}: must be { "auth0ClientId", "relayerBaseUrl" }`);
+        if (!isObject(dapp) || Object.keys(dapp).some((key) => key !== "auth0ClientId")) {
+            errors.push(`${where}.${network}: must be { "auth0ClientId" }`);
             continue;
         }
         if (typeof dapp.auth0ClientId !== "string" || !dapp.auth0ClientId) errors.push(`${where}.${network}: auth0ClientId is missing`);
-        if (!isHttpsUrl(dapp.relayerBaseUrl) || dapp.relayerBaseUrl.endsWith("/")) {
-            errors.push(`${where}.${network}: relayerBaseUrl must be an https URL without a trailing slash`);
-        }
     }
 };
 
@@ -36,7 +32,6 @@ if (!isObject(routing) || !isObject(routing.default) || !isObject(routing.dapps)
             continue;
         }
         checkNetworks(where, networks);
-        // A dapp's own application lets Auth0 cut off that dapp alone, without touching the others.
         for (const [network, dapp] of Object.entries(networks)) {
             if (NETWORKS.includes(network) && dapp?.auth0ClientId && dapp.auth0ClientId === routing.default[network]?.auth0ClientId) {
                 errors.push(`${where}.${network}: uses the default auth0ClientId; a listed dapp needs its own application`);

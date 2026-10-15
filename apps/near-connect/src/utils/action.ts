@@ -1,18 +1,16 @@
 // Adapted from HOT Labs' near-connect (https://github.com/hot-dao/near-selector), MIT License.
-// @ts-ignore - BN.js doesn't have proper ESM types
-import BN from "bn.js";
 import { transactions as nearApiTransactions, utils as nearApiUtils } from "near-api-js";
 
-export interface CreateAccountAction {
+interface CreateAccountAction {
     type: "CreateAccount";
 }
 
-export interface DeployContractAction {
+interface DeployContractAction {
     type: "DeployContract";
     params: { code: Uint8Array };
 }
 
-export interface FunctionCallAction {
+interface FunctionCallAction {
     type: "FunctionCall";
     params: {
         methodName: string;
@@ -22,12 +20,12 @@ export interface FunctionCallAction {
     };
 }
 
-export interface TransferAction {
+interface TransferAction {
     type: "Transfer";
     params: { deposit: string };
 }
 
-export interface StakeAction {
+interface StakeAction {
     type: "Stake";
     params: {
         stake: string;
@@ -35,7 +33,7 @@ export interface StakeAction {
     };
 }
 
-export type AddKeyPermission =
+type AddKeyPermission =
     | "FullAccess"
     | {
           receiverId: string;
@@ -43,10 +41,11 @@ export type AddKeyPermission =
           methodNames?: Array<string>;
       };
 
-export interface AddKeyAction {
+interface AddKeyAction {
     type: "AddKey";
     params: {
         publicKey: string;
+        gasKeyInfo?: unknown;
         accessKey: {
             nonce?: number;
             permission: AddKeyPermission;
@@ -54,26 +53,18 @@ export interface AddKeyAction {
     };
 }
 
-export interface DeleteKeyAction {
+interface DeleteKeyAction {
     type: "DeleteKey";
     params: { publicKey: string };
 }
-export interface DeleteAccountActionParams {
-    beneficiaryId: string;
-}
-export interface DeleteAccountAction {
+
+interface DeleteAccountAction {
     type: "DeleteAccount";
-    params: DeleteAccountActionParams;
+    params: { beneficiaryId: string };
 }
 
-export interface UseGlobalContractAction {
-    type: "UseGlobalContract";
-    params: { contractIdentifier: { accountId: string } | { codeHash: string } };
-}
-
-export interface DeployGlobalContractAction {
-    type: "DeployGlobalContract";
-    params: { code: Uint8Array; deployMode: "CodeHash" | "AccountId" };
+interface UnsupportedAction {
+    type: "UseGlobalContract" | "DeployGlobalContract" | "TransferToGasKey" | "WithdrawFromGasKey";
 }
 
 export type ConnectorAction =
@@ -85,10 +76,9 @@ export type ConnectorAction =
     | AddKeyAction
     | DeleteKeyAction
     | DeleteAccountAction
-    | UseGlobalContractAction
-    | DeployGlobalContractAction;
+    | UnsupportedAction;
 
-const createNearApiJsAction = (action: ConnectorAction): any => {
+export const toNearApiJsAction = (action: ConnectorAction): nearApiTransactions.Action => {
     switch (action.type) {
         case "CreateAccount":
             return nearApiTransactions.createAccount();
@@ -98,27 +88,29 @@ const createNearApiJsAction = (action: ConnectorAction): any => {
         }
         case "FunctionCall": {
             const { methodName, args, gas, deposit } = action.params;
-            return nearApiTransactions.functionCall(methodName, args, new BN(gas) as any, new BN(deposit) as any);
+            return nearApiTransactions.functionCall(methodName, args, BigInt(gas), BigInt(deposit));
         }
         case "Transfer": {
             const { deposit } = action.params;
-            return nearApiTransactions.transfer(new BN(deposit) as any);
+            return nearApiTransactions.transfer(BigInt(deposit));
         }
         case "Stake": {
             const { stake, publicKey } = action.params;
-            return nearApiTransactions.stake(new BN(stake) as any, nearApiUtils.PublicKey.from(publicKey));
+            return nearApiTransactions.stake(BigInt(stake), nearApiUtils.PublicKey.from(publicKey));
         }
         case "AddKey": {
-            const { publicKey, accessKey } = action.params;
-            const getAccessKey = (permission: AddKeyPermission) => {
-                if (permission === "FullAccess") {
-                    return nearApiTransactions.fullAccessKey();
-                }
-                const { receiverId, methodNames = [] } = permission;
-                const allowance = permission.allowance ? (new BN(permission.allowance) as any) : undefined;
-                return nearApiTransactions.functionCallAccessKey(receiverId, methodNames, allowance as any);
-            };
-            return nearApiTransactions.addKey(nearApiUtils.PublicKey.from(publicKey), getAccessKey(accessKey.permission));
+            const { publicKey, gasKeyInfo, accessKey } = action.params;
+            if (gasKeyInfo) throw new Error("NEAR Auth cannot add gas keys");
+            const { permission } = accessKey;
+            const key =
+                permission === "FullAccess"
+                    ? nearApiTransactions.fullAccessKey()
+                    : nearApiTransactions.functionCallAccessKey(
+                          permission.receiverId,
+                          permission.methodNames ?? [],
+                          permission.allowance ? BigInt(permission.allowance) : undefined,
+                      );
+            return nearApiTransactions.addKey(nearApiUtils.PublicKey.from(publicKey), key);
         }
         case "DeleteKey": {
             const { publicKey } = action.params;
@@ -131,8 +123,4 @@ const createNearApiJsAction = (action: ConnectorAction): any => {
         default:
             throw new Error(`NEAR Auth cannot sign ${action.type} actions`);
     }
-};
-
-export const connectorActionsToNearApiJsActions = (actions: ConnectorAction[]): any[] => {
-    return actions.map((action) => createNearApiJsAction(action));
 };

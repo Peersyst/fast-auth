@@ -1,6 +1,5 @@
 packages:
     - "apps/*"
-    # The NEAR Auth wallet keeps its own lockfile, so the script every dapp loads never changes with the workspace's dependencies
     - "!apps/near-connect"
     - "contracts/*"
     - "contracts/jwt-guards/*"

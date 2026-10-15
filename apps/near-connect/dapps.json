@@ -1,12 +1,10 @@
 {
     "default": {
         "mainnet": {
-            "auth0ClientId": "dsurLc47fOcWme5PkYeClBvuW0tYrmgW",
-            "relayerBaseUrl": "https://fast-auth-production.aws.peersyst.tech/api"
+            "auth0ClientId": "dsurLc47fOcWme5PkYeClBvuW0tYrmgW"
         },
         "testnet": {
-            "auth0ClientId": "np8paqIpMWmNbzT4xAvOOapZBjsOpptl",
-            "relayerBaseUrl": "https://fast-auth-staging.aws.peersyst.tech/api"
+            "auth0ClientId": "np8paqIpMWmNbzT4xAvOOapZBjsOpptl"
         }
     },
     "dapps": {}

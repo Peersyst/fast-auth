@@ -19,11 +19,10 @@
         "@near-js/types": "0.2.1",
         "@near-js/utils": "0.3.0",
         "@noble/hashes": "1.8.0",
-        "bn.js": "4.12.2",
         "near-api-js": "4.0.4"
     },
     "devDependencies": {
-        "@types/node": "^24.9.1",
+        "@types/node": "24.19.1",
         "typescript": "5.9.3",
         "vite": "5.4.21",
         "vite-plugin-node-polyfills": "0.24.0"

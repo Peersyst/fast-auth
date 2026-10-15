@@ -1,15 +1,16 @@
-import { getConfig, getGuardId } from "./config";
+import { sha256 } from "@noble/hashes/sha2";
+import { utils as nearApiUtils } from "near-api-js";
+
 import type { Network } from "../utils/types";
 
-export interface SignatureRequest {
-    /** The Auth0 access token, verified by the on-chain guard. */
-    verifyPayload: string;
-    /** Borsh bytes the user approved (a transaction or a NEP-413 message), from the token's `fatxn` claim. */
-    signPayload: number[];
-}
+import { getConfig, getGuardId } from "./config";
 
-/** Relays the approved payload to the fast-auth contract and returns the MPC signature. */
-export const relaySignature = async (network: Network, request: SignatureRequest): Promise<Uint8Array> => {
+export const relaySignature = async (
+    network: Network,
+    accessToken: string,
+    approvedPayload: number[],
+    publicKey: string,
+): Promise<Uint8Array> => {
     const { relayerBaseUrl, auth0Domain } = getConfig(network);
 
     const response = await fetch(`${relayerBaseUrl}/relayer/fast-auth/sign-tx`, {
@@ -17,8 +18,8 @@ export const relaySignature = async (network: Network, request: SignatureRequest
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             guard_id: getGuardId(auth0Domain),
-            verify_payload: request.verifyPayload,
-            sign_payload: request.signPayload,
+            verify_payload: accessToken,
+            sign_payload: approvedPayload,
             algorithm: "eddsa",
         }),
     }).catch(() => null);
@@ -28,10 +29,17 @@ export const relaySignature = async (network: Network, request: SignatureRequest
     const body = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(body?.message || `NEAR Auth relayer rejected the request (${response.status})`);
 
-    const successValue = body?.result?.status?.SuccessValue;
+    const status = body?.result?.status;
+    if (status?.Failure) throw new Error(`NEAR Auth signing failed on chain: ${JSON.stringify(status.Failure)}`);
+
+    const successValue = status?.SuccessValue;
     if (successValue === "") throw new Error("NEAR Auth could not verify the approval on chain");
 
     const signature = successValue && JSON.parse(Buffer.from(successValue, "base64").toString())?.signature;
     if (!Array.isArray(signature) || signature.length !== 64) throw new Error("NEAR Auth MPC did not return a signature");
-    return Uint8Array.from(signature);
+    const bytes = Uint8Array.from(signature);
+    if (!nearApiUtils.PublicKey.from(publicKey).verify(sha256(Uint8Array.from(approvedPayload)), bytes)) {
+        throw new Error("NEAR Auth relayer returned a signature that does not match your key");
+    }
+    return bytes;
 };

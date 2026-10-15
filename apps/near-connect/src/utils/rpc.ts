@@ -1,46 +1,39 @@
 // Adapted from HOT Labs' near-connect (https://github.com/hot-dao/near-selector), MIT License.
 import { JsonRpcProvider } from "@near-js/providers";
 import { getErrorTypeFromErrorMessage, parseRpcError } from "@near-js/utils";
-import { TypedError } from "@near-js/types";
+import { TypedError, type CodeResult } from "@near-js/types";
 
-let _nextId = 123;
+const TIMEOUT_MS = 30_000;
+const TRIES_PER_PROVIDER = 3;
+
+let nextId = 0;
 
 class NetworkError extends Error {
-    constructor(status: number, title: string, message: string) {
-        super(`${status} ${title}: ${message}`);
+    constructor(
+        readonly status: number,
+        message: string,
+    ) {
+        super(`${status} RPC Network Error: ${message}`);
     }
 }
 
-class TimeoutNetworkError extends NetworkError {
-    constructor(title: string) {
-        super(0, title, "Timeout error");
-    }
-}
+// These reject the request itself, so every provider would answer the same way.
+const isRequestError = (status: number) => status === 400 || status === 413;
 
 const wait = (timeout: number) => {
     return new Promise<void>((resolve) => setTimeout(resolve, timeout));
 };
 
 export class NearRpc extends JsonRpcProvider {
-    public providers: string[];
-    public currentProviderIndex = 0;
-    public startTimeout;
+    private currentProviderIndex = 0;
 
-    constructor(
-        providers: string[],
-        private timeout = 30_000,
-        private triesCountForEveryProvider = 3,
-        private incrementTimout = true,
-    ) {
+    constructor(private readonly providers: string[]) {
         super({ url: "" });
-        this.currentProviderIndex = 0;
-        this.providers = providers;
-        this.startTimeout = timeout;
     }
 
-    async viewMethod(args: { contractId: string; methodName: string; args: any }) {
+    async viewMethod<T>(args: { contractId: string; methodName: string; args: object }): Promise<T> {
         const payload = Buffer.from(JSON.stringify(args.args), "utf8").toString("base64");
-        const data: any = await this.query({
+        const data = await this.query<CodeResult>({
             args_base64: payload,
             finality: "optimistic",
             request_type: "call_function",
@@ -51,25 +44,16 @@ export class NearRpc extends JsonRpcProvider {
         return JSON.parse(Buffer.from(data.result).toString("utf8"));
     }
 
-    async sendJsonRpc<T>(method: string, params: any, attempts = 0): Promise<T> {
+    async sendJsonRpc<T>(method: string, params: object, attempts = 0): Promise<T> {
         const url = this.providers[this.currentProviderIndex];
         const requestStart = Date.now();
 
         try {
-            const result = await this.send<T>(method, params, url, this.timeout);
-            this.timeout = Math.max(this.startTimeout, this.timeout / 1.2);
-            return result;
-        } catch (error: any) {
-            if (error instanceof TimeoutNetworkError && this.incrementTimout) {
-                this.timeout = Math.min(60_000, this.timeout * 1.2);
-            }
-
-            if (error instanceof NetworkError) {
-                this.currentProviderIndex += 1;
-                if (this.providers[this.currentProviderIndex] == null) {
-                    this.currentProviderIndex = 0;
-                }
-                if (attempts + 1 > this.providers.length * this.triesCountForEveryProvider) {
+            return await this.send<T>(method, params, url);
+        } catch (error) {
+            if (error instanceof NetworkError && !isRequestError(error.status)) {
+                this.currentProviderIndex = (this.currentProviderIndex + 1) % this.providers.length;
+                if (attempts + 1 > this.providers.length * TRIES_PER_PROVIDER) {
                     throw error;
                 }
 
@@ -86,36 +70,37 @@ export class NearRpc extends JsonRpcProvider {
         }
     }
 
-    async send<T>(method: string, params: any, url: string, timeout: number): Promise<T> {
+    private async send<T>(method: string, params: object, url: string): Promise<T> {
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), timeout);
+        const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+        const failure = (message: string, status = 0) =>
+            controller.signal.aborted ? new NetworkError(0, "Timeout error") : new NetworkError(status, message);
 
-        const req = await fetch(url, {
-            body: JSON.stringify({ method, params, id: _nextId++, jsonrpc: "2.0" }),
-            headers: { "Content-Type": "application/json" },
-            signal: controller.signal,
-            method: "POST",
-        }).catch(() => {
-            clearInterval(timer);
-            if (controller.signal.aborted) {
-                throw new TimeoutNetworkError("RPC Network Error");
-            }
-            if (!window.navigator.onLine) {
-                throw new NetworkError(0, "RPC Network Error", "No internet connection");
-            }
-            throw new NetworkError(0, "RPC Network Error", "Unknown Near RPC Error, maybe connection unstable, try VPN");
-        });
+        let response;
+        try {
+            const req = await fetch(url, {
+                body: JSON.stringify({ method, params, id: nextId++, jsonrpc: "2.0" }),
+                headers: { "Content-Type": "application/json" },
+                signal: controller.signal,
+                method: "POST",
+            }).catch(() => {
+                throw failure(window.navigator.onLine ? "Could not reach the NEAR RPC" : "No internet connection");
+            });
 
-        clearInterval(timer);
-        if (!req.ok) {
-            const text = await req.text().catch(() => "Unknown error");
-            throw new NetworkError(req.status, "RPC Network Error", text);
+            if (!req.ok) {
+                const text = await req.text().catch(() => "Unknown error");
+                throw new NetworkError(req.status, text);
+            }
+
+            response = await req.json().catch(() => {
+                throw failure("The NEAR RPC sent a response that is not JSON", req.status);
+            });
+        } finally {
+            clearTimeout(timer);
         }
 
-        const response = await req.json();
-
         if (response.error) {
-            if (typeof response.error.data === "object") {
+            if (response.error.data && typeof response.error.data === "object") {
                 const isReadable =
                     typeof response.error.data.error_message === "string" && typeof response.error.data.error_type === "string";
                 if (isReadable) {
@@ -124,17 +109,8 @@ export class NearRpc extends JsonRpcProvider {
                 throw parseRpcError(response.error.data);
             }
 
-            // NOTE: All this hackery is happening because structured errors not implemented
-            // TODO: Fix when https://github.com/nearprotocol/nearcore/issues/1839 gets resolved
             const errorMessage = `[${response.error.code}] ${response.error.message}: ${response.error.data}`;
-            const isTimeout =
-                response.error.data === "Timeout" || errorMessage.includes("Timeout error") || errorMessage.includes("query has timed out");
-
-            if (isTimeout) {
-                throw new TypedError(errorMessage, "TimeoutError");
-            }
-            const type = getErrorTypeFromErrorMessage(response.error.data, response.error.name);
-            throw new TypedError(errorMessage, type);
+            throw new TypedError(errorMessage, getErrorTypeFromErrorMessage(response.error.data, response.error.name));
         }
 
         return response.result;

@@ -20,15 +20,12 @@ importers:
       '@noble/hashes':
         specifier: 1.8.0
         version: 1.8.0
-      bn.js:
-        specifier: 4.12.2
-        version: 4.12.2
       near-api-js:
         specifier: 4.0.4
         version: 4.0.4
     devDependencies:
       '@types/node':
-        specifier: ^24.9.1
+        specifier: 24.19.1
         version: 24.19.1
       typescript:
         specifier: 5.9.3

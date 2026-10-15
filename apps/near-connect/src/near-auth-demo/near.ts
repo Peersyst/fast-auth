@@ -1,15 +1,13 @@
-import type { FinalExecutionOutcome } from "@near-js/types";
-
 import type * as real from "../near-auth/near";
 
 export * from "../near-auth/near";
 
-/** Demo build: reports a successful outcome without broadcasting. */
 export const broadcast: typeof real.broadcast = async (_network, signedTransaction) => {
     await new Promise((resolve) => setTimeout(resolve, 400));
 
     const { signerId, receiverId } = signedTransaction.transaction;
     return {
+        final_execution_status: "EXECUTED_OPTIMISTIC",
         status: { SuccessValue: "" },
         transaction: { signer_id: signerId, receiver_id: receiverId, hash: "DEMO_BUILD_NOT_BROADCAST" },
         transaction_outcome: {
@@ -24,5 +22,5 @@ export const broadcast: typeof real.broadcast = async (_network, signedTransacti
             },
         },
         receipts_outcome: [],
-    } as unknown as FinalExecutionOutcome;
+    };
 };

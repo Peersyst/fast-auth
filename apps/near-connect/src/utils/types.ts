@@ -1,48 +1,21 @@
 // Adapted from HOT Labs' near-connect (https://github.com/hot-dao/near-selector), MIT License.
+import type { ConnectorAction } from "./action";
+
 export type Network = "mainnet" | "testnet";
-
-export interface AddFunctionCallKey_AllowMethods_AnyMethod {
-    anyMethod: true;
-}
-
-export interface AddFunctionCallKey_AllowMethods_SelectMethods {
-    anyMethod: false;
-    methodNames: string[];
-}
-
-export type AddFunctionCallKey_AllowMethods = AddFunctionCallKey_AllowMethods_AnyMethod | AddFunctionCallKey_AllowMethods_SelectMethods;
-
-export interface AddFunctionCallKey_GasAllowance_Unlimited {
-    kind: "unlimited";
-}
-
-export interface AddFunctionCallKey_GasAllowance_Limited {
-    kind: "limited";
-    amount: string;
-}
-
-export type AddFunctionCallKey_GasAllowance = AddFunctionCallKey_GasAllowance_Unlimited | AddFunctionCallKey_GasAllowance_Limited;
-
-export interface AddFunctionCallKeyParams {
-    contractId: string;
-    publicKey: string;
-    allowMethods: AddFunctionCallKey_AllowMethods;
-    gasAllowance?: AddFunctionCallKey_GasAllowance;
-}
 
 export interface SignInParams {
     network: Network;
-    addFunctionCallKey?: AddFunctionCallKeyParams;
+    addFunctionCallKey?: unknown;
 }
 
-export interface SignMessageDuringSignInParams {
+export interface SignMessagePayload {
     message: string;
     recipient: string;
     nonce: Uint8Array;
     callbackUrl?: string;
 }
 
-export interface SignMessageParams extends SignMessageDuringSignInParams {
+export interface SignMessageParams extends SignMessagePayload {
     network: Network;
     signerId?: string;
 }
@@ -54,5 +27,21 @@ export interface SignedMessage {
 }
 
 export interface SignInAndSignMessageParams extends SignInParams {
-    messageParams: SignMessageDuringSignInParams;
+    messageParams: SignMessagePayload;
+}
+
+export interface TransactionRequest {
+    receiverId: string;
+    actions: ConnectorAction[];
+}
+
+export interface SignAndSendTransactionParams extends TransactionRequest {
+    network: Network;
+    signerId?: string;
+}
+
+export interface SignAndSendTransactionsParams {
+    network: Network;
+    signerId?: string;
+    transactions: TransactionRequest[];
 }

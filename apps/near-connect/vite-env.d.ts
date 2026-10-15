@@ -1,8 +1,6 @@
-/// <reference types="vite/client" />
-
 interface Window {
     selector: {
-        providers: { mainnet: string[]; testnet: string[] };
+        providers: { mainnet?: string[]; testnet?: string[] };
         location: string;
 
         outerWidth: number;
@@ -10,7 +8,7 @@ interface Window {
         screenX: number;
         screenY: number;
 
-        ready: (wallet: any) => void;
+        ready: (wallet: unknown) => void;
 
         ui: {
             whenApprove: (options: { title: string; button: string }) => Promise<void>;
@@ -30,7 +28,7 @@ interface Window {
 
         storage: {
             set: (key: string, value: string) => Promise<void>;
-            get: (key: string) => Promise<string>;
+            get: (key: string) => Promise<string | null>;
             remove: (key: string) => Promise<void>;
         };
     };
