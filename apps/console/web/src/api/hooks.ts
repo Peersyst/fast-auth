@@ -1,14 +1,25 @@
 import { useAuth0 } from "@auth0/auth0-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { createAuthFetch } from "./auth-fetch";
-import { createApiClient, unwrap, type DappFormFields, type NearNetwork, type OwnerDapp, type UpdateDappRequest } from "./client";
+import {
+    createApiClient,
+    unwrap,
+    type AdminDappsQuery,
+    type DappFormFields,
+    type NearNetwork,
+    type OwnerDapp,
+    type UpdateDappRequest,
+    type UpdateSettingsRequest,
+} from "./client";
 
 const publicApi = createApiClient();
 
 export const ME_QUERY_KEY = ["me"];
 export const CONFIG_QUERY_KEY = ["config"];
 const DAPP_QUERY_KEY = ["dapp"];
+const ADMIN_DAPPS_QUERY_KEY = ["admin", "dapps"] as const;
+const SETTINGS_QUERY_KEY = ["admin", "settings"];
 
 export function useConfig() {
     return useQuery({ queryKey: CONFIG_QUERY_KEY, queryFn: () => unwrap(publicApi.GET("/api/console/config")), staleTime: Infinity });
@@ -62,5 +73,28 @@ export function useRemoveDapp(id: string) {
     return useOwnerDappMutation(async (expectedVersion: number) => {
         await unwrap(api.DELETE("/api/console/dapp/{id}", { params: { path: { id }, query: { expectedVersion } } }));
         return null;
+    });
+}
+
+export function useAdminDapps(query: AdminDappsQuery) {
+    const api = useApi();
+    return useQuery({
+        queryKey: [...ADMIN_DAPPS_QUERY_KEY, "list", query],
+        queryFn: () => unwrap(api.GET("/api/console/admin/dapps", { params: { query } })),
+        placeholderData: keepPreviousData,
+    });
+}
+
+export function useSettings() {
+    const api = useApi();
+    return useQuery({ queryKey: SETTINGS_QUERY_KEY, queryFn: () => unwrap(api.GET("/api/console/admin/settings")) });
+}
+
+export function useUpdateSettings() {
+    const api = useApi();
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (body: UpdateSettingsRequest) => unwrap(api.PUT("/api/console/admin/settings", { body })),
+        onSuccess: (settings) => queryClient.setQueryData(SETTINGS_QUERY_KEY, settings),
     });
 }

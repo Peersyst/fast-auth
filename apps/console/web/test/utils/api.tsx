@@ -2,7 +2,7 @@ import { Auth0Context, initialContext, type Auth0ContextInterface, type IdToken 
 import { focusManager, QueryClientProvider } from "@tanstack/react-query";
 import { act, render } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider, type RouteObject } from "react-router-dom";
-import type { ClientConfig, ErrorCode, ErrorDetail, Me, OwnerDapp } from "../../src/api/client";
+import type { AdminDapp, ClientConfig, ErrorCode, ErrorDetail, Me, OwnerDapp } from "../../src/api/client";
 import { CONFIG_QUERY_KEY } from "../../src/api/hooks";
 import { createQueryClient } from "../../src/app/query-client";
 import { SessionContext } from "../../src/features/auth/session";
@@ -88,6 +88,7 @@ export function renderApp(routes: RouteObject[], path: string, session: Me = OWN
             </QueryClientProvider>
         </Auth0Context.Provider>,
     );
+    return router;
 }
 
 export const DAPP_ID = "0d9f3b8e-1c5e-4a40-9c0e-6a6f7f0b5a11";
@@ -114,6 +115,23 @@ export function ownerDapp(overrides: Partial<OwnerDapp> = {}): OwnerDapp {
         auth0ClientId: null,
         version: 3,
         submittedAt: "2026-10-01T10:00:00.000Z",
+        ...overrides,
+    };
+}
+
+export function adminDapp(overrides: Partial<AdminDapp> = {}): AdminDapp {
+    return {
+        ...ownerDapp(),
+        ownerEmail: OWNER.email,
+        reviewedAt: null,
+        reviewedBy: null,
+        auth0Error: null,
+        auth0SyncedAt: null,
+        removedAt: null,
+        removedBy: null,
+        removalReason: null,
+        createdAt: "2026-10-01T10:00:00.000Z",
+        updatedAt: "2026-10-02T10:00:00.000Z",
         ...overrides,
     };
 }
