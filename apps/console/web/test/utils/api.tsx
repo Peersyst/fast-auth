@@ -1,7 +1,11 @@
-import { type Auth0ContextInterface, type IdToken } from "@auth0/auth0-react";
-import { focusManager } from "@tanstack/react-query";
-import { act } from "@testing-library/react";
-import type { ErrorCode, ErrorDetail, OwnerDapp } from "../../src/api/client";
+import { Auth0Context, initialContext, type Auth0ContextInterface, type IdToken } from "@auth0/auth0-react";
+import { focusManager, QueryClientProvider } from "@tanstack/react-query";
+import { act, render } from "@testing-library/react";
+import { createMemoryRouter, RouterProvider, type RouteObject } from "react-router-dom";
+import type { ClientConfig, ErrorCode, ErrorDetail, Me, OwnerDapp } from "../../src/api/client";
+import { CONFIG_QUERY_KEY } from "../../src/api/hooks";
+import { createQueryClient } from "../../src/app/query-client";
+import { SessionContext } from "../../src/features/auth/session";
 import type { paths } from "../../src/api/schema.gen";
 
 type MockAnswer = { status?: number; body?: unknown };
@@ -53,6 +57,10 @@ export function refocus() {
     });
 }
 
+const OWNER: Me = { email: "owner@acme.xyz", role: "user", emailVerified: true };
+
+export const CLIENT_CONFIG: ClientConfig = { auth0Domain: "login.example", auth0ClientId: "console-spa", nearNetwork: "mainnet" };
+
 export function signedInAuth0(getAccessTokenSilently = jest.fn(async () => "access-token")): Partial<Auth0ContextInterface> {
     return {
         isAuthenticated: true,
@@ -60,6 +68,29 @@ export function signedInAuth0(getAccessTokenSilently = jest.fn(async () => "acce
         getAccessTokenSilently: getAccessTokenSilently as unknown as Auth0ContextInterface["getAccessTokenSilently"],
     };
 }
+
+export function renderApp(routes: RouteObject[], path: string, session: Me = OWNER, config: ClientConfig = CLIENT_CONFIG) {
+    const value: Auth0ContextInterface = {
+        ...initialContext,
+        isLoading: false,
+        user: { email: OWNER.email },
+        ...signedInAuth0(),
+    };
+    const router = createMemoryRouter(routes, { initialEntries: [path] });
+    const queryClient = createQueryClient();
+    queryClient.setQueryData(CONFIG_QUERY_KEY, config);
+    render(
+        <Auth0Context.Provider value={value}>
+            <QueryClientProvider client={queryClient}>
+                <SessionContext.Provider value={session}>
+                    <RouterProvider router={router} />
+                </SessionContext.Provider>
+            </QueryClientProvider>
+        </Auth0Context.Provider>,
+    );
+}
+
+export const DAPP_ID = "0d9f3b8e-1c5e-4a40-9c0e-6a6f7f0b5a11";
 
 const DAPP_FIELDS = {
     name: "Acme Wallet",
@@ -75,7 +106,7 @@ const DAPP_FIELDS = {
 export function ownerDapp(overrides: Partial<OwnerDapp> = {}): OwnerDapp {
     return {
         ...DAPP_FIELDS,
-        id: "0d9f3b8e-1c5e-4a40-9c0e-6a6f7f0b5a11",
+        id: DAPP_ID,
         status: "pending",
         rejectionReason: null,
         pendingChange: null,

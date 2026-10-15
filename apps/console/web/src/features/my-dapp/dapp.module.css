@@ -1,0 +1,597 @@
+.page {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    min-height: 100%;
+    padding-bottom: 80px;
+    color: var(--color-ink);
+    font-size: var(--font-size-md);
+    line-height: 1.5;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    max-width: 848px;
+    margin: 0 auto;
+}
+
+.kicker,
+.quietLink,
+.back {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--letter-spacing-kicker);
+    text-transform: uppercase;
+    color: var(--color-ink-subtle);
+}
+
+.heading {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.title {
+    font-size: 40px;
+    font-weight: var(--font-weight-bold);
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+}
+
+.title:focus {
+    outline: none;
+}
+
+.titleRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.lede {
+    color: var(--color-ink-subtle);
+    font-size: 16px;
+}
+
+.inlineCode {
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--color-surface-muted);
+    font-family: var(--font-mono);
+    font-size: 14px;
+}
+
+.empty {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.legacyNote {
+    max-width: 520px;
+    margin: 0;
+    color: var(--color-ink-subtle);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    text-align: center;
+}
+
+.legacyNote a {
+    color: var(--color-link);
+}
+
+.emptyCard {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    width: 100%;
+    max-width: 520px;
+    padding: 48px 40px;
+    text-align: center;
+}
+
+.emptyIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    border: 1px dashed var(--color-border-strong);
+    border-radius: var(--radius-lg);
+    background: var(--color-canvas);
+    color: var(--color-ink-subtle);
+}
+
+.emptyText {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.emptyText h1 {
+    font-size: 30px;
+    font-weight: var(--font-weight-bold);
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+}
+
+.emptyText h1:focus {
+    outline: none;
+}
+
+.emptyLede {
+    max-width: 42ch;
+    color: var(--color-ink-subtle);
+    overflow-wrap: anywhere;
+}
+
+.register {
+    height: 52px;
+    padding: 0 24px;
+}
+
+.quietLink,
+.back {
+    text-decoration: none;
+}
+
+.back {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+}
+
+div.surfaceNotice {
+    background: var(--color-surface);
+}
+
+.status {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+}
+
+.steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.step {
+    display: flex;
+    flex: 1 1 200px;
+    gap: 12px;
+}
+
+.stepMark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-pill);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-bold);
+}
+
+.stepDone {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+}
+
+.stepCurrent {
+    border: 2px solid var(--color-link);
+    color: var(--color-link);
+}
+
+.stepNext {
+    border: 2px solid var(--color-border);
+    color: var(--color-faint);
+}
+
+.stepText {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.stepTitle {
+    font-size: 14px;
+    font-weight: var(--font-weight-semibold);
+}
+
+.stepNote {
+    color: var(--color-ink-subtle);
+    font-size: var(--font-size-sm);
+}
+
+.stepLater .stepTitle {
+    color: var(--color-ink-subtle);
+}
+
+.stepLater .stepNote {
+    color: var(--color-faint);
+}
+
+.stepCode {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+}
+
+.statusFoot {
+    padding-top: 16px;
+    border-top: 1px solid var(--color-border);
+    color: var(--color-ink-subtle);
+    font-size: 14px;
+    overflow-wrap: anywhere;
+}
+
+.statusFoot strong {
+    color: var(--color-ink);
+    font-weight: var(--font-weight-semibold);
+}
+
+.rejected {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px 24px;
+    border: 1px solid var(--color-danger-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-danger-bg);
+    color: var(--color-danger-ink-strong);
+    font-size: 14px;
+}
+
+.rejectedHeader {
+    display: flex;
+    gap: 12px;
+}
+
+.rejectedIcon {
+    display: flex;
+    flex: none;
+    margin-top: 2px;
+    color: var(--color-danger-ink);
+}
+
+.rejectedTitle {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    color: var(--color-danger-ink);
+    overflow-wrap: anywhere;
+}
+
+.rejectedHeading {
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+}
+
+.rejectedNote {
+    font-size: var(--font-size-sm);
+}
+
+.reason {
+    margin: 0;
+    padding: 14px 16px;
+    border-left: 3px solid var(--color-danger-border);
+    border-radius: 0 10px 10px 0;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.emptyCard,
+.status,
+.card,
+.summary {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+}
+
+.card,
+.summary {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.cardHeader {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-canvas);
+}
+
+.cardHeader h2 {
+    font-size: 16px;
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: normal;
+}
+
+.cardIcon {
+    display: flex;
+    color: var(--color-link);
+}
+
+.cardNote,
+.aside {
+    color: var(--color-ink-subtle);
+    font-size: var(--font-size-sm);
+}
+
+.cardBody {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px 24px;
+    font-size: 14px;
+}
+
+.clientId {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    margin: -4px 0;
+}
+
+.clientId .code {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.copy {
+    flex: none;
+}
+
+.group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.group h2,
+.settingsHeading h2,
+.summaryTitle h2 {
+    font-size: 20px;
+    font-weight: var(--font-weight-bold);
+    letter-spacing: -0.015em;
+}
+
+.groupNote,
+.settingsHeading p,
+.summaryTitle p {
+    color: var(--color-ink-subtle);
+    font-size: 14px;
+}
+
+.settingsHeading {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-top: 16px;
+}
+
+.snippet {
+    margin: 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-lg);
+    background: var(--color-code-bg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+}
+
+.snippet figcaption {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-code-bar);
+    color: var(--color-code-muted);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+}
+
+.dots {
+    display: flex;
+    gap: 6px;
+}
+
+.dots > span {
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.snippet pre {
+    margin: 0;
+    padding: 24px;
+    overflow-x: auto;
+    color: var(--color-code-ink);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+}
+
+.kw {
+    color: var(--color-code-kw);
+}
+
+.str {
+    color: var(--color-code-str);
+}
+
+.fn {
+    color: var(--color-code-fn);
+}
+
+.summaryHeader {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+}
+
+.avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--color-surface-muted);
+    color: var(--color-ink-2);
+    font-size: 16px;
+    font-weight: var(--font-weight-bold);
+}
+
+.summaryTitle {
+    display: flex;
+    flex: 1 1 280px;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.fields {
+    display: grid;
+    margin: 0;
+    background: var(--color-surface);
+    font-size: 14px;
+    overflow: hidden;
+}
+
+.summary > .fields {
+    border-top: 1px solid var(--color-border);
+}
+
+.fieldRow {
+    display: grid;
+    grid-template-columns: minmax(120px, 200px) minmax(0, 1fr);
+}
+
+.fieldRow + .fieldRow {
+    border-top: 1px solid var(--color-border);
+}
+
+.fieldRow dt,
+.diff thead th,
+.diff tbody th {
+    color: var(--color-ink-subtle);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--letter-spacing-kicker);
+    text-transform: uppercase;
+}
+
+.fieldRow dt {
+    padding: 14px 24px;
+}
+
+.fieldRow dd {
+    min-width: 0;
+    margin: 0;
+    padding: 14px 24px;
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 560px) {
+    .fieldRow {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .fieldRow dt {
+        padding-bottom: 0;
+    }
+
+    .fieldRow dd {
+        padding-top: 4px;
+    }
+}
+
+.none {
+    color: var(--color-ink-subtle);
+}
+
+.values {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.code {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+    overflow-wrap: anywhere;
+}
+
+.diff {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 14px;
+}
+
+.diff thead th:first-child {
+    width: 25%;
+}
+
+.diff th,
+.diff td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--color-border);
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+}
+
+.diff del {
+    background: var(--color-danger-bg);
+    color: var(--color-danger-ink);
+}
+
+.diff ins {
+    background: var(--color-ok-bg);
+    color: var(--color-ok-ink);
+    text-decoration: none;
+}
