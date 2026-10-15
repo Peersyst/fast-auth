@@ -1,0 +1,10 @@
+{
+    "extends": "@shared/tsconfig/package",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "noUncheckedIndexedAccess": true,
+        "exactOptionalPropertyTypes": true
+    },
+    "include": ["*/**/*.ts"],
+    "exclude": ["dist"]
+}

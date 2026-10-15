@@ -7,6 +7,7 @@ Self-service dApp registration for NEAR Auth. A dApp team submits its app, an ad
 ## Run it locally
 
 1. Start Postgres with `pnpm docker:start:dev` from the repository root. The first start also creates `console_e2e` for the integration tests.
+   Then run `pnpm --filter @shared/console-domain bundle`, also from the root. The API runs that package's compiled output, so `pnpm start`, `pnpm spec`, `pnpm seed` and the migration scripts need it. The bundle rewrites `packages/shared/console-domain/package.json`, so restore that file with `git checkout` before you commit.
 2. Copy `.env.example` to `.env`, fill in `AUTH0_CONSOLE_CLIENT_ID` and your email in `ADMIN_EMAILS`, and export it with `set -a; . ./.env; set +a`.
 3. Run `pnpm start`. The API migrates the database, then listens on `APP_PORT` under `/api/console`, with Swagger UI at `/api/console/docs`.
 
