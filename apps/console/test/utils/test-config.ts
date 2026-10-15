@@ -3,7 +3,7 @@ import type { Type } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Test } from "@nestjs/testing";
 import type { TestingModuleBuilder } from "@nestjs/testing";
-import type { ConsoleConfig, ManagementAuth0Config } from "../../src/config/console-config";
+import type { ConsoleConfig, ManagementAuth0Config, SesEmailConfig } from "../../src/config/console-config";
 import { Auth0ProvisionerName, ConfigEnv, EmailProviderName, LogLevel, NearNetwork } from "../../src/config/console-config";
 
 export const TEST_CONFIG: ConsoleConfig = {
@@ -53,6 +53,8 @@ export const MANAGEMENT_AUTH0: ManagementAuth0Config = {
     mgmtMaxRetryAfterMs: 10000,
     mgmtTimeoutMs: 10000,
 };
+
+export const SES_EMAIL: SesEmailConfig = { provider: "ses", from: "no-reply@auth.example.test", region: "eu-west-1" };
 
 /**
  * Starts a testing module that imports these modules next to a global ConfigService serving this config.
