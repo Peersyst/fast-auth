@@ -1,0 +1,127 @@
+.header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-4) 28px;
+    min-height: 64px;
+    padding: 0 var(--space-8);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-canvas);
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-ink);
+    text-decoration: none;
+}
+
+.product {
+    margin-left: var(--space-1);
+    padding-left: 10px;
+    border-left: 1px solid var(--color-border-strong);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--letter-spacing-kicker);
+    text-transform: uppercase;
+    color: var(--color-ink-subtle);
+}
+
+.adminChip {
+    margin-left: 6px;
+    padding: 3px 7px;
+    border-radius: 4px;
+    background: var(--color-chip-strong-bg);
+    color: var(--color-chip-strong-ink);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--letter-spacing-kicker);
+    text-transform: uppercase;
+}
+
+.nav {
+    display: flex;
+    align-items: stretch;
+    gap: var(--space-6);
+    height: 64px;
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--letter-spacing-kicker);
+    text-transform: uppercase;
+}
+
+.navLink {
+    display: flex;
+    align-items: center;
+    border-bottom: 2px solid transparent;
+    color: var(--color-ink-subtle);
+    text-decoration: none;
+}
+
+.navLink:hover {
+    color: var(--color-ink);
+}
+
+.active {
+    border-bottom-color: var(--color-accent);
+    color: var(--color-ink);
+}
+
+.spacer {
+    flex: 1 1 auto;
+}
+
+.account {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.theme {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-ink-subtle);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--letter-spacing-kicker);
+    text-transform: uppercase;
+}
+
+.theme select {
+    min-height: 32px;
+    padding: 0 var(--space-2);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 4px;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+}
+
+.email {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: 6px var(--space-3);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-ink-3);
+    font-family: var(--font-mono);
+    font-size: var(--font-size-xs);
+    overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+    .header {
+        padding: var(--space-3) var(--space-4);
+    }
+}

@@ -1,0 +1,32 @@
+.main {
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: var(--space-10) var(--space-4);
+}
+
+.page {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.page h1 {
+    font-size: var(--font-size-2xl);
+}
+
+.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: var(--space-16) var(--space-4);
+    color: var(--color-ink-subtle);
+}
+
+.boot {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-4);
+    max-width: 480px;
+    margin: var(--space-16) auto;
+    padding: 0 var(--space-4);
+}

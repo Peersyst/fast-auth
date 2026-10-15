@@ -9,7 +9,7 @@ import { EMAILER } from "../../src/modules/notifications/emailer";
 import { SLACK_NOTIFIER } from "../../src/modules/notifications/slack-notifier";
 import { testKeySet } from "./tokens";
 
-export async function createTestApp(): Promise<NestExpressApplication> {
+export async function createTestApp(publicDir?: string): Promise<NestExpressApplication> {
     const config = loadConfig();
     const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(config)] })
         .overrideProvider(JWT_KEY_SET)
@@ -20,7 +20,7 @@ export async function createTestApp(): Promise<NestExpressApplication> {
         .useValue({ notify: jest.fn() })
         .compile();
     const app = moduleRef.createNestApplication<NestExpressApplication>({ bufferLogs: true });
-    configureApp(app, config);
+    configureApp(app, config, publicDir);
     return app.init();
 }
 

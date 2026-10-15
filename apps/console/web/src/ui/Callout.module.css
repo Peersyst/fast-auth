@@ -1,0 +1,22 @@
+.callout {
+    display: grid;
+    gap: var(--space-1);
+    padding: var(--space-3) var(--space-4);
+    border-left: 4px solid;
+    border-radius: var(--radius-sm);
+    color: var(--color-ink);
+}
+
+.title {
+    font-weight: var(--font-weight-semibold);
+}
+
+.warning {
+    background: var(--color-warning-bg);
+    border-color: var(--color-warning-border);
+}
+
+.error {
+    background: var(--color-danger-bg);
+    border-color: var(--color-danger-border);
+}

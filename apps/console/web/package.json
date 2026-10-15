@@ -5,14 +5,23 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "gen:api": "openapi-typescript ../openapi-spec.json -o src/api/schema.gen.ts",
+        "dev": "vite",
+        "build": "pnpm gen:api && tsc --noEmit && vite build",
         "clean": "rimraf .turbo dist node_modules",
         "test": "vitest run",
-        "lint": "eslint .",
-        "check-types": "tsc --noEmit"
+        "lint": "pnpm gen:api && eslint .",
+        "check-types": "pnpm gen:api && tsc --noEmit"
     },
     "dependencies": {
+        "@auth0/auth0-react": "^2.28.2",
+        "@shared/core": "workspace:*",
+        "@tanstack/react-query": "^5.90.0",
+        "openapi-fetch": "^0.17.0",
         "react": "18.3.1",
-        "react-dom": "18.3.1"
+        "react-dom": "18.3.1",
+        "react-router-dom": "^7.5.0",
+        "zod": "^4.1.0"
     },
     "devDependencies": {
         "@shared/eslint": "workspace:*",
@@ -25,6 +34,7 @@
         "@types/react-dom": "18.3.1",
         "@vitejs/plugin-react": "^4.3.4",
         "jsdom": "^26.1.0",
+        "openapi-typescript": "^7.13.0",
         "rimraf": "^6.0.1",
         "typescript": "^5.7.3",
         "vite": "^6.3.0",

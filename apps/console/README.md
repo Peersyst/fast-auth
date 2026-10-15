@@ -2,7 +2,7 @@
 
 Self-service dApp registration for NEAR Auth. A dApp team submits its app, an admin reviews it unless auto-approval approves it, and the console creates the team's Auth0 client and emails them the result.
 
-`apps/console` is a NestJS API, configured only by environment variables.
+`apps/console` is a NestJS API that also serves its own React SPA from `web/`, configured only by environment variables.
 
 ## Run it locally
 
@@ -10,16 +10,18 @@ Self-service dApp registration for NEAR Auth. A dApp team submits its app, an ad
 2. Copy `.env.example` to `.env`, fill in `AUTH0_CONSOLE_CLIENT_ID` and your email in `ADMIN_EMAILS`, and export it with `set -a; . ./.env; set +a`.
 3. Run `pnpm start`. The API migrates the database, then listens on `APP_PORT` under `/api/console`, with Swagger UI at `/api/console/docs`.
 4. To add one dApp in each status, run `pnpm seed` once the API has migrated the database. The seed refuses to run unless `CONFIG_ENV` is `development` or `test`, both adapters are `fake`, `SLACK_WEBHOOK_URL` is empty and auto-approval is off. A rerun skips the owners that already have a dApp.
+5. Run `pnpm --filter console-web dev` for the SPA with hot reload. It proxies `/api/console` to port 3000.
 
 ## Checks
 
-| Command                         | What it checks                                                                                                             |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm lint`, `pnpm check-types` | ESLint and TypeScript                                                                                                      |
-| `pnpm test`                     | Unit tests. CI runs `pnpm test -- --coverage`, which needs 100% coverage in `src/domain`.                                  |
-| `pnpm test:e2e`                 | The API against `console_e2e`, with the fake Auth0 and email adapters. Needs Postgres. The suite loads `.env.test` itself. |
-| `pnpm spec`                     | Rewrites `openapi-spec.json`. Needs Postgres. CI fails if the committed file differs.                                      |
-| `pnpm migration:check`          | Fails if the entities differ from the migrations. Rebuilds `console_e2e`. Needs Postgres.                                  |
+| Command                                                          | What it checks                                                                                                             |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm lint`, `pnpm check-types`                                  | ESLint and TypeScript                                                                                                      |
+| `pnpm test`                                                      | Unit tests. CI runs `pnpm test -- --coverage`, which needs 100% coverage in `src/domain`.                                  |
+| `pnpm test:e2e`                                                  | The API against `console_e2e`, with the fake Auth0 and email adapters. Needs Postgres. The suite loads `.env.test` itself. |
+| `pnpm spec`                                                      | Rewrites `openapi-spec.json`. Needs Postgres. CI fails if the committed file differs.                                      |
+| `pnpm migration:check`                                           | Fails if the entities differ from the migrations. Rebuilds `console_e2e`. Needs Postgres.                                  |
+| `pnpm --filter console-web lint`, `check-types`, `test`, `build` | The SPA in `web/`: ESLint, TypeScript, Vitest and the Vite build.                                                          |
 
 `pnpm test:e2e` and `pnpm migration:check` both drop and rebuild `console_e2e`, so run only one of them at a time against the same Postgres.
 
@@ -46,7 +48,7 @@ Turning it on does not approve dApps that are already pending. Edits, resubmissi
 
 ## Operations
 
-Run the scripts from a build. In `apps/console`, run `pnpm build`, export the environment of the deployment you target, then start the script with `node`.
+Run the scripts from a build. In `apps/console`, run `pnpm --filter console-web build` and then `pnpm build`, since the API build copies the SPA from `web/dist`. Export the environment of the deployment you target, then start the script with `node`.
 
 ### Find orphan and missing Auth0 clients
 

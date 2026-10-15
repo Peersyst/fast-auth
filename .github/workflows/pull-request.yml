@@ -102,6 +102,8 @@ jobs:
               run: pnpm --filter console-web check-types
             - name: Web unit tests
               run: pnpm --filter console-web test
+            - name: Web build
+              run: pnpm --filter console-web build
             - name: E2E tests
               run: pnpm --filter console test:e2e
             - name: Check schema drift

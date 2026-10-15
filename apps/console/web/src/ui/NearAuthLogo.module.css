@@ -1,0 +1,27 @@
+.lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    line-height: 1;
+    color: var(--color-brand-auth);
+}
+
+.mark {
+    width: 24px;
+    height: 24px;
+    flex: none;
+}
+
+.word {
+    font-size: var(--font-size-xl);
+    font-weight: 800;
+    letter-spacing: var(--letter-spacing-tight);
+}
+
+.near {
+    color: var(--color-ink);
+}
+
+.auth {
+    color: var(--color-brand-auth);
+}
