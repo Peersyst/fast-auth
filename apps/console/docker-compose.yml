@@ -1,0 +1,16 @@
+services:
+    postgres:
+        image: postgres:16
+        environment:
+            POSTGRES_USER: console
+            POSTGRES_PASSWORD: console
+            POSTGRES_DB: console
+        ports:
+            - "127.0.0.1:5432:5432"
+        volumes:
+            - console-postgres:/var/lib/postgresql/data
+            # Runs only on an empty volume and creates `console_e2e` for the e2e suites.
+            - ./postgres-init.sql:/docker-entrypoint-initdb.d/postgres-init.sql:ro
+
+volumes:
+    console-postgres:
