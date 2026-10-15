@@ -1,0 +1,33 @@
+{
+    "name": "console-web",
+    "version": "0.0.0",
+    "description": "NEAR Auth Console SPA",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "clean": "rimraf .turbo dist node_modules",
+        "test": "vitest run",
+        "lint": "eslint .",
+        "check-types": "tsc --noEmit"
+    },
+    "dependencies": {
+        "react": "18.3.1",
+        "react-dom": "18.3.1"
+    },
+    "devDependencies": {
+        "@shared/eslint": "workspace:*",
+        "@shared/tsconfig": "workspace:*",
+        "@testing-library/dom": "^10.4.0",
+        "@testing-library/jest-dom": "6.9.1",
+        "@testing-library/react": "^16.3.0",
+        "@testing-library/user-event": "^14.6.1",
+        "@types/react": "18.3.12",
+        "@types/react-dom": "18.3.1",
+        "@vitejs/plugin-react": "^4.3.4",
+        "jsdom": "^26.1.0",
+        "rimraf": "^6.0.1",
+        "typescript": "^5.7.3",
+        "vite": "^6.3.0",
+        "vitest": "^3.2.4"
+    }
+}
