@@ -31,3 +31,6 @@ docker-data
 .turbo
 .expo
 .cache
+# Generated files (apps/console) are never hand-formatted
+apps/console/openapi-spec.json
+apps/console/src/database/migrations

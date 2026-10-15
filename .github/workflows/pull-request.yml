@@ -61,3 +61,46 @@ jobs:
             target: integration
             push: false
             base_image: ${{ github.sha }}
+
+    console-checks:
+        name: Console checks
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        services:
+            postgres:
+                image: postgres:16
+                env:
+                    POSTGRES_USER: console
+                    POSTGRES_PASSWORD: console
+                    POSTGRES_DB: console_e2e
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd "pg_isready -U console -d console_e2e"
+                    --health-interval 5s
+                    --health-timeout 5s
+                    --health-retries 10
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 20
+            - uses: pnpm/action-setup@v4
+              with:
+                  version: 9.14.2
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+            - name: Lint
+              run: pnpm --filter console lint
+            - name: Type check
+              run: pnpm --filter console check-types
+            - name: Unit tests
+              run: pnpm --filter console test
+            - name: E2E tests
+              run: pnpm --filter console test:e2e
+            - name: Check schema drift
+              run: pnpm --filter console migration:check
+            - name: Check OpenAPI spec drift
+              run: |
+                  pnpm --filter console spec
+                  git diff --exit-code
