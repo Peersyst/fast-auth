@@ -1,4 +1,4 @@
-import type { ConsoleConfig } from "../../src/config/console-config";
+import type { ConsoleConfig, ManagementAuth0Config } from "../../src/config/console-config";
 
 export const TEST_CONFIG: ConsoleConfig = {
     server: { env: "test", port: 3000, publicUrl: "https://console.example.test" },
@@ -21,4 +21,13 @@ export const TEST_CONFIG: ConsoleConfig = {
     email: { provider: "fake" },
     admin: { emails: new Set(["admin@example.test"]) },
     slack: { webhookUrl: null },
+};
+
+export const MANAGEMENT_AUTH0: ManagementAuth0Config = {
+    ...TEST_CONFIG.auth0,
+    provisioner: "management",
+    mgmtDomain: "tenant.eu.auth0.com",
+    m2mClientId: "m2m-id",
+    m2mClientSecret: "m2m-secret",
+    templateClientId: "template-client",
 };
