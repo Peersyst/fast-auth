@@ -10,6 +10,9 @@ export enum DappStatus {
     REMOVED = "removed",
 }
 
+/** What the anonymiser writes over every personal field of an erased dApp. */
+export const ERASED = "erased";
+
 export enum MauBracket {
     LT_1K = "lt1k",
     FROM_1K_TO_10K = "1k_10k",
