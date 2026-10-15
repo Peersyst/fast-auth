@@ -3,7 +3,7 @@ import { AuthErrorCode } from "../../../src/modules/auth/error/auth-error-codes"
 import { CommonErrorCode } from "../../../src/modules/common/exception/common-error-codes";
 import { DappsErrorCode } from "../../../src/modules/dapps/error/dapps-error-codes";
 import type { Actor } from "../../utils/console-api";
-import { dappForm, expectError, expectStatus, expectValidationFailed, useConsoleApi } from "../../utils/console-api";
+import { dappForm, expectError, expectStatus, expectValidationFailed, REASON, useConsoleApi } from "../../utils/console-api";
 import { ADMIN_EMAIL } from "../../utils/contract";
 import type { UpsertDappRequest } from "../../../src/modules/dapps/requests/upsert-dapp.request";
 import type { MauBracket } from "@shared/console-domain/dapp";
@@ -31,8 +31,12 @@ describe("errors, guards and throttling", () => {
             expectError(await api.detail(UNKNOWN_ID, await api.user(ADMIN_EMAIL, false)), 403, AuthErrorCode.EMAIL_NOT_VERIFIED);
         });
 
-        it.each([`/admin/dapps/${UNKNOWN_ID}`])("should refuse a user token on %s with 403 FORBIDDEN_ROLE", async (path) => {
-            expectError(await api.send("get", path, await api.user()), 403, AuthErrorCode.FORBIDDEN_ROLE);
+        it.each<[string, (user: Actor) => Promise<request.Response>]>([
+            ["GET /admin/dapps", (user) => api.list({}, user)],
+            ["GET /admin/dapps/:id", (user) => api.detail(UNKNOWN_ID, user)],
+            ["POST /admin/dapps/:id/approve", (user) => api.approve(UNKNOWN_ID, 1, user)],
+        ])("should refuse a user token on %s with 403 FORBIDDEN_ROLE", async (_name, call) => {
+            expectError(await call(await api.user()), 403, AuthErrorCode.FORBIDDEN_ROLE);
         });
     });
 
@@ -46,6 +50,7 @@ describe("errors, guards and throttling", () => {
 
         it("should answer 404 DAPP_NOT_FOUND for an unknown dApp id", async () => {
             expectError(await api.detail(UNKNOWN_ID), 404, DappsErrorCode.DAPP_NOT_FOUND);
+            expectError(await api.approve(UNKNOWN_ID, 1), 404, "DAPP_NOT_FOUND");
         });
 
         it("should answer 400 VALIDATION_FAILED for a dApp id that is not a uuid", async () => {
@@ -54,6 +59,7 @@ describe("errors, guards and throttling", () => {
             expectValidationFailed(await api.detail("not-a-uuid"));
             expectValidationFailed(await api.edit(owner, "not-a-uuid", dappForm(), 1));
             expectValidationFailed(await api.removeOwn(owner, "not-a-uuid", 1));
+            expectValidationFailed(await api.approve("123", 1));
         });
     });
 
@@ -114,9 +120,18 @@ describe("errors, guards and throttling", () => {
             expect(await api.ownDapp(owner)).toEqual(responses.find((response) => response.status === 200)?.body);
         });
 
-        const staleWrites: [string, (owner: Actor, id: string, version: number) => Promise<request.Response>][] = [
+        type StaleWrite = [string, (owner: Actor, id: string, version: number) => Promise<request.Response>];
+        const ownerStaleWrites: StaleWrite[] = [
             ["PUT /dapp/:id", (owner, id, version) => api.edit(owner, id, dappForm({ name: "Stale" }), version)],
             ["DELETE /dapp/:id", (owner, id, version) => api.removeOwn(owner, id, version)],
+        ];
+        const staleWrites: StaleWrite[] = [
+            ...ownerStaleWrites,
+            ["PUT /admin/dapps/:id", (_owner, id, version) => api.adminEdit(id, dappForm({ name: "Stale" }), version)],
+            ["approve", (_owner, id, version) => api.approve(id, version)],
+            ["reject", (_owner, id, version) => api.reject(id, version)],
+            ["owner change", (_owner, id, version) => api.changeOwner(id, version, "new@owners.test")],
+            ["admin remove", (_owner, id, version) => api.adminRemove(id, version)],
         ];
 
         it.each(staleWrites)("should answer 409 DAPP_CHANGED for a stale expectedVersion on %s and change nothing", async (_name, act) => {
@@ -128,9 +143,23 @@ describe("errors, guards and throttling", () => {
             expectError(await act(owner, dapp.id, dapp.version), 409, DappsErrorCode.DAPP_CHANGED);
 
             expect(await api.adminDapp(dapp.id)).toEqual(before);
+            expect(api.provisioner.calls).toEqual([]);
         });
 
-        it.each(staleWrites)(
+        it("should answer 409 DAPP_CHANGED for a stale expectedVersion on a change review: nobody approves values they did not see", async () => {
+            const owner = await api.user();
+            const approved = await api.approvedDapp(owner);
+            const requested = await api.requestChange(owner, approved, { name: "Acme Pay" });
+            const replaced = await api.requestChange(owner, requested, { name: "Acme Cash" });
+            const callsBefore = api.provisioner.calls.length;
+
+            expectError(await api.approveChange(approved.id, requested.version), 409, "DAPP_CHANGED");
+
+            expect(await api.adminDapp(approved.id)).toMatchObject({ name: "Acme Wallet", pendingChange: replaced.pendingChange });
+            expect(api.provisioner.calls).toHaveLength(callsBefore);
+        });
+
+        it.each(ownerStaleWrites)(
             "should answer 409 DAPP_CHANGED for %s naming the owner's removed dApp and leave the new one unchanged",
             async (_name, act) => {
                 const owner = await api.user();
@@ -146,7 +175,7 @@ describe("errors, guards and throttling", () => {
             },
         );
 
-        it.each(staleWrites)("should refuse %s naming another owner's dApp and leave it unchanged", async (_name, act) => {
+        it.each(ownerStaleWrites)("should refuse %s naming another owner's dApp and leave it unchanged", async (_name, act) => {
             const dapp = await api.submitDapp(await api.user());
             const before = await api.adminDapp(dapp.id);
             const stranger = await api.user();
@@ -194,11 +223,39 @@ describe("errors, guards and throttling", () => {
             expect(await api.ownDapp(owner)).toEqual(dapp);
         });
 
+        it("should refuse a reason shorter than 10 or longer than 2000 characters", async () => {
+            const dapp = await api.submitDapp(await api.user());
+
+            expectValidationFailed(await api.reject(dapp.id, dapp.version, "Too short"));
+            expectValidationFailed(await api.adminRemove(dapp.id, dapp.version, "x".repeat(2001)));
+            expect(await api.adminDapp(dapp.id)).toMatchObject({ status: "pending", version: dapp.version });
+        });
+
+        it("should refuse an invalid new owner email", async () => {
+            const dapp = await api.submitDapp(await api.user());
+
+            expectValidationFailed(await api.changeOwner(dapp.id, dapp.version, "not-an-email"));
+        });
+
         describe("NUL characters are refused before they reach Postgres", () => {
             it.each(["name", "description"] as const)("should refuse a NUL character in the %s", async (field) => {
                 const response = await api.submit(await api.user(), dappForm({ [field]: "Acme\u0000Wallet" }));
 
                 expectValidationFailed(response, field);
+            });
+
+            it("should refuse a NUL character in a reject, change reject or admin removal reason", async () => {
+                const owner = await api.user();
+                const pending = await api.submitDapp(owner);
+                const reason = `${REASON}\u0000`;
+
+                expectValidationFailed(await api.reject(pending.id, pending.version, reason), "reason");
+                expectValidationFailed(await api.rejectChange(pending.id, pending.version, reason), "reason");
+                expectValidationFailed(await api.adminRemove(pending.id, pending.version, reason), "reason");
+            });
+
+            it("should refuse a NUL character in the admin search", async () => {
+                expectValidationFailed(await api.list({ q: "acme\u0000" }), "q");
             });
         });
     });
