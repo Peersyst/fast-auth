@@ -29,6 +29,19 @@
         "bundle": {
             "dependsOn": ["^bundle"],
             "outputs": ["dist/**"]
+        },
+        "console-web#build": {
+            "dependsOn": ["^build"],
+            "outputs": ["dist/**"],
+            "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/console/openapi-spec.json"]
+        },
+        "console-web#check-types": {
+            "dependsOn": ["transit"],
+            "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/console/openapi-spec.json"]
+        },
+        "console-web#lint": {
+            "dependsOn": ["transit"],
+            "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/console/openapi-spec.json"]
         }
     }
 }

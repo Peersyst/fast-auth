@@ -5,18 +5,27 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "gen:api": "openapi-typescript ../openapi-spec.json -o src/api/schema.gen.ts",
+        "dev": "vite",
+        "build": "pnpm gen:api && tsc --noEmit && vite build",
         "clean": "rimraf .turbo dist node_modules",
         "test": "jest --maxWorkers=30%",
-        "lint": "eslint .",
-        "check-types": "tsc --noEmit"
+        "lint": "pnpm gen:api && eslint .",
+        "check-types": "pnpm gen:api && tsc --noEmit"
     },
     "dependencies": {
+        "@auth0/auth0-react": "2.28.2",
         "@shared/console-domain": "workspace:*",
+        "@shared/core": "workspace:*",
+        "@tanstack/react-query": "5.104.3",
         "class-variance-authority": "0.7.1",
         "clsx": "2.1.1",
+        "openapi-fetch": "0.17.0",
         "react": "19.2.8",
         "react-dom": "19.2.8",
-        "tailwind-merge": "3.7.0"
+        "react-router-dom": "7.7.0",
+        "tailwind-merge": "3.7.0",
+        "zod": "4.6.5"
     },
     "devDependencies": {
         "@shared/eslint": "workspace:*",
@@ -33,6 +42,7 @@
         "identity-obj-proxy": "3.0.0",
         "jest": "29.7.0",
         "jest-environment-jsdom": "29.7.0",
+        "openapi-typescript": "7.13.0",
         "rimraf": "6.0.1",
         "tailwindcss": "4.3.3",
         "ts-jest": "29.3.4",

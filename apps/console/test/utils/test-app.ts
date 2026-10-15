@@ -12,9 +12,10 @@ import { testKeySet } from "./tokens";
 
 /**
  * Builds the app from test/env.cjs and configures it as main.ts does, without listening.
+ * @param publicDir The SPA build directory to serve, if not the default.
  * @returns The initialised app.
  */
-export async function createTestApp(): Promise<NestExpressApplication> {
+export async function createTestApp(publicDir?: string): Promise<NestExpressApplication> {
     const config = loadConfig();
     const moduleRef = await Test.createTestingModule({ imports: [AppModule.forRoot(config)] })
         .overrideProvider(JWT_KEY_SET)
@@ -25,7 +26,7 @@ export async function createTestApp(): Promise<NestExpressApplication> {
         .useValue(new SlackNotifierMock())
         .compile();
     const app = moduleRef.createNestApplication<NestExpressApplication>({ bufferLogs: true });
-    configureApp(app, config);
+    configureApp(app, config, publicDir);
     return app.init();
 }
 

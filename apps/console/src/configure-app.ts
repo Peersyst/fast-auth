@@ -3,11 +3,12 @@ import { ValidationPipe } from "@nestjs/common";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import type { OpenAPIObject } from "@nestjs/swagger";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import type { NextFunction, Request, Response } from "express";
 import * as OpenApiValidator from "express-openapi-validator";
 import helmet from "helmet";
 import { utilities as nestWinstonUtilities, WinstonModule } from "nest-winston";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { extname, join } from "node:path";
 import * as winston from "winston";
 import type { ConsoleConfig } from "./config/console-config";
 import { ConfigEnv } from "./config/console-config";
@@ -19,6 +20,7 @@ export const API_PREFIX = "api/console";
 const API_PATH = `/${API_PREFIX}`;
 export const OPENAPI_SPEC_PATH = join(__dirname, "..", "openapi-spec.json");
 const PACKAGE_JSON_PATH = join(__dirname, "..", "package.json");
+const PUBLIC_DIR = join(__dirname, "public");
 
 /**
  * Builds the OpenAPI document, with its description and version taken from package.json.
@@ -31,6 +33,20 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
         app,
         new DocumentBuilder().setTitle("NEAR Auth Console").setDescription(description).setVersion(version).addBearerAuth().build(),
     );
+}
+
+function serveSpa(app: NestExpressApplication, env: ConfigEnv, publicDir: string): void {
+    if (!existsSync(publicDir)) {
+        if (env === ConfigEnv.Development || env === ConfigEnv.Test) return;
+        throw new Error(`The SPA build is missing: ${publicDir} does not exist`);
+    }
+    const indexHtml = join(publicDir, "index.html");
+    app.useStaticAssets(join(publicDir, "assets"), { prefix: "/assets", immutable: true, maxAge: "1y" });
+    app.useStaticAssets(publicDir);
+    app.use((req: Request, res: Response, next: NextFunction) => {
+        if (req.method !== "GET" || req.path === API_PATH || req.path.startsWith(`${API_PATH}/`) || extname(req.path)) return next();
+        res.sendFile(indexHtml);
+    });
 }
 
 /**
@@ -50,8 +66,9 @@ export function createLogFormat(env: ConfigEnv, colors: boolean): winston.Logfor
  * Applies the logger, security headers, prefix, docs, request validation and error filter that main.ts and the tests share.
  * @param app The app to configure.
  * @param config The validated config.
+ * @param publicDir The directory holding the SPA build.
  */
-export function configureApp(app: NestExpressApplication, config: ConsoleConfig): void {
+export function configureApp(app: NestExpressApplication, config: ConsoleConfig, publicDir: string = PUBLIC_DIR): void {
     const { env } = config.server;
     const { level, file } = config.logger;
     app.useLogger(
@@ -83,6 +100,7 @@ export function configureApp(app: NestExpressApplication, config: ConsoleConfig)
             crossOriginEmbedderPolicy: false,
         }),
     );
+    serveSpa(app, env, publicDir);
 
     app.setGlobalPrefix(API_PREFIX);
     if (env === ConfigEnv.DEVELOPMENT || env === ConfigEnv.TEST) {
