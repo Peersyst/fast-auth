@@ -87,3 +87,5 @@ export function clientIdOf(dapp: Dapp): Auth0ClientId {
     if (dapp.auth0ClientId === null) throw new Error(`Approved dApp ${dapp.id} has no Auth0 client`);
     return dapp.auth0ClientId;
 }
+
+export const AUTO_APPROVAL_DAILY_CAP = 10;

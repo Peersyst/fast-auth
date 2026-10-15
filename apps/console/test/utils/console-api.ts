@@ -20,6 +20,7 @@ import type { AdminDappResponse } from "../../src/modules/admin/responses/admin-
 import type { UpsertDappRequest } from "../../src/modules/dapps/requests/upsert-dapp.request";
 import type { ErrorResponse } from "../../src/modules/common/responses/error.response";
 import type { OwnerDappResponse } from "../../src/modules/dapps/responses/owner-dapp.response";
+import type { SettingsResponse } from "../../src/modules/settings/responses/settings.response";
 
 export type Actor = { email: string; token: string };
 
@@ -349,6 +350,14 @@ export class ConsoleApi {
         return this.send("post", `/admin/dapps/${id}/remove`, this.admin, { expectedVersion, reason });
     }
 
+    getSettings(admin = this.admin): Promise<request.Response> {
+        return this.send("get", "/admin/settings", admin);
+    }
+
+    putSettings(settings: SettingsResponse, admin = this.admin): Promise<request.Response> {
+        return this.send("put", "/admin/settings", admin, settings);
+    }
+
     /**
      * Submits a form and expects 201.
      * @param owner The owner.
@@ -423,6 +432,16 @@ export class ConsoleApi {
         return expectStatus<OwnerDappResponse>(
             await this.edit(owner, dapp.id, { ...syncedFieldsOf(dapp), ...directFieldsOf(dapp), ...change }, dapp.version),
             200,
+        );
+    }
+
+    async setAutoApproval(enabled: boolean): Promise<void> {
+        expectStatus(await this.putSettings({ autoApproval: { enabled } }), 200);
+    }
+
+    async settingEvents(): Promise<{ key: string; oldValue: unknown; newValue: unknown; actorEmail: string }[]> {
+        return this.dataSource.query(
+            `SELECT "key", "old_value" AS "oldValue", "new_value" AS "newValue", "actor_email" AS "actorEmail" FROM "setting_events" ORDER BY "created_at"`,
         );
     }
 

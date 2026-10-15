@@ -38,6 +38,15 @@ export class DappEventsRepository {
         });
     }
 
+    countChosenForAutoApprovalInLastDay(manager: EntityManager): Promise<number> {
+        return manager
+            .createQueryBuilder(DappEventEntity, "e")
+            .where("e.type = :submitted", { submitted: DappEventType.SUBMITTED })
+            .andWhere("e.details @> CAST(:chosen AS jsonb)", { chosen: JSON.stringify({ chosenForAutoApproval: true }) })
+            .andWhere("e.createdAt > now() - interval '24 hours'")
+            .getCount();
+    }
+
     /**
      * Lists a dApp's events newest first, skipping and logging any whose details do not match their type.
      * @param dappId The dApp id.
