@@ -2,12 +2,12 @@ import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform, Type } from "class-transformer";
 import { IsBoolean, IsIn, IsInt, IsOptional, Max, Min, MaxLength } from "class-validator";
 import { DappStatus } from "../../../domain/dapp";
+import { MAX_PAGE, SEARCH_MAX_LENGTH } from "../../../domain/field-rules";
 import { HasNoNul } from "../../dapps/requests/dapp-field.decorators";
 import { DappOrderBy, SortOrder } from "../../dapps/repositories/dapps.repository";
 
 export const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
-const MAX_PAGE = 10_000;
 
 export class ListDappsRequest {
     @ApiPropertyOptional({
@@ -27,10 +27,10 @@ export class ListDappsRequest {
 
     @ApiPropertyOptional({
         description: "Case-insensitive substring of the name, owner email, contact email or Auth0 client id.",
-        maxLength: 100,
+        maxLength: SEARCH_MAX_LENGTH,
     })
     @IsOptional()
-    @MaxLength(100)
+    @MaxLength(SEARCH_MAX_LENGTH)
     @HasNoNul()
     q?: string;
 

@@ -1,15 +1,19 @@
 import createClient from "openapi-fetch";
-import type { components, paths } from "./schema.gen";
+import type { components, operations, paths } from "./schema.gen";
 
 type Schemas = components["schemas"];
 export type Me = Schemas["MeResponse"];
 export type OwnerDapp = Schemas["OwnerDappResponse"];
+export type AdminDapp = Schemas["AdminDappResponse"];
 export type SyncedFields = Schemas["SyncedFieldsResponse"];
 export type DappStatus = Schemas["DappStatus"];
+export type DappOrderBy = Schemas["DappOrderBy"];
 export type ClientConfig = Schemas["ClientConfigResponse"];
 export type NearNetwork = ClientConfig["nearNetwork"];
 export type DappFormFields = Schemas["UpsertDappRequest"];
 export type UpdateDappRequest = Schemas["UpdateDappRequest"];
+export type UpdateSettingsRequest = Schemas["UpdateSettingsRequest"];
+export type AdminDappsQuery = NonNullable<operations["AdminController_list"]["parameters"]["query"]>;
 export type ErrorCode = Schemas["ErrorCode"];
 export type ErrorDetail = Schemas["ErrorDetail"];
 type ErrorResponse = Schemas["ErrorResponse"];

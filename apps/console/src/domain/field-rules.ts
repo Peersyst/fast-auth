@@ -5,6 +5,8 @@ export const DESCRIPTION_MAX_LENGTH = 140;
 export const LOGO_URL_MAX_LENGTH = 255;
 const URL_MAX_LENGTH = 2048;
 const EMAIL_MAX_LENGTH = 254;
+export const SEARCH_MAX_LENGTH = 100;
+export const MAX_PAGE = 10_000;
 
 /** Whitespace, backslashes and control characters, which the URL parser can drop or rewrite; invisible format characters such as direction overrides; and lone surrogates. */
 const UNSAFE_URL_CHARACTERS = /[\s\\\p{Cc}\p{Cf}\p{Cs}]/u;
