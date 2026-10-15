@@ -24,6 +24,7 @@ type DappFormProps = {
     onCancel: () => void;
     onReload?: () => void;
     onRemove?: () => void;
+    errorText?: (error: unknown) => string;
 };
 
 type ListField = keyof typeof URL_LISTS;
@@ -58,7 +59,17 @@ function toFormInput(dapp: EditedDapp | null, showPendingChange: boolean): Defau
     };
 }
 
-export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, onReload, onRemove }: DappFormProps) {
+export function DappForm({
+    mode,
+    values,
+    saveLabel,
+    saveHint,
+    onSave,
+    onCancel,
+    onReload,
+    onRemove,
+    errorText = errorMessage,
+}: DappFormProps) {
     const reviewed = mode === "owner" && values?.status === "approved";
     const form = useForm<DappFormInput, unknown, DappFormFields>({
         resolver: zodResolver(dappFormSchema),
@@ -239,7 +250,7 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
 
             {saveError !== null && (
                 <Callout tone="error" title="Not saved">
-                    <p>{errorMessage(saveError)}</p>
+                    <p>{errorText(saveError)}</p>
                     {onReload && saveError instanceof ApiError && (saveError.statusCode === 404 || saveError.statusCode === 409) && (
                         <div>
                             <Button variant="secondary" onClick={onReload}>

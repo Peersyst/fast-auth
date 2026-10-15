@@ -1,5 +1,5 @@
 import { FIELD_LABELS, type FieldValue, type FieldValueChange } from "../../lib/dapp-fields";
-import styles from "./dapp.module.css";
+import styles from "./values.module.css";
 
 type ChangeDiffProps = {
     rows: FieldValueChange[];

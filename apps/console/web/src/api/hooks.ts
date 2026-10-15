@@ -6,9 +6,12 @@ import {
     createApiClient,
     unwrap,
     type AdminDappsQuery,
+    type ExpectedVersionRequest,
+    type ChangeOwnerRequest,
     type DappFormFields,
     type NearNetwork,
     type OwnerDapp,
+    type ReasonRequest,
     type UpdateDappRequest,
     type UpdateSettingsRequest,
 } from "./client";
@@ -49,6 +52,14 @@ export function useMyDapp() {
     return useQuery({ queryKey: DAPP_QUERY_KEY, queryFn: async () => (await unwrap(api.GET("/api/console/dapp"))).dapp });
 }
 
+function useDappMutation<V, R>(mutationFn: (variables: V) => Promise<R>) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn,
+        onSettled: () => queryClient.invalidateQueries({ queryKey: ADMIN_DAPPS_QUERY_KEY }),
+    });
+}
+
 function useOwnerDappMutation<V>(mutationFn: (variables: V) => Promise<OwnerDapp | null>) {
     const queryClient = useQueryClient();
     return useMutation({
@@ -83,6 +94,46 @@ export function useAdminDapps(query: AdminDappsQuery) {
         queryFn: () => unwrap(api.GET("/api/console/admin/dapps", { params: { query } })),
         placeholderData: keepPreviousData,
     });
+}
+
+export function useAdminDapp(id: string) {
+    const api = useApi();
+    return useQuery({
+        queryKey: [...ADMIN_DAPPS_QUERY_KEY, id],
+        queryFn: () => unwrap(api.GET("/api/console/admin/dapps/{id}", { params: { path: { id } } })),
+    });
+}
+
+export function useDappEvents(id: string) {
+    const api = useApi();
+    return useQuery({
+        queryKey: [...ADMIN_DAPPS_QUERY_KEY, id, "events"],
+        queryFn: () => unwrap(api.GET("/api/console/admin/dapps/{id}/events", { params: { path: { id } } })),
+    });
+}
+
+export function useAdminEditDapp(id: string) {
+    const api = useApi();
+    return useDappMutation((body: UpdateDappRequest) =>
+        unwrap(api.PUT("/api/console/admin/dapps/{id}", { params: { path: { id } }, body })),
+    );
+}
+
+type AdminActionBodies = {
+    approve: ExpectedVersionRequest;
+    reject: ReasonRequest;
+    "change/approve": ExpectedVersionRequest;
+    "change/reject": ReasonRequest;
+    owner: ChangeOwnerRequest;
+    remove: ReasonRequest;
+};
+type AdminAction = { [A in keyof AdminActionBodies]: { action: A; body: AdminActionBodies[A] } }[keyof AdminActionBodies];
+
+export function useAdminAction(id: string) {
+    const api = useApi();
+    return useDappMutation(({ action, body }: AdminAction) =>
+        unwrap(api.POST(`/api/console/admin/dapps/{id}/${action}`, { params: { path: { id } }, body })),
+    );
 }
 
 export function useSettings() {

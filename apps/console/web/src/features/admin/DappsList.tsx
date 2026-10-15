@@ -1,5 +1,5 @@
 import { useEffect, useRef, type FormEvent } from "react";
-import { Link, Navigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { MAX_PAGE, SEARCH_MAX_LENGTH } from "../../../../src/domain/field-rules";
 import type { AdminDapp, DappOrderBy, DappStatus } from "../../api/client";
 import { useAdminDapps } from "../../api/hooks";
@@ -41,6 +41,7 @@ function oneOf<T extends string>(values: readonly T[], value: string | null): T 
 
 export function DappsList() {
     const [params, setParams] = useSearchParams();
+    const listState = { listSearch: useLocation().search };
     const view = oneOf(VIEWS, params.get("view")) ?? "review";
     const q = params.get("q") ?? "";
     const page = Math.min(MAX_PAGE, Math.max(1, Math.floor(Number(params.get("page"))) || 1));
@@ -203,7 +204,9 @@ export function DappsList() {
                                                         {initials(dapp.name)}
                                                     </span>
                                                     <div className={styles.dappName}>
-                                                        <Link to={`/admin/dapps/${dapp.id}`}>{dapp.name}</Link>
+                                                        <Link to={`/admin/dapps/${dapp.id}`} state={listState}>
+                                                            {dapp.name}
+                                                        </Link>
                                                         <span>
                                                             <OwnerEmail email={dapp.ownerEmail} />
                                                         </span>
@@ -221,6 +224,7 @@ export function DappsList() {
                                             <td className={styles.actionsCell}>
                                                 <Link
                                                     to={`/admin/dapps/${dapp.id}`}
+                                                    state={listState}
                                                     className={buttonClassName({ variant: "secondary", size: "small" })}
                                                 >
                                                     View<span className={styles.srOnly}> {dapp.name}</span>

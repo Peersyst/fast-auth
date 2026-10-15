@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { FieldValue } from "../../lib/dapp-fields";
-import styles from "./dapp.module.css";
+import styles from "./values.module.css";
 
 export type FieldRow = [label: string, value: ReactNode];
 

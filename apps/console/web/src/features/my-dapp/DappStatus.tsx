@@ -7,9 +7,10 @@ import { Button } from "../../ui/Button";
 import { Callout } from "../../ui/Callout";
 import { CopyButton } from "../../ui/CopyButton";
 import { CheckIcon, ClockIcon, KeyIcon, WarningIcon } from "../../ui/icons";
-import { ChangeDiff } from "./ChangeDiff";
+import { ChangeDiff } from "../dapp/ChangeDiff";
+import { FieldList } from "../dapp/FieldValues";
+import valueStyles from "../dapp/values.module.css";
 import styles from "./dapp.module.css";
-import { FieldList } from "./FieldValues";
 
 export function PendingStatus({ submittedAt, email }: { submittedAt: string; email: string }) {
     return (
@@ -124,28 +125,28 @@ export function Credentials({ clientId }: { clientId: string }) {
                         [
                             "Client ID",
                             <span key="clientId" className={styles.clientId}>
-                                <code className={styles.code}>{clientId}</code>
+                                <code className={valueStyles.code}>{clientId}</code>
                                 <CopyButton value={clientId} label="Copy client ID" className={styles.copy} />
                             </span>,
                         ],
                         [
                             "Network",
-                            <code key="network" className={styles.code}>
+                            <code key="network" className={valueStyles.code}>
                                 {network}
                             </code>,
                         ],
                         [
                             "Signing audience",
                             <span key="audience">
-                                <code className={styles.code}>{settings.signingAudience}</code>{" "}
+                                <code className={valueStyles.code}>{settings.signingAudience}</code>{" "}
                                 <span className={styles.aside}>· default for {network}</span>
                             </span>,
                         ],
                         [
                             "Contracts",
                             <span key="contracts">
-                                <code className={styles.code}>{settings.fastAuthContract}</code> <span className={styles.aside}>· MPC</span>{" "}
-                                <code className={styles.code}>{settings.mpcContract}</code>
+                                <code className={valueStyles.code}>{settings.fastAuthContract}</code>{" "}
+                                <span className={styles.aside}>· MPC</span> <code className={valueStyles.code}>{settings.mpcContract}</code>
                             </span>,
                         ],
                     ]}

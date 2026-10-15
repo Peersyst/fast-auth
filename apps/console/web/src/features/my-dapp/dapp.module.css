@@ -366,7 +366,7 @@ div.surfaceNotice {
     margin: -4px 0;
 }
 
-.clientId .code {
+.clientId code {
     flex: 1 1 auto;
     min-width: 0;
 }
@@ -489,109 +489,6 @@ div.surfaceNotice {
     overflow-wrap: anywhere;
 }
 
-.fields {
-    display: grid;
-    margin: 0;
-    background: var(--color-surface);
-    font-size: 14px;
-    overflow: hidden;
-}
-
-.summary > .fields {
+.summary > dl {
     border-top: 1px solid var(--color-border);
-}
-
-.fieldRow {
-    display: grid;
-    grid-template-columns: minmax(120px, 200px) minmax(0, 1fr);
-}
-
-.fieldRow + .fieldRow {
-    border-top: 1px solid var(--color-border);
-}
-
-.fieldRow dt,
-.diff thead th,
-.diff tbody th {
-    color: var(--color-ink-subtle);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    font-weight: var(--font-weight-medium);
-    letter-spacing: var(--letter-spacing-kicker);
-    text-transform: uppercase;
-}
-
-.fieldRow dt {
-    padding: 14px 24px;
-}
-
-.fieldRow dd {
-    min-width: 0;
-    margin: 0;
-    padding: 14px 24px;
-    overflow-wrap: anywhere;
-}
-
-@media (max-width: 560px) {
-    .fieldRow {
-        grid-template-columns: minmax(0, 1fr);
-    }
-
-    .fieldRow dt {
-        padding-bottom: 0;
-    }
-
-    .fieldRow dd {
-        padding-top: 4px;
-    }
-}
-
-.none {
-    color: var(--color-ink-subtle);
-}
-
-.values {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.code {
-    font-family: var(--font-mono);
-    font-size: var(--font-size-sm);
-    overflow-wrap: anywhere;
-}
-
-.diff {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-    font-size: 14px;
-}
-
-.diff thead th:first-child {
-    width: 25%;
-}
-
-.diff th,
-.diff td {
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--color-border);
-    text-align: left;
-    vertical-align: top;
-    overflow-wrap: anywhere;
-}
-
-.diff del {
-    background: var(--color-danger-bg);
-    color: var(--color-danger-ink);
-}
-
-.diff ins {
-    background: var(--color-ok-bg);
-    color: var(--color-ok-ink);
-    text-decoration: none;
 }

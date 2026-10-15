@@ -1,9 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
+import { REASON_MAX_LENGTH, REASON_MIN_LENGTH } from "../../../domain/field-rules";
 import { HasLength, HasNoNul, Trim } from "../../dapps/requests/dapp-field.decorators";
 import { ExpectedVersionRequest } from "../../dapps/requests/expected-version.request";
-
-const REASON_MIN_LENGTH = 10;
-const REASON_MAX_LENGTH = 2000;
 
 export class ReasonRequest extends ExpectedVersionRequest {
     @ApiProperty({

@@ -1,4 +1,6 @@
 export const NAME_MAX_LENGTH = 64;
+export const REASON_MIN_LENGTH = 10;
+export const REASON_MAX_LENGTH = 2000;
 /** Auth0's limit for a client description. */
 export const DESCRIPTION_MAX_LENGTH = 140;
 /** Auth0's limit for `client_metadata` values. */

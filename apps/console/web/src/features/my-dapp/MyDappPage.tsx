@@ -13,9 +13,10 @@ import { Callout } from "../../ui/Callout";
 import { ConfirmDialog } from "../../ui/Dialog";
 import { BackIcon, GridIcon, PlusIcon } from "../../ui/icons";
 import { useSession } from "../auth/session";
+import { DappForm } from "../dapp/DappForm";
 import { StatusBadge } from "../dapp/StatusBadge";
+import { useHeadingFocus } from "../dapp/useHeadingFocus";
 import styles from "./dapp.module.css";
-import { DappForm } from "./DappForm";
 import { ChangeUnderReview, Credentials, PendingStatus, RejectedStatus } from "./DappStatus";
 import { DappSummary } from "./DappSummary";
 
@@ -178,16 +179,10 @@ function DappView({ dapp, focusTitle }: { dapp: LiveDapp; focusTitle: boolean })
     const withdraw = useUpdateDapp(dapp.id);
     const remove = useRemoveDapp(dapp.id);
     const copy = EDIT_COPY[dapp.status];
-    const heading = useRef<HTMLHeadingElement>(null);
-    const moveFocus = useRef(focusTitle);
-    useEffect(() => {
-        if (!moveFocus.current) return;
-        moveFocus.current = false;
-        heading.current?.focus();
-    });
+    const { heading, focusHeadingAfterRender } = useHeadingFocus(focusTitle);
 
     const switchView = (next: OwnerDapp | null) => {
-        moveFocus.current = true;
+        focusHeadingAfterRender();
         setEditing(next);
     };
     const openDialog = (kind: Dialog["kind"]) => {

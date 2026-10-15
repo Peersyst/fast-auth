@@ -3,8 +3,8 @@ import { FIELD_LABELS, MAU_LABELS } from "../../lib/dapp-fields";
 import { initials } from "../../lib/initials";
 import { Button } from "../../ui/Button";
 import { PencilIcon } from "../../ui/icons";
+import { FieldList, Value } from "../dapp/FieldValues";
 import styles from "./dapp.module.css";
-import { FieldList, Value } from "./FieldValues";
 
 export function DappSummary({ dapp, onEdit }: { dapp: DappFormFields; onEdit: () => void }) {
     return (
