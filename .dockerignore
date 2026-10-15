@@ -41,7 +41,7 @@ lerna-debug.log*
 
 fast-auth-.json
 
-.env
+**/.env
 **/dist
 
 Dockerfile
