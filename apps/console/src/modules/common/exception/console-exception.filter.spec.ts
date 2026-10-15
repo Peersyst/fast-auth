@@ -31,9 +31,9 @@ describe("ConsoleExceptionFilter", () => {
 
     it.each([
         [400, "VALIDATION_FAILED", "The request is invalid."],
+        [401, "UNAUTHENTICATED", "A valid ID token is required."],
         [404, "NOT_FOUND", "Not found."],
         [405, "VALIDATION_FAILED", "The request is invalid."],
-        [406, "VALIDATION_FAILED", "The request is invalid."],
         [413, "VALIDATION_FAILED", "The request is invalid."],
         [415, "VALIDATION_FAILED", "The request is invalid."],
     ])("maps an error carrying status %i to %s with the code's own message, keeping the status", (status, code, message) => {

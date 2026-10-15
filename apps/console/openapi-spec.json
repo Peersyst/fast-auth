@@ -1,6 +1,42 @@
 {
     "openapi": "3.0.0",
     "paths": {
+        "/api/console/me": {
+            "get": {
+                "operationId": "MeController_me",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "auth"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
         "/api/console/livez": {
             "get": {
                 "operationId": "HealthController_livez",
@@ -62,6 +98,37 @@
                     "health"
                 ]
             }
+        },
+        "/api/console/config": {
+            "get": {
+                "operationId": "ClientConfigController_getConfig",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ClientConfigResponse"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "config"
+                ]
+            }
         }
     },
     "info": {
@@ -88,7 +155,11 @@
                     "NOT_FOUND",
                     "RATE_LIMITED",
                     "INTERNAL",
-                    "UNAVAILABLE"
+                    "UNAVAILABLE",
+                    "UNAUTHENTICATED",
+                    "EMAIL_REQUIRED",
+                    "EMAIL_NOT_VERIFIED",
+                    "FORBIDDEN_ROLE"
                 ]
             },
             "ErrorDetail": {
@@ -131,6 +202,32 @@
                     "message"
                 ]
             },
+            "Role": {
+                "type": "string",
+                "enum": [
+                    "user",
+                    "admin"
+                ]
+            },
+            "MeResponse": {
+                "type": "object",
+                "properties": {
+                    "email": {
+                        "type": "string"
+                    },
+                    "role": {
+                        "$ref": "#/components/schemas/Role"
+                    },
+                    "emailVerified": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "email",
+                    "role",
+                    "emailVerified"
+                ]
+            },
             "HealthResponse": {
                 "type": "object",
                 "properties": {
@@ -143,6 +240,29 @@
                 },
                 "required": [
                     "status"
+                ]
+            },
+            "ClientConfigResponse": {
+                "type": "object",
+                "properties": {
+                    "auth0Domain": {
+                        "type": "string"
+                    },
+                    "auth0ClientId": {
+                        "type": "string"
+                    },
+                    "nearNetwork": {
+                        "type": "string",
+                        "enum": [
+                            "testnet",
+                            "mainnet"
+                        ]
+                    }
+                },
+                "required": [
+                    "auth0Domain",
+                    "auth0ClientId",
+                    "nearNetwork"
                 ]
             }
         }

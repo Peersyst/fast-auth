@@ -10,9 +10,9 @@ import { ERROR_CODES } from "./error-codes";
 
 const CODE_BY_STATUS: Partial<Record<number, ConsoleErrorCode>> = {
     400: "VALIDATION_FAILED",
+    401: "UNAUTHENTICATED",
     404: "NOT_FOUND",
     405: "VALIDATION_FAILED",
-    406: "VALIDATION_FAILED",
     413: "VALIDATION_FAILED",
     415: "VALIDATION_FAILED",
 };
