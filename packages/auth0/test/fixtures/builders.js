@@ -29,10 +29,6 @@ const { PublicKey } = require("near-api-js").utils;
 // jest-environment-jsdom (jest 29) ships an older jsdom without TextEncoder. Fall back to util.
 const SafeTextEncoder = typeof TextEncoder !== "undefined" ? TextEncoder : require("util").TextEncoder;
 
-// Prefix for MetaTransactions NEP (366) offset by 2^30, matching @near-js/transactions.
-const DELEGATE_ACTION_PREFIX = Math.pow(2, 30) + 366;
-
-const ZERO_BLOCK_HASH = new Uint8Array(32);
 const SAMPLE_BLOCK_HASH = Uint8Array.from(Array.from({ length: 32 }, (_, i) => (i * 7) % 256));
 
 // ----- public descriptors (decoded shapes) -----
@@ -281,16 +277,12 @@ const DELEGATE_ACTION_TYPES = ALL_ACTION_TYPES.filter(
 );
 
 module.exports = {
-    DELEGATE_ACTION_PREFIX,
-    ZERO_BLOCK_HASH,
-    SAMPLE_BLOCK_HASH,
     ed25519PublicKey,
     secp256k1PublicKey,
     ed25519Signature,
     buildAction,
     buildTransaction,
     buildDelegateAction,
-    toCsv,
     ALL_ACTION_TYPES,
     DELEGATE_ACTION_TYPES,
 };

@@ -1,13 +1,10 @@
 /**
  * @jest-environment jsdom
- *
- * Renders the NEP-413 form's details component the way Auth0 does: the built `config.code` is
- * evaluated as a single expression and the resulting factory is initialized with the form params.
  */
 const path = require("path");
 const buildModule = require("../src/forms/build.js");
 
-function renderDetails(params) {
+function renderDetailsAsAuth0(params) {
     const { code } = buildModule.readComponent(path.join(buildModule.FORMS_DIR, "nep413"), "details", buildModule.readHelpersPreamble());
     const factory = new Function(`return ${code}`)();
     return factory({ custom: { getParams: () => params } }).init();
@@ -15,7 +12,7 @@ function renderDetails(params) {
 
 describe("NEP-413 form details component", () => {
     test("renders the message as text, never as HTML", () => {
-        const box = renderDetails({ message: "<img src=x onerror=alert(1)>\nline two", recipient: "example.near", callbackUrl: "" });
+        const box = renderDetailsAsAuth0({ message: "<img src=x onerror=alert(1)>\nline two", recipient: "example.near", callbackUrl: "" });
 
         expect(box.querySelector(".message-body").textContent).toBe("<img src=x onerror=alert(1)>\nline two");
         expect(box.querySelector("img")).toBeNull();
@@ -32,8 +29,9 @@ describe("NEP-413 form details component", () => {
     });
 
     test("shows the callback url when the payload has one", () => {
-        const box = renderDetails({ message: "hi", recipient: "example.near", callbackUrl: "https://example.com/cb" });
+        const box = renderDetailsAsAuth0({ message: "hi", recipient: "example.near", callbackUrl: "https://example.com/cb" });
 
+        expect(box.textContent).toContain("Recipient");
         expect(box.textContent).toContain("Callback URL");
         expect(box.textContent).toContain("https://example.com/cb");
     });

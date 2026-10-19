@@ -1,7 +1,6 @@
-/** NEP-413 prefix tag: 2^31 + 413. Keeps a signed message from ever being a valid transaction. */
-const NEP413_TAG = 2147484061;
+// The 2^31 offset keeps a signed message from ever decoding as a valid transaction.
+const NEP413_TAG = 2 ** 31 + 413;
 
-/** Length in bytes of the NEP-413 nonce. */
 const NEP413_NONCE_LENGTH = 32;
 
 /**

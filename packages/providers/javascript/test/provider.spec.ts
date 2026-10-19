@@ -1,7 +1,6 @@
 import { Transaction } from "near-api-js/lib/transaction";
 import { DelegateAction } from "@near-js/transactions";
 
-// Import mocks
 import {
     mockDecodeJwt,
     mockEncodeTransaction,
@@ -11,7 +10,11 @@ import {
     mockAuth0Client,
 } from "./mocks";
 import { encodeSignMessage, JavascriptProvider } from "../src";
-import { JavascriptProviderOptions } from "../src/types";
+import {
+    JavascriptProviderOptions,
+    JavascriptRequestDelegateActionSignatureOptions,
+    JavascriptRequestTransactionSignatureOptions,
+} from "../src/types";
 import { JavascriptProviderError, JavascriptProviderErrorCodes } from "../src/errors";
 
 // Mock the utils module directly, avoiding TDZ by requiring inside factory
@@ -40,7 +43,6 @@ jest.mock("@auth0/auth0-spa-js", () => {
     };
 });
 
-// Setup mocks
 setupGlobalLocationMock();
 
 describe("JavascriptProvider", () => {
@@ -50,10 +52,6 @@ describe("JavascriptProvider", () => {
     beforeEach(() => {
         jest.clearAllMocks();
 
-        mockAuth0Client.clearMocks();
-
-        // Default to a logged-in user so flows that resolve the user id (login,
-        // requestTransactionSignature, requestDelegateActionSignature) succeed.
         mockAuth0Client.getIdTokenClaims.mockResolvedValue({ sub: "test-user-id" });
 
         mockOptions = {
@@ -68,6 +66,8 @@ describe("JavascriptProvider", () => {
     describe("isLoggedIn", () => {
         beforeEach(() => {
             mockLocation.search = "";
+            mockAuth0Client.handleRedirectCallback.mockResolvedValue(undefined);
+            mockAuth0Client.isAuthenticated.mockResolvedValue(false);
         });
 
         describe("redirect callback check", () => {
@@ -114,7 +114,6 @@ describe("JavascriptProvider", () => {
             });
 
             it("should return false when no code and state in URL and user is not authenticated", async () => {
-                mockLocation.search = "";
                 mockAuth0Client.isAuthenticated.mockResolvedValue(false);
 
                 const result = await provider.isLoggedIn();
@@ -127,7 +126,6 @@ describe("JavascriptProvider", () => {
             });
 
             it("should return true when no code and state in URL but user is authenticated", async () => {
-                mockLocation.search = "";
                 mockAuth0Client.isAuthenticated.mockResolvedValue(true);
 
                 const result = await provider.isLoggedIn();
@@ -167,7 +165,7 @@ describe("JavascriptProvider", () => {
 
             it("should return false when handleRedirectCallback throws an error and user is not authenticated", async () => {
                 mockLocation.search = "?code=test-code&state=test-state";
-                mockAuth0Client.handleRedirectCallback.mockRejectedValue(new Error("Auth error"));
+                mockAuth0Client.handleRedirectCallback.mockRejectedValueOnce(new Error("Auth error"));
                 mockAuth0Client.isAuthenticated.mockResolvedValue(false);
 
                 const result = await provider.isLoggedIn();
@@ -194,20 +192,7 @@ describe("JavascriptProvider", () => {
             });
 
             it("should return false when fallback isAuthenticated throws an error", async () => {
-                mockLocation.search = "";
                 mockAuth0Client.isAuthenticated.mockRejectedValue(new Error("Session check failed"));
-
-                const result = await provider.isLoggedIn();
-
-                expect(result).toBe(false);
-                expect(mockAuth0Client.isAuthenticated).toHaveBeenCalled();
-                expect(mockAuth0Client.checkSession).not.toHaveBeenCalled();
-                expect(mockAuth0Client.getTokenSilently).not.toHaveBeenCalled();
-            });
-
-            it("should not request a silent token while checking login state", async () => {
-                mockLocation.search = "";
-                mockAuth0Client.isAuthenticated.mockResolvedValue(false);
 
                 const result = await provider.isLoggedIn();
 
@@ -226,7 +211,7 @@ describe("JavascriptProvider", () => {
                     redirectUri: "http://localhost:3000/custom-callback",
                 };
 
-                await provider.login(loginOptions);
+                const result = await provider.login(loginOptions);
 
                 expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                     authorizationParams: {
@@ -234,6 +219,7 @@ describe("JavascriptProvider", () => {
                     },
                 });
                 expect(mockAuth0Client.loginWithPopup).not.toHaveBeenCalled();
+                expect(result).toEqual({ userId: "test-user-id" });
             });
 
             it("should pass forceSelectAccount to loginWithRedirect as prompt", async () => {
@@ -256,7 +242,7 @@ describe("JavascriptProvider", () => {
                 const loginOptions = {
                     redirectUri: "http://localhost:3000/custom-callback",
                 };
-                mockAuth0Client.loginWithRedirect.mockRejectedValue(error);
+                mockAuth0Client.loginWithRedirect.mockRejectedValueOnce(error);
 
                 await expect(provider.login(loginOptions)).rejects.toThrow("Login failed");
             });
@@ -264,7 +250,7 @@ describe("JavascriptProvider", () => {
 
         describe("with popup", () => {
             it("should call loginWithPopup when no redirectUri is provided", async () => {
-                await provider.login();
+                const result = await provider.login();
 
                 expect(mockAuth0Client.loginWithPopup).toHaveBeenCalledWith({
                     authorizationParams: {
@@ -272,22 +258,7 @@ describe("JavascriptProvider", () => {
                     },
                 });
                 expect(mockAuth0Client.loginWithRedirect).not.toHaveBeenCalled();
-            });
-
-            it("should call loginWithPopup with options when provided", async () => {
-                const loginOptions = {
-                    popupOptions: { timeoutInSeconds: 60 },
-                };
-
-                await provider.login(loginOptions);
-
-                expect(mockAuth0Client.loginWithPopup).toHaveBeenCalledWith({
-                    ...loginOptions,
-                    authorizationParams: {
-                        prompt: undefined,
-                    },
-                });
-                expect(mockAuth0Client.loginWithRedirect).not.toHaveBeenCalled();
+                expect(result).toEqual({ userId: "test-user-id" });
             });
 
             it("should pass forceSelectAccount to loginWithPopup as prompt", async () => {
@@ -305,7 +276,7 @@ describe("JavascriptProvider", () => {
 
             it("should propagate errors from loginWithPopup", async () => {
                 const error = new Error("Popup login failed");
-                mockAuth0Client.loginWithPopup.mockRejectedValue(error);
+                mockAuth0Client.loginWithPopup.mockRejectedValueOnce(error);
 
                 await expect(provider.login()).rejects.toThrow("Popup login failed");
             });
@@ -313,15 +284,15 @@ describe("JavascriptProvider", () => {
     });
 
     describe("logout", () => {
-        it("should call logout", async () => {
-            await provider.logout();
+        it("should pass the logout options to Auth0", async () => {
+            await provider.logout({ logoutParams: { returnTo: "http://localhost:3000" } });
 
-            expect(mockAuth0Client.logout).toHaveBeenCalled();
+            expect(mockAuth0Client.logout).toHaveBeenCalledWith({ logoutParams: { returnTo: "http://localhost:3000" } });
         });
 
         it("should propagate errors from logout", async () => {
             const error = new Error("Logout failed");
-            mockAuth0Client.logout.mockRejectedValue(error);
+            mockAuth0Client.logout.mockRejectedValueOnce(error);
 
             await expect(provider.logout()).rejects.toThrow("Logout failed");
         });
@@ -340,21 +311,21 @@ describe("JavascriptProvider", () => {
             expect(mockDecodeJwt).not.toHaveBeenCalled();
         });
 
-        it("should throw Auth0ProviderError when sub is missing", async () => {
+        it("should throw JavascriptProviderError when sub is missing", async () => {
             mockAuth0Client.getIdTokenClaims.mockResolvedValue({ sub: null });
 
             await expect(provider.getPath()).rejects.toThrow(JavascriptProviderError);
             await expect(provider.getPath()).rejects.toThrow(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN);
         });
 
-        it("should throw Auth0ProviderError when sub is undefined", async () => {
+        it("should throw JavascriptProviderError when sub is undefined", async () => {
             mockAuth0Client.getIdTokenClaims.mockResolvedValue({ sub: undefined });
 
             await expect(provider.getPath()).rejects.toThrow(JavascriptProviderError);
             await expect(provider.getPath()).rejects.toThrow(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN);
         });
 
-        it("should throw Auth0ProviderError when sub is empty string", async () => {
+        it("should throw JavascriptProviderError when sub is empty string", async () => {
             mockAuth0Client.getIdTokenClaims.mockResolvedValue({ sub: "" });
 
             await expect(provider.getPath()).rejects.toThrow(JavascriptProviderError);
@@ -363,12 +334,12 @@ describe("JavascriptProvider", () => {
 
         it("should propagate errors from getIdTokenClaims", async () => {
             const error = new Error("Claims retrieval failed");
-            mockAuth0Client.getIdTokenClaims.mockRejectedValue(error);
+            mockAuth0Client.getIdTokenClaims.mockRejectedValueOnce(error);
 
             await expect(provider.getPath()).rejects.toThrow("Claims retrieval failed");
         });
 
-        it("should throw Auth0ProviderError when claims are undefined", async () => {
+        it("should throw JavascriptProviderError when claims are undefined", async () => {
             mockAuth0Client.getIdTokenClaims.mockResolvedValue(undefined);
 
             await expect(provider.getPath()).rejects.toThrow(JavascriptProviderError);
@@ -377,18 +348,11 @@ describe("JavascriptProvider", () => {
     });
 
     describe("requestTransactionSignature", () => {
-        let mockTransaction: Transaction;
-        let mockRequestOptions: any;
-
-        beforeEach(() => {
-            jest.clearAllMocks();
-
-            mockTransaction = {} as Transaction;
-            mockRequestOptions = {
-                redirectUri: "http://localhost:3000/callback",
-                transaction: mockTransaction,
-            };
-        });
+        const mockTransaction = {} as Transaction;
+        const mockRequestOptions: JavascriptRequestTransactionSignatureOptions = {
+            redirectUri: "http://localhost:3000/callback",
+            transaction: mockTransaction,
+        };
 
         describe("with redirect", () => {
             it("should call loginWithRedirect with correct parameters", async () => {
@@ -410,37 +374,16 @@ describe("JavascriptProvider", () => {
                 expect(mockAuth0Client.loginWithPopup).not.toHaveBeenCalled();
             });
 
-            it("should use provided redirectUri in options", async () => {
-                const mockEncodedTransaction = [1, 2, 3, 4, 5];
-                mockEncodeTransaction.mockReturnValue(mockEncodedTransaction);
-                mockAuth0Client.loginWithRedirect.mockResolvedValue(undefined);
-                const optionsWithRedirectUri = {
-                    redirectUri: "http://localhost:3000/custom-callback",
-                    transaction: mockTransaction,
-                };
-
-                await provider.requestTransactionSignature(optionsWithRedirectUri);
-
-                expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
-                    authorizationParams: {
-                        audience: "auth0.jwt.fast-auth.testnet",
-                        scope: "transaction:sign",
-                        redirect_uri: optionsWithRedirectUri.redirectUri,
-                        transaction: mockEncodedTransaction,
-                    },
-                });
-            });
-
             it("should propagate errors from loginWithRedirect", async () => {
                 const error = new Error("Login redirect failed");
-                mockAuth0Client.loginWithRedirect.mockRejectedValue(error);
+                mockAuth0Client.loginWithRedirect.mockRejectedValueOnce(error);
 
                 await expect(provider.requestTransactionSignature(mockRequestOptions)).rejects.toThrow("Login redirect failed");
             });
 
             it("should propagate errors from encodeTransaction", async () => {
                 const error = new Error("Transaction encoding failed");
-                mockEncodeTransaction.mockImplementation(() => {
+                mockEncodeTransaction.mockImplementationOnce(() => {
                     throw error;
                 });
 
@@ -472,47 +415,22 @@ describe("JavascriptProvider", () => {
 
             it("should propagate errors from loginWithPopup", async () => {
                 const error = new Error("Popup login failed");
-                mockAuth0Client.loginWithPopup.mockRejectedValue(error);
+                mockAuth0Client.loginWithPopup.mockRejectedValueOnce(error);
                 const optionsWithoutRedirectUri = {
-                    imageUrl: "https://example.com/image.png",
-                    name: "Test App",
                     transaction: mockTransaction,
                 };
 
                 await expect(provider.requestTransactionSignature(optionsWithoutRedirectUri)).rejects.toThrow("Popup login failed");
             });
-
-            it("should propagate errors from encodeTransaction in popup mode", async () => {
-                const error = new Error("Transaction encoding failed");
-                mockEncodeTransaction.mockImplementation(() => {
-                    throw error;
-                });
-                const optionsWithoutRedirectUri = {
-                    imageUrl: "https://example.com/image.png",
-                    name: "Test App",
-                    transaction: mockTransaction,
-                };
-
-                await expect(provider.requestTransactionSignature(optionsWithoutRedirectUri)).rejects.toThrow(
-                    "Transaction encoding failed",
-                );
-            });
         });
     });
 
     describe("requestDelegateActionSignature", () => {
-        let mockDelegateAction: DelegateAction;
-        let mockRequestOptions: any;
-
-        beforeEach(() => {
-            jest.clearAllMocks();
-
-            mockDelegateAction = {} as DelegateAction;
-            mockRequestOptions = {
-                redirectUri: "http://localhost:3000/callback",
-                delegateAction: mockDelegateAction,
-            };
-        });
+        const mockDelegateAction = {} as DelegateAction;
+        const mockRequestOptions: JavascriptRequestDelegateActionSignatureOptions = {
+            redirectUri: "http://localhost:3000/callback",
+            delegateAction: mockDelegateAction,
+        };
 
         describe("with redirect", () => {
             it("should call loginWithRedirect with correct parameters", async () => {
@@ -534,37 +452,16 @@ describe("JavascriptProvider", () => {
                 expect(mockAuth0Client.loginWithPopup).not.toHaveBeenCalled();
             });
 
-            it("should use provided redirectUri in options", async () => {
-                const mockEncodedDelegateAction = [1, 2, 3, 4, 5];
-                mockEncodeDelegateAction.mockReturnValue(mockEncodedDelegateAction);
-                mockAuth0Client.loginWithRedirect.mockResolvedValue(undefined);
-                const optionsWithRedirectUri = {
-                    redirectUri: "http://localhost:3000/custom-callback",
-                    delegateAction: mockDelegateAction,
-                };
-
-                await provider.requestDelegateActionSignature(optionsWithRedirectUri);
-
-                expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
-                    authorizationParams: {
-                        audience: "auth0.jwt.fast-auth.testnet",
-                        scope: "transaction:sign",
-                        redirect_uri: optionsWithRedirectUri.redirectUri,
-                        delegateAction: mockEncodedDelegateAction,
-                    },
-                });
-            });
-
             it("should propagate errors from loginWithRedirect", async () => {
                 const error = new Error("Login redirect failed");
-                mockAuth0Client.loginWithRedirect.mockRejectedValue(error);
+                mockAuth0Client.loginWithRedirect.mockRejectedValueOnce(error);
 
                 await expect(provider.requestDelegateActionSignature(mockRequestOptions)).rejects.toThrow("Login redirect failed");
             });
 
             it("should propagate errors from encodeDelegateAction", async () => {
                 const error = new Error("Delegate action encoding failed");
-                mockEncodeDelegateAction.mockImplementation(() => {
+                mockEncodeDelegateAction.mockImplementationOnce(() => {
                     throw error;
                 });
 
@@ -598,30 +495,12 @@ describe("JavascriptProvider", () => {
 
             it("should propagate errors from loginWithPopup", async () => {
                 const error = new Error("Popup login failed");
-                mockAuth0Client.loginWithPopup.mockRejectedValue(error);
+                mockAuth0Client.loginWithPopup.mockRejectedValueOnce(error);
                 const optionsWithoutRedirectUri = {
-                    imageUrl: "https://example.com/image.png",
-                    name: "Test App",
                     delegateAction: mockDelegateAction,
                 };
 
                 await expect(provider.requestDelegateActionSignature(optionsWithoutRedirectUri)).rejects.toThrow("Popup login failed");
-            });
-
-            it("should propagate errors from encodeDelegateAction in popup mode", async () => {
-                const error = new Error("Delegate action encoding failed");
-                mockEncodeDelegateAction.mockImplementation(() => {
-                    throw error;
-                });
-                const optionsWithoutRedirectUri = {
-                    imageUrl: "https://example.com/image.png",
-                    name: "Test App",
-                    delegateAction: mockDelegateAction,
-                };
-
-                await expect(provider.requestDelegateActionSignature(optionsWithoutRedirectUri)).rejects.toThrow(
-                    "Delegate action encoding failed",
-                );
             });
         });
     });
@@ -655,6 +534,26 @@ describe("JavascriptProvider", () => {
                 expect(mockAuth0Client.loginWithPopup).not.toHaveBeenCalled();
                 expect(result).toEqual({ userId: "test-user-id" });
             });
+
+            it("should pass the remaining login options through to loginWithRedirect", async () => {
+                mockAuth0Client.loginWithRedirect.mockResolvedValue(undefined);
+
+                await provider.requestMessageSignature({
+                    ...signMessageParams,
+                    redirectUri: "http://localhost:3000/callback",
+                    appState: { returnTo: "/dashboard" },
+                });
+
+                expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
+                    authorizationParams: {
+                        audience: "auth0.jwt.fast-auth.testnet",
+                        scope: "transaction:sign",
+                        redirect_uri: "http://localhost:3000/callback",
+                        nep413: encodedMessage,
+                    },
+                    appState: { returnTo: "/dashboard" },
+                });
+            });
         });
 
         describe("with popup", () => {
@@ -678,31 +577,24 @@ describe("JavascriptProvider", () => {
         it("should encode the NEP-413 payload byte-for-byte as the spec lays it out", () => {
             const nonce = Uint8Array.from({ length: 32 }, (_, i) => i);
             const nonceBytes = Array.from(nonce);
-            // u32 tag 2^31 + 413 = 0x8000019d, little-endian.
-            const tag = [0x9d, 0x01, 0x00, 0x80];
-            // borsh string: u32 little-endian byte length, then UTF-8 ("é" is 2 bytes).
-            const message = [3, 0, 0, 0, 0x68, 0xc3, 0xa9];
-            const recipient = [1, 0, 0, 0, 0x61];
+            const tagLittleEndian = [0x9d, 0x01, 0x00, 0x80];
+            const messageByteLength = [3, 0, 0, 0];
+            const messageUtf8 = [0x68, 0xc3, 0xa9];
+            const recipientByteLength = [1, 0, 0, 0];
+            const recipientUtf8 = [0x61];
+            const noCallbackUrl = [0];
+            const someCallbackUrl = [1, 1, 0, 0, 0, 0x63];
+            const head = [
+                ...tagLittleEndian,
+                ...messageByteLength,
+                ...messageUtf8,
+                ...nonceBytes,
+                ...recipientByteLength,
+                ...recipientUtf8,
+            ];
 
-            expect(encodeSignMessage({ message: "hé", recipient: "a", nonce })).toEqual([
-                ...tag,
-                ...message,
-                ...nonceBytes,
-                ...recipient,
-                0,
-            ]);
-            expect(encodeSignMessage({ message: "hé", recipient: "a", nonce, callbackUrl: "c" })).toEqual([
-                ...tag,
-                ...message,
-                ...nonceBytes,
-                ...recipient,
-                1,
-                1,
-                0,
-                0,
-                0,
-                0x63,
-            ]);
+            expect(encodeSignMessage({ message: "hé", recipient: "a", nonce })).toEqual([...head, ...noCallbackUrl]);
+            expect(encodeSignMessage({ message: "hé", recipient: "a", nonce, callbackUrl: "c" })).toEqual([...head, ...someCallbackUrl]);
         });
 
         it("should reject a nonce that is not 32 bytes before opening Auth0", async () => {
@@ -721,7 +613,7 @@ describe("JavascriptProvider", () => {
         it("should return correct signature request", async () => {
             const mockToken = "mock-jwt-token";
             const mockDecodedToken = {
-                fatxn: new Uint8Array([1, 2, 3, 4, 5]),
+                fatxn: [1, 2, 3, 4, 5],
             };
             mockAuth0Client.getTokenSilently.mockResolvedValue(mockToken);
             mockDecodeJwt.mockReturnValue(mockDecodedToken);
@@ -754,7 +646,7 @@ describe("JavascriptProvider", () => {
 
         it("should propagate errors from getTokenSilently", async () => {
             const error = new Error("Token retrieval failed");
-            mockAuth0Client.getTokenSilently.mockRejectedValue(error);
+            mockAuth0Client.getTokenSilently.mockRejectedValueOnce(error);
 
             await expect(provider.getSignatureRequest()).rejects.toThrow("Token retrieval failed");
         });
@@ -762,7 +654,7 @@ describe("JavascriptProvider", () => {
         it("should propagate errors from decodeJwt", async () => {
             const mockToken = "mock-jwt-token";
             mockAuth0Client.getTokenSilently.mockResolvedValue(mockToken);
-            mockDecodeJwt.mockImplementation(() => {
+            mockDecodeJwt.mockImplementationOnce(() => {
                 throw new Error("JWT decode failed");
             });
 

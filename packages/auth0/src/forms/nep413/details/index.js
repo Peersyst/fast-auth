@@ -24,7 +24,6 @@ function AuthorizeAppMessageDetails(context) {
             messageLabel.textContent = "Message";
             messageContainer.appendChild(messageLabel);
 
-            // textContent, never innerHTML: the message is attacker-controlled by the requesting app.
             const messageBody = document.createElement("pre");
             messageBody.classList.add("message-body");
             messageBody.textContent = params.message;

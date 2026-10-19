@@ -1,18 +1,13 @@
 import { Auth0Client, LogoutOptions } from "@auth0/auth0-spa-js";
 import {
     JavascriptProviderOptions,
-    JavascriptBaseRequestDelegateActionSignatureOptions,
-    JavascriptRequestTransactionSignatureWithPopupOptions,
-    JavascriptRequestTransactionSignatureWithRedirectOptions,
+    JavascriptRequestDelegateActionSignatureOptions,
+    JavascriptRequestSignatureLoginOptions,
     JavascriptRequestTransactionSignatureOptions,
-    JavascriptRequestDelegateActionSignatureWithRedirectOptions,
-    JavascriptRequestDelegateActionSignatureWithPopupOptions,
     JavascriptLoginOptions,
     JavascriptLoginWithRedirectOptions,
     JavascriptLoginWithPopupOptions,
     JavascriptRequestMessageSignatureOptions,
-    JavascriptRequestMessageSignatureWithRedirectOptions,
-    JavascriptRequestMessageSignatureWithPopupOptions,
 } from "./types";
 import {
     encodeSignMessage,
@@ -28,6 +23,8 @@ import {
 import { encodeDelegateAction, encodeTransaction } from "./utils";
 import jwt_decode from "jwt-decode";
 import { JavascriptProviderError, JavascriptProviderErrorCodes } from "./errors";
+
+type SignaturePayload = { transaction: number[] } | { delegateAction: number[] } | { nep413: number[] };
 
 export class JavascriptProvider implements IFastAuthProvider {
     private readonly options: JavascriptProviderOptions & {
@@ -163,51 +160,32 @@ export class JavascriptProvider implements IFastAuthProvider {
      * @returns The path for the user.
      */
     async getPath(): Promise<string> {
-        const claims = await this.client.getIdTokenClaims();
-        const sub = (claims as { sub?: string } | undefined)?.sub;
-        if (!sub) {
-            throw new JavascriptProviderError(JavascriptProviderErrorCodes.USER_NOT_LOGGED_IN);
+        const { userId } = await this.getUserId();
+        return `jwt#https://${this.options.domain}/#${userId}`;
+    }
+
+    /**
+     * Open Auth0 to sign the given payload, by redirect when a redirect URI is set and by popup otherwise.
+     * @param options The redirect URI and the Auth0 login options.
+     * @param payload The encoded authorization parameters that describe what to sign.
+     * @returns The authenticated user.
+     */
+    private async requestSignature(options: JavascriptRequestSignatureLoginOptions, payload: SignaturePayload): Promise<User> {
+        const { redirectUri, ...opts } = options;
+        const authorizationParams = {
+            audience: this.options.signingAudience,
+            scope: "transaction:sign",
+            ...payload,
+        };
+        if (redirectUri) {
+            await this.client.loginWithRedirect({
+                authorizationParams: { ...authorizationParams, redirect_uri: redirectUri },
+                ...opts,
+            });
+        } else {
+            await this.client.loginWithPopup({ authorizationParams, ...opts });
         }
-        return `jwt#https://${this.options.domain}/#${sub}`;
-    }
-
-    /**
-     * Request a transaction signature with redirect.
-     * @param requestSignatureOptions The options for the request transaction signature with redirect.
-     * @returns The void.
-     */
-    private async requestTransactionSignatureWithRedirect(
-        requestSignatureOptions: JavascriptRequestTransactionSignatureWithRedirectOptions,
-    ): Promise<void> {
-        const { redirectUri, transaction, ...opts } = requestSignatureOptions;
-        await this.client.loginWithRedirect({
-            authorizationParams: {
-                audience: this.options.signingAudience,
-                scope: "transaction:sign",
-                transaction: encodeTransaction(transaction),
-                redirect_uri: redirectUri,
-            },
-            ...opts,
-        });
-    }
-
-    /**
-     * Request a transaction signature with popup.
-     * @param requestSignatureOptions The options for the request transaction signature with popup.
-     * @returns The void.
-     */
-    private async requestTransactionSignatureWithPopup(
-        requestSignatureOptions: JavascriptRequestTransactionSignatureWithPopupOptions,
-    ): Promise<void> {
-        const { transaction, ...opts } = requestSignatureOptions;
-        await this.client.loginWithPopup({
-            authorizationParams: {
-                audience: this.options.signingAudience,
-                scope: "transaction:sign",
-                transaction: encodeTransaction(transaction),
-            },
-            ...opts,
-        });
+        return this.getUserId();
     }
 
     /**
@@ -218,51 +196,8 @@ export class JavascriptProvider implements IFastAuthProvider {
     async requestTransactionSignature(
         requestSignatureOptions: JavascriptRequestTransactionSignatureOptions,
     ): Promise<RequestTransactionSignatureResponse> {
-        if (requestSignatureOptions.redirectUri) {
-            await this.requestTransactionSignatureWithRedirect(requestSignatureOptions);
-        } else {
-            await this.requestTransactionSignatureWithPopup(requestSignatureOptions);
-        }
-        return await this.getUserId();
-    }
-
-    /**
-     * Request a delegate action signature with redirect.
-     * @param requestSignatureOptions The options for the request delegate action signature with redirect.
-     * @returns The void.
-     */
-    private async requestDelegateActionSignatureWithRedirect(
-        requestSignatureOptions: JavascriptRequestDelegateActionSignatureWithRedirectOptions,
-    ): Promise<void> {
-        const { redirectUri, delegateAction, ...opts } = requestSignatureOptions;
-        await this.client.loginWithRedirect({
-            authorizationParams: {
-                audience: this.options.signingAudience,
-                scope: "transaction:sign",
-                redirect_uri: redirectUri,
-                delegateAction: encodeDelegateAction(delegateAction),
-            },
-            ...opts,
-        });
-    }
-
-    /**
-     * Request a delegate action signature with popup.
-     * @param requestSignatureOptions The options for the request delegate action signature with popup.
-     * @returns The void.
-     */
-    private async requestDelegateActionSignatureWithPopup(
-        requestSignatureOptions: JavascriptRequestDelegateActionSignatureWithPopupOptions,
-    ): Promise<void> {
-        const { delegateAction, ...opts } = requestSignatureOptions;
-        await this.client.loginWithPopup({
-            authorizationParams: {
-                audience: this.options.signingAudience,
-                scope: "transaction:sign",
-                delegateAction: encodeDelegateAction(delegateAction),
-            },
-            ...opts,
-        });
+        const { transaction, ...opts } = requestSignatureOptions;
+        return this.requestSignature(opts, { transaction: encodeTransaction(transaction) });
     }
 
     /**
@@ -271,53 +206,10 @@ export class JavascriptProvider implements IFastAuthProvider {
      * @returns The void.
      */
     async requestDelegateActionSignature(
-        options: JavascriptBaseRequestDelegateActionSignatureOptions,
+        options: JavascriptRequestDelegateActionSignatureOptions,
     ): Promise<RequestDelegateActionSignatureResponse> {
-        if (options.redirectUri) {
-            await this.requestDelegateActionSignatureWithRedirect(options);
-        } else {
-            await this.requestDelegateActionSignatureWithPopup(options);
-        }
-        return this.getUserId();
-    }
-
-    /**
-     * Request a NEP-413 message signature with redirect.
-     * @param requestSignatureOptions The options for the request message signature with redirect.
-     * @returns The void.
-     */
-    private async requestMessageSignatureWithRedirect(
-        requestSignatureOptions: JavascriptRequestMessageSignatureWithRedirectOptions,
-    ): Promise<void> {
-        const { redirectUri, message, recipient, nonce, callbackUrl, ...opts } = requestSignatureOptions;
-        await this.client.loginWithRedirect({
-            authorizationParams: {
-                audience: this.options.signingAudience,
-                scope: "transaction:sign",
-                redirect_uri: redirectUri,
-                nep413: encodeSignMessage({ message, recipient, nonce, callbackUrl }),
-            },
-            ...opts,
-        });
-    }
-
-    /**
-     * Request a NEP-413 message signature with popup.
-     * @param requestSignatureOptions The options for the request message signature with popup.
-     * @returns The void.
-     */
-    private async requestMessageSignatureWithPopup(
-        requestSignatureOptions: JavascriptRequestMessageSignatureWithPopupOptions,
-    ): Promise<void> {
-        const { message, recipient, nonce, callbackUrl, ...opts } = requestSignatureOptions;
-        await this.client.loginWithPopup({
-            authorizationParams: {
-                audience: this.options.signingAudience,
-                scope: "transaction:sign",
-                nep413: encodeSignMessage({ message, recipient, nonce, callbackUrl }),
-            },
-            ...opts,
-        });
+        const { delegateAction, ...opts } = options;
+        return this.requestSignature(opts, { delegateAction: encodeDelegateAction(delegateAction) });
     }
 
     /**
@@ -326,12 +218,8 @@ export class JavascriptProvider implements IFastAuthProvider {
      * @returns The authenticated user.
      */
     async requestMessageSignature(options: JavascriptRequestMessageSignatureOptions): Promise<RequestMessageSignatureResponse> {
-        if (options.redirectUri) {
-            await this.requestMessageSignatureWithRedirect(options);
-        } else {
-            await this.requestMessageSignatureWithPopup(options);
-        }
-        return this.getUserId();
+        const { message, recipient, nonce, callbackUrl, ...opts } = options;
+        return this.requestSignature(opts, { nep413: encodeSignMessage({ message, recipient, nonce, callbackUrl }) });
     }
 
     /**

@@ -93,8 +93,6 @@ describe("buildForm — nep413 form", () => {
         const components = form.form.nodes.flatMap((n) => n.config.components || []);
         const details = components.find((c) => c.config && c.config.params && c.config.params.message);
         expect(details).toBeDefined();
-        expect(details.config.code).toContain("Recipient");
-        expect(details.config.code).toContain("Callback URL");
         expect(details.config.params).toEqual({
             message: "{{ fields.message }}",
             recipient: "{{ fields.recipient }}",

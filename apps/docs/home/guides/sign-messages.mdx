@@ -18,7 +18,7 @@ Message signing works with the [Browser SDK](/sdks/browser-sdk) and the [JavaScr
 
 ## Sign a message (Browser SDK)
 
-Get the `nonce` from your backend (see [Security notes](#security-notes)). The Browser SDK exposes the same request and retrieve steps as signing a transaction, and you still submit the `sign` call yourself, but there's no signed transaction to broadcast afterward: the call's **return value is the final signature**.
+Get the `nonce` from your backend (see [Security notes](#security-notes)). The Browser SDK exposes the same request and retrieve steps as signing a transaction, and you still submit the `sign` call yourself. There's no signed transaction to broadcast afterward, because the call's **return value is the final signature**.
 
 ```ts
 import { FastAuthSignature } from "@fast-auth-near/browser-sdk";
@@ -55,7 +55,7 @@ const signedMessage = {
 };
 ```
 
-`requestMessageSignature` throws `NEP-413 nonce must be 32 bytes, got …` before opening Auth0 if the nonce isn't 32 bytes. If MPC signing fails, `SuccessValue` decodes to `null` and `recover` throws.
+`requestMessageSignature` rejects with `NEP-413 nonce must be 32 bytes, got …` before opening Auth0 if the nonce isn't 32 bytes. If MPC signing fails, `SuccessValue` decodes to `null` and `recover` throws a `TypeError`.
 
 Keep messages under about 1 KB. The approved payload travels inside the signing JWT as a list of decimal byte values, and the [Auth0 Guard](/protocol/contracts/auth0-guard) rejects JWTs over 7168 bytes (7 KB). Auth0 still lets the user approve a larger message, but the `sign` call then returns no signature.
 
@@ -75,7 +75,7 @@ Your backend can't trust what the client sends, so it must independently verify 
     Ed25519-verify the `signature` against that hash, using the `publicKey` the client sent in the same `SignedMessage`.
   </Step>
   <Step title="Verify account ownership">
-    Confirm the `publicKey` is a **full-access key** of `accountId` (NEP-413 requires this): a `view_access_key` RPC query must return the key with `FullAccess` permission.
+    Confirm the `publicKey` is a **full-access key** of `accountId`, as NEP-413 requires. A `view_access_key` RPC query must return the key with `FullAccess` permission.
 
     New NEAR Auth users often sign with an implicit account (a 64-character hex `accountId`) that isn't funded yet, so it doesn't exist on-chain and `view_access_key` fails. **Only while the account doesn't exist**, accept an `accountId` that is the hex encoding of the ed25519 public key's 32 bytes. Treat the account as nonexistent only when a `view_account` query returns an `UNKNOWN_ACCOUNT` error, not when the query fails for any other reason. Once the account exists, keys can be added to or removed from it like any other account, so require the `view_access_key` check.
   </Step>

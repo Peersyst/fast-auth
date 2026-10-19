@@ -260,7 +260,7 @@ requestMessageSignature(
 | --- | --- | --- |
 | `message` | `string` | The message the user is asked to sign. |
 | `recipient` | `string` | The recipient the message is addressed to, e.g. `"myapp.com"`. |
-| `nonce` | `Uint8Array` | A 32-byte nonce chosen by the app to prevent replays. Throws if it isn't exactly 32 bytes. |
+| `nonce` | `Uint8Array` | A 32-byte nonce chosen by the app to prevent replays. Rejects if it isn't exactly 32 bytes. |
 | `callbackUrl` | `string` (optional) | Callback URL from NEP-413. It is only signed data: NEAR Auth never calls it. |
 | `redirectUri` | `string` (optional) | Present → redirect flow. Absent → popup flow. |
 | (other keys) | `RedirectLoginOptions` / `PopupLoginOptions` | Any other `@auth0/auth0-spa-js` login option except `authorizationParams`. |

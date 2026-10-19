@@ -114,7 +114,6 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
         if (!this.fastAuthProvider.requestMessageSignature) {
             throw new FastAuthSignerError(FastAuthSignerErrorCodes.UNSUPPORTED_MESSAGE_SIGNATURE);
         }
-        // Call the fast auth provider to request a message signature.
         return await this.fastAuthProvider.requestMessageSignature(...args);
     }
 

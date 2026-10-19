@@ -2,17 +2,8 @@ const { Transaction } = require("@near-js/transactions");
 // borsh must be 2.x: 1.x decodes strings byte by byte, which garbles non-ASCII text on the consent screen.
 const { deserialize, serialize } = require("borsh");
 
-// KEYS
-
-const TRANSACTION_KEY = "transaction";
-const DELEGATE_ACTION_KEY = "delegateAction";
-const NEP413_KEY = "nep413";
-
-/** NEP-413 prefix tag: 2^31 + 413. */
-const NEP413_TAG = 2147484061;
-
-/** NEP-366 delegate action prefix: 2^30 + 366. */
-const DELEGATE_ACTION_PREFIX = 1073742190;
+const NEP413_TAG = 2 ** 31 + 413;
+const DELEGATE_ACTION_PREFIX = 2 ** 30 + 366;
 
 // SCHEMA definitions
 const SCHEMA = new (class BorshSchema {
@@ -198,20 +189,12 @@ const SCHEMA = new (class BorshSchema {
 
 // UTILS
 
-function parseTransaction(txString) {
-    return Transaction.decode(Uint8Array.from(txString.split(",").map((value) => Number(value))));
+function parseTransaction(values) {
+    return Transaction.decode(Uint8Array.from(values));
 }
 
-function parseSignMessage(encodedMessage) {
-    const values = encodedMessage.split(",").map((value) => Number(value));
+function parseSignMessage(values) {
     const payload = deserialize(SCHEMA.SignMessagePayload, Uint8Array.from(values));
-
-    // Re-serializing must give back exactly these values: rejects trailing bytes, non-byte values and malformed UTF-8.
-    const canonical = new Uint8Array(serialize(SCHEMA.SignMessagePayload, payload));
-    if (canonical.length !== values.length || canonical.some((byte, i) => byte !== values[i])) {
-        throw new Error("Message payload is not canonical borsh");
-    }
-
     if (payload.tag !== NEP413_TAG) {
         throw new Error("Payload is not a NEP-413 message");
     }
@@ -219,8 +202,8 @@ function parseSignMessage(encodedMessage) {
     return payload;
 }
 
-function decodeDelegateAction(encodedDelegateAction) {
-    encodedDelegateAction = Uint8Array.from(encodedDelegateAction.split(",").map((value) => Number(value)));
+function decodeDelegateAction(values) {
+    const encodedDelegateAction = Uint8Array.from(values);
     // Create a view of the data for parsing
     let offset = 0;
 
@@ -230,7 +213,6 @@ function decodeDelegateAction(encodedDelegateAction) {
     const prefix = deserialize(SCHEMA.DelegateActionPrefix, prefixBytes);
     offset += 4;
 
-    // Only the NEP-366 prefix marks a delegate action; anything else, such as a NEP-413 message, is refused.
     if (prefix.prefix !== DELEGATE_ACTION_PREFIX) {
         throw new Error("Payload is not a delegate action");
     }
@@ -255,6 +237,46 @@ function stringifyActions(actions) {
     );
 }
 
+const SIGNING_REQUESTS = [
+    {
+        key: "nep413",
+        formSecret: "NEP413_FORM",
+        decode: parseSignMessage,
+        encode: (message) => serialize(SCHEMA.SignMessagePayload, message),
+        toFields: (message) => ({
+            message: message.message,
+            recipient: message.recipient,
+            callbackUrl: message.callbackUrl ?? "",
+        }),
+    },
+    {
+        key: "transaction",
+        formSecret: "TRANSACTION_FORM",
+        decode: parseTransaction,
+        encode: (transaction) => transaction.encode(),
+        toFields: (transaction) => ({
+            receiverId: transaction.receiverId,
+            signerId: transaction.signerId,
+            actions: stringifyActions(transaction.actions),
+        }),
+    },
+    {
+        key: "delegateAction",
+        formSecret: "DELEGATE_ACTION_FORM",
+        decode: decodeDelegateAction,
+        encode: (delegateAction) => [
+            ...serialize(SCHEMA.DelegateActionPrefix, { prefix: DELEGATE_ACTION_PREFIX }),
+            ...serialize(SCHEMA.DelegateAction, delegateAction),
+        ],
+        toFields: (delegateAction) => ({
+            receiverId: delegateAction.receiverId,
+            senderId: delegateAction.senderId,
+            maxBlockHeight: delegateAction.maxBlockHeight.toString(),
+            actions: stringifyActions(delegateAction.actions),
+        }),
+    },
+];
+
 // HANDLERS
 
 /**
@@ -267,16 +289,13 @@ exports.onExecutePostLogin = async (event, api) => {
     const onchainAudience = event.secrets.ONCHAIN_AUDIENCE;
     const query = event.request.query;
     const isOnchainAudience = event.resource_server?.identifier === onchainAudience;
-    const hasTxParams = TRANSACTION_KEY in query;
-    const hasDelegateParams = DELEGATE_ACTION_KEY in query;
-    const hasNep413Params = NEP413_KEY in query;
-    const hasSigningPayload = hasTxParams || hasDelegateParams || hasNep413Params;
+    const request = SIGNING_REQUESTS.find(({ key }) => key in query);
 
-    if (isOnchainAudience && !hasSigningPayload) {
-        return api.access.deny("Signing audience requested without transaction payload");
+    if (isOnchainAudience && !request) {
+        return api.access.deny("Signing audience requested without signing payload");
     }
-    if (!isOnchainAudience && hasSigningPayload) {
-        return api.access.deny("Transaction payload only allowed with signing audience");
+    if (!isOnchainAudience && request) {
+        return api.access.deny("Signing payload only allowed with signing audience");
     }
     if (!isOnchainAudience) return;
 
@@ -306,65 +325,34 @@ exports.onExecutePostLogin = async (event, api) => {
         name: event.client.name,
     };
 
-    if (hasNep413Params) {
-        let signMessage;
-        try {
-            signMessage = parseSignMessage(query.nep413);
-        } catch (_) {
-            return api.access.deny("Invalid NEP-413 payload");
-        }
+    let values;
+    let decoded;
+    try {
+        values = query[request.key].split(",").map(Number);
+        decoded = request.decode(values);
 
-        // Without a form ID the message would still be put in the signing token, never shown.
-        if (!event.secrets.NEP413_FORM) {
-            return api.access.deny("NEP-413 consent form is not configured");
+        // Re-encoding must give back exactly these values, so the claim carries the bytes the consent screen decoded.
+        // That rejects trailing bytes and non-byte values for every kind, and malformed UTF-8 for the borsh 2.x schemas.
+        const canonical = request.encode(decoded);
+        if (canonical.length !== values.length || canonical.some((byte, i) => byte !== values[i])) {
+            throw new Error("Signing payload is not canonical borsh");
         }
-
-        api.prompt.render(event.secrets.NEP413_FORM, {
-            fields: {
-                ...branding,
-                message: signMessage.message,
-                recipient: signMessage.recipient,
-                callbackUrl: signMessage.callbackUrl ?? "",
-            },
-        });
-        api.accessToken.setCustomClaim(
-            "fatxn",
-            query.nep413.split(",").map((value) => Number(value)),
-        );
-    } else if (hasTxParams) {
-        const transaction = parseTransaction(query.transaction);
-        api.prompt.render(event.secrets.TRANSACTION_FORM, {
-            fields: {
-                ...branding,
-                receiverId: transaction.receiverId,
-                signerId: transaction.signerId,
-                actions: stringifyActions(transaction.actions),
-            },
-        });
-        api.accessToken.setCustomClaim(
-            "fatxn",
-            query.transaction.split(",").map((value) => Number(value)),
-        );
-    } else {
-        const delegateAction = decodeDelegateAction(query.delegateAction);
-        api.prompt.render(event.secrets.DELEGATE_ACTION_FORM, {
-            fields: {
-                ...branding,
-                receiverId: delegateAction.receiverId,
-                senderId: delegateAction.senderId,
-                maxBlockHeight: delegateAction.maxBlockHeight.toString(),
-                actions: stringifyActions(delegateAction.actions),
-            },
-        });
-        api.accessToken.setCustomClaim(
-            "fatxn",
-            query.delegateAction.split(",").map((value) => Number(value)),
-        );
+    } catch (_) {
+        return api.access.deny("Invalid signing payload");
     }
+
+    const formId = event.secrets[request.formSecret];
+    if (!formId) {
+        return api.access.deny("Consent form is not configured");
+    }
+
+    api.prompt.render(formId, { fields: { ...branding, ...request.toFields(decoded) } });
+    api.accessToken.setCustomClaim("fatxn", values);
 };
 
 /**
- * Handler invoked when this action resumes after the consent form; it denies unless the form recorded an approval.
+ * Handler invoked when this action resumes after the consent form; it denies unless the form recorded an approval,
+ * because onExecutePostLogin set the claim before the form rendered.
  *
  * @param {Event} event - Details about the user and the context in which they are logging in.
  * @param {PostLoginAPI} api - Interface whose methods can be used to change the behavior of the login.
@@ -372,7 +360,6 @@ exports.onExecutePostLogin = async (event, api) => {
 exports.onContinuePostLogin = async (event, api) => {
     // The decision form (see shared/decision) writes the user's choice into the `decision`
     // hidden field, which the runtime surfaces here as event.prompt.fields.decision.
-    // Only an explicit "approved" resumes: the claim is already set by the time the form renders.
     const decision = event.prompt?.fields?.decision;
     if (decision === "denied") {
         return api.access.deny("User rejected the signing request");

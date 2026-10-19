@@ -52,14 +52,7 @@ export type JavascriptRequestDelegateActionSignatureOptions =
     | JavascriptRequestDelegateActionSignatureWithRedirectOptions
     | JavascriptRequestDelegateActionSignatureWithPopupOptions;
 
-export type JavascriptBaseRequestMessageSignatureOptions = JavascriptBaseRequestSignatureOptions & SignMessageParams;
+export type JavascriptRequestSignatureLoginOptions = JavascriptBaseRequestSignatureOptions &
+    (Omit<RedirectLoginOptions, "authorizationParams"> | Omit<PopupLoginOptions, "authorizationParams">);
 
-export type JavascriptRequestMessageSignatureWithRedirectOptions = JavascriptBaseRequestMessageSignatureOptions &
-    Omit<RedirectLoginOptions, "authorizationParams">;
-
-export type JavascriptRequestMessageSignatureWithPopupOptions = JavascriptBaseRequestMessageSignatureOptions &
-    Omit<PopupLoginOptions, "authorizationParams">;
-
-export type JavascriptRequestMessageSignatureOptions =
-    | JavascriptRequestMessageSignatureWithRedirectOptions
-    | JavascriptRequestMessageSignatureWithPopupOptions;
+export type JavascriptRequestMessageSignatureOptions = JavascriptRequestSignatureLoginOptions & SignMessageParams;
