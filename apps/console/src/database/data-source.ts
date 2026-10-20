@@ -15,7 +15,7 @@ export function dataSourceOptions(config: ConsoleConfig): DataSourceOptions {
         poolSize: database.poolSize,
         connectTimeoutMS: 5_000,
         extra: { options: `-c lock_timeout=${database.lockTimeoutMs}` },
-        // Makes uuid columns default to gen_random_uuid().
+        // Makes generated uuid columns default to gen_random_uuid().
         uuidExtension: "pgcrypto",
         entities: [],
         migrations: [join(__dirname, "migrations", "*.{ts,js}")],

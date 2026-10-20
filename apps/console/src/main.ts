@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import { createServer } from "node:http";
@@ -9,6 +10,7 @@ import { configureApp } from "./configure-app";
 import { runMigrations } from "./database/migrate";
 
 const METRICS_PORT = 9464;
+const logger = new Logger("Metrics");
 
 function startMetricsServer(environment: ConfigEnv): void {
     collectDefaultMetrics();
@@ -23,6 +25,7 @@ function startMetricsServer(environment: ConfigEnv): void {
             () => res.writeHead(500).end(),
         );
     })
+        .on("error", (error) => logger.error(`Metrics server is down: ${error.message}`, error.stack))
         .listen(METRICS_PORT)
         .unref();
 }

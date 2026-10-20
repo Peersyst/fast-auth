@@ -12,9 +12,10 @@ export function requestLogger(req: Request, res: Response<unknown, RequestLocals
     const requestId = randomUUID();
     res.locals.requestId = requestId;
     res.setHeader("X-Request-Id", requestId);
-    res.on("finish", () => {
+    res.on("close", () => {
         const durationMs = Number(process.hrtime.bigint() - start) / 1e6;
-        logger.log(`${method} ${path} ${res.statusCode} ${durationMs.toFixed(1)}ms ${requestId}`);
+        const status = res.writableFinished ? res.statusCode : "aborted";
+        logger.log(`${method} ${path} ${status} ${durationMs.toFixed(1)}ms ${requestId}`);
     });
     next();
 }

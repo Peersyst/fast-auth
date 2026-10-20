@@ -102,6 +102,10 @@ describe("loadConfig", () => {
         expect(message).not.toContain("betanet");
     });
 
+    it("treats a value of only spaces as missing", () => {
+        expect(loadError({ ...VALID_ENV, AUTH0_CONSOLE_CLIENT_ID: "   " })).toContain("AUTH0_CONSOLE_CLIENT_ID: missing or empty");
+    });
+
     it("requires the M2M and template keys only with the management provisioner", () => {
         const message = loadError({ ...VALID_ENV, AUTH0_PROVISIONER: "management" });
 
@@ -149,6 +153,8 @@ describe("loadConfig", () => {
         ["a path", "https://console.example.com/console"],
         ["a query", "https://console.example.com?x=1"],
         ["a fragment", "https://console.example.com/#top"],
+        ["credentials", "https://user:pass@console.example.com"],
+        ["empty credentials", "https://@console.example.com"],
     ])("refuses a PUBLIC_URL with %s, naming the key", (_shape, url) => {
         expect(loadError({ ...VALID_ENV, PUBLIC_URL: url })).toContain("PUBLIC_URL: must be an http or https origin");
     });

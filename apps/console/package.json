@@ -16,9 +16,10 @@
         "test:e2e": "jest --config jest.e2e.config.js --runInBand",
         "lint": "eslint .",
         "check-types": "tsc --noEmit",
-        "spec": "nest build && node -r dotenv/config dist/scripts/spec.js dotenv_config_path=.env.test",
-        "migration:generate": "nest build && DOTENV_CONFIG_PATH=.env.test node -r dotenv/config ./node_modules/typeorm/cli.js migration:generate -d dist/database/cli-data-source.js",
-        "migration:check": "pnpm migration:generate --check src/database/migrations/Drift"
+        "spec": "nest build && node -r dotenv/config dist/scripts/spec.js dotenv_config_path=.env.test dotenv_config_override=true",
+        "typeorm:e2e": "DOTENV_CONFIG_PATH=.env.test DOTENV_CONFIG_OVERRIDE=true node -r dotenv/config ./node_modules/typeorm/cli.js",
+        "migration:generate": "nest build && pnpm typeorm:e2e migration:generate -d dist/database/cli-data-source.js",
+        "migration:check": "nest build && pnpm typeorm:e2e schema:drop -d dist/database/cli-data-source.js && pnpm typeorm:e2e migration:run -d dist/database/cli-data-source.js && pnpm typeorm:e2e migration:generate --check -d dist/database/cli-data-source.js src/database/migrations/Drift"
     },
     "dependencies": {
         "@nestjs/common": "^10.4.20",

@@ -1,4 +1,5 @@
 import { BadRequestException, HttpException, Logger, NotFoundException, ParseUUIDPipe } from "@nestjs/common";
+import { error as OpenApiError } from "express-openapi-validator";
 import { ConsoleException } from "./console.exception";
 import { ConsoleExceptionFilter } from "./console-exception.filter";
 import { validationExceptionFactory } from "./validation-exception.factory";
@@ -29,16 +30,48 @@ describe("ConsoleExceptionFilter", () => {
     });
 
     it.each([
-        [400, "VALIDATION_FAILED"],
-        [404, "NOT_FOUND"],
-        [405, "VALIDATION_FAILED"],
-        [406, "VALIDATION_FAILED"],
-        [413, "VALIDATION_FAILED"],
-        [415, "VALIDATION_FAILED"],
-    ])("maps an OpenAPI validator error with status %i to %s, keeping the status", (status, code) => {
-        const validatorError = Object.assign(new Error("request/body must have required property 'name'"), { status, errors: [] });
+        [400, "VALIDATION_FAILED", "The request is invalid."],
+        [404, "NOT_FOUND", "Not found."],
+        [405, "VALIDATION_FAILED", "The request is invalid."],
+        [406, "VALIDATION_FAILED", "The request is invalid."],
+        [413, "VALIDATION_FAILED", "The request is invalid."],
+        [415, "VALIDATION_FAILED", "The request is invalid."],
+    ])("maps an error carrying status %i to %s with the code's own message, keeping the status", (status, code, message) => {
+        const error = Object.assign(new Error(`Unexpected token 'a', "{"secretToken": abc}" is not valid JSON`), { status });
 
-        expect(toBody(validatorError)).toEqual({ statusCode: status, code, message: "request/body must have required property 'name'" });
+        expect(toBody(error)).toEqual({ statusCode: status, code, message });
+    });
+
+    it("turns the OpenAPI validator's 400 errors into details", () => {
+        const validatorError = new OpenApiError.BadRequest({
+            path: "/body/autoApproval/enabled",
+            message: "request/body/autoApproval/enabled must be boolean",
+            errors: [
+                { path: "/body/autoApproval/enabled", message: "must be boolean", errorCode: "type.openapi.validation" },
+                { path: "/body", message: "must be object", errorCode: "type.openapi.validation" },
+                { path: "/query/foo", message: "Unknown query parameter 'foo'" },
+            ],
+        });
+
+        expect(toBody(validatorError)).toEqual({
+            statusCode: 400,
+            code: "VALIDATION_FAILED",
+            message: "The request is invalid.",
+            details: [
+                { field: "autoApproval.enabled", constraint: "type" },
+                { field: "body", constraint: "type" },
+                { field: "foo", constraint: "invalid" },
+            ],
+        });
+    });
+
+    it.each([
+        ["a malformed URI", "/dapps/%E0%A4%A"],
+        ["a dotted query path", ".query.limit"],
+    ])("leaves details out for a validator error on %s, which names no field", (_case, path) => {
+        const validatorError = new OpenApiError.BadRequest({ path, message: "request is malformed" });
+
+        expect(toBody(validatorError)).toEqual({ statusCode: 400, code: "VALIDATION_FAILED", message: "The request is invalid." });
     });
 
     it("maps Nest HttpExceptions by status", async () => {
@@ -49,7 +82,7 @@ describe("ConsoleExceptionFilter", () => {
         expect(toBody(new BadRequestException())).toMatchObject({ statusCode: 400, code: "VALIDATION_FAILED" });
     });
 
-    it.each([503, 418])("turns an HttpException with status %i, which has no console code, into INTERNAL", (status) => {
+    it.each([503, 418])("turns an HttpException with status %i, which the status table does not map, into INTERNAL", (status) => {
         expect(toBody(new HttpException("Service Unavailable", status))).toEqual({
             statusCode: 500,
             code: "INTERNAL",
