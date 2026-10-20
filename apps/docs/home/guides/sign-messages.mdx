@@ -4,14 +4,14 @@ description: "Ask a user to sign an off-chain NEP-413 message to prove account o
 icon: "signature"
 ---
 
-Besides transactions and delegate actions, your app can ask a user to sign an off-chain **[NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message** — the same NEAR standard that wallets use for "sign in with NEAR" flows. The user approves the message through Auth0 just as they would a transaction, and the [Multi-Party Computation network](/protocol/concepts/mpc) returns a signature over the SHA-256 hash of the encoded message instead of over a transaction hash. The signature comes from a `sign` call to the [NEAR Auth contract](/protocol/contracts/fast-auth), and that call is the only transaction your app sends (see [Security notes](#security-notes)).
+Besides transactions and delegate actions, your app can ask a user to sign an off-chain **[NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message**, the same NEAR standard that wallets use for "sign in with NEAR" flows. The user approves the message through Auth0 just as they would a transaction, and the [Multi-Party Computation network](/protocol/concepts/mpc) returns a signature over the SHA-256 hash of the encoded message instead of over a transaction hash. The signature comes from a `sign` call to the [NEAR Auth contract](/protocol/contracts/fast-auth), and that call is the only transaction your app sends (see [Security notes](#security-notes)).
 
-Use message signing whenever you need to **prove a user controls a NEAR account** without that account sending a transaction — for example, to log the user in to your backend, link an account, or authorize an off-chain action.
+Use message signing when you need to **prove a user controls a NEAR account** without that account sending a transaction. For example, use it to log the user in to your backend, link an account, or authorize an off-chain action.
 
 Message signing works with the [Browser SDK](/sdks/browser-sdk) and the [JavaScript provider](/sdks/javascript-provider). The React SDK and the React Native provider don't support it yet.
 
 <Tip>
-  This guide assumes you already have a `FastAuthSigner` — see [Get a signer](/home/guides/sign-transactions#get-a-signer) if you haven't obtained one yet.
+  This guide assumes you already have a `FastAuthSigner`. If you don't, see [Get a signer](/home/guides/sign-transactions#get-a-signer).
 </Tip>
 
 ---
@@ -40,8 +40,9 @@ const signAction = await signer.createSignAction(signatureRequest, {
 
 // 3. Add `signAction` to a transaction from any funded account (your
 //    backend or relayer) to the NEAR Auth contract. Read `successValue`
-//    from the outcome's `status.SuccessValue`: the MPC signature over the
-//    SHA-256 hash of the payload, or empty if the guard rejected the JWT.
+//    from the outcome's `status.SuccessValue`. It holds the MPC signature
+//    over the SHA-256 hash of the payload, or is empty if the guard
+//    rejected the JWT.
 if (!successValue) throw new Error("NEAR Auth did not sign the message");
 const signature = FastAuthSignature.fromBase64(successValue)
   .recover("ed25519");
@@ -63,7 +64,7 @@ Keep messages under about 1 KB. The approved payload travels inside the signing 
 
 ## Verify the signature on your backend
 
-Your backend can't trust what the client sends, so it must independently verify the `accountId`, `publicKey`, and `signature` of NEP-413's `SignedMessage`. Only accept a nonce your backend issued to the session making the request, and only once.
+Your backend can't trust what the client sends, so it must independently verify the `accountId`, `publicKey`, and `signature` of NEP-413's `SignedMessage`. Accept only a nonce your backend issued to the session making the request, and accept it only once.
 
 <Steps>
   <Step title="Re-encode the message">
@@ -72,7 +73,7 @@ Your backend can't trust what the client sends, so it must independently verify 
     In a Node.js backend, load the encoder with `require()`, because the packages' ES module builds don't load in plain Node.js. In an ES module, create `require` with `createRequire(import.meta.url)` from `node:module`.
   </Step>
   <Step title="Verify the signature">
-    Ed25519-verify the `signature` against that hash, using the `publicKey` the client sent in the same `SignedMessage`.
+    Verify the `signature` against that hash with Ed25519, using the `publicKey` the client sent in the same `SignedMessage`.
   </Step>
   <Step title="Verify account ownership">
     Confirm the `publicKey` is a **full-access key** of `accountId`, as NEP-413 requires. A `view_access_key` RPC query must return the key with `FullAccess` permission.
@@ -87,10 +88,10 @@ Your backend can't trust what the client sends, so it must independently verify 
 
 <CardGroup cols={2}>
   <Card title="The signature is public" icon="eye">
-    The `sign` call is an on-chain transaction: its arguments carry the message, recipient, and nonce, and its result is the signature. Anyone watching the chain can see the signature before your client sends it, so never treat it as a bearer credential on its own.
+    The `sign` call is an on-chain transaction. Its arguments carry the message, recipient, and nonce, and its result is the signature. Anyone watching the chain can see the signature before your client sends it, so never treat it as a bearer credential on its own.
   </Card>
   <Card title="Issue the nonce from your backend" icon="shuffle">
-    Generate 32 random bytes server-side, bind them to the user's session, and accept each nonce once. A signature then only counts for the session that requested it, even if someone copies it from the chain.
+    Generate 32 random bytes server-side, bind them to the user's session, and accept each nonce once. A signature then counts only for the session that requested it, even if someone copies it from the chain.
   </Card>
   <Card title="Check the recipient server-side" icon="shield-check">
     Re-encode the message with your own `recipient`, never one sent by the client. A message signed for another app then fails verification, so it can't be replayed against yours.
@@ -99,7 +100,7 @@ Your backend can't trust what the client sends, so it must independently verify 
     A NEP-413 signature proves key ownership, but whoever receives it decides what it allows, and some contracts accept one as permission to act for the user. NEAR Intents (`intents.near`), for example, can move a user's funds when it receives their signed message. The consent screen shows your app's name, the recipient, any callback URL, and the message as plain text, with a note that signing can authorize actions, including moving funds. It doesn't interpret what the message authorizes, so only ask users to sign what you would accept being used as authorization.
   </Card>
   <Card title="Check the callback URL" icon="link">
-    `callbackUrl` is only signed data: NEAR Auth never calls it. If your app uses it, verify it matches what you expect.
+    `callbackUrl` is only signed data. NEAR Auth never calls it. If your app uses it, verify it matches what you expect.
   </Card>
 </CardGroup>
 
@@ -115,7 +116,7 @@ Your backend can't trust what the client sends, so it must independently verify 
     How distributed key shares produce a signature without ever assembling a private key.
   </Card>
   <Card title="Core types" icon="scroll-text" href="/sdks/core" horizontal arrow>
-    `SignMessageParams`, `encodeSignMessage`, and the rest of the shared type surface.
+    `SignMessageParams`, `encodeSignMessage`, and the rest of the shared types.
   </Card>
   <Card title="Authenticate users" icon="log-in" href="/home/guides/authenticate-users" horizontal arrow>
     Log users in and manage sessions before requesting signatures.

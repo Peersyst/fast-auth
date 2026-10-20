@@ -31,7 +31,7 @@ For the individual building blocks, see [JWTs](/protocol/concepts/jwt), [Auth0](
   <Step title="MPC signs at `{guard_id}#{sub}`" icon="key-round">
     On successful verification, the guard returns the user's `sub`, and `FastAuth` constructs the derivation path `{guard_id}#{sub}` (for example `jwt#auth0#google-oauth2|123456789`). It SHA-256 hashes the `sign_payload` and forwards the request to the MPC network (`v1.signer` / `v1.signer-prod.testnet`), which collaboratively produces a signature from distributed key shares — no single party ever holds the full key. Derivation is deterministic, so the same identity always controls the same NEAR account.
   </Step>
-  <Step title="Signature is returned to the caller" icon="route">
+  <Step title="App uses the signature" icon="route">
     The signature is returned to the caller. Your app can broadcast the signed transaction directly, or hand it to a [relayer](/protocol/concepts/relayer) to submit it — optionally gasless via a delegate action, so users transact without holding NEAR. For a NEP-413 message, the returned signature is the result and nothing is broadcast.
   </Step>
 </Steps>

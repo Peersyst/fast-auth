@@ -56,7 +56,7 @@ Alongside the standard claims, NEAR Auth relies on one custom claim:
   The encoded transaction, delegate action, or [NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message the user is authorizing, embedded into the JWT at login-to-sign time.
 </ParamField>
 
-The `fatxn` claim is what binds a token to a specific action. When a user requests a signature, the provider asks the identity provider to mint a JWT whose `fatxn` claim is the Borsh-encoded transaction, delegate action, or NEP-413 message. Because `fatxn` is signed as part of the token, an attacker cannot swap in a different transaction after the fact — the RSA signature would no longer verify.
+The `fatxn` claim is what binds a token to a specific action. When a user requests a signature, the provider asks the identity provider to mint a JWT whose `fatxn` claim is the Borsh-encoded transaction, delegate action, or NEP-413 message. Because `fatxn` is signed as part of the token, an attacker cannot swap in a different payload after the fact — the RSA signature would no longer verify.
 
 The guard compares `fatxn` against the `sign_payload` passed into the on-chain call. Only if they are byte-for-byte identical does verification proceed, guaranteeing that the transaction the MPC network signs is exactly the one the identity provider attested to.
 

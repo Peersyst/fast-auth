@@ -248,7 +248,7 @@ const { signatureRequest } = await provider.getSignatureRequest();
 
 ### `requestMessageSignature({ message, recipient, nonce, callbackUrl?, redirectUri? })`
 
-Asks Auth0 to approve an off-chain [NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message signature — proof that the user controls their account, without broadcasting a transaction of their own. The provider Borsh-encodes the message with [`encodeSignMessage`](/sdks/core#encodesignmessage), then routes through popup or redirect just like `login`. Resolves to the authenticated `User`.
+Asks Auth0 to approve an off-chain [NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message signature. The signature proves that the user controls their account, without broadcasting a transaction of their own. The provider Borsh-encodes the message with [`encodeSignMessage`](/sdks/core#encodesignmessage), then routes through popup or redirect just like `login`. Resolves to the authenticated `User`.
 
 ```ts
 requestMessageSignature(
@@ -261,7 +261,7 @@ requestMessageSignature(
 | `message` | `string` | The message the user is asked to sign. |
 | `recipient` | `string` | The recipient the message is addressed to, e.g. `"myapp.com"`. |
 | `nonce` | `Uint8Array` | A 32-byte nonce chosen by the app to prevent replays. Rejects if it isn't exactly 32 bytes. |
-| `callbackUrl` | `string` (optional) | Callback URL from NEP-413. It is only signed data: NEAR Auth never calls it. |
+| `callbackUrl` | `string` (optional) | Callback URL from NEP-413. It is only signed data. NEAR Auth never calls it. |
 | `redirectUri` | `string` (optional) | Present → redirect flow. Absent → popup flow. |
 | (other keys) | `RedirectLoginOptions` / `PopupLoginOptions` | Any other `@auth0/auth0-spa-js` login option except `authorizationParams`. |
 
@@ -296,7 +296,7 @@ const { signatureRequest } = await provider.getSignatureRequest();
 </CodeGroup>
 
 <Note>
-  Unlike a transaction or delegate action, a NEP-413 message leaves nothing to broadcast afterward — the signature returned by the `sign` call is the result. See [Sign messages](/home/guides/sign-messages) for the full flow, including verifying it on your backend.
+  Unlike a transaction or delegate action, a NEP-413 message leaves nothing to broadcast afterward. The signature returned by the `sign` call is the result. See [Sign messages](/home/guides/sign-messages) for the full flow, including verifying it on your backend.
 </Note>
 
 ### `getSignatureRequest()`

@@ -331,8 +331,6 @@ exports.onExecutePostLogin = async (event, api) => {
         values = query[request.key].split(",").map(Number);
         decoded = request.decode(values);
 
-        // Re-encoding must give back exactly these values, so the claim carries the bytes the consent screen decoded.
-        // That rejects trailing bytes and non-byte values for every kind, and malformed UTF-8 for the borsh 2.x schemas.
         const canonical = request.encode(decoded);
         if (canonical.length !== values.length || canonical.some((byte, i) => byte !== values[i])) {
             throw new Error("Signing payload is not canonical borsh");
@@ -351,8 +349,7 @@ exports.onExecutePostLogin = async (event, api) => {
 };
 
 /**
- * Handler invoked when this action resumes after the consent form; it denies unless the form recorded an approval,
- * because onExecutePostLogin set the claim before the form rendered.
+ * Handler that will be called when this action resumes after the consent form.
  *
  * @param {Event} event - Details about the user and the context in which they are logging in.
  * @param {PostLoginAPI} api - Interface whose methods can be used to change the behavior of the login.

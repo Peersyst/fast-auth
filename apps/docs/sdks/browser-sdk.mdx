@@ -213,7 +213,7 @@ const action = await signer.createAccount("alice.testnet", {
 
 ### Requesting a signature
 
-These methods forward to the provider. The three `request*` methods drive the user through Auth0 and embed the encoded transaction, delegate action, or message into the JWT the guard contract verifies on-chain; their parameters are inferred from your provider's implementation. `getSignatureRequest` then reads the approved request back.
+These methods forward to the provider. The three `request*` methods drive the user through Auth0 and embed the encoded transaction, delegate action, or message into the JWT the guard contract verifies on-chain. Their parameters are inferred from your provider's implementation. `getSignatureRequest` then reads the approved request back.
 
 | Method | Signature | Description |
 | --- | --- | --- |
@@ -243,7 +243,7 @@ type SignatureRequest = {
 ```
 
 <Note>
-  For a NEP-413 message there's nothing to broadcast afterward: the `sign` call's return value — decoded with `FastAuthSignature.fromBase64(...).recover(...)` — **is** the final signature. Don't call `sendTransaction`. See [Sign messages](/home/guides/sign-messages) for the full flow.
+  For a NEP-413 message there's nothing to broadcast afterward. The `sign` call's return value, decoded with `FastAuthSignature.fromBase64(...).recover(...)`, **is** the final signature. Don't call `sendTransaction`. See [Sign messages](/home/guides/sign-messages) for the full flow.
 </Note>
 
 ### Signing and submission

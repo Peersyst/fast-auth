@@ -37,15 +37,15 @@ Each of these resolves to the same thing under the hood: a stable user identifie
 
 ## Per-transaction authentication
 
-NEAR Auth does not just authenticate users once at login. For **every transaction, delegate action, or NEP-413 message**, the app asks Auth0 to issue a fresh JWT that embeds it in encoded form. This means each sensitive operation is individually authorized by the user.
+NEAR Auth does not just authenticate users once at login. For **every transaction, delegate action, or NEP-413 message**, the app asks Auth0 to issue a fresh JWT that embeds the encoded payload. This means each sensitive operation is individually authorized by the user.
 
-The mechanism is a custom JWT claim called **`fatxn`**. When you request a signature, the provider Borsh-encodes the transaction, delegate action, or [NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message and passes it to Auth0 as an authorization parameter (a comma-separated list of byte values). Auth0 mints a JWT that carries the encoded payload in `fatxn`, alongside the standard claims (`sub`, `iss`, `exp`, `aud`, …). A NEP-413 message is bound into `fatxn` the exact same way a transaction is; only the encoded payload differs, and nothing is broadcast after the `sign` call.
+The mechanism is a custom JWT claim called **`fatxn`**. When you request a signature, the provider Borsh-encodes the transaction, delegate action, or [NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message and passes it to Auth0 as an authorization parameter (a comma-separated list of byte values). Auth0 mints a JWT that carries the encoded payload in `fatxn`, alongside the standard claims (`sub`, `iss`, `exp`, `aud`, …). A NEP-413 message goes into `fatxn` the same way a transaction does. Only the encoded payload differs, and nothing is broadcast after the `sign` call.
 
 On-chain, the [Auth0 Guard](/protocol/contracts/auth0-guard) verifies the JWT's RS256 signature and issuer, then checks that its `fatxn` claim **matches the payload being signed**. If they don't match, verification fails and no signature is produced — so a JWT issued for one payload can never be replayed to sign a different one.
 
 <Steps>
   <Step title="App requests a signature">
-    Your app calls `requestTransactionSignature({ transaction })`, `requestDelegateActionSignature({ delegateAction })`, or, with the `JavascriptProvider`, `requestMessageSignature({ message, recipient, nonce })` on the provider.
+    Your app calls `requestTransactionSignature({ transaction })`, `requestDelegateActionSignature({ delegateAction })`, or `requestMessageSignature({ message, recipient, nonce })` on the provider. Only the `JavascriptProvider` implements `requestMessageSignature`.
   </Step>
   <Step title="Auth0 issues a JWT with the payload embedded">
     The provider encodes the transaction, delegate action, or NEP-413 message and sends it to Auth0 with the `transaction:sign` scope and the network's `signingAudience`. Auth0 returns a JWT whose `fatxn` claim holds the encoded payload.

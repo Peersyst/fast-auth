@@ -134,10 +134,10 @@ export type SignMessageParams = {
   The recipient the message is addressed to, e.g. `"alice.near"` or `"myapp.com"`.
 </ResponseField>
 <ResponseField name="nonce" type="Uint8Array">
-  A 32-byte nonce chosen by the app, used to prevent replays. Issue it from your backend and bind it to the user's session — see [Sign messages](/home/guides/sign-messages#security-notes).
+  A 32-byte nonce chosen by the app, used to prevent replays. Issue it from your backend and bind it to the user's session. See [Sign messages](/home/guides/sign-messages#security-notes).
 </ResponseField>
 <ResponseField name="callbackUrl" type="string" required={false}>
-  Optional callback URL from NEP-413. It is only signed data: NEAR Auth never calls it.
+  Optional callback URL from NEP-413. It is only signed data. NEAR Auth never calls it.
 </ResponseField>
 
 ### `encodeSignMessage`
