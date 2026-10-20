@@ -7,9 +7,9 @@ const port = z.coerce.number().int().min(1).max(65535);
 const PUBLIC_URL_ERROR = "must be an http or https origin, with no path, query or fragment";
 const publicUrl = z
     .url({ protocol: /^https?$/, error: PUBLIC_URL_ERROR, abort: true })
-    .refine((url) => new URL(url).pathname === "/" && !/[?#]/.test(url), PUBLIC_URL_ERROR)
+    .refine((url) => new URL(url).pathname === "/" && !/[?#@]/.test(url), PUBLIC_URL_ERROR)
     .transform((url) => url.replace(/\/+$/, ""));
-const hostName = text.regex(/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i, "must be a host name, without scheme or path");
+const hostName = text.regex(/^[a-z0-9-]+(\.[a-z0-9-]+)+$/i, "must be a host name such as login.example.com, without scheme, port or path");
 
 const managementProvisioner = z.object({
     AUTH0_PROVISIONER: z.literal("management"),
@@ -72,7 +72,7 @@ function configSchema(raw: Record<string, string>) {
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ConsoleConfig {
     const raw: Record<string, string> = {};
     for (const [key, value] of Object.entries(env)) {
-        if (value !== undefined && value !== "") raw[key] = value;
+        if (value !== undefined && value.trim() !== "") raw[key] = value;
     }
 
     const result = configSchema(raw).safeParse(raw);

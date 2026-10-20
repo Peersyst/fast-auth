@@ -1,7 +1,8 @@
-import { Controller, Get } from "@nestjs/common";
+import { Controller, Get, Logger } from "@nestjs/common";
 import { ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { DataSource } from "typeorm";
 import { ApiErrorResponses } from "../common/exception/api-error-responses.decorator";
+import { ConsoleException } from "../common/exception/console.exception";
 import { HealthResponse } from "./response/health.response";
 
 const READYZ_TIMEOUT_MS = 2_000;
@@ -10,6 +11,8 @@ const READYZ_TIMEOUT_MS = 2_000;
 @ApiErrorResponses()
 @Controller()
 export class HealthController {
+    private readonly logger = new Logger(HealthController.name);
+
     constructor(private readonly dataSource: DataSource) {}
 
     @Get("livez")
@@ -27,6 +30,9 @@ export class HealthController {
         });
         try {
             await Promise.race([this.dataSource.query("SELECT 1"), timeout]);
+        } catch (error) {
+            this.logger.warn(`Not ready: ${error instanceof Error ? error.message : String(error)}`);
+            throw new ConsoleException("UNAVAILABLE");
         } finally {
             clearTimeout(timer);
         }

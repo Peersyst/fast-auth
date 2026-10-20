@@ -14,7 +14,8 @@ export class AppModule {
         return {
             module: AppModule,
             global: true,
-            imports: [TypeOrmModule.forRoot(dataSourceOptions(config))],
+            // main.ts has already connected to run migrations, so retrying here only delays a failure.
+            imports: [TypeOrmModule.forRoot({ ...dataSourceOptions(config), toRetry: () => false })],
             providers: [{ provide: CONSOLE_CONFIG, useValue: config }],
             exports: [CONSOLE_CONFIG],
         };

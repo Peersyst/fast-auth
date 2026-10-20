@@ -87,7 +87,8 @@
                     "VALIDATION_FAILED",
                     "NOT_FOUND",
                     "RATE_LIMITED",
-                    "INTERNAL"
+                    "INTERNAL",
+                    "UNAVAILABLE"
                 ]
             },
             "ErrorDetail": {

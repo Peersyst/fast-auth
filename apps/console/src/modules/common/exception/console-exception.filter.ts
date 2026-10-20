@@ -1,8 +1,9 @@
 import type { ArgumentsHost, ExceptionFilter } from "@nestjs/common";
 import { Catch, HttpException, Logger } from "@nestjs/common";
 import type { Response } from "express";
+import { error as OpenApiError } from "express-openapi-validator";
 import type { RequestLocals } from "../middleware/request-logger";
-import type { ErrorResponse } from "../response/error.response";
+import type { ErrorDetail, ErrorResponse } from "../response/error.response";
 import { ConsoleException } from "./console.exception";
 import type { ConsoleErrorCode } from "./error-codes";
 import { ERROR_CODES } from "./error-codes";
@@ -22,6 +23,23 @@ function statusOf(exception: unknown): number | undefined {
     return typeof status === "number" ? status : undefined;
 }
 
+// Errors about a request field start with its location; errors about a malformed request carry the URL path instead.
+const FIELD_PATH = /^\/(body|params|query|headers|cookies)(\/|$)/;
+
+function validatorDetails(exception: unknown): ErrorDetail[] | undefined {
+    if (!(exception instanceof OpenApiError.BadRequest)) return undefined;
+    const details = exception.errors
+        .filter(({ path }) => FIELD_PATH.test(path))
+        .map(({ path, errorCode }) => {
+            const [, location = "", ...field] = path.split("/");
+            return {
+                field: field.length > 0 ? field.join(".") : location,
+                constraint: errorCode?.replace(/\.openapi\.validation$/, "") ?? "invalid",
+            };
+        });
+    return details.length > 0 ? details : undefined;
+}
+
 @Catch()
 export class ConsoleExceptionFilter implements ExceptionFilter {
     private readonly logger = new Logger(ConsoleExceptionFilter.name);
@@ -38,8 +56,8 @@ export class ConsoleExceptionFilter implements ExceptionFilter {
         const status = statusOf(exception);
         const code = status === undefined ? undefined : CODE_BY_STATUS[status];
         if (status !== undefined && code) {
-            const message = exception instanceof Error && exception.message ? exception.message : ERROR_CODES[code].message;
-            return { statusCode: status, code, message };
+            const details = validatorDetails(exception);
+            return { statusCode: status, code, message: ERROR_CODES[code].message, ...(details && { details }) };
         }
 
         this.logger.error(

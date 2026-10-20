@@ -6,4 +6,5 @@ export const CommonErrorCodes = {
     NOT_FOUND: { status: HttpStatus.NOT_FOUND, message: "Not found." },
     RATE_LIMITED: { status: HttpStatus.TOO_MANY_REQUESTS, message: "Too many requests. Try again later." },
     INTERNAL: { status: HttpStatus.INTERNAL_SERVER_ERROR, message: "Internal error." },
+    UNAVAILABLE: { status: HttpStatus.SERVICE_UNAVAILABLE, message: "Not ready. Try again later." },
 } as const satisfies ErrorCodeDefinitions;

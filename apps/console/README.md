@@ -18,7 +18,9 @@ Self-service dApp registration for NEAR Auth. A dApp team submits its app, an ad
 | `pnpm test`                     | Unit tests                                                                                  |
 | `pnpm test:e2e`                 | The API against `console_e2e`. Needs Postgres. The suite loads `.env.test` itself.          |
 | `pnpm spec`                     | Rewrites `openapi-spec.json`. Needs Postgres. CI fails if the committed file differs.       |
-| `pnpm migration:check`          | Fails if the entities and the migrations disagree. Needs Postgres. It loads `.env.test`.    |
+| `pnpm migration:check`          | Fails if the entities differ from the migrations. Rebuilds `console_e2e`. Needs Postgres.   |
+
+`pnpm test:e2e` and `pnpm migration:check` both drop and rebuild `console_e2e`, so run only one of them at a time against the same Postgres.
 
 ## Configuration
 
