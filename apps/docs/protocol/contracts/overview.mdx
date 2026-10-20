@@ -116,7 +116,7 @@ All guards implement the same `JwtGuard` trait, so `FastAuth` treats them unifor
 - **`CustomIssuerGuard`** verifies JWTs from any custom OIDC provider. It checks `iss` and `fatxn` but performs **no audience check**, and its keys are DAO-managed through attestation.
 
 <Info>
-  Every guard verifies JWTs signed with **RS256** using RSA PKCS#1 v1.5 and 2048-bit keys. The JWT carries the standard `sub`, `iss`, `exp`, `nbf`, and `aud` claims, plus the NEAR Auth–specific `fatxn` claim, which holds the encoded transaction or delegate-action payload.
+  Every guard verifies JWTs signed with **RS256** using RSA PKCS#1 v1.5 and 2048-bit keys. The JWT carries the standard `sub`, `iss`, `exp`, `nbf`, and `aud` claims, plus the NEAR Auth–specific `fatxn` claim, which holds the encoded transaction, delegate action, or NEP-413 message the user authorized.
 </Info>
 
 ---

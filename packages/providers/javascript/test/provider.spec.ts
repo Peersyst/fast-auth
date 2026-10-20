@@ -360,7 +360,7 @@ describe("JavascriptProvider", () => {
                 mockEncodeTransaction.mockReturnValue(mockEncodedTransaction);
                 mockAuth0Client.loginWithRedirect.mockResolvedValue(undefined);
 
-                await provider.requestTransactionSignature(mockRequestOptions);
+                const result = await provider.requestTransactionSignature(mockRequestOptions);
 
                 expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                     authorizationParams: {
@@ -372,6 +372,7 @@ describe("JavascriptProvider", () => {
                 });
                 expect(mockEncodeTransaction).toHaveBeenCalledWith(mockTransaction);
                 expect(mockAuth0Client.loginWithPopup).not.toHaveBeenCalled();
+                expect(result).toEqual({ userId: "test-user-id" });
             });
 
             it("should propagate errors from loginWithRedirect", async () => {
@@ -438,7 +439,7 @@ describe("JavascriptProvider", () => {
                 mockEncodeDelegateAction.mockReturnValue(mockEncodedDelegateAction);
                 mockAuth0Client.loginWithRedirect.mockResolvedValue(undefined);
 
-                await provider.requestDelegateActionSignature(mockRequestOptions);
+                const result = await provider.requestDelegateActionSignature(mockRequestOptions);
 
                 expect(mockAuth0Client.loginWithRedirect).toHaveBeenCalledWith({
                     authorizationParams: {
@@ -450,6 +451,7 @@ describe("JavascriptProvider", () => {
                 });
                 expect(mockEncodeDelegateAction).toHaveBeenCalledWith(mockDelegateAction);
                 expect(mockAuth0Client.loginWithPopup).not.toHaveBeenCalled();
+                expect(result).toEqual({ userId: "test-user-id" });
             });
 
             it("should propagate errors from loginWithRedirect", async () => {
