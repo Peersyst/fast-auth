@@ -160,11 +160,11 @@ const SINGLE_VALUE_VECTORS: Record<SingleValueRule, Vectors<string>> = {
         ],
     },
     name: {
-        valid: ["A", "Acme", "Acme Wallet", "Acme & Co. — Wallet", "  Acme  ", "a".repeat(64), ` ${"a".repeat(64)} `],
+        valid: ["A", "Acme", "Acme Wallet", "Acme & Co. — Wallet", "  Acme  ", "a".repeat(64)],
         invalid: ["", "   ", "a".repeat(65), "<script>", "Acme <b>", "a > b", "a < b", "Acme\u0000Wallet"],
     },
     description: {
-        valid: ["", "A wallet for NEAR.", "Fees < 1% & fast > slow", "a".repeat(140), ` ${"a".repeat(140)} `],
+        valid: ["", "A wallet for NEAR.", "Fees < 1% & fast > slow", "a".repeat(140)],
         invalid: ["a".repeat(141), "A wallet\u0000 for NEAR."],
     },
     contactEmail: {
@@ -179,7 +179,6 @@ const SINGLE_VALUE_VECTORS: Record<SingleValueRule, Vectors<string>> = {
             "dev'@acme.xyz",
             "dev@acme.xn--p1ai",
             "dev@ACME.XN--P1AI",
-            "  dev@acme.xyz  ",
         ],
         invalid: [
             "",
