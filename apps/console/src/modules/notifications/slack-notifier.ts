@@ -1,8 +1,8 @@
-import type { Dapp } from "@shared/console-domain/dapp";
+import type { Dapp, DappFields } from "@shared/console-domain/dapp";
 
 export type SlackAlert =
     | { kind: "submitted" | "auto_approved"; dapp: Dapp }
-    | { kind: "resubmitted"; dapp: Dapp; rejected: Dapp; rejectionReason: string };
+    | { kind: "resubmitted"; dapp: Dapp; rejected: DappFields; rejectionReason: string };
 
 export type SlackAlertKind = SlackAlert["kind"];
 
