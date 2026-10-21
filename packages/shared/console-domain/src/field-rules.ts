@@ -73,8 +73,7 @@ export function isLogoUrl(value: string): boolean {
 /** NUL, which Postgres `text` cannot store. */
 export const NUL = "\u0000";
 
-export function isValidName(value: string): boolean {
-    const name = value.trim();
+export function isValidName(name: string): boolean {
     return (
         name.length <= NAME_MAX_LENGTH &&
         VISIBLE_CHARACTER.test(name) &&
@@ -83,13 +82,11 @@ export function isValidName(value: string): boolean {
     );
 }
 
-export function isValidDescription(value: string): boolean {
-    const description = value.trim();
+export function isValidDescription(description: string): boolean {
     return description.length <= DESCRIPTION_MAX_LENGTH && !UNSAFE_DESCRIPTION_CHARACTERS.test(description);
 }
 
-export function isContactEmail(value: string): boolean {
-    const email = value.trim();
+export function isContactEmail(email: string): boolean {
     return email.length <= EMAIL_MAX_LENGTH && EMAIL.test(email);
 }
 
