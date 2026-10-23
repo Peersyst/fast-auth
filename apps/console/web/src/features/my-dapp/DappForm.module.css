@@ -1,0 +1,141 @@
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    min-width: 0;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.section > legend {
+    width: 100%;
+    padding: 0;
+}
+
+.section h2 {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: -0.015em;
+    line-height: 1.5;
+}
+
+.sectionHint {
+    margin-top: 4px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-ink-subtle);
+    font-size: 14px;
+}
+
+.code,
+.plainCode {
+    font-family: var(--font-mono);
+    font-size: var(--font-size-sm);
+}
+
+.code {
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--color-surface-muted);
+}
+
+.mau {
+    max-width: 320px;
+}
+
+.contact {
+    max-width: 420px;
+}
+
+.list {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+/* Floated, the legend is laid out as a grid item; it still names the group. */
+.list > legend {
+    float: left;
+    padding: 0;
+}
+
+.list > p,
+.rows {
+    grid-column: 1 / -1;
+}
+
+.rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.rowError {
+    grid-column: 1 / -1;
+}
+
+.removeRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    background: var(--color-surface);
+    color: var(--color-ink-subtle);
+    cursor: pointer;
+}
+
+.removeRow:not(:disabled):hover {
+    background: var(--color-surface-muted);
+}
+
+.removeRow:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.review {
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-warning-ink);
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding-top: 24px;
+    border-top: 1px solid var(--color-border);
+}
+
+.saveHint {
+    color: var(--color-ink-subtle);
+    font-size: var(--font-size-sm);
+}
+
+.remove {
+    margin-left: auto;
+}

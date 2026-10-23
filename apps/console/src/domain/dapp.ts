@@ -22,6 +22,24 @@ export const MauBracket = {
 } as const;
 export type MauBracket = (typeof MauBracket)[keyof typeof MauBracket];
 
+export const MAU_LABELS: Record<MauBracket, string> = {
+    lt1k: "Less than 1,000",
+    "1k_10k": "1,000 – 10,000",
+    "10k_25k": "10,000 – 25,000",
+    gt25k: "More than 25,000",
+};
+
+export const FIELD_LABELS: Record<DappField, string> = {
+    name: "Name",
+    description: "Description",
+    logoUrl: "Logo",
+    mauBracket: "Expected MAU",
+    callbackUrls: "Callback URLs",
+    logoutUrls: "Logout URLs",
+    webOrigins: "Web origins",
+    contactEmail: "Contact",
+};
+
 export const syncedFieldsSchema = z.strictObject({
     name: z.string(),
     description: z.string(),
