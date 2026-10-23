@@ -3,8 +3,7 @@
  *
  * Auth0 Forms buttons can only navigate — they cannot record a choice. So instead of the
  * native NEXT_BUTTON / PREVIOUS_BUTTON, this field owns both buttons and writes the user's
- * choice into the `decision` hidden field before advancing. The resuming action reads
- * `event.prompt.fields.decision` in onContinuePostLogin and denies access when it is "denied".
+ * choice into the `decision` hidden field before advancing.
  *
  * Params (configured per-form in <form>_form_base.json):
  *   - approveText: label for the approve button (default "Approve")

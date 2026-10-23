@@ -323,7 +323,7 @@ function AccountKey() {
 
 ## Client &amp; signer
 
-The hooks hand you a `FastAuthClient` and a `FastAuthSigner`. Both share their surface with the [Browser SDK](/sdks/browser-sdk) classes, but the React variants are pre-wired: the client resolves contract ids from `network`, and the signer is created with relayer support so it can submit transactions on the user's behalf.
+The hooks hand you a `FastAuthClient` and a `FastAuthSigner`. Both share their surface with the [Browser SDK](/sdks/browser-sdk) classes (except `requestMessageSignature`, which the React signer doesn't have yet), but the React variants are pre-wired: the client resolves contract ids from `network`, and the signer is created with relayer support so it can submit transactions on the user's behalf.
 
 ### `FastAuthClient`
 

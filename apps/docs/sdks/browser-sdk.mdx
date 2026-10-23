@@ -213,12 +213,13 @@ const action = await signer.createAccount("alice.testnet", {
 
 ### Requesting a signature
 
-These two methods forward to the provider, which drives the user through Auth0 and embeds the encoded transaction into the JWT the guard contract verifies on-chain. Their parameters are inferred from your provider's implementation.
+These methods forward to the provider. The three `request*` methods drive the user through Auth0 and embed the encoded transaction, delegate action, or message into the JWT the guard contract verifies on-chain. Their parameters are inferred from your provider's implementation. `getSignatureRequest` then reads the approved request back.
 
 | Method | Signature | Description |
 | --- | --- | --- |
 | `requestTransactionSignature` | `requestTransactionSignature(...args: Parameters<P["requestTransactionSignature"]>)` | Requests a signature for a NEAR transaction. Delegates to `provider.requestTransactionSignature(...)`. |
 | `requestDelegateActionSignature` | `requestDelegateActionSignature(...args: Parameters<P["requestDelegateActionSignature"]>)` | Requests a signature for a delegate action (meta-transaction), enabling relayer-sponsored, gasless flows. Delegates to `provider.requestDelegateActionSignature(...)`. |
+| `requestMessageSignature` | `requestMessageSignature(...args: Parameters<NonNullable<P["requestMessageSignature"]>>)` | Requests a signature over an off-chain [NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message. Delegates to `provider.requestMessageSignature(...)`. If the provider doesn't implement it, throws a `FastAuthSignerError` whose `message` is `UNSUPPORTED_MESSAGE_SIGNATURE`. |
 | `getSignatureRequest` | `getSignatureRequest(): Promise<GetSignatureRequestResponse>` | Returns the pending signature request the provider produced after login/redirect. |
 
 <Warning>
@@ -236,10 +237,14 @@ type GetSignatureRequestResponse = {
 type SignatureRequest = {
   guardId: string;                    // JWT guard identifier
   verifyPayload: string;              // the JWT to verify on-chain
-  signPayload: Uint8Array;            // the transaction bytes to sign
+  signPayload: Uint8Array;            // the encoded payload to sign
   algorithm?: MPCContractAlgorithm;   // "secp256k1" | "eddsa" | "ecdsa"
 };
 ```
+
+<Note>
+  For a NEP-413 message there's nothing to broadcast afterward. The `sign` call's return value, decoded with `FastAuthSignature.fromBase64(...).recover(...)`, **is** the final signature. Don't call `sendTransaction`. See [Sign messages](/home/guides/sign-messages) for the full flow.
+</Note>
 
 ### Signing and submission
 

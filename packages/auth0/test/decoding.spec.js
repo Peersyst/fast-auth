@@ -16,6 +16,8 @@ const {
 } = require("./fixtures/builders.js");
 const { transactionCases, delegateCases } = require("./fixtures/malformed.js");
 
+const toNumbers = (csv) => csv.split(",").map(Number);
+
 describe("parseTransaction — happy paths", () => {
     test("decodes signer/receiver/blockHash for a baseline transfer", () => {
         const { csv } = buildTransaction({
@@ -23,7 +25,7 @@ describe("parseTransaction — happy paths", () => {
             receiverId: "bob.near",
             actions: [buildAction.transfer({ deposit: "1500000000000000000000000" })],
         });
-        const decoded = parseTransaction(csv);
+        const decoded = parseTransaction(toNumbers(csv));
         expect(decoded.signerId).toBe("alice.near");
         expect(decoded.receiverId).toBe("bob.near");
         expect(decoded.actions).toHaveLength(1);
@@ -33,12 +35,12 @@ describe("parseTransaction — happy paths", () => {
 
     test("decodes ed25519 vs secp256k1 signer public keys", () => {
         const ed = buildTransaction({ publicKey: ed25519PublicKey() });
-        const decodedEd = parseTransaction(ed.csv);
+        const decodedEd = parseTransaction(toNumbers(ed.csv));
         expect(decodedEd.publicKey.ed25519Key).toBeDefined();
         expect(decodedEd.publicKey.ed25519Key.data.length).toBe(32);
 
         const sec = buildTransaction({ publicKey: secp256k1PublicKey() });
-        const decodedSec = parseTransaction(sec.csv);
+        const decodedSec = parseTransaction(toNumbers(sec.csv));
         expect(decodedSec.publicKey.secp256k1Key).toBeDefined();
         expect(decodedSec.publicKey.secp256k1Key.data.length).toBe(64);
     });
@@ -73,7 +75,7 @@ describe("parseTransaction — happy paths", () => {
         ],
     ])("decodes action: %s", (_name, build, assertion) => {
         const { csv } = buildTransaction({ actions: [build()] });
-        const decoded = parseTransaction(csv);
+        const decoded = parseTransaction(toNumbers(csv));
         expect(decoded.actions).toHaveLength(1);
         assertion(decoded.actions[0]);
     });
@@ -82,7 +84,7 @@ describe("parseTransaction — happy paths", () => {
         const { csv } = buildTransaction({
             actions: [buildAction.transfer(), buildAction.functionCall(), buildAction.createAccount()],
         });
-        const decoded = parseTransaction(csv);
+        const decoded = parseTransaction(toNumbers(csv));
         expect(decoded.actions).toHaveLength(3);
         expect(decoded.actions[0].transfer).toBeDefined();
         expect(decoded.actions[1].functionCall).toBeDefined();
@@ -92,7 +94,7 @@ describe("parseTransaction — happy paths", () => {
 
 describe("parseTransaction — malformed payloads", () => {
     test.each(transactionCases().map((c) => [c.name, c]))("throws on: %s", (_name, c) => {
-        expect(() => parseTransaction(c.csv)).toThrow();
+        expect(() => parseTransaction(toNumbers(c.csv))).toThrow();
     });
 });
 
@@ -105,7 +107,7 @@ describe("decodeDelegateAction — happy paths", () => {
             maxBlockHeight: BigInt(1000),
             actions: [buildAction.transfer()],
         });
-        const decoded = decodeDelegateAction(csv);
+        const decoded = decodeDelegateAction(toNumbers(csv));
         expect(decoded.senderId).toBe("alice.near");
         expect(decoded.receiverId).toBe("bob.near");
         expect(decoded.nonce).toBe(BigInt(42));
@@ -115,7 +117,7 @@ describe("decodeDelegateAction — happy paths", () => {
 
     test.each(DELEGATE_ACTION_TYPES.map((a) => [a.name, a.build]))("delegate decodes action: %s", (_name, build) => {
         const { csv } = buildDelegateAction({ actions: [build()] });
-        const decoded = decodeDelegateAction(csv);
+        const decoded = decodeDelegateAction(toNumbers(csv));
         expect(decoded.actions).toHaveLength(1);
         // The action key (createAccount, transfer, etc.) must be present.
         const key = Object.keys(decoded.actions[0])[0];
@@ -125,11 +127,7 @@ describe("decodeDelegateAction — happy paths", () => {
 
 describe("decodeDelegateAction — malformed payloads", () => {
     test.each(delegateCases().map((c) => [c.name, c]))("%s", (_name, c) => {
-        if (c.nonThrowing) {
-            expect(() => decodeDelegateAction(c.csv)).not.toThrow();
-        } else {
-            expect(() => decodeDelegateAction(c.csv)).toThrow();
-        }
+        expect(() => decodeDelegateAction(toNumbers(c.csv))).toThrow();
     });
 });
 
@@ -138,7 +136,7 @@ describe("stringifyActions", () => {
         const actions = [buildAction.transfer({ deposit: "10" })];
         // Build via decode so we get real BigInts in the structure.
         const { csv } = buildTransaction({ actions });
-        const decoded = parseTransaction(csv);
+        const decoded = parseTransaction(toNumbers(csv));
         const serialized = stringifyActions(decoded.actions);
         const parsed = JSON.parse(serialized);
         expect(parsed[0].transfer.deposit).toBe("10");
@@ -147,7 +145,7 @@ describe("stringifyActions", () => {
     test("produces JSON parseable output for every action type", () => {
         const allActions = [buildAction.createAccount(), buildAction.transfer(), buildAction.functionCall(), buildAction.deleteAccount()];
         const { csv } = buildTransaction({ actions: allActions });
-        const decoded = parseTransaction(csv);
+        const decoded = parseTransaction(toNumbers(csv));
         const serialized = stringifyActions(decoded.actions);
         expect(() => JSON.parse(serialized)).not.toThrow();
     });

@@ -9,7 +9,7 @@ The `@fast-auth-near/react-native-provider` package ships `ReactNativeProvider`,
 Like every provider, it implements `IFastAuthProvider` and is designed to be injected into a `FastAuthClient` from the [React SDK](/sdks/react-sdk). The provider handles Auth0 login and signature requests; the SDK handles NEAR account and transaction plumbing.
 
 <Note>
-  This is the mobile counterpart of the [JavaScript provider](/sdks/javascript-provider). It exposes the same method surface but authenticates through the native Auth0 SDK instead of a web popup or redirect. See [Key differences](#key-differences-vs-the-javascript-provider) below.
+  This is the mobile counterpart of the [JavaScript provider](/sdks/javascript-provider). It exposes the same method surface but authenticates through the native Auth0 SDK instead of a web popup or redirect. It doesn't implement NEP-413 message signing (`requestMessageSignature`). See [Key differences](#key-differences-vs-the-javascript-provider) below.
 </Note>
 
 ---
@@ -151,7 +151,7 @@ export default function App() {
 
 ## Methods
 
-`ReactNativeProvider` exposes the full `IFastAuthProvider` surface. Every method is asynchronous.
+`ReactNativeProvider` implements every `IFastAuthProvider` method except the optional `requestMessageSignature`. Every method is asynchronous.
 
 | Method | Purpose |
 | --- | --- |
@@ -285,7 +285,7 @@ It also returns the resolved `user` (`{ userId }`) from the token's subject.
 
 ## Key differences vs the JavaScript provider
 
-Both providers implement `IFastAuthProvider` and expose the same methods, so you can swap platforms with minimal code changes. The behavioral differences come from mobile Auth0:
+Both providers implement `IFastAuthProvider` and expose the same methods, so you can swap platforms with minimal code changes. Only the JavaScript provider has `requestMessageSignature`. The behavioral differences come from mobile Auth0:
 
 <CardGroup cols={2}>
   <Card title="Native Web Authentication" icon="smartphone">

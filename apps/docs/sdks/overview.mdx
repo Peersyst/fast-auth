@@ -43,7 +43,7 @@ Everything is published under the `@fast-auth-near/*` scope on npm and lives in 
 
 ## The SDK + provider composition model
 
-NEAR Auth splits **what to do** from **how to authenticate**. The SDK owns the NEAR-facing work — deriving the user's public key, building transactions, requesting MPC signatures, and (in the React SDK) coordinating a relayer. The provider owns the identity work — opening the Auth0 login screen, holding the session, and embedding the encoded transaction into the JWT the guard contract verifies on-chain.
+NEAR Auth splits **what to do** from **how to authenticate**. The SDK owns the NEAR-facing work — deriving the user's public key, building transactions, requesting MPC signatures, and (in the React SDK) coordinating a relayer. The provider owns the identity work — opening the Auth0 login screen, holding the session, and embedding the encoded payload into the JWT the guard contract verifies on-chain.
 
 The two meet at a single contract: every provider implements the `IFastAuthProvider` interface from `@shared/core`.
 
@@ -54,6 +54,7 @@ export interface IFastAuthProvider {
   isLoggedIn(): Promise<boolean>;
   requestTransactionSignature(...args: any[]): Promise<RequestTransactionSignatureResponse>;
   requestDelegateActionSignature(...args: any[]): Promise<RequestDelegateActionSignatureResponse>;
+  requestMessageSignature?(...args: any[]): Promise<RequestMessageSignatureResponse>;
   getSignatureRequest(): Promise<GetSignatureRequestResponse>;
   getPath(): Promise<string>;
 }

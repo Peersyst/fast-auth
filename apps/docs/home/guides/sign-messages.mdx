@@ -1,0 +1,124 @@
+---
+title: "Sign messages (NEP-413)"
+description: "Ask a user to sign an off-chain NEP-413 message to prove account ownership, without broadcasting a transaction of their own."
+icon: "signature"
+---
+
+Besides transactions and delegate actions, your app can ask a user to sign an off-chain **[NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message**, the same NEAR standard that wallets use for "sign in with NEAR" flows. The user approves the message through Auth0 just as they would a transaction, and the [Multi-Party Computation network](/protocol/concepts/mpc) returns a signature over the SHA-256 hash of the encoded message instead of over a transaction hash. The signature comes from a `sign` call to the [NEAR Auth contract](/protocol/contracts/fast-auth), and that call is the only transaction your app sends (see [Security notes](#security-notes)).
+
+Use message signing when you need to **prove a user controls a NEAR account** without that account sending a transaction. For example, use it to log the user in to your backend, link an account, or authorize an off-chain action.
+
+Message signing works with the [Browser SDK](/sdks/browser-sdk) and the [JavaScript provider](/sdks/javascript-provider). The React SDK and the React Native provider don't support it yet.
+
+<Tip>
+  This guide assumes you already have a Browser SDK `FastAuthSigner`. If you don't, see [Get a signer](/home/guides/sign-transactions#get-a-signer).
+</Tip>
+
+---
+
+## Sign a message (Browser SDK)
+
+Get the `nonce` from your backend (see [Security notes](#security-notes)). The Browser SDK exposes the same request and retrieve steps as signing a transaction, and you still submit the `sign` call yourself. There's no signed transaction to broadcast afterward, because the call's **return value is the final signature**.
+
+```ts
+import { FastAuthSignature } from "@fast-auth-near/browser-sdk";
+
+// 1. Ask the user to approve the message in a popup. With `redirectUri`, run
+//    the remaining steps on your callback route instead.
+await signer.requestMessageSignature({
+  message: "Log in to MyApp",
+  recipient: "myapp.com",
+  nonce, // 32-byte Uint8Array your backend issued for this session
+});
+
+// 2. Read the approved request and build the `sign` action.
+const { signatureRequest } = await signer.getSignatureRequest();
+const signAction = await signer.createSignAction(signatureRequest, {
+  gas: 300000000000000n,
+  deposit: 1n,
+});
+
+// 3. Add `signAction` to a transaction from any funded account (your
+//    backend or relayer) to the NEAR Auth contract. Read `successValue`
+//    from the outcome's `status.SuccessValue`. It holds the MPC signature
+//    over the SHA-256 hash of the payload, or is empty if the guard
+//    rejected the JWT.
+if (!successValue) throw new Error("NEAR Auth did not sign the message");
+const signature = FastAuthSignature.fromBase64(successValue)
+  .recover("ed25519");
+
+// 4. Send NEP-413's SignedMessage to your backend.
+const publicKey = await signer.getPublicKey("ed25519");
+const signedMessage = {
+  accountId, // e.g. the implicit account: hex of publicKey's 32 bytes
+  publicKey: publicKey.toString(),
+  signature: signature.toString("base64"),
+};
+```
+
+`requestMessageSignature` rejects with `NEP-413 nonce must be 32 bytes, got …` before opening Auth0 if the nonce isn't 32 bytes. If MPC signing fails, `SuccessValue` decodes to `null` and `recover` throws a `TypeError`.
+
+Keep messages under about 1 KB. The approved payload travels inside the signing JWT as a list of decimal byte values, and the [Auth0 Guard](/protocol/contracts/auth0-guard) rejects JWTs over 7168 bytes (7 KB). Auth0 still lets the user approve a larger message, but the `sign` call then returns no signature.
+
+---
+
+## Verify the signature on your backend
+
+Your backend can't trust what the client sends, so it must independently verify the `accountId`, `publicKey`, and `signature` of NEP-413's `SignedMessage`. Accept only a nonce your backend issued to the session making the request, and accept it only once.
+
+<Steps>
+  <Step title="Re-encode the message">
+    Encode the message with `encodeSignMessage` (exported by `@fast-auth-near/browser-sdk` and `@fast-auth-near/javascript-provider`) from values your backend already holds: your own `recipient`, the `nonce` it issued to this session, and the `message` and `callbackUrl` it expects. Don't take these values from the client. Then hash the result with SHA-256.
+
+    In a Node.js backend, load the encoder with `require()`, because the packages' ES module builds don't load in plain Node.js. In an ES module, create `require` with `createRequire(import.meta.url)` from `node:module`.
+  </Step>
+  <Step title="Verify the signature">
+    Verify the `signature` against that hash with Ed25519, using the `publicKey` the client sent in the same `SignedMessage`.
+  </Step>
+  <Step title="Verify account ownership">
+    Confirm the `publicKey` is a **full-access key** of `accountId`, as NEP-413 requires. A `view_access_key` RPC query must return the key with `FullAccess` permission.
+
+    New NEAR Auth users often sign with an implicit account (a 64-character hex `accountId`) that isn't funded yet, so it doesn't exist on-chain and `view_access_key` fails. **Only while the account doesn't exist**, accept an `accountId` that is the hex encoding of the ed25519 public key's 32 bytes. Treat the account as nonexistent only when a `view_account` query returns an `UNKNOWN_ACCOUNT` error, not when the query fails for any other reason. Once the account exists, keys can be added to or removed from it like any other account, so require the `view_access_key` check.
+  </Step>
+</Steps>
+
+---
+
+## Security notes
+
+<CardGroup cols={2}>
+  <Card title="The signature is public" icon="eye">
+    The `sign` call is an on-chain transaction. Its arguments carry the message, recipient, and nonce, and its result is the signature. Anyone watching the chain can see the signature before your client sends it, so never treat it as a bearer credential on its own.
+  </Card>
+  <Card title="Issue the nonce from your backend" icon="shuffle">
+    Generate 32 random bytes server-side, bind them to the user's session, and accept each nonce once. A signature then counts only for the session that requested it, even if someone copies it from the chain.
+  </Card>
+  <Card title="Check the recipient server-side" icon="shield-check">
+    Re-encode the message with your own `recipient`, never one sent by the client. A message signed for another app then fails verification, so it can't be replayed against yours.
+  </Card>
+  <Card title="Signing can authorize actions" icon="key-round">
+    A NEP-413 signature proves key ownership, but whoever receives it decides what it allows, and some contracts accept one as permission to act for the user. NEAR Intents (`intents.near`), for example, can move a user's funds when it receives their signed message. The consent screen shows your app's name, the recipient, any callback URL, and the message as plain text, with a note that signing can authorize actions, including moving funds. It doesn't interpret what the message authorizes, so only ask users to sign what you would accept being used as authorization.
+  </Card>
+  <Card title="Check the callback URL" icon="link">
+    `callbackUrl` is only signed data. NEAR Auth never calls it. If your app uses it, verify it matches what you expect.
+  </Card>
+</CardGroup>
+
+---
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Sign transactions" icon="file-check" href="/home/guides/sign-transactions" horizontal arrow>
+    Request MPC signatures for on-chain transactions and gasless delegate actions.
+  </Card>
+  <Card title="How MPC signing works" icon="shield-check" href="/protocol/concepts/mpc" horizontal arrow>
+    How distributed key shares produce a signature without ever assembling a private key.
+  </Card>
+  <Card title="Core types" icon="scroll-text" href="/sdks/core" horizontal arrow>
+    `SignMessageParams`, `encodeSignMessage`, and the rest of the shared types.
+  </Card>
+  <Card title="Authenticate users" icon="log-in" href="/home/guides/authenticate-users" horizontal arrow>
+    Log users in and manage sessions before requesting signatures.
+  </Card>
+</CardGroup>

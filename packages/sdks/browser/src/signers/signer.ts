@@ -106,6 +106,18 @@ export class FastAuthSigner<P extends IFastAuthProvider = IFastAuthProvider> {
     }
 
     /**
+     * Request a NEP-413 message signature from the user.
+     * @param args The arguments to request a message signature.
+     * @returns The authenticated user.
+     */
+    async requestMessageSignature(...args: Parameters<NonNullable<P["requestMessageSignature"]>>) {
+        if (!this.fastAuthProvider.requestMessageSignature) {
+            throw new FastAuthSignerError(FastAuthSignerErrorCodes.UNSUPPORTED_MESSAGE_SIGNATURE);
+        }
+        return await this.fastAuthProvider.requestMessageSignature(...args);
+    }
+
+    /**
      * Get a signature request.
      * @returns The signature request.
      */
