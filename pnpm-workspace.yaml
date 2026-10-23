@@ -1,5 +1,6 @@
 packages:
     - "apps/*"
+    - "!apps/near-connect"
     - "contracts/*"
     - "contracts/jwt-guards/*"
     - "docs"

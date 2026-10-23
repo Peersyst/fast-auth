@@ -1,0 +1,11 @@
+{
+    "default": {
+        "mainnet": {
+            "auth0ClientId": "dsurLc47fOcWme5PkYeClBvuW0tYrmgW"
+        },
+        "testnet": {
+            "auth0ClientId": "np8paqIpMWmNbzT4xAvOOapZBjsOpptl"
+        }
+    },
+    "dapps": {}
+}

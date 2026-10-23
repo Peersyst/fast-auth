@@ -1,0 +1,30 @@
+{
+    "name": "near-connect",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "description": "NEAR Auth wallet for NEAR Connect: the sandboxed executor script served at /connector/near-connect.js",
+    "scripts": {
+        "prebuild": "node scripts/validate-dapps.mjs",
+        "build": "vite build",
+        "build:local": "VARIANT=local vite build",
+        "build:demo": "VARIANT=demo vite build",
+        "serve": "vite preview",
+        "serve:local": "VARIANT=local vite preview",
+        "serve:demo": "VARIANT=demo vite preview",
+        "check-types": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@near-js/providers": "0.2.3",
+        "@near-js/types": "0.2.1",
+        "@near-js/utils": "0.3.0",
+        "@noble/hashes": "1.8.0",
+        "near-api-js": "4.0.4"
+    },
+    "devDependencies": {
+        "@types/node": "24.19.1",
+        "typescript": "5.9.3",
+        "vite": "5.4.21",
+        "vite-plugin-node-polyfills": "0.24.0"
+    }
+}
