@@ -15,7 +15,7 @@ Self-service dApp registration for NEAR Auth. A dApp team submits its app, an ad
 | Command                         | What it checks                                                                              |
 | ------------------------------- | ------------------------------------------------------------------------------------------- |
 | `pnpm lint`, `pnpm check-types` | ESLint and TypeScript                                                                       |
-| `pnpm test`                     | Unit tests                                                                                  |
+| `pnpm test`                     | Unit tests. CI runs `pnpm test -- --coverage`, which needs 100% coverage in `src/domain`.   |
 | `pnpm test:e2e`                 | The API against `console_e2e`. Needs Postgres. The suite loads `.env.test` itself.          |
 | `pnpm spec`                     | Rewrites `openapi-spec.json`. Needs Postgres. CI fails if the committed file differs.       |
 | `pnpm migration:check`          | Fails if the entities differ from the migrations. Rebuilds `console_e2e`. Needs Postgres.   |
