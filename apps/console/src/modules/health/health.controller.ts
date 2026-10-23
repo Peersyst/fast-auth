@@ -1,6 +1,7 @@
 import { Controller, Get, Logger } from "@nestjs/common";
 import { ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { DataSource } from "typeorm";
+import { Public } from "../common/decorators/public.decorator";
 import { ApiErrorResponses } from "../common/exception/api-error-responses.decorator";
 import { ConsoleException } from "../common/exception/console.exception";
 import { HealthResponse } from "./response/health.response";
@@ -9,6 +10,7 @@ const READYZ_TIMEOUT_MS = 2_000;
 
 @ApiTags("health")
 @ApiErrorResponses()
+@Public()
 @Controller()
 export class HealthController {
     private readonly logger = new Logger(HealthController.name);

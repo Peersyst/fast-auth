@@ -25,3 +25,7 @@ Self-service dApp registration for NEAR Auth. A dApp team submits its app, an ad
 ## Configuration
 
 Every key is listed in `.env.example`. The app parses them once at startup and exits naming every missing or malformed key. `CONFIG_ENV=production` refuses the fake Auth0 provisioner and the fake emailer.
+
+## Identity
+
+The console identifies a person by the email in their Auth0 ID token. dApp ownership and admin rights both require Auth0's `email_verified` claim to be true. The Auth0 tenant must enable only connections that verify email addresses, because a connection that asserts `email_verified: true` for an address it never checked would grant that address's ownership and admin rights.
