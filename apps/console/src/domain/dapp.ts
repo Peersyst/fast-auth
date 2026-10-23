@@ -11,6 +11,9 @@ export const DappStatus = {
 } as const;
 export type DappStatus = (typeof DappStatus)[keyof typeof DappStatus];
 
+/** What the anonymiser writes over every personal field of an erased dApp. */
+export const ERASED = "erased";
+
 export const MauBracket = {
     Lt1k: "lt1k",
     From1kTo10k: "1k_10k",
