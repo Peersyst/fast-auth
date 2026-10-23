@@ -129,6 +129,310 @@
                     "config"
                 ]
             }
+        },
+        "/api/console/dapp": {
+            "get": {
+                "operationId": "DappsController_getMine",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MyDappResponse"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "dapp"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            },
+            "post": {
+                "operationId": "DappsController_submit",
+                "parameters": [],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpsertDappRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OwnerDappResponse"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "dapp"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/console/dapp/{id}": {
+            "put": {
+                "operationId": "DappsController_edit",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateDappRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/OwnerDappResponse"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "dapp"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            },
+            "delete": {
+                "operationId": "DappsController_remove",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "expectedVersion",
+                        "required": true,
+                        "in": "query",
+                        "schema": {
+                            "minimum": 0,
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": ""
+                    },
+                    "default": {
+                        "description": "Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "dapp"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/console/admin/dapps/{id}": {
+            "get": {
+                "operationId": "AdminController_get",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AdminDappResponse"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "admin"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
+        },
+        "/api/console/admin/dapps/{id}/events": {
+            "get": {
+                "operationId": "AdminController_listEvents",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "required": true,
+                        "in": "path",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "oneOf": [
+                                            {
+                                                "$ref": "#/components/schemas/SubmittedEvent"
+                                            },
+                                            {
+                                                "$ref": "#/components/schemas/FieldChangesEvent"
+                                            },
+                                            {
+                                                "$ref": "#/components/schemas/NoDetailsEvent"
+                                            },
+                                            {
+                                                "$ref": "#/components/schemas/ReasonEvent"
+                                            },
+                                            {
+                                                "$ref": "#/components/schemas/RemovedEvent"
+                                            },
+                                            {
+                                                "$ref": "#/components/schemas/Auth0WriteEvent"
+                                            },
+                                            {
+                                                "$ref": "#/components/schemas/Auth0DeletedEvent"
+                                            },
+                                            {
+                                                "$ref": "#/components/schemas/Auth0FailedEvent"
+                                            },
+                                            {
+                                                "$ref": "#/components/schemas/EmailSentEvent"
+                                            },
+                                            {
+                                                "$ref": "#/components/schemas/EmailFailedEvent"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "admin"
+                ],
+                "security": [
+                    {
+                        "bearer": []
+                    }
+                ]
+            }
         }
     },
     "info": {
@@ -159,7 +463,12 @@
                     "UNAUTHENTICATED",
                     "EMAIL_REQUIRED",
                     "EMAIL_NOT_VERIFIED",
-                    "FORBIDDEN_ROLE"
+                    "FORBIDDEN_ROLE",
+                    "DAPP_NOT_FOUND",
+                    "DAPP_ALREADY_EXISTS",
+                    "INVALID_TRANSITION",
+                    "NO_PENDING_CHANGE",
+                    "DAPP_CHANGED"
                 ]
             },
             "ErrorDetail": {
@@ -263,6 +572,1061 @@
                     "auth0Domain",
                     "auth0ClientId",
                     "nearNetwork"
+                ]
+            },
+            "SyncedFieldsResponse": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "logoUrl": {
+                        "type": "string"
+                    },
+                    "callbackUrls": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "logoutUrls": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "webOrigins": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                },
+                "required": [
+                    "name",
+                    "description",
+                    "logoUrl",
+                    "callbackUrls",
+                    "logoutUrls",
+                    "webOrigins"
+                ]
+            },
+            "MauBracket": {
+                "type": "string",
+                "enum": [
+                    "lt1k",
+                    "1k_10k",
+                    "10k_25k",
+                    "gt25k"
+                ]
+            },
+            "DappStatus": {
+                "type": "string",
+                "enum": [
+                    "pending",
+                    "approved",
+                    "rejected",
+                    "removed"
+                ]
+            },
+            "OwnerDappResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "logoUrl": {
+                        "type": "string"
+                    },
+                    "mauBracket": {
+                        "$ref": "#/components/schemas/MauBracket"
+                    },
+                    "callbackUrls": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "logoutUrls": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "webOrigins": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contactEmail": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/DappStatus"
+                    },
+                    "rejectionReason": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "pendingChange": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/SyncedFieldsResponse"
+                            },
+                            {
+                                "type": "object",
+                                "nullable": true,
+                                "enum": [
+                                    null
+                                ]
+                            }
+                        ]
+                    },
+                    "pendingChangeAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "auth0ClientId": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Null until the dApp is provisioned."
+                    },
+                    "version": {
+                        "type": "integer",
+                        "description": "Send it back as `expectedVersion` with the next change."
+                    },
+                    "submittedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "logoUrl",
+                    "mauBracket",
+                    "callbackUrls",
+                    "logoutUrls",
+                    "webOrigins",
+                    "contactEmail",
+                    "status",
+                    "rejectionReason",
+                    "pendingChange",
+                    "pendingChangeAt",
+                    "auth0ClientId",
+                    "version",
+                    "submittedAt"
+                ]
+            },
+            "MyDappResponse": {
+                "type": "object",
+                "properties": {
+                    "dapp": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/OwnerDappResponse"
+                            },
+                            {
+                                "type": "object",
+                                "nullable": true,
+                                "enum": [
+                                    null
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "dapp"
+                ]
+            },
+            "UpsertDappRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "1–64 UTF-16 code units once trimmed (most emoji count as two or more), no `<` or `>`."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "At most 140 UTF-16 code units once trimmed; may be empty."
+                    },
+                    "logoUrl": {
+                        "type": "string",
+                        "description": "An `https:` URL of at most 255 characters."
+                    },
+                    "mauBracket": {
+                        "$ref": "#/components/schemas/MauBracket"
+                    },
+                    "callbackUrls": {
+                        "description": "1–10 absolute `https:` URLs once de-duplicated.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "logoutUrls": {
+                        "description": "0–10 absolute `https:` URLs once de-duplicated.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "webOrigins": {
+                        "description": "1–10 `https://host[:port]` origins once de-duplicated.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contactEmail": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "name",
+                    "description",
+                    "logoUrl",
+                    "mauBracket",
+                    "callbackUrls",
+                    "logoutUrls",
+                    "webOrigins",
+                    "contactEmail"
+                ]
+            },
+            "UpdateDappRequest": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "1–64 UTF-16 code units once trimmed (most emoji count as two or more), no `<` or `>`."
+                    },
+                    "description": {
+                        "type": "string",
+                        "description": "At most 140 UTF-16 code units once trimmed; may be empty."
+                    },
+                    "logoUrl": {
+                        "type": "string",
+                        "description": "An `https:` URL of at most 255 characters."
+                    },
+                    "mauBracket": {
+                        "$ref": "#/components/schemas/MauBracket"
+                    },
+                    "callbackUrls": {
+                        "description": "1–10 absolute `https:` URLs once de-duplicated.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "logoutUrls": {
+                        "description": "0–10 absolute `https:` URLs once de-duplicated.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "webOrigins": {
+                        "description": "1–10 `https://host[:port]` origins once de-duplicated.",
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contactEmail": {
+                        "type": "string"
+                    },
+                    "expectedVersion": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "required": [
+                    "name",
+                    "description",
+                    "logoUrl",
+                    "mauBracket",
+                    "callbackUrls",
+                    "logoutUrls",
+                    "webOrigins",
+                    "contactEmail",
+                    "expectedVersion"
+                ]
+            },
+            "AdminDappResponse": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    },
+                    "logoUrl": {
+                        "type": "string"
+                    },
+                    "mauBracket": {
+                        "$ref": "#/components/schemas/MauBracket"
+                    },
+                    "callbackUrls": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "logoutUrls": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "webOrigins": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "contactEmail": {
+                        "type": "string"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/DappStatus"
+                    },
+                    "rejectionReason": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "pendingChange": {
+                        "anyOf": [
+                            {
+                                "$ref": "#/components/schemas/SyncedFieldsResponse"
+                            },
+                            {
+                                "type": "object",
+                                "nullable": true,
+                                "enum": [
+                                    null
+                                ]
+                            }
+                        ]
+                    },
+                    "pendingChangeAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "auth0ClientId": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Null until the dApp is provisioned."
+                    },
+                    "version": {
+                        "type": "integer",
+                        "description": "Send it back as `expectedVersion` with the next change."
+                    },
+                    "submittedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "ownerEmail": {
+                        "type": "string"
+                    },
+                    "reviewedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "reviewedBy": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Null until an admin reviews it. Stays null after auto-approval."
+                    },
+                    "auth0Error": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "The last Auth0 error, cleared by the next successful Auth0 write."
+                    },
+                    "auth0SyncedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "removedAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                    },
+                    "removedBy": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "removalReason": {
+                        "type": "string",
+                        "nullable": true
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "description",
+                    "logoUrl",
+                    "mauBracket",
+                    "callbackUrls",
+                    "logoutUrls",
+                    "webOrigins",
+                    "contactEmail",
+                    "status",
+                    "rejectionReason",
+                    "pendingChange",
+                    "pendingChangeAt",
+                    "auth0ClientId",
+                    "version",
+                    "submittedAt",
+                    "ownerEmail",
+                    "reviewedAt",
+                    "reviewedBy",
+                    "auth0Error",
+                    "auth0SyncedAt",
+                    "removedAt",
+                    "removedBy",
+                    "removalReason",
+                    "createdAt",
+                    "updatedAt"
+                ]
+            },
+            "ActorRole": {
+                "type": "string",
+                "enum": [
+                    "user",
+                    "admin",
+                    "system"
+                ]
+            },
+            "SubmittedDetails": {
+                "type": "object",
+                "properties": {
+                    "chosenForAutoApproval": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "chosenForAutoApproval"
+                ]
+            },
+            "SubmittedEvent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "submitted"
+                        ]
+                    },
+                    "actorEmail": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Null for the system."
+                    },
+                    "actorRole": {
+                        "$ref": "#/components/schemas/ActorRole"
+                    },
+                    "details": {
+                        "$ref": "#/components/schemas/SubmittedDetails"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "type",
+                    "actorEmail",
+                    "actorRole",
+                    "details",
+                    "createdAt"
+                ]
+            },
+            "FieldValueChange": {
+                "type": "object",
+                "properties": {
+                    "field": {
+                        "type": "string",
+                        "enum": [
+                            "name",
+                            "description",
+                            "logoUrl",
+                            "callbackUrls",
+                            "logoutUrls",
+                            "webOrigins",
+                            "mauBracket"
+                        ]
+                    },
+                    "before": {
+                        "oneOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        ]
+                    },
+                    "after": {
+                        "oneOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "field",
+                    "before",
+                    "after"
+                ]
+            },
+            "ContactEmailChange": {
+                "type": "object",
+                "properties": {
+                    "field": {
+                        "type": "string",
+                        "enum": [
+                            "contactEmail"
+                        ],
+                        "description": "The contact email changed. Its values are not logged."
+                    }
+                },
+                "required": [
+                    "field"
+                ]
+            },
+            "FieldChangesDetails": {
+                "type": "object",
+                "properties": {
+                    "changes": {
+                        "type": "array",
+                        "items": {
+                            "oneOf": [
+                                {
+                                    "$ref": "#/components/schemas/FieldValueChange"
+                                },
+                                {
+                                    "$ref": "#/components/schemas/ContactEmailChange"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "required": [
+                    "changes"
+                ]
+            },
+            "FieldChangesEvent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "edited",
+                            "change_requested",
+                            "change_approved"
+                        ]
+                    },
+                    "actorEmail": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Null for the system."
+                    },
+                    "actorRole": {
+                        "$ref": "#/components/schemas/ActorRole"
+                    },
+                    "details": {
+                        "$ref": "#/components/schemas/FieldChangesDetails"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "type",
+                    "actorEmail",
+                    "actorRole",
+                    "details",
+                    "createdAt"
+                ]
+            },
+            "NoDetails": {
+                "type": "object",
+                "properties": {}
+            },
+            "NoDetailsEvent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "resubmitted",
+                            "approved",
+                            "auto_approved",
+                            "change_withdrawn",
+                            "owner_changed"
+                        ]
+                    },
+                    "actorEmail": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Null for the system."
+                    },
+                    "actorRole": {
+                        "$ref": "#/components/schemas/ActorRole"
+                    },
+                    "details": {
+                        "$ref": "#/components/schemas/NoDetails"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "type",
+                    "actorEmail",
+                    "actorRole",
+                    "details",
+                    "createdAt"
+                ]
+            },
+            "ReasonDetails": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "reason"
+                ]
+            },
+            "ReasonEvent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "rejected",
+                            "change_rejected"
+                        ]
+                    },
+                    "actorEmail": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Null for the system."
+                    },
+                    "actorRole": {
+                        "$ref": "#/components/schemas/ActorRole"
+                    },
+                    "details": {
+                        "$ref": "#/components/schemas/ReasonDetails"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "type",
+                    "actorEmail",
+                    "actorRole",
+                    "details",
+                    "createdAt"
+                ]
+            },
+            "RemovedDetails": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": "string"
+                    }
+                }
+            },
+            "RemovedEvent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "removed"
+                        ]
+                    },
+                    "actorEmail": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Null for the system."
+                    },
+                    "actorRole": {
+                        "$ref": "#/components/schemas/ActorRole"
+                    },
+                    "details": {
+                        "$ref": "#/components/schemas/RemovedDetails"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "type",
+                    "actorEmail",
+                    "actorRole",
+                    "details",
+                    "createdAt"
+                ]
+            },
+            "Auth0WriteDetails": {
+                "type": "object",
+                "properties": {
+                    "clientId": {
+                        "type": "string"
+                    },
+                    "payload": {
+                        "description": "The synced fields sent to Auth0.",
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/SyncedFieldsResponse"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "clientId",
+                    "payload"
+                ]
+            },
+            "Auth0WriteEvent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "auth0_created",
+                            "auth0_updated"
+                        ]
+                    },
+                    "actorEmail": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Null for the system."
+                    },
+                    "actorRole": {
+                        "$ref": "#/components/schemas/ActorRole"
+                    },
+                    "details": {
+                        "$ref": "#/components/schemas/Auth0WriteDetails"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "type",
+                    "actorEmail",
+                    "actorRole",
+                    "details",
+                    "createdAt"
+                ]
+            },
+            "Auth0DeletedDetails": {
+                "type": "object",
+                "properties": {
+                    "clientId": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "clientId"
+                ]
+            },
+            "Auth0DeletedEvent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "auth0_deleted"
+                        ]
+                    },
+                    "actorEmail": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Null for the system."
+                    },
+                    "actorRole": {
+                        "$ref": "#/components/schemas/ActorRole"
+                    },
+                    "details": {
+                        "$ref": "#/components/schemas/Auth0DeletedDetails"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "type",
+                    "actorEmail",
+                    "actorRole",
+                    "details",
+                    "createdAt"
+                ]
+            },
+            "Auth0Op": {
+                "type": "string",
+                "enum": [
+                    "find",
+                    "create",
+                    "update",
+                    "delete"
+                ]
+            },
+            "Auth0FailedDetails": {
+                "type": "object",
+                "properties": {
+                    "op": {
+                        "$ref": "#/components/schemas/Auth0Op"
+                    },
+                    "error": {
+                        "type": "string"
+                    },
+                    "clientId": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "op",
+                    "error"
+                ]
+            },
+            "Auth0FailedEvent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "auth0_failed"
+                        ]
+                    },
+                    "actorEmail": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Null for the system."
+                    },
+                    "actorRole": {
+                        "$ref": "#/components/schemas/ActorRole"
+                    },
+                    "details": {
+                        "$ref": "#/components/schemas/Auth0FailedDetails"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "type",
+                    "actorEmail",
+                    "actorRole",
+                    "details",
+                    "createdAt"
+                ]
+            },
+            "EmailTemplate": {
+                "type": "string",
+                "enum": [
+                    "dapp_approved",
+                    "dapp_rejected",
+                    "change_approved",
+                    "change_rejected",
+                    "changed_by_admin",
+                    "removed_by_admin",
+                    "admin_alert"
+                ]
+            },
+            "EmailSentDetails": {
+                "type": "object",
+                "properties": {
+                    "template": {
+                        "$ref": "#/components/schemas/EmailTemplate"
+                    }
+                },
+                "required": [
+                    "template"
+                ]
+            },
+            "EmailSentEvent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "email_sent"
+                        ]
+                    },
+                    "actorEmail": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Null for the system."
+                    },
+                    "actorRole": {
+                        "$ref": "#/components/schemas/ActorRole"
+                    },
+                    "details": {
+                        "$ref": "#/components/schemas/EmailSentDetails"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "type",
+                    "actorEmail",
+                    "actorRole",
+                    "details",
+                    "createdAt"
+                ]
+            },
+            "EmailFailedDetails": {
+                "type": "object",
+                "properties": {
+                    "template": {
+                        "$ref": "#/components/schemas/EmailTemplate"
+                    },
+                    "error": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "template",
+                    "error"
+                ]
+            },
+            "EmailFailedEvent": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "email_failed"
+                        ]
+                    },
+                    "actorEmail": {
+                        "type": "string",
+                        "nullable": true,
+                        "description": "Null for the system."
+                    },
+                    "actorRole": {
+                        "$ref": "#/components/schemas/ActorRole"
+                    },
+                    "details": {
+                        "$ref": "#/components/schemas/EmailFailedDetails"
+                    },
+                    "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "type",
+                    "actorEmail",
+                    "actorRole",
+                    "details",
+                    "createdAt"
                 ]
             }
         }

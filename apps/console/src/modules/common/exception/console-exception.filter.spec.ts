@@ -1,8 +1,13 @@
 import { BadRequestException, HttpException, Logger, NotFoundException, ParseUUIDPipe } from "@nestjs/common";
 import { error as OpenApiError } from "express-openapi-validator";
+import { QueryFailedError } from "typeorm";
 import { ConsoleException } from "./console.exception";
 import { ConsoleExceptionFilter } from "./console-exception.filter";
 import { validationExceptionFactory } from "./validation-exception.factory";
+
+function postgresError(code: string, constraint?: string): QueryFailedError {
+    return new QueryFailedError("INSERT ...", [], Object.assign(new Error("db error"), { code, constraint }));
+}
 
 describe("ConsoleExceptionFilter", () => {
     const filter = new ConsoleExceptionFilter();
@@ -26,6 +31,22 @@ describe("ConsoleExceptionFilter", () => {
             code: "VALIDATION_FAILED",
             message: "The request is invalid.",
             details,
+        });
+    });
+
+    it("maps the live-email unique violation to DAPP_ALREADY_EXISTS", () => {
+        expect(toBody(postgresError("23505", "dapps_owner_email_live"))).toMatchObject({ statusCode: 409, code: "DAPP_ALREADY_EXISTS" });
+    });
+
+    it("maps a lock timeout to DAPP_CHANGED", () => {
+        expect(toBody(postgresError("55P03"))).toMatchObject({ statusCode: 409, code: "DAPP_CHANGED" });
+    });
+
+    it("maps any other database error to INTERNAL", () => {
+        expect(toBody(postgresError("23505", "some_other_index"))).toEqual({
+            statusCode: 500,
+            code: "INTERNAL",
+            message: "Internal error.",
         });
     });
 

@@ -4,4 +4,5 @@ module.exports = {
     testRegex: ".*\\.e2e-spec\\.ts$",
     setupFiles: ["<rootDir>/test/utils/load-env.ts"],
     globalSetup: "<rootDir>/test/utils/global-setup.ts",
+    restoreMocks: true,
 };

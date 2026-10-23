@@ -90,7 +90,7 @@ export function isContactEmail(email: string): boolean {
     return email.length <= EMAIL_MAX_LENGTH && EMAIL.test(email);
 }
 
-const URL_LIST_RULES = {
+export const URL_LIST_RULES = {
     callbackUrls: { min: 1, max: 10, isValid: isCallbackUrl },
     logoutUrls: { min: 0, max: 10, isValid: isCallbackUrl },
     webOrigins: { min: 1, max: 10, isValid: isWebOrigin },

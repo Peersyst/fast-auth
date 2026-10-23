@@ -4,12 +4,14 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import type { ConsoleConfig } from "./config/console-config";
 import { CONSOLE_CONFIG } from "./config/console-config";
 import { dataSourceOptions } from "./database/data-source";
+import { AdminModule } from "./modules/admin/admin.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { ClientConfigModule } from "./modules/client-config/client-config.module";
+import { DappsModule } from "./modules/dapps/dapps.module";
 import { HealthModule } from "./modules/health/health.module";
 
 @Module({
-    imports: [AuthModule, HealthModule, ClientConfigModule],
+    imports: [AuthModule, HealthModule, ClientConfigModule, DappsModule, AdminModule],
 })
 export class AppModule {
     static forRoot(config: ConsoleConfig): DynamicModule {
