@@ -44,6 +44,11 @@ export function syncedFieldsOf(fields: SyncedFields): SyncedFields {
     return { name, description, logoUrl, callbackUrls, logoutUrls, webOrigins };
 }
 
+export function directFieldsOf(fields: DirectFields): DirectFields {
+    const { contactEmail, mauBracket } = fields;
+    return { contactEmail, mauBracket };
+}
+
 export type Dapp = DappFields & {
     id: DappId;
     ownerEmail: string;

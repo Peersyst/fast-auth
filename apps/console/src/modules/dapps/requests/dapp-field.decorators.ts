@@ -7,6 +7,7 @@ import {
     isValidDescription,
     isValidName,
     isValidUrlList,
+    NUL,
     normaliseUrl,
     normaliseUrlList,
 } from "../../../domain/field-rules";
@@ -52,3 +53,8 @@ export const IsDappName = (): PropertyDecorator => stringRule("isDappName", isVa
 export const IsDappDescription = (): PropertyDecorator => stringRule("isDappDescription", isValidDescription);
 
 export const IsContactEmail = (): PropertyDecorator => stringRule("isContactEmail", isContactEmail);
+
+export const HasNoNul = (): PropertyDecorator => stringRule("hasNoNul", (value) => !value.includes(NUL));
+
+export const HasLength = (min: number, max: number): PropertyDecorator =>
+    stringRule("hasLength", (value) => value.length >= min && value.length <= max);

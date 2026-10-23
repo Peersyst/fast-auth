@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { makeCounterProvider } from "@willsoto/nestjs-prometheus";
 import { NotificationsModule } from "../notifications/notifications.module";
+import { ProvisioningModule } from "../provisioning/provisioning.module";
 import { DappsController } from "./dapps.controller";
 import { DappsGauge } from "./dapps-gauge";
 import { DappsMetric, DappsMetrics } from "./dapps.metrics";
@@ -9,7 +10,7 @@ import { DappEventsRepository } from "./repositories/dapp-events.repository";
 import { DappsRepository } from "./repositories/dapps.repository";
 
 @Module({
-    imports: [NotificationsModule],
+    imports: [ProvisioningModule, NotificationsModule],
     controllers: [DappsController],
     providers: [
         DappsService,
