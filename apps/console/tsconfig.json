@@ -1,0 +1,10 @@
+{
+    "extends": "@shared/tsconfig/nest",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "noUncheckedIndexedAccess": true,
+        "exactOptionalPropertyTypes": true,
+        "noImplicitOverride": true
+    },
+    "include": ["src/**/*.ts", "test/**/*.ts"]
+}

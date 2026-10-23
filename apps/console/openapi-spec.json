@@ -1,0 +1,150 @@
+{
+    "openapi": "3.0.0",
+    "paths": {
+        "/api/console/livez": {
+            "get": {
+                "operationId": "HealthController_livez",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HealthResponse"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "health"
+                ]
+            }
+        },
+        "/api/console/readyz": {
+            "get": {
+                "operationId": "HealthController_readyz",
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HealthResponse"
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "description": "Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "tags": [
+                    "health"
+                ]
+            }
+        }
+    },
+    "info": {
+        "title": "NEAR Auth Console",
+        "description": "",
+        "version": "1.0.0",
+        "contact": {}
+    },
+    "tags": [],
+    "servers": [],
+    "components": {
+        "securitySchemes": {
+            "bearer": {
+                "scheme": "bearer",
+                "bearerFormat": "JWT",
+                "type": "http"
+            }
+        },
+        "schemas": {
+            "ErrorCode": {
+                "type": "string",
+                "enum": [
+                    "VALIDATION_FAILED",
+                    "NOT_FOUND",
+                    "RATE_LIMITED",
+                    "INTERNAL",
+                    "UNAVAILABLE"
+                ]
+            },
+            "ErrorDetail": {
+                "type": "object",
+                "properties": {
+                    "field": {
+                        "type": "string"
+                    },
+                    "constraint": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "field",
+                    "constraint"
+                ]
+            },
+            "ErrorResponse": {
+                "type": "object",
+                "properties": {
+                    "statusCode": {
+                        "type": "number"
+                    },
+                    "code": {
+                        "$ref": "#/components/schemas/ErrorCode"
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "details": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ErrorDetail"
+                        }
+                    }
+                },
+                "required": [
+                    "statusCode",
+                    "code",
+                    "message"
+                ]
+            },
+            "HealthResponse": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "ok"
+                        ]
+                    }
+                },
+                "required": [
+                    "status"
+                ]
+            }
+        }
+    }
+}
