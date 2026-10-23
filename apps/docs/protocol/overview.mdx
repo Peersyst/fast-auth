@@ -38,7 +38,7 @@ The contract system is designed with modularity in mind. Different identity prov
 - **Secure signing** — JWT verification followed by MPC-based signature generation.
 - **Decentralized key management** — through an attestation contract and the MPC network.
 
-The main pieces are the `FastAuth` contract (the entry point that coordinates authentication and MPC signing), the `JwtGuardRouter` (which routes each verification request to the right guard), and the guards themselves. On the Auth0 happy path, the **Auth0 Guard** performs the actual RS256 JWT verification — checking the issuer, the audience, and that the `fatxn` claim matches the transaction being signed.
+The main pieces are the `FastAuth` contract (the entry point that coordinates authentication and MPC signing), the `JwtGuardRouter` (which routes each verification request to the right guard), and the guards themselves. On the Auth0 happy path, the **Auth0 Guard** performs the actual RS256 JWT verification — checking the issuer, the audience, and that the `fatxn` claim matches the payload being signed.
 
 <Card title="Contracts overview" icon="boxes" href="/protocol/contracts/overview" horizontal arrow>
   The full contract system: `FastAuth`, the JWT Guard Router, and the guards.

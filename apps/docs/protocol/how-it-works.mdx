@@ -17,22 +17,22 @@ For the individual building blocks, see [JWTs](/protocol/concepts/jwt), [Auth0](
     The user authenticates through the provider (`JavascriptProvider` on web, `ReactNativeProvider` on mobile) via a popup or redirect. Auth0 issues an RS256-signed JWT identifying the user through its `sub` claim.
   </Step>
   <Step title="App requests a signature with a `fatxn` claim" icon="file-check">
-    To sign a NEAR transaction, the app calls `requestTransactionSignature({ transaction })` (or `requestDelegateActionSignature({ delegateAction })`). The provider re-authenticates against Auth0 with the encoded transaction bound into the JWT as the custom **`fatxn`** claim. The result is a fresh JWT whose signature covers the exact payload to be signed.
+    To sign a transaction, delegate action, or off-chain [NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message, the app calls `requestTransactionSignature({ transaction })`, `requestDelegateActionSignature({ delegateAction })`, or `requestMessageSignature({ message, recipient, nonce })`. The provider re-authenticates against Auth0 with the encoded payload bound into the JWT as the custom **`fatxn`** claim. The result is a fresh JWT whose signature covers the exact payload to be signed. Only the `JavascriptProvider` implements `requestMessageSignature` for now.
   </Step>
   <Step title="`FastAuth.sign` is called on-chain" icon="server">
-    The signer calls `sign(guard_id, verify_payload, sign_payload, algorithm)` on the NEAR Auth contract (`fast-auth.near` / `fast-auth.testnet`). Here `verify_payload` is the Auth0 JWT, `sign_payload` is the transaction hash to be signed, and `algorithm` is one of `secp256k1`, `ecdsa`, or `eddsa`.
+    The signer calls `sign(guard_id, verify_payload, sign_payload, algorithm)` on the NEAR Auth contract (`fast-auth.near` / `fast-auth.testnet`). Here `verify_payload` is the Auth0 JWT, `sign_payload` is the encoded payload the user approved (the same bytes as the `fatxn` claim), and `algorithm` is one of `secp256k1`, `ecdsa`, or `eddsa`.
   </Step>
   <Step title="`guard_id` prefix routes to the JWT Guard Router" icon="network">
     `FastAuth` inspects the `guard_id`. When the prefix is **`jwt`**, it delegates verification to the `JwtGuardRouter` (`jwt.fast-auth.near` / `jwt.fast-auth.testnet`), which looks up the concrete guard by name.
   </Step>
   <Step title="`Auth0Guard` verifies the JWT with RS256" icon="shield-check">
-    The router forwards the request to the `Auth0Guard` (`auth0.jwt.fast-auth.near` / `auth0.jwt.fast-auth.testnet`). The guard verifies the RS256 signature using owner-managed RSA public keys, then validates the claims: the issuer (`iss`), the audience (`aud` must contain the guard account), token validity (`exp` / `nbf`), and — critically — that the **`fatxn`** claim equals the `sign_payload`. This last check binds the JWT to exactly the transaction being signed, so a token can never be replayed against a different payload.
+    The router forwards the request to the `Auth0Guard` (`auth0.jwt.fast-auth.near` / `auth0.jwt.fast-auth.testnet`). The guard verifies the RS256 signature using owner-managed RSA public keys, then validates the claims: the issuer (`iss`), the audience (`aud` must contain the guard account), token validity (`exp` / `nbf`), and — critically — that the **`fatxn`** claim equals the `sign_payload`. This last check binds the JWT to exactly the payload being signed, so a token can never be replayed against a different one.
   </Step>
   <Step title="MPC signs at `{guard_id}#{sub}`" icon="key-round">
     On successful verification, the guard returns the user's `sub`, and `FastAuth` constructs the derivation path `{guard_id}#{sub}` (for example `jwt#auth0#google-oauth2|123456789`). It SHA-256 hashes the `sign_payload` and forwards the request to the MPC network (`v1.signer` / `v1.signer-prod.testnet`), which collaboratively produces a signature from distributed key shares — no single party ever holds the full key. Derivation is deterministic, so the same identity always controls the same NEAR account.
   </Step>
-  <Step title="Relayer submits the transaction" icon="route">
-    The signature is returned to the caller. Your app can broadcast the signed transaction directly, or hand it to a [relayer](/protocol/concepts/relayer) to submit it — optionally gasless via a delegate action, so users transact without holding NEAR.
+  <Step title="App uses the signature" icon="route">
+    The signature is returned to the caller. Your app can broadcast the signed transaction directly, or hand it to a [relayer](/protocol/concepts/relayer) to submit it — optionally gasless via a delegate action, so users transact without holding NEAR. For a NEP-413 message, the returned signature is the result and nothing is broadcast.
   </Step>
 </Steps>
 

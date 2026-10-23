@@ -127,8 +127,8 @@ describe("getActionType", () => {
 
 describe("renderDetails (DOM)", () => {
     function decodedActionsJson(actions) {
-        const { csv } = buildTransaction({ actions });
-        const decoded = parseTransaction(csv);
+        const { bytes } = buildTransaction({ actions });
+        const decoded = parseTransaction(bytes);
         return JSON.stringify(decoded.actions, (_, v) => (typeof v === "bigint" ? v.toString() : v));
     }
 

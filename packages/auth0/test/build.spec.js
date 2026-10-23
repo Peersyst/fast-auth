@@ -80,6 +80,29 @@ describe("buildForm — delegate_action form", () => {
     });
 });
 
+describe("buildForm — nep413 form", () => {
+    const NEP413_FORM_PATH = path.join(buildModule.FORMS_DIR, "nep413", "nep413_form.json");
+
+    beforeAll(() => {
+        if (fs.existsSync(NEP413_FORM_PATH)) fs.unlinkSync(NEP413_FORM_PATH);
+        buildModule.buildForm(buildModule.FORMS[2], buildModule.readHelpersPreamble());
+    });
+
+    test("details component maps the message, recipient and callback url fields", () => {
+        const form = JSON.parse(fs.readFileSync(NEP413_FORM_PATH, "utf8"));
+        const components = form.form.nodes.flatMap((n) => n.config.components || []);
+        const details = components.find((c) => c.config && c.config.params && c.config.params.message);
+        expect(details).toBeDefined();
+        expect(details.config.params).toEqual({
+            message: "{{ fields.message }}",
+            recipient: "{{ fields.recipient }}",
+            callbackUrl: "{{ fields.callbackUrl }}",
+        });
+        const hiddenFields = form.form.start.hidden_fields.map((f) => f.key);
+        expect(hiddenFields).toEqual(expect.arrayContaining(["message", "recipient", "callbackUrl", "name", "imageUrl", "decision"]));
+    });
+});
+
 describe("readComponent (isolated)", () => {
     test("returns empty code/css/schema for a component folder with only schema.json", () => {
         const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "auth0-build-"));

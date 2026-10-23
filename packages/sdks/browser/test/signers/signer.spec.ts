@@ -1,4 +1,5 @@
 import { FastAuthSigner } from "../../src/signers/signer";
+import { FastAuthSignerErrorCodes } from "../../src/signers/signer.error-codes";
 import { FastAuthSignerOptions, SignatureRequest } from "../../src/signers/signer.types";
 import { ConnectionMock, FastAuthProviderMock } from "../mocks";
 
@@ -44,6 +45,22 @@ describe("FastAuthSigner", () => {
             // @ts-ignore testing spread args passthrough
             await signer.requestDelegateActionSignature(...(args as any));
             expect(mockProvider.requestDelegateActionSignature).toHaveBeenCalledWith(...args);
+        });
+
+        it("requestMessageSignature should delegate to provider", async () => {
+            const params = { message: "hello", recipient: "app.near", nonce: new Uint8Array(32) };
+            const user = { userId: "user-1" };
+            const provider = new FastAuthProviderMock();
+            provider.requestMessageSignature = jest.fn().mockResolvedValue(user);
+            signer = new FastAuthSigner(provider, mockConnection, options);
+            const result = await signer.requestMessageSignature(params);
+            expect(provider.requestMessageSignature).toHaveBeenCalledWith(params);
+            expect(result).toEqual(user);
+        });
+
+        it("requestMessageSignature should throw when the provider does not support it", async () => {
+            signer = new FastAuthSigner(new FastAuthProviderMock(), mockConnection, options);
+            await expect(signer.requestMessageSignature()).rejects.toThrow(FastAuthSignerErrorCodes.UNSUPPORTED_MESSAGE_SIGNATURE);
         });
 
         it("getSignatureRequest should return provider value", async () => {

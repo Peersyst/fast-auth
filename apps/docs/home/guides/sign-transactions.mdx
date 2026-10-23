@@ -6,7 +6,7 @@ icon: "pen-line"
 
 Once a user is [authenticated](/home/guides/authenticate-users), your app can request signatures for NEAR transactions on their behalf. You never touch a private key — you ask the user to approve a payload through Auth0, and a [Multi-Party Computation network](/protocol/concepts/mpc) produces the signature after the [NEAR Auth contract](/protocol/contracts/fast-auth) verifies the approval on-chain.
 
-This guide covers the two ways to sign: a **transaction signature** you submit yourself, and a **delegate action signature** a [relayer](/protocol/concepts/relayer) can submit gaslessly on the user's behalf.
+This guide covers the two ways to sign on-chain actions: a **transaction signature** you submit yourself, and a **delegate action signature** a [relayer](/protocol/concepts/relayer) can submit gaslessly on the user's behalf. To sign an off-chain NEP-413 message instead, see [Sign messages](/home/guides/sign-messages).
 
 <Warning>
   `requestTransactionSignature` and `requestDelegateActionSignature` may trigger a **browser redirect or open a popup**, depending on the SDK and how you configured the Auth0 provider. Design your UX to expect this context switch — persist any in-progress state and resume it on your callback route so the flow survives a full-page redirect.
@@ -209,5 +209,8 @@ Under the hood this queries the MPC contract's `derived_public_key` view at the 
   </Card>
   <Card title="Authenticate users" icon="log-in" href="/home/guides/authenticate-users" horizontal arrow>
     Log users in and manage sessions before requesting signatures.
+  </Card>
+  <Card title="Sign messages" icon="signature" href="/home/guides/sign-messages" horizontal arrow>
+    Ask a user to sign an off-chain NEP-413 message to prove account ownership.
   </Card>
 </CardGroup>

@@ -1,0 +1,68 @@
+.box {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    width: 100%;
+
+    border-radius: 1rem;
+    border: 1px solid #e5e5e5;
+}
+
+.text-content {
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+    width: 100%;
+}
+
+.label {
+    font-size: 0.75rem;
+    color: #999999;
+    font-weight: 500;
+}
+
+.value {
+    color: #3f4246;
+    font-size: 0.875rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.message-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: left;
+    width: 100%;
+    gap: 0.25rem;
+}
+
+.message-body {
+    margin: 0;
+    padding: 0.75rem;
+    width: 100%;
+    box-sizing: border-box;
+
+    color: #3f4246;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-family: inherit;
+
+    background: #fafafa;
+    border: 1px solid #e5e5e5;
+    border-radius: 0.5rem;
+}
+
+.message-note {
+    width: 100%;
+    font-size: 0.75rem;
+    color: #999999;
+    font-weight: 500;
+    line-height: 1.4;
+}

@@ -246,6 +246,59 @@ const { signatureRequest } = await provider.getSignatureRequest();
   Delegate actions are how NEAR Auth enables gasless transactions: a relayer wraps the signed delegate action in a meta-transaction and pays the gas. See [Sign transactions](/home/guides/sign-transactions) for the end-to-end flow.
 </Note>
 
+### `requestMessageSignature({ message, recipient, nonce, callbackUrl?, redirectUri? })`
+
+Asks Auth0 to approve an off-chain [NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message signature. The signature proves that the user controls their account, without broadcasting a transaction of their own. The provider Borsh-encodes the message with [`encodeSignMessage`](/sdks/core#encodesignmessage), then routes through popup or redirect just like `login`. Resolves to the authenticated `User`.
+
+```ts
+requestMessageSignature(
+  options: JavascriptRequestMessageSignatureOptions,
+): Promise<{ userId: string }>
+```
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `message` | `string` | The message the user is asked to sign. |
+| `recipient` | `string` | The recipient the message is addressed to, e.g. `"myapp.com"`. |
+| `nonce` | `Uint8Array` | A 32-byte nonce chosen by the app to prevent replays. Rejects if it isn't exactly 32 bytes. |
+| `callbackUrl` | `string` (optional) | Callback URL from NEP-413. It is only signed data. NEAR Auth never calls it. |
+| `redirectUri` | `string` (optional) | Present → redirect flow. Absent → popup flow. |
+| (other keys) | `RedirectLoginOptions` / `PopupLoginOptions` | Any other `@auth0/auth0-spa-js` login option except `authorizationParams`. |
+
+After the approval completes, read the resulting request with [`getSignatureRequest()`](#getsignaturerequest).
+
+<CodeGroup>
+
+```ts popup.ts
+// Popup: no redirectUri.
+await provider.requestMessageSignature({
+  message: "Log in to MyApp",
+  recipient: "myapp.com",
+  nonce, // 32-byte Uint8Array your backend issued for this session
+});
+const { signatureRequest } = await provider.getSignatureRequest();
+```
+
+```ts redirect.ts
+// Redirect: the user returns to redirectUri.
+await provider.requestMessageSignature({
+  message: "Log in to MyApp",
+  recipient: "myapp.com",
+  nonce, // 32-byte Uint8Array your backend issued for this session
+  redirectUri: window.location.origin + "/callback",
+});
+
+// On the redirectUri page: complete the Auth0 callback, then read the request.
+await provider.isLoggedIn();
+const { signatureRequest } = await provider.getSignatureRequest();
+```
+
+</CodeGroup>
+
+<Note>
+  Unlike a transaction or delegate action, a NEP-413 message leaves nothing to broadcast afterward. The signature returned by the `sign` call is the result. See [Sign messages](/home/guides/sign-messages) for the full flow, including verifying it on your backend.
+</Note>
+
 ### `getSignatureRequest()`
 
 Reads the approved signature request out of the Auth0 token after a signing approval. It fetches the token silently for the configured `signingAudience`, decodes the embedded payload, and returns both the `User` and the `SignatureRequest`.
@@ -260,7 +313,7 @@ The returned `signatureRequest` is what a NEAR Auth SDK forwards on-chain:
 | --- | --- | --- |
 | `guardId` | `string` | The guard identifier, `jwt#https://{domain}/`. |
 | `verifyPayload` | `string` | The Auth0 JWT the guard verifies on-chain. |
-| `signPayload` | `Uint8Array` | The encoded transaction or delegate-action bytes to sign. |
+| `signPayload` | `Uint8Array` | The encoded transaction, delegate-action, or NEP-413 message bytes to sign. |
 | `algorithm` | `"secp256k1" \| "eddsa" \| "ecdsa"` (optional) | The signing algorithm, when set. |
 
 ```ts

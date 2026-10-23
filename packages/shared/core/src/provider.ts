@@ -21,6 +21,11 @@ export type RequestTransactionSignatureResponse = User;
 export type RequestDelegateActionSignatureResponse = User;
 
 /**
+ * Response returned after a successful message signature request
+ */
+export type RequestMessageSignatureResponse = User;
+
+/**
  * Response returned after a successful signature request
  */
 export type GetSignatureRequestResponse = { user: User; signatureRequest: SignatureRequest };
@@ -31,6 +36,7 @@ export interface IFastAuthProvider {
     isLoggedIn(): Promise<boolean>;
     requestTransactionSignature(...args: any[]): Promise<RequestTransactionSignatureResponse>;
     requestDelegateActionSignature(...args: any[]): Promise<RequestDelegateActionSignatureResponse>;
+    requestMessageSignature?(...args: any[]): Promise<RequestMessageSignatureResponse>;
     getSignatureRequest(): Promise<GetSignatureRequestResponse>;
     getPath(): Promise<string>;
 }

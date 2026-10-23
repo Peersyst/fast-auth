@@ -24,8 +24,12 @@ export type {
     LoginResponse,
     RequestTransactionSignatureResponse,
     RequestDelegateActionSignatureResponse,
+    RequestMessageSignatureResponse,
     GetSignatureRequestResponse,
     IFastAuthProvider,
     MPCContractAlgorithm,
     SignatureRequest,
 } from "./provider";
+
+export { encodeSignMessage } from "./nep413";
+export type { SignMessageParams } from "./nep413";

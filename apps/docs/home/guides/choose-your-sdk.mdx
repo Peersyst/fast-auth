@@ -50,7 +50,7 @@ npm install @fast-auth-near/react-sdk
 The React SDK's signer is relayer-aware, adding `signAndSendTransaction(...)` and `signAndSendDelegateAction(...)` on top of the core signing methods.
 
 <Tip>
-  The React SDK is built on the Browser SDK — anything the Browser SDK does, the React SDK can do too. Choose the Browser SDK only when you're not using React.
+  The React SDK is built on the Browser SDK — anything the Browser SDK does, the React SDK can do too, except [NEP-413 message signing](/home/guides/sign-messages) for now. Choose the Browser SDK when you're not using React, or when your React web app needs message signing.
 </Tip>
 
 ---

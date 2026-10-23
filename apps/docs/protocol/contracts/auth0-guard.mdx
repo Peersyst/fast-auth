@@ -45,7 +45,7 @@ The base `JwtGuard` trait handles the signature and the standard `iss` / `exp` /
 
 ```rust custom_claims.rs
 pub struct CustomClaims {
-    pub fatxn: Vec<u8>,       // the encoded transaction payload
+    pub fatxn: Vec<u8>,       // the encoded payload the user approved
     pub aud: serde_json::Value, // string or array, per the OIDC spec
 }
 ```
@@ -63,7 +63,7 @@ if !audience_matches(&claims.aud, &expected) {
 
 This prevents a JWT minted for one deployment from being replayed against another — a token targeting the testnet guard cannot be used against mainnet, and vice versa.
 
-**`fatxn` must equal the `sign_payload`.** The `fatxn` claim is the encoded transaction or delegate-action payload the user authorized at login time. The guard requires it to match the `sign_payload` the caller is asking to sign, exactly:
+**`fatxn` must equal the `sign_payload`.** The `fatxn` claim is the encoded transaction, delegate action, or NEP-413 message the user authorized at login time. The guard requires it to match the `sign_payload` the caller is asking to sign, exactly:
 
 ```rust verify_custom_claims.rs
 if claims.fatxn != sign_payload {
@@ -99,7 +99,7 @@ pub fn verify(
 |-----------|------|-------------|
 | `issuer` | `String` | The expected JWT issuer, e.g. `https://login.testnet.fast-auth.com/`. Must equal the token's `iss` claim. |
 | `jwt` | `String` | The full Auth0-issued JWT to verify. |
-| `sign_payload` | `Vec<u8>` | The encoded transaction payload; must equal the token's `fatxn` claim. |
+| `sign_payload` | `Vec<u8>` | The encoded payload to sign; must equal the token's `fatxn` claim. |
 | `predecessor` | `AccountId` | The original caller's account id, forwarded through the routing chain. |
 
 **Returns** a `(bool, String)` tuple: the boolean is `true` when the JWT is valid, and the string carries the `sub` claim on success or an error message (`"audience mismatch"`, `"Transaction payload mismatch"`, and so on) on failure.

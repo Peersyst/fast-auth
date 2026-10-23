@@ -72,7 +72,8 @@
             "pages": [
               "home/guides/choose-your-sdk",
               "home/guides/authenticate-users",
-              "home/guides/sign-transactions"
+              "home/guides/sign-transactions",
+              "home/guides/sign-messages"
             ]
           },
           {

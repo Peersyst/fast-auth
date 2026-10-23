@@ -53,12 +53,12 @@ The guard deserializes the payload into a small, strict set of standard claims:
 Alongside the standard claims, NEAR Auth relies on one custom claim:
 
 <ParamField path="fatxn" type="byte array">
-  The encoded transaction or delegate action the user is authorizing, embedded into the JWT at login-to-sign time.
+  The encoded transaction, delegate action, or [NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message the user is authorizing, embedded into the JWT at login-to-sign time.
 </ParamField>
 
-The `fatxn` claim is what binds a token to a specific action. When a user requests a signature, the provider asks the identity provider to mint a JWT whose `fatxn` claim is the Borsh-encoded transaction (or delegate action) payload. Because `fatxn` is signed as part of the token, an attacker cannot swap in a different transaction after the fact — the RSA signature would no longer verify.
+The `fatxn` claim is what binds a token to a specific action. When a user requests a signature, the provider asks the identity provider to mint a JWT whose `fatxn` claim is the Borsh-encoded transaction, delegate action, or NEP-413 message. Because `fatxn` is signed as part of the token, an attacker cannot swap in a different payload after the fact — the RSA signature would no longer verify.
 
-The guard compares `fatxn` against the `sign_payload` passed into the on-chain call. Only if they are byte-for-byte identical does verification proceed, guaranteeing that the transaction the MPC network signs is exactly the one the identity provider attested to.
+The guard compares `fatxn` against the `sign_payload` passed into the on-chain call. Only if they are byte-for-byte identical does verification proceed, guaranteeing that the payload the MPC network signs is exactly the one the identity provider attested to.
 
 ---
 
@@ -146,9 +146,9 @@ On success the guard returns the `sub` claim, which the NEAR Auth contract uses 
 Standard claim checks are common to all guards, but each guard also enforces its own custom claims before the standard ones. For the **Auth0 guard** this means:
 
 - **`aud`** — the token's audience must contain the guard's own account id, so a token minted for a different audience can't be replayed against it.
-- **`fatxn`** — the embedded transaction payload must exactly equal the `sign_payload` supplied to the on-chain call.
+- **`fatxn`** — the embedded payload must exactly equal the `sign_payload` supplied to the on-chain call.
 
-Other guards vary these rules — for example, a custom-issuer guard skips the audience check. The `fatxn` binding, however, is universal: a guard never authorizes a transaction it wasn't explicitly presented with.
+Other guards vary these rules — for example, a custom-issuer guard skips the audience check. The `fatxn` binding, however, is universal: a guard never authorizes a payload it wasn't explicitly presented with.
 
 ---
 

@@ -55,9 +55,7 @@ function delegateCases() {
         { name: "truncated body", csv: validBytes.slice(0, 10).join(",") },
         { name: "non-numeric tokens", csv: "x,y,z,w,1,2,3" },
         { name: "invalid action discriminator", csv: badDiscriminator.join(",") },
-        // Documented non-throw: a zero-prefix delegate still deserializes because the prefix is
-        // read into an unvalidated struct. Tests assert this behavior to flag any future tightening.
-        { name: "zeroed prefix (does not throw)", csv: wrongPrefix.join(","), nonThrowing: true },
+        { name: "zeroed prefix", csv: wrongPrefix.join(",") },
     ];
 }
 

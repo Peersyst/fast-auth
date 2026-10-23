@@ -4,7 +4,7 @@ description: "The shared TypeScript interfaces every NEAR Auth SDK and provider 
 icon: "boxes"
 ---
 
-`@shared/core` holds the small set of TypeScript types shared across every NEAR Auth SDK and provider. It defines the contract each provider implements, the shapes returned by login and signature flows, and a handful of network constants.
+`@shared/core` holds the small set of TypeScript types shared across every NEAR Auth SDK and provider. It defines the contract each provider implements, the shapes returned by login and signature flows, the NEP-413 message parameters and encoder, and a handful of network constants.
 
 <Note>
   `@shared/core` is an **internal** package — it is bundled into the published SDKs and providers, not installed on its own. You don't need it for a normal integration. It's documented here because these types are the seam you build against when you write a **custom provider**, or when you want precise types over the values the SDKs hand back.
@@ -23,6 +23,7 @@ export interface IFastAuthProvider {
   isLoggedIn(): Promise<boolean>;
   requestTransactionSignature(...args: any[]): Promise<RequestTransactionSignatureResponse>;
   requestDelegateActionSignature(...args: any[]): Promise<RequestDelegateActionSignatureResponse>;
+  requestMessageSignature?(...args: any[]): Promise<RequestMessageSignatureResponse>;
   getSignatureRequest(): Promise<GetSignatureRequestResponse>;
   getPath(): Promise<string>;
 }
@@ -35,6 +36,7 @@ export interface IFastAuthProvider {
 | `isLoggedIn()` | `Promise<boolean>` | Whether a user is currently authenticated. |
 | `requestTransactionSignature(...args)` | `Promise<RequestTransactionSignatureResponse>` | Ask the identity provider to authorize signing a transaction, embedding the encoded payload in the JWT. |
 | `requestDelegateActionSignature(...args)` | `Promise<RequestDelegateActionSignatureResponse>` | Same as above for a delegate action (gasless / meta-transaction). |
+| `requestMessageSignature?(...args)` | `Promise<RequestMessageSignatureResponse>` | Optional. Same as above for an off-chain [NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message. |
 | `getSignatureRequest()` | `Promise<GetSignatureRequestResponse>` | Retrieve the pending [`SignatureRequest`](#signaturerequest) and its user after a signature flow completes. |
 | `getPath()` | `Promise<string>` | Return the MPC derivation path for the current identity, of the form `{guardId}#{userSubject}`. |
 
@@ -58,14 +60,15 @@ export type User = {
 };
 ```
 
-### `LoginResponse`, `RequestTransactionSignatureResponse`, `RequestDelegateActionSignatureResponse`
+### `LoginResponse`, `RequestTransactionSignatureResponse`, `RequestDelegateActionSignatureResponse`, `RequestMessageSignatureResponse`
 
-Each of these is an alias of `User` — login and both signature-request flows resolve to the identity they acted on.
+Each of these is an alias of `User` — login and every signature-request flow resolve to the identity they acted on.
 
 ```ts
 export type LoginResponse = User;
 export type RequestTransactionSignatureResponse = User;
 export type RequestDelegateActionSignatureResponse = User;
+export type RequestMessageSignatureResponse = User;
 ```
 
 ### `GetSignatureRequestResponse`
@@ -101,11 +104,51 @@ export type SignatureRequest = {
   The payload to verify — typically the JWT issued by the identity provider, which the guard RS256-verifies before any signature is produced.
 </ResponseField>
 <ResponseField name="signPayload" type="Uint8Array">
-  The bytes to sign — the encoded transaction or delegate action.
+  The bytes to sign — the encoded transaction, delegate action, or NEP-413 message.
 </ResponseField>
 <ResponseField name="algorithm" type="MPCContractAlgorithm" required={false}>
   The signing algorithm the MPC network should use. Optional; defaults are resolved downstream.
 </ResponseField>
+
+---
+
+## NEP-413 message signing
+
+Signing an off-chain [NEP-413](https://github.com/near/NEPs/blob/master/neps/nep-0413.md) message lets a user prove they control their account without broadcasting a transaction of their own. `@shared/core` provides the parameter type and the encoder that the JavaScript provider uses to build the payload to sign. `@shared/core` is internal, so import both from `@fast-auth-near/javascript-provider` or `@fast-auth-near/browser-sdk`, which re-export them.
+
+### `SignMessageParams`
+
+```ts
+export type SignMessageParams = {
+  message: string;
+  recipient: string;
+  nonce: Uint8Array; // 32 bytes
+  callbackUrl?: string;
+};
+```
+
+<ResponseField name="message" type="string">
+  The message the user is asked to sign.
+</ResponseField>
+<ResponseField name="recipient" type="string">
+  The recipient the message is addressed to, e.g. `"alice.near"` or `"myapp.com"`.
+</ResponseField>
+<ResponseField name="nonce" type="Uint8Array">
+  A 32-byte nonce chosen by the app, used to prevent replays. Issue it from your backend and bind it to the user's session. See [Sign messages](/home/guides/sign-messages#security-notes).
+</ResponseField>
+<ResponseField name="callbackUrl" type="string" required={false}>
+  Optional callback URL from NEP-413. It is only signed data. NEAR Auth never calls it.
+</ResponseField>
+
+### `encodeSignMessage`
+
+Encodes a NEP-413 message into the exact Borsh bytes whose SHA-256 hash the user signs: `borsh(u32 tag) || borsh({ message, nonce, recipient, callbackUrl })`, where the tag is `2^31 + 413`. The JavaScript provider calls it internally when you request a message signature, and your backend calls it to re-encode the message when it [verifies the signature](/home/guides/sign-messages#verify-the-signature-on-your-backend).
+
+```ts
+export function encodeSignMessage(params: SignMessageParams): number[]
+```
+
+Throws `NEP-413 nonce must be 32 bytes, got …` if `nonce` isn't exactly 32 bytes.
 
 ---
 
