@@ -69,3 +69,5 @@ export type Dapp = DappFields & {
     createdAt: Date;
     updatedAt: Date;
 };
+
+export const AUTO_APPROVAL_DAILY_CAP = 10;

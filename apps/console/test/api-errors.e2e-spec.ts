@@ -30,6 +30,8 @@ describe("errors, guards and throttling", () => {
             ["GET /admin/dapps", (user) => api.list({}, user)],
             ["GET /admin/dapps/:id", (user) => api.detail(UNKNOWN_ID, user)],
             ["POST /admin/dapps/:id/approve", (user) => api.approve(UNKNOWN_ID, 1, user)],
+            ["GET /admin/settings", (user) => api.getSettings(user)],
+            ["PUT /admin/settings", (user) => api.putSettings({ autoApproval: { enabled: true } }, user)],
         ])("refuses a user token on %s with 403 FORBIDDEN_ROLE", async (_name, call) => {
             expectError(await call(await api.user()), 403, "FORBIDDEN_ROLE");
         });
@@ -230,6 +232,14 @@ describe("errors, guards and throttling", () => {
             const dapp = await api.submitDapp(await api.user());
 
             expectValidationFailed(await api.changeOwner(dapp.id, dapp.version, "not-an-email"));
+        });
+
+        it("refuses a malformed settings body, naming the field", async () => {
+            expectValidationFailed(
+                await api.send("put", "/admin/settings", api.admin, { autoApproval: { enabled: "yes" } }),
+                "autoApproval.enabled",
+            );
+            expect(expectStatus(await api.getSettings(), 200)).toEqual({ autoApproval: { enabled: false } });
         });
 
         describe("NUL characters are refused before they reach Postgres", () => {
