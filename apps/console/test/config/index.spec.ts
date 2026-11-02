@@ -86,6 +86,7 @@ describe("loadConfig", () => {
             provisioner: "fake",
         });
         expect(config.throttle).toEqual({ submitDappPerMinute: 5, editDappPerMinute: 10, adminMutationPerMinute: 60 });
+        expect(config.autoApproval).toEqual({ dailyCap: 10 });
         expect(config.email).toEqual({ provider: "fake" });
         expect(config.slack).toEqual({ webhookUrl: null, timeoutMs: 5000 });
     });
@@ -103,6 +104,7 @@ describe("loadConfig", () => {
             THROTTLE_SUBMIT_DAPP_PER_MINUTE: "3",
             THROTTLE_EDIT_DAPP_PER_MINUTE: "20",
             THROTTLE_ADMIN_MUTATION_PER_MINUTE: "120",
+            AUTO_APPROVAL_DAILY_CAP: "25",
             AUTH0_HEALTH_CHECK_INTERVAL_MS: "60000",
             SLACK_TIMEOUT_MS: "2000",
         });
@@ -115,6 +117,7 @@ describe("loadConfig", () => {
         expect(config.auth0.jwksTimeoutMs).toBe(4000);
         expect(config.auth0.jwksRefetchCooldownMs).toBe(45000);
         expect(config.throttle).toEqual({ submitDappPerMinute: 3, editDappPerMinute: 20, adminMutationPerMinute: 120 });
+        expect(config.autoApproval).toEqual({ dailyCap: 25 });
         expect(config.auth0.healthCheckIntervalMs).toBe(60000);
         expect(config.slack.timeoutMs).toBe(2000);
         expect(loadConfig({ ...VALID_ENV, ...REAL_ADAPTERS, SES_TIMEOUT_MS: "3000", SES_MAX_ATTEMPTS: "4" }).email).toMatchObject({
@@ -158,6 +161,7 @@ describe("loadConfig", () => {
         "THROTTLE_SUBMIT_DAPP_PER_MINUTE",
         "THROTTLE_EDIT_DAPP_PER_MINUTE",
         "THROTTLE_ADMIN_MUTATION_PER_MINUTE",
+        "AUTO_APPROVAL_DAILY_CAP",
         "AUTH0_MGMT_RETRY_AFTER_MS",
         "AUTH0_MGMT_MAX_RETRY_AFTER_MS",
         "SES_MAX_ATTEMPTS",

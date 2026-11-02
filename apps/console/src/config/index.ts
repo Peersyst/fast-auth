@@ -91,6 +91,7 @@ function configSchema(raw: Record<string, string>) {
             THROTTLE_SUBMIT_DAPP_PER_MINUTE: count.default(5),
             THROTTLE_EDIT_DAPP_PER_MINUTE: count.default(10),
             THROTTLE_ADMIN_MUTATION_PER_MINUTE: count.default(60),
+            AUTO_APPROVAL_DAILY_CAP: count.default(10),
             SLACK_WEBHOOK_URL: z
                 .url({ protocol: /^https$/, hostname: /^hooks\.slack\.com$/, error: "must be an https://hooks.slack.com/ webhook URL" })
                 .optional(),
@@ -182,6 +183,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ConsoleConfig 
             editDappPerMinute: parsed.THROTTLE_EDIT_DAPP_PER_MINUTE,
             adminMutationPerMinute: parsed.THROTTLE_ADMIN_MUTATION_PER_MINUTE,
         },
+        autoApproval: { dailyCap: parsed.AUTO_APPROVAL_DAILY_CAP },
         slack: { webhookUrl: parsed.SLACK_WEBHOOK_URL ?? null, timeoutMs: parsed.SLACK_TIMEOUT_MS },
     };
 }

@@ -5,17 +5,14 @@ import type { ConsoleConfig } from "../../config/console-config";
 import type { Dapp } from "@shared/console-domain/dapp";
 import { clientIdOf } from "@shared/console-domain/dapp";
 import type { DappEventDetails } from "@shared/console-domain/dapp-event";
-import { ActorRole, DappEventType, EmailTemplate } from "@shared/console-domain/dapp-event";
+import { DappEventType, EmailTemplate } from "@shared/console-domain/dapp-event";
 import { describeError } from "../common/exception/describe-error";
 import type { AdminAlertKind, ConsoleEmail, Emailer } from "../notifications/emailer";
 import { EMAILER } from "../notifications/emailer";
 import type { SlackAlert, SlackNotifier } from "../notifications/slack-notifier";
 import { SLACK_NOTIFIER } from "../notifications/slack-notifier";
 import { DappsMetrics } from "./dapps.metrics";
-import type { Actor } from "./repositories/dapp-events.repository";
-import { DappEventsRepository } from "./repositories/dapp-events.repository";
-
-const SYSTEM: Actor = { email: null, role: ActorRole.SYSTEM };
+import { DappEventsRepository, SYSTEM } from "./repositories/dapp-events.repository";
 
 /**
  * Reads a rejected dApp's rejection reason, throwing when it has none.
@@ -47,6 +44,18 @@ export class DappsNotifier {
     async submitted(dapp: Dapp): Promise<void> {
         await this.sendEmails([this.adminAlert(dapp, DappEventType.SUBMITTED)]);
         await this.notifySlack({ kind: "submitted", dapp });
+    }
+
+    /**
+     * Emails the owner that their dApp was auto-approved, with its Auth0 client id, then alerts the admins by email and Slack.
+     * @param dapp The auto-approved dApp.
+     */
+    async autoApproved(dapp: Dapp): Promise<void> {
+        await this.sendEmails([
+            { template: EmailTemplate.DAPP_APPROVED, to: dapp.ownerEmail, dapp, clientId: clientIdOf(dapp) },
+            this.adminAlert(dapp, DappEventType.AUTO_APPROVED),
+        ]);
+        await this.notifySlack({ kind: "auto_approved", dapp });
     }
 
     /**

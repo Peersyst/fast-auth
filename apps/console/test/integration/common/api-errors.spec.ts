@@ -244,7 +244,7 @@ describe("errors, guards and throttling", () => {
                 await api.send("put", "/admin/settings", api.admin, { autoApproval: { enabled: "yes" } }),
                 "autoApproval.enabled",
             );
-            expect(expectStatus(await api.getSettings(), 200)).toEqual({ autoApproval: { enabled: false } });
+            expect(expectStatus(await api.getSettings(), 200)).toEqual({ autoApproval: { enabled: false, dailyCap: 10 } });
         });
 
         describe("NUL characters are refused before they reach Postgres", () => {

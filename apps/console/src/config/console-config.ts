@@ -91,6 +91,9 @@ export type ConsoleConfig = {
         readonly editDappPerMinute: number;
         readonly adminMutationPerMinute: number;
     };
+    readonly autoApproval: {
+        readonly dailyCap: number;
+    };
     readonly slack: {
         readonly webhookUrl: string | null;
         readonly timeoutMs: number;

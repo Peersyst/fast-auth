@@ -4,40 +4,28 @@ import type { EntityManager } from "typeorm";
 import { DataSource } from "typeorm";
 import type { ConsoleConfig } from "../../config/console-config";
 import type { Auth0ClientId, Dapp, DappFields, DappId, SyncedFields } from "@shared/console-domain/dapp";
-import {
-    AUTO_APPROVAL_DAILY_CAP,
-    DAPP_FIELDS,
-    DappStatus,
-    directFieldsOf,
-    SYNCED_FIELDS,
-    syncedFieldsOf,
-} from "@shared/console-domain/dapp";
+import { clientIdOf, DAPP_FIELDS, DappStatus, directFieldsOf, SYNCED_FIELDS, syncedFieldsOf } from "@shared/console-domain/dapp";
 import type { PendingChangeOutcome } from "@shared/console-domain/dapp-edits";
 import { classifyEdit, diffFields } from "@shared/console-domain/dapp-edits";
 import type { DappEventDetails } from "@shared/console-domain/dapp-event";
-import { ActorRole, Auth0Op, DappEventType, EmailTemplate } from "@shared/console-domain/dapp-event";
+import { ActorRole, Auth0Op, DappEventType } from "@shared/console-domain/dapp-event";
 import { DappAction, transition } from "@shared/console-domain/dapp-transitions";
 import type { SessionUser } from "../auth/session-user";
 import { ConsoleException } from "../common/exception/console.exception";
-import { postgresErrorCode } from "../common/exception/console-exception.filter";
-import type { ConsoleErrorCode } from "../common/exception/error-codes";
+import { consoleCode, describeError } from "../common/exception/describe-error";
 import { ERROR_CODES } from "../common/exception/error-codes";
-import type { AdminAlertKind, ConsoleEmail, Emailer } from "../notifications/emailer";
-import { EMAILER } from "../notifications/emailer";
-import type { SlackAlert, SlackNotifier } from "../notifications/slack-notifier";
-import { SLACK_NOTIFIER } from "../notifications/slack-notifier";
+import type { AdminAlertKind } from "../notifications/emailer";
 import type { Auth0Provisioner, ProvisioningErrorKind } from "../provisioning/auth0-provisioner";
 import { AUTH0_PROVISIONER, ProvisioningError } from "../provisioning/auth0-provisioner";
 import { SettingsRepository } from "../settings/repositories/settings.repository";
 import type { TransitionAction } from "./dapps.metrics";
 import { DappsMetrics } from "./dapps.metrics";
+import { DappsNotifier } from "./dapps.notifier";
 import { DappsErrorCode } from "./error/dapps-error-codes";
 import type { Actor, StoredDappEvent } from "./repositories/dapp-events.repository";
-import { DappEventsRepository } from "./repositories/dapp-events.repository";
+import { DappEventsRepository, SYSTEM } from "./repositories/dapp-events.repository";
 import type { AdminDappFilter, DappChanges, Page } from "./repositories/dapps.repository";
 import { DappsRepository } from "./repositories/dapps.repository";
-
-const SYSTEM: Actor = { email: null, role: ActorRole.SYSTEM };
 
 type Lookup = { id: DappId; ownerEmail: string } | { id: DappId };
 
@@ -79,28 +67,6 @@ async function callAuth0<T>(op: Auth0Op, clientId: Auth0ClientId | null, call: (
 }
 
 /**
- * Reads the error code a thrown value maps to, including the database errors the exception filter maps.
- * @param error The thrown value.
- * @returns The error code, or undefined when it maps to none.
- */
-function consoleCode(error: unknown): ConsoleErrorCode | undefined {
-    return error instanceof ConsoleException ? error.code : postgresErrorCode(error);
-}
-
-/**
- * Describes a thrown value for a log line by its error code, or by its name and driver code, never by its message.
- * @param error The thrown value.
- * @returns The description.
- */
-function describeError(error: unknown): string {
-    const consoleErrorCode = consoleCode(error);
-    if (consoleErrorCode !== undefined) return consoleErrorCode;
-    if (!(error instanceof Error)) return typeof error;
-    const code = "code" in error ? error.code : undefined;
-    return typeof code === "string" ? `${error.name} (${code})` : error.name;
-}
-
-/**
  * Tells a use case refused with a client error apart from one that failed.
  * @param error The thrown value.
  * @returns The log word, refused for an error code below 500 and failed otherwise.
@@ -109,26 +75,6 @@ const refusedOrFailed = (error: unknown): string => {
     const code = consoleCode(error);
     return code !== undefined && ERROR_CODES[code].status < 500 ? "refused" : "failed";
 };
-
-/**
- * Reads an approved dApp's Auth0 client id, throwing when it has none.
- * @param dapp The approved dApp.
- * @returns The client id.
- */
-function clientIdOf(dapp: Dapp): Auth0ClientId {
-    if (dapp.auth0ClientId === null) throw new Error(`Approved dApp ${dapp.id} has no Auth0 client`);
-    return dapp.auth0ClientId;
-}
-
-/**
- * Reads a rejected dApp's rejection reason, throwing when it has none.
- * @param dapp The rejected dApp.
- * @returns The reason.
- */
-function rejectionReasonOf(dapp: Dapp): string {
-    if (dapp.rejectionReason === null) throw new Error(`Rejected dApp ${dapp.id} has no rejection reason`);
-    return dapp.rejectionReason;
-}
 
 /**
  * Gives the columns and events that apply an edit's outcome to the pending change.
@@ -178,8 +124,7 @@ export class DappsService {
         private readonly settings: SettingsRepository,
         private readonly metrics: DappsMetrics,
         @Inject(AUTH0_PROVISIONER) private readonly provisioner: Auth0Provisioner,
-        @Inject(EMAILER) private readonly emailer: Emailer,
-        @Inject(SLACK_NOTIFIER) private readonly slack: SlackNotifier,
+        private readonly notifier: DappsNotifier,
         @Inject(ConfigService) private readonly configService: ConfigService<ConsoleConfig, true>,
     ) {}
 
@@ -224,10 +169,10 @@ export class DappsService {
     }
 
     /**
-     * Registers a pending dApp for the caller, then alerts the admins by email and Slack. A failed alert does not fail the submission.
+     * Registers a pending dApp for the caller, auto-approving it if it qualifies, then alerts the admins by email and Slack and, once approved, emails the owner. A failed alert does not fail the submission.
      * @param user The owner.
      * @param fields The submitted fields.
-     * @returns The new dApp.
+     * @returns The approved dApp, or the pending one when it was not auto-approved.
      */
     submit(user: SessionUser, fields: DappFields): Promise<Dapp> {
         return this.counted("submit", async () => {
@@ -240,7 +185,8 @@ export class DappsService {
                 const chosen =
                     autoApproval.enabled &&
                     !(await this.dapps.hasHadDapp(manager, user.email)) &&
-                    (await this.events.countChosenForAutoApprovalInLastDay(manager)) < AUTO_APPROVAL_DAILY_CAP;
+                    (await this.events.countChosenForAutoApprovalInLastDay(manager)) <
+                        this.configService.get("autoApproval.dailyCap", { infer: true });
                 const dapp = await this.dapps.insert(manager, {
                     ...fields,
                     ownerEmail: user.email,
@@ -260,15 +206,10 @@ export class DappsService {
 
             const approved = chosen ? await this.autoApprove(dapp) : null;
             if (approved === null) {
-                await this.sendEmails([this.adminAlert(dapp, "submitted")]);
-                await this.notifySlack({ kind: "submitted", dapp });
+                await this.notifier.submitted(dapp);
                 return dapp;
             }
-            await this.sendEmails([
-                { template: "dapp_approved", to: approved.ownerEmail, dapp: approved, clientId: clientIdOf(approved) },
-                this.adminAlert(approved, "auto_approved"),
-            ]);
-            await this.notifySlack({ kind: "auto_approved", dapp: approved });
+            await this.notifier.autoApproved(approved);
             return approved;
         });
     }
@@ -296,10 +237,8 @@ export class DappsService {
                     before: live,
                 }),
             );
-            if (alert !== null) await this.sendEmails([this.adminAlert(dapp, alert)]);
-            if (alert === "resubmitted") {
-                await this.notifySlack({ kind: "resubmitted", dapp, rejected: before, rejectionReason: rejectionReasonOf(before) });
-            }
+            if (alert === DappEventType.CHANGE_REQUESTED) await this.notifier.changeRequested(dapp);
+            if (alert === DappEventType.RESUBMITTED) await this.notifier.resubmitted(dapp, before);
             return dapp;
         });
     }
@@ -331,9 +270,9 @@ export class DappsService {
         return this.counted(DappAction.APPROVE, async () => {
             const actor = adminActor(admin);
             const dapp = await this.mutate(DappAction.APPROVE, actor, { id }, expectedVersion, (manager, live, next) =>
-                this.approveIn(manager, live, next, actor, "approved"),
+                this.approveIn(manager, live, next, actor, DappEventType.APPROVED),
             );
-            await this.sendEmails([{ template: EmailTemplate.DAPP_APPROVED, to: dapp.ownerEmail, dapp, clientId: clientIdOf(dapp) }]);
+            await this.notifier.approved(dapp);
             return dapp;
         });
     }
@@ -366,7 +305,7 @@ export class DappsService {
                 ]);
                 return rejected;
             });
-            await this.sendEmails([{ template: EmailTemplate.DAPP_REJECTED, to: dapp.ownerEmail, dapp, reason }]);
+            await this.notifier.rejected(dapp, reason);
             return dapp;
         });
     }
@@ -398,7 +337,7 @@ export class DappsService {
                 ]);
                 return changed;
             });
-            await this.sendEmails([{ template: EmailTemplate.CHANGE_APPROVED, to: dapp.ownerEmail, dapp }]);
+            await this.notifier.changeApproved(dapp);
             return dapp;
         });
     }
@@ -429,7 +368,7 @@ export class DappsService {
                 ]);
                 return unchanged;
             });
-            await this.sendEmails([{ template: EmailTemplate.CHANGE_REJECTED, to: dapp.ownerEmail, dapp, reason }]);
+            await this.notifier.changeRejected(dapp, reason);
             return dapp;
         });
     }
@@ -463,7 +402,7 @@ export class DappsService {
                     return { dapp: edited, changed: changes.length > 0 };
                 },
             );
-            if (changed) await this.sendEmails([{ template: EmailTemplate.CHANGED_BY_ADMIN, to: dapp.ownerEmail, dapp }]);
+            if (changed) await this.notifier.editedByAdmin(dapp);
             return dapp;
         });
     }
@@ -501,19 +440,24 @@ export class DappsService {
             const dapp = await this.mutate(DappAction.REMOVE, actor, { id }, expectedVersion, (manager, live, next) =>
                 this.removeIn(manager, live, next, actor, reason),
             );
-            await this.sendEmails([{ template: EmailTemplate.REMOVED_BY_ADMIN, to: dapp.ownerEmail, dapp, reason }]);
+            await this.notifier.removedByAdmin(dapp, reason);
             return dapp;
         });
     }
 
+    /**
+     * Approves a newly chosen dApp as the system unless auto-approval was turned off first. Any failure is logged, not thrown, and leaves the dApp pending.
+     * @param dapp The new pending dApp.
+     * @returns The approved dApp, or null when it stays pending.
+     */
     private async autoApprove(dapp: Dapp): Promise<Dapp | null> {
         try {
             return await this.counted("autoApprove", () =>
-                this.mutate("approve", SYSTEM, { id: dapp.id }, dapp.version, async (manager, live, next) => {
+                this.mutate(DappAction.APPROVE, SYSTEM, { id: dapp.id }, dapp.version, async (manager, live, next) => {
                     // Read before the Auth0 calls, so a turned-off switch creates no client. No FOR UPDATE, since this transaction
                     // holds the dApp row through the Auth0 calls, and holding the settings row too would stall submissions.
                     if (!(await this.settings.findAutoApproval(manager)).enabled) throw new AutoApprovalTurnedOff();
-                    return this.approveIn(manager, live, next, SYSTEM, "auto_approved");
+                    return this.approveIn(manager, live, next, SYSTEM, DappEventType.AUTO_APPROVED);
                 }),
             );
         } catch (error) {
@@ -550,7 +494,7 @@ export class DappsService {
         const events: DappEventDetails[] = changes.length > 0 ? [{ type: DappEventType.EDITED, details: { changes } }] : [];
         if (resubmitted) events.push({ type: DappEventType.RESUBMITTED, details: {} });
         await this.appendEvents(manager, live.id, owner, events);
-        return { dapp, alert: resubmitted ? "resubmitted" : null };
+        return { dapp, alert: resubmitted ? DappEventType.RESUBMITTED : null };
     }
 
     /**
@@ -576,7 +520,7 @@ export class DappsService {
         const events = [...effects.events];
         if (directChanges.length > 0) events.push({ type: DappEventType.EDITED, details: { changes: directChanges } });
         await this.appendEvents(manager, live.id, owner, events);
-        return { dapp, alert: pendingChange.kind === "replaced" ? "change_requested" : null };
+        return { dapp, alert: pendingChange.kind === "replaced" ? DappEventType.CHANGE_REQUESTED : null };
     }
 
     /**
@@ -585,6 +529,7 @@ export class DappsService {
      * @param live The locked dApp.
      * @param next The status the lifecycle allows.
      * @param actor Who approves.
+     * @param event The approval event to record, approved for an admin and auto_approved for the system.
      * @returns The approved dApp.
      */
     private async approveIn(
@@ -592,7 +537,7 @@ export class DappsService {
         live: Dapp,
         next: DappStatus,
         actor: Actor,
-        event: "approved" | "auto_approved",
+        event: DappEventType.APPROVED | DappEventType.AUTO_APPROVED,
     ): Promise<Dapp> {
         const auth0 = await this.provisionClient(live);
         const now = new Date();
@@ -764,57 +709,6 @@ export class DappsService {
      */
     private async appendEvents(manager: EntityManager, dappId: DappId, actor: Actor, events: DappEventDetails[]): Promise<void> {
         for (const event of events) await this.events.append(manager, dappId, actor, event);
-    }
-
-    /**
-     * Addresses an admin alert to every configured admin.
-     * @param dapp The dApp.
-     * @param kind What happened to the dApp.
-     * @returns The email.
-     */
-    private adminAlert(dapp: Dapp, kind: AdminAlertKind): ConsoleEmail {
-        return { template: EmailTemplate.ADMIN_ALERT, to: [...this.configService.get("admin.emails", { infer: true })], dapp, kind };
-    }
-
-    /**
-     * Sends each email and records email_sent or email_failed. Neither a failed send nor a failed record throws.
-     * @param emails The emails to send.
-     */
-    private async sendEmails(emails: ConsoleEmail[]): Promise<void> {
-        for (const email of emails) {
-            let event: DappEventDetails;
-            try {
-                await this.emailer.send(email);
-                event = { type: DappEventType.EMAIL_SENT, details: { template: email.template } };
-            } catch (error) {
-                this.logger.warn(`Email ${email.template} for dApp ${email.dapp.id} failed: ${describeError(error)}`);
-                event = {
-                    type: DappEventType.EMAIL_FAILED,
-                    details: { template: email.template, error: error instanceof Error ? error.message : String(error) },
-                };
-            }
-            this.metrics.countEmail(email.template, event.type === DappEventType.EMAIL_SENT ? "sent" : "failed");
-            try {
-                await this.events.append(this.dataSource.manager, email.dapp.id, SYSTEM, event);
-            } catch (error) {
-                this.logger.error(
-                    `Could not record ${event.type} for dApp ${email.dapp.id}`,
-                    error instanceof Error ? error.stack : String(error),
-                );
-            }
-        }
-    }
-
-    /**
-     * Sends a Slack alert, logging instead of throwing when it fails.
-     * @param alert The alert.
-     */
-    private async notifySlack(alert: SlackAlert): Promise<void> {
-        try {
-            await this.slack.notify(alert);
-        } catch (error) {
-            this.logger.warn(`Slack alert ${alert.kind} for dApp ${alert.dapp.id} failed: ${describeError(error)}`);
-        }
     }
 
     /**

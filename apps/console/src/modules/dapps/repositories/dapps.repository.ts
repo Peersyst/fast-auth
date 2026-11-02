@@ -54,7 +54,12 @@ export class DappsRepository {
         return manager.findOne(DappEntity, { where: { ownerEmail, status: Not(DappStatus.REMOVED) }, lock: { mode: "pessimistic_write" } });
     }
 
-    // An admin can move a dApp to another owner, so the events an owner acted on keep the history that ownership loses.
+    /**
+     * Tells whether the email owns or ever owned a dApp. It also checks the events an owner acted on, because an admin can move a dApp to another owner and ownership alone loses that history.
+     * @param manager The transaction's entity manager.
+     * @param ownerEmail The owner's email.
+     * @returns Whether the email has had a dApp.
+     */
     async hasHadDapp(manager: EntityManager, ownerEmail: string): Promise<boolean> {
         const [row]: { found: boolean }[] = await manager.query(
             "SELECT EXISTS (SELECT 1 FROM dapps WHERE owner_email = $1) OR EXISTS (SELECT 1 FROM dapp_events WHERE actor_role = $2 AND actor_email = $1) AS found",

@@ -5,6 +5,8 @@ import { DappEntity } from "./dapp.entity";
 
 @Entity("dapp_events")
 @Index("dapp_events_dapp_id_seq", ["dappId", "seq"])
+@Index("dapp_events_actor_email_user", ["actorEmail"], { where: "\"actor_role\" = 'user'" })
+@Index("dapp_events_created_at_submitted", ["createdAt"], { where: "\"type\" = 'submitted'" })
 export class DappEventEntity {
     @PrimaryGeneratedColumn("uuid")
     id: string;

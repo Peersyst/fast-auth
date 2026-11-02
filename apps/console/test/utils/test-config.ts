@@ -37,6 +37,7 @@ export const TEST_CONFIG: ConsoleConfig = {
         healthCheckIntervalMs: 600000,
     },
     throttle: { submitDappPerMinute: 5, editDappPerMinute: 10, adminMutationPerMinute: 60 },
+    autoApproval: { dailyCap: 10 },
     email: { provider: EmailProviderName.FAKE },
     admin: { emails: new Set(["admin@example.test"]) },
     slack: { webhookUrl: null, timeoutMs: 5000 },

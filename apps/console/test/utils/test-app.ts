@@ -30,7 +30,7 @@ export async function createTestApp(): Promise<NestExpressApplication> {
 }
 
 /**
- * Empties every entity table.
+ * Empties every entity table and restores the default auto-approval setting.
  * @param app The app whose database to empty.
  */
 export async function resetDatabase(app: NestExpressApplication): Promise<void> {

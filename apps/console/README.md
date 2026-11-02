@@ -40,7 +40,7 @@ Auto-approval is off by default. An admin reads it with `GET /api/console/admin/
 While it is on, the console chooses a new submission for auto-approval when both of these hold:
 
 -   The owner's email has no earlier dApp, whatever its status. An owner whose dApp was rejected or removed always goes to an admin.
--   Fewer than 10 submissions were chosen in the last 24 hours. The window is rolling, and the cap is `AUTO_APPROVAL_DAILY_CAP` in `src/domain/dapp.ts`.
+-   Fewer than `AUTO_APPROVAL_DAILY_CAP` submissions, 10 by default, were chosen in the last 24 hours. The window is rolling, and `GET /api/console/admin/settings` returns the cap as `autoApproval.dailyCap`.
 
 For a chosen submission, the console creates the Auth0 client at once and `POST /api/console/dapp` answers 201 with status `approved`. The owner gets the approval email, and the admins get an `auto_approved` email and Slack alert. If the Auth0 call fails, or an admin turns auto-approval off before the console starts the Auth0 calls, the dApp stays `pending` and the admins get the usual submission alert. Turning it off after the calls start does not stop that approval. The choice still counts against the cap.
 

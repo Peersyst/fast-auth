@@ -1,12 +1,15 @@
 import { Logger } from "@nestjs/common";
-import { AUTO_APPROVAL_DAILY_CAP as DAILY_CAP, syncedFieldsOf } from "@shared/console-domain/dapp";
-import { DappsRepository } from "../src/modules/dapps/repositories/dapps.repository";
-import { dappForm, expectError, expectStatus, untilHeld, useConsoleApi } from "./utils/console-api";
-import { ADMIN_EMAIL, ADMIN_EMAILS } from "./utils/contract";
-import type { AdminDappResponse } from "../src/modules/admin/responses/admin-dapp.response";
-import type { OwnerDappResponse } from "../src/modules/dapps/responses/owner-dapp.response";
-import type { SettingsResponse } from "../src/modules/settings/responses/settings.response";
+import { syncedFieldsOf } from "@shared/console-domain/dapp";
+import { DappsErrorCode } from "../../../src/modules/dapps/error/dapps-error-codes";
+import { DappsRepository } from "../../../src/modules/dapps/repositories/dapps.repository";
+import { dappForm, expectError, expectStatus, untilHeld, useConsoleApi } from "../../utils/console-api";
+import { ADMIN_EMAIL, ADMIN_EMAILS } from "../../utils/contract";
+import type { AdminDappResponse } from "../../../src/modules/admin/responses/admin-dapp.response";
+import type { OwnerDappResponse } from "../../../src/modules/dapps/responses/owner-dapp.response";
+import type { SettingsResponse } from "../../../src/modules/settings/responses/settings.response";
 
+// The default AUTO_APPROVAL_DAILY_CAP, which test/env.cjs leaves unset.
+const DAILY_CAP = 10;
 const CAP_TEST_TIMEOUT_MS = 30_000;
 
 describe("auto-approval and settings", () => {
@@ -15,28 +18,32 @@ describe("auto-approval and settings", () => {
     const submitForNewOwner = async (): Promise<OwnerDappResponse> => api.submitDapp(await api.user());
 
     describe("settings", () => {
-        it("records each change in setting_events: key, old and new value, admin", async () => {
+        it("should record each change in setting_events: key, old and new value, admin", async () => {
             expect(expectStatus<SettingsResponse>(await api.putSettings({ autoApproval: { enabled: true } }), 200)).toEqual({
-                autoApproval: { enabled: true },
+                autoApproval: { enabled: true, dailyCap: DAILY_CAP },
             });
-            expect(expectStatus<SettingsResponse>(await api.getSettings(), 200)).toEqual({ autoApproval: { enabled: true } });
+            expect(expectStatus<SettingsResponse>(await api.getSettings(), 200)).toEqual({
+                autoApproval: { enabled: true, dailyCap: DAILY_CAP },
+            });
 
             await api.setAutoApproval(false);
 
-            expect(expectStatus<SettingsResponse>(await api.getSettings(), 200)).toEqual({ autoApproval: { enabled: false } });
+            expect(expectStatus<SettingsResponse>(await api.getSettings(), 200)).toEqual({
+                autoApproval: { enabled: false, dailyCap: DAILY_CAP },
+            });
             expect(await api.settingEvents()).toEqual([
                 { key: "auto_approval", oldValue: { enabled: false }, newValue: { enabled: true }, actorEmail: ADMIN_EMAIL },
                 { key: "auto_approval", oldValue: { enabled: true }, newValue: { enabled: false }, actorEmail: ADMIN_EMAIL },
             ]);
         });
 
-        it("answers 200 with the stored value and records nothing for a PUT that changes nothing", async () => {
+        it("should answer 200 with the stored value and record nothing for a PUT that changes nothing", async () => {
             expect(expectStatus<SettingsResponse>(await api.putSettings({ autoApproval: { enabled: false } }), 200)).toEqual({
-                autoApproval: { enabled: false },
+                autoApproval: { enabled: false, dailyCap: DAILY_CAP },
             });
             await api.setAutoApproval(true);
             expect(expectStatus<SettingsResponse>(await api.putSettings({ autoApproval: { enabled: true } }), 200)).toEqual({
-                autoApproval: { enabled: true },
+                autoApproval: { enabled: true, dailyCap: DAILY_CAP },
             });
 
             expect(await api.settingEvents()).toEqual([
@@ -44,7 +51,7 @@ describe("auto-approval and settings", () => {
             ]);
         });
 
-        it("a submission waiting on its owner's dApp leaves the settings row free for other submissions and admins", async () => {
+        it("should leave the settings row free for other submissions and admins while a submission waits on its owner's dApp", async () => {
             const owner = await api.user();
             const dapp = await api.submitDapp(owner);
             const hold = api.provisioner.hold("createClient");
@@ -58,12 +65,12 @@ describe("auto-approval and settings", () => {
 
             hold.release();
             expectStatus(await approving, 200);
-            expectError(await resubmitting, 409, "DAPP_ALREADY_EXISTS");
+            expectError(await resubmitting, 409, DappsErrorCode.DAPP_ALREADY_EXISTS);
         });
     });
 
     describe("∅ → submit, auto-approval applies", () => {
-        it("approves as the system: client created, owner and admins emailed, `submitted`, `auto_approved`, `auth0_created`", async () => {
+        it("should approve as the system: client created, owner and admins emailed, `submitted`, `auto_approved`, `auth0_created`", async () => {
             await api.setAutoApproval(true);
             const owner = await api.user();
             const start = await api.checkpoint();
@@ -102,7 +109,7 @@ describe("auto-approval and settings", () => {
         });
 
         it(
-            "approves at most 10 chosen submissions in 24 hours; the 11th waits as pending with the usual alert",
+            "should approve at most 10 chosen submissions in 24 hours; the 11th waits as pending with the usual alert",
             async () => {
                 await api.setAutoApproval(true);
                 for (let n = 0; n < DAILY_CAP; n += 1) expect((await submitForNewOwner()).status).toBe("approved");
@@ -121,7 +128,7 @@ describe("auto-approval and settings", () => {
         );
 
         it(
-            "counts only the choices of the last 24 hours",
+            "should count only the choices of the last 24 hours",
             async () => {
                 await api.setAutoApproval(true);
                 for (let n = 0; n < DAILY_CAP; n += 1) expect((await submitForNewOwner()).status).toBe("approved");
@@ -133,7 +140,7 @@ describe("auto-approval and settings", () => {
         );
 
         it(
-            "still counts the choices of 23 hours ago, so the 11th submission waits as pending",
+            "should still count the choices of 23 hours ago, so the 11th submission waits as pending",
             async () => {
                 await api.setAutoApproval(true);
                 for (let n = 0; n < DAILY_CAP; n += 1) expect((await submitForNewOwner()).status).toBe("approved");
@@ -145,7 +152,7 @@ describe("auto-approval and settings", () => {
         );
 
         it(
-            "leaves the submission pending when the create fails, alerts the admins as a new submission, and still counts the choice",
+            "should leave the submission pending when the create fails, alert the admins as a new submission, and still count the choice",
             async () => {
                 await api.setAutoApproval(true);
                 const owner = await api.user();
@@ -172,7 +179,7 @@ describe("auto-approval and settings", () => {
             CAP_TEST_TIMEOUT_MS,
         );
 
-        it("a submission whose auto-approval fails outside Auth0 stays pending, answers 201 and alerts the admins", async () => {
+        it("should keep a submission whose auto-approval fails outside Auth0 pending, answer 201 and alert the admins", async () => {
             await api.setAutoApproval(true);
             jest.spyOn(api.provisioner, "findClient").mockRejectedValueOnce(new Error("connection reset"));
             jest.spyOn(Logger.prototype, "error").mockImplementation();
@@ -187,7 +194,7 @@ describe("auto-approval and settings", () => {
         });
 
         it(
-            "twelve concurrent submissions with auto-approval on approve exactly ten",
+            "should approve exactly ten of twelve concurrent submissions with auto-approval on",
             async () => {
                 await api.setAutoApproval(true);
                 const owners = await Promise.all(Array.from({ length: DAILY_CAP + 2 }, () => api.user()));
@@ -203,7 +210,7 @@ describe("auto-approval and settings", () => {
             CAP_TEST_TIMEOUT_MS,
         );
 
-        it("turning it on does not approve the dApps already waiting", async () => {
+        it("should not approve the dApps already waiting when auto-approval is turned on", async () => {
             const waiting = await submitForNewOwner();
 
             await api.setAutoApproval(true);
@@ -214,7 +221,7 @@ describe("auto-approval and settings", () => {
             expect(await api.adminDapp(waiting.id)).toMatchObject({ status: "pending" });
         });
 
-        it("sends a submission to review when its owner removed a dApp an admin had rejected", async () => {
+        it("should send a submission to review when its owner removed a dApp an admin had rejected", async () => {
             const owner = await api.user();
             const rejected = await api.rejectedDapp(owner);
             expectStatus(await api.removeOwn(owner, rejected.id, rejected.version), 204);
@@ -230,7 +237,7 @@ describe("auto-approval and settings", () => {
             expect(effects.emails).toEqual([{ template: "admin_alert", to: ADMIN_EMAILS, kind: "submitted" }]);
         });
 
-        it("sends a submission to review when an admin removed its owner's earlier dApp", async () => {
+        it("should send a submission to review when an admin removed its owner's earlier dApp", async () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             expectStatus(await api.adminRemove(approved.id, approved.version, "Phishing site impersonating a wallet"), 200);
@@ -245,7 +252,7 @@ describe("auto-approval and settings", () => {
             expect(effects.auth0).toEqual([]);
         });
 
-        it("sends a submission to review when an admin moved its owner's rejected dApp to another owner", async () => {
+        it("should send a submission to review when an admin moved its owner's rejected dApp to another owner", async () => {
             const owner = await api.user();
             const rejected = await api.rejectedDapp(owner);
             expectStatus(await api.changeOwner(rejected.id, rejected.version, (await api.user()).email), 200);
@@ -260,7 +267,7 @@ describe("auto-approval and settings", () => {
             expect(effects.auth0).toEqual([]);
         });
 
-        it("sends a submission to review when its owner resubmitted a handed-over dApp that an admin then moved away", async () => {
+        it("should send a submission to review when its owner resubmitted a handed-over dApp that an admin then moved away", async () => {
             const owner = await api.user();
             const rejected = await api.rejectedDapp(await api.user());
             const handedOver = expectStatus<AdminDappResponse>(await api.changeOwner(rejected.id, rejected.version, owner.email), 200);
@@ -277,7 +284,7 @@ describe("auto-approval and settings", () => {
         });
 
         it(
-            "approves one submission per owner, so an owner who removes and resubmits leaves the cap to others",
+            "should approve one submission per owner, so an owner who removes and resubmits leaves the cap to others",
             async () => {
                 await api.setAutoApproval(true);
                 const owner = await api.user();
@@ -295,7 +302,7 @@ describe("auto-approval and settings", () => {
             CAP_TEST_TIMEOUT_MS,
         );
 
-        it("turning it off before the approval reaches Auth0 leaves the chosen submission pending with no client", async () => {
+        it("should leave the chosen submission pending with no client when auto-approval is turned off before the approval reaches Auth0", async () => {
             await api.setAutoApproval(true);
             const start = await api.checkpoint();
             const dapps = api.app.get(DappsRepository);
@@ -326,7 +333,7 @@ describe("auto-approval and settings", () => {
             expect(effects.slack).toEqual(["submitted"]);
         });
 
-        it("turning it off again sends new submissions back to review", async () => {
+        it("should send new submissions back to review when auto-approval is turned off again", async () => {
             await api.setAutoApproval(true);
             await api.setAutoApproval(false);
 

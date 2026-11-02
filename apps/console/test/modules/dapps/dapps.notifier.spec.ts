@@ -106,6 +106,20 @@ describe("DappsNotifier", () => {
         });
     });
 
+    describe("autoApproved", () => {
+        it("should email the owner the approval and the admins an auto_approved alert, then post an auto_approved Slack alert", async () => {
+            const approved = makeDapp();
+
+            await notifier.autoApproved(approved);
+
+            expect(emailer.send.mock.calls).toEqual([
+                [{ template: "dapp_approved", to: "owner@acme.example", dapp: approved, clientId: CLIENT_ID }],
+                [{ template: "admin_alert", to: ["admin@example.test"], dapp: approved, kind: "auto_approved" }],
+            ]);
+            expect(slack.notify.mock.calls).toEqual([[{ kind: "auto_approved", dapp: approved }]]);
+        });
+    });
+
     describe("resubmitted", () => {
         it("should email the admins a resubmitted alert and post a resubmitted Slack alert with the rejected dApp and its reason", async () => {
             const rejected = makeDapp({ status: DappStatus.REJECTED, auth0ClientId: null, rejectionReason: "Logo is blurry" });

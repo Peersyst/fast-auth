@@ -316,7 +316,7 @@
                 "parameters": [],
                 "responses": {
                     "200": {
-                        "description": "`autoApproval.enabled` says whether new submissions can be approved without an admin.",
+                        "description": "`autoApproval.enabled` says whether new submissions can be approved without an admin, and `autoApproval.dailyCap` the most new submissions it chooses in any 24 hours.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -336,13 +336,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "admin"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "admin"
                 ]
             },
             "put": {
@@ -380,13 +380,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "admin"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "admin"
                 ]
             }
         },
@@ -1463,10 +1463,15 @@
                 "properties": {
                     "enabled": {
                         "type": "boolean"
+                    },
+                    "dailyCap": {
+                        "type": "number",
+                        "description": "The most new submissions auto-approval chooses in any 24 hours."
                     }
                 },
                 "required": [
-                    "enabled"
+                    "enabled",
+                    "dailyCap"
                 ]
             },
             "SettingsResponse": {

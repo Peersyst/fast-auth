@@ -2,11 +2,13 @@ import { Injectable, Logger } from "@nestjs/common";
 import type { EntityManager } from "typeorm";
 import { DataSource } from "typeorm";
 import type { DappId } from "@shared/console-domain/dapp";
-import type { ActorRole, DappEventDetails } from "@shared/console-domain/dapp-event";
-import { isDappEventDetails } from "@shared/console-domain/dapp-event";
+import type { DappEventDetails } from "@shared/console-domain/dapp-event";
+import { ActorRole, DappEventType, isDappEventDetails } from "@shared/console-domain/dapp-event";
 import { DappEventEntity } from "../entities/dapp-event.entity";
 
 export type Actor = { email: string | null; role: ActorRole };
+
+export const SYSTEM: Actor = { email: null, role: ActorRole.SYSTEM };
 
 export type StoredDappEvent = DappEventDetails & {
     id: string;
@@ -38,6 +40,11 @@ export class DappEventsRepository {
         });
     }
 
+    /**
+     * Counts the submissions chosen for auto-approval in the rolling last 24 hours, whether or not their approval succeeded.
+     * @param manager The transaction's entity manager.
+     * @returns The count.
+     */
     countChosenForAutoApprovalInLastDay(manager: EntityManager): Promise<number> {
         return manager
             .createQueryBuilder(DappEventEntity, "e")
