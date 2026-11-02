@@ -12,11 +12,20 @@ export type TokenOptions = {
     emailVerified?: boolean;
 };
 
+/**
+ * Builds a local key set holding the public half of the key signToken signs with.
+ * @returns The key lookup to override JWT_KEY_SET with.
+ */
 export async function testKeySet(): Promise<JWTVerifyGetKey> {
     const jwk = await exportJWK((await keyPair).publicKey);
     return createLocalJWKSet({ keys: [{ ...jwk, kid: KEY_ID, alg: ALGORITHM, use: "sig" }] });
 }
 
+/**
+ * Signs an ID token that the test app accepts, for the issuer and audience in test/env.cjs.
+ * @param options The subject, email and whether it is verified, which defaults to true.
+ * @returns The signed token.
+ */
 export async function signToken(options: TokenOptions): Promise<string> {
     const { auth0 } = loadConfig();
     return new SignJWT({ email: options.email, email_verified: options.emailVerified ?? true })

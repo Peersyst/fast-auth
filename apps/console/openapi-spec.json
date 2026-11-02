@@ -27,13 +27,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "auth"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "auth"
                 ]
             }
         },
@@ -220,7 +220,11 @@
                         "type": "string"
                     },
                     "role": {
-                        "$ref": "#/components/schemas/Role"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Role"
+                            }
+                        ]
                     },
                     "emailVerified": {
                         "type": "boolean"

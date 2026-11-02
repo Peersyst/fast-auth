@@ -80,8 +80,11 @@ describe("loadConfig", () => {
             loginDomain: "login.example.com",
             consoleClientId: "console-client",
             nearNetwork: "testnet",
+            jwksTimeoutMs: 6000,
+            jwksRefetchCooldownMs: 30000,
             provisioner: "fake",
         });
+        expect(config.throttle).toEqual({ submitDappPerMinute: 5, editDappPerMinute: 10, adminMutationPerMinute: 60 });
         expect(config.email).toEqual({ provider: "fake" });
         expect(config.slack).toEqual({ webhookUrl: null });
     });
@@ -94,6 +97,11 @@ describe("loadConfig", () => {
             SHUTDOWN_DELAY_MS: "15000",
             DB_CONNECT_TIMEOUT_MS: "1500",
             DB_LOCK_TIMEOUT_MS: "500",
+            AUTH0_JWKS_TIMEOUT_MS: "4000",
+            AUTH0_JWKS_REFETCH_COOLDOWN_MS: "45000",
+            THROTTLE_SUBMIT_DAPP_PER_MINUTE: "3",
+            THROTTLE_EDIT_DAPP_PER_MINUTE: "20",
+            THROTTLE_ADMIN_MUTATION_PER_MINUTE: "120",
         });
 
         expect(config.server.metricsPort).toBe(9100);
@@ -101,6 +109,9 @@ describe("loadConfig", () => {
         expect(config.server.shutdownDelayMs).toBe(15000);
         expect(config.database.connectTimeoutMs).toBe(1500);
         expect(config.database.lockTimeoutMs).toBe(500);
+        expect(config.auth0.jwksTimeoutMs).toBe(4000);
+        expect(config.auth0.jwksRefetchCooldownMs).toBe(45000);
+        expect(config.throttle).toEqual({ submitDappPerMinute: 3, editDappPerMinute: 20, adminMutationPerMinute: 120 });
     });
 
     it("should default LOG_LEVEL to info outside tests and parse a set LOG_LEVEL and LOG_FILE", () => {
@@ -122,6 +133,16 @@ describe("loadConfig", () => {
     it("should refuse a negative SHUTDOWN_DELAY_MS and accept 0", () => {
         expect(loadError({ ...VALID_ENV, SHUTDOWN_DELAY_MS: "-1" })).toContain("SHUTDOWN_DELAY_MS:");
         expect(loadConfig({ ...VALID_ENV, SHUTDOWN_DELAY_MS: "0" }).server.shutdownDelayMs).toBe(0);
+    });
+
+    it.each([
+        "AUTH0_JWKS_REFETCH_COOLDOWN_MS",
+        "THROTTLE_SUBMIT_DAPP_PER_MINUTE",
+        "THROTTLE_EDIT_DAPP_PER_MINUTE",
+        "THROTTLE_ADMIN_MUTATION_PER_MINUTE",
+    ])("should refuse a %s that is not a positive integer", (key) => {
+        for (const value of ["0", "-1", "1.5", "many"])
+            expect(loadError({ ...VALID_ENV, ...REAL_ADAPTERS, [key]: value })).toContain(`${key}:`);
     });
 
     it("should lowercase and split ADMIN_EMAILS", () => {

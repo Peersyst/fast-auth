@@ -1,10 +1,9 @@
 import type { Request } from "express";
 
-export const Role = {
-    User: "user",
-    Admin: "admin",
-} as const;
-export type Role = (typeof Role)[keyof typeof Role];
+export enum Role {
+    USER = "user",
+    ADMIN = "admin",
+}
 
 export type SessionUser = {
     sub: string;

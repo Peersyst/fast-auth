@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { CurrentUser } from "../common/decorators/current-user.decorator";
 import { ApiErrorResponses } from "../common/exception/api-error-responses.decorator";
 import { AllowUnverifiedEmail } from "../common/decorators/allow-unverified-email.decorator";
-import { MeResponse } from "./response/me.response";
+import { MeResponse } from "./responses/me.response";
 import type { SessionUser } from "./session-user";
 
 @ApiTags("auth")
@@ -15,6 +15,6 @@ export class MeController {
     @AllowUnverifiedEmail()
     @ApiOkResponse({ type: MeResponse })
     async me(@CurrentUser() user: SessionUser): Promise<MeResponse> {
-        return { email: user.email, role: user.role, emailVerified: user.emailVerified };
+        return MeResponse.fromUser(user);
     }
 }

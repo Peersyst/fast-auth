@@ -5,6 +5,7 @@ import { Auth0ProvisionerName, ConfigEnv, EmailProviderName, LogLevel, NearNetwo
 const text = z.string();
 const port = z.coerce.number().int().min(1).max(65535);
 const milliseconds = z.coerce.number().int().positive();
+const count = z.coerce.number().int().positive();
 const PUBLIC_URL_ERROR = "must be an http or https origin, with no path, query or fragment";
 const publicUrl = z
     .url({ protocol: /^https?$/, error: PUBLIC_URL_ERROR, abort: true })
@@ -66,6 +67,8 @@ function configSchema(raw: Record<string, string>) {
             DB_LOCK_TIMEOUT_MS: milliseconds.default(10000),
             AUTH0_LOGIN_DOMAIN: hostName,
             AUTH0_CONSOLE_CLIENT_ID: text,
+            AUTH0_JWKS_TIMEOUT_MS: milliseconds.default(6000),
+            AUTH0_JWKS_REFETCH_COOLDOWN_MS: milliseconds.default(30000),
             NEAR_NETWORK: z.enum(NearNetwork),
             ADMIN_EMAILS: text
                 .transform((emails) =>
@@ -75,6 +78,9 @@ function configSchema(raw: Record<string, string>) {
                         .filter((email) => email !== ""),
                 )
                 .pipe(z.array(z.email()).min(1)),
+            THROTTLE_SUBMIT_DAPP_PER_MINUTE: count.default(5),
+            THROTTLE_EDIT_DAPP_PER_MINUTE: count.default(10),
+            THROTTLE_ADMIN_MUTATION_PER_MINUTE: count.default(60),
             SLACK_WEBHOOK_URL: z
                 .url({ protocol: /^https$/, hostname: /^hooks\.slack\.com$/, error: "must be an https://hooks.slack.com/ webhook URL" })
                 .optional(),
@@ -133,6 +139,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ConsoleConfig 
             loginDomain: parsed.AUTH0_LOGIN_DOMAIN,
             consoleClientId: parsed.AUTH0_CONSOLE_CLIENT_ID,
             nearNetwork: parsed.NEAR_NETWORK,
+            jwksTimeoutMs: parsed.AUTH0_JWKS_TIMEOUT_MS,
+            jwksRefetchCooldownMs: parsed.AUTH0_JWKS_REFETCH_COOLDOWN_MS,
             ...(parsed.AUTH0_PROVISIONER === Auth0ProvisionerName.MANAGEMENT
                 ? {
                       provisioner: parsed.AUTH0_PROVISIONER,
@@ -148,6 +156,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ConsoleConfig 
                 ? { provider: parsed.EMAIL_PROVIDER, from: parsed.SES_FROM, region: parsed.SES_REGION }
                 : { provider: parsed.EMAIL_PROVIDER },
         admin: { emails: new Set(parsed.ADMIN_EMAILS) },
+        throttle: {
+            submitDappPerMinute: parsed.THROTTLE_SUBMIT_DAPP_PER_MINUTE,
+            editDappPerMinute: parsed.THROTTLE_EDIT_DAPP_PER_MINUTE,
+            adminMutationPerMinute: parsed.THROTTLE_ADMIN_MUTATION_PER_MINUTE,
+        },
         slack: { webhookUrl: parsed.SLACK_WEBHOOK_URL ?? null },
     };
 }

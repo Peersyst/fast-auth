@@ -2,6 +2,7 @@ import type { ArgumentsHost, ExceptionFilter } from "@nestjs/common";
 import { Catch, HttpException, Logger } from "@nestjs/common";
 import type { Response } from "express";
 import { error as OpenApiError } from "express-openapi-validator";
+import { AuthErrorCode } from "../../auth/error/auth-error-codes";
 import type { RequestLocals } from "../middleware/request-logger";
 import type { ErrorDetail } from "../responses/error.response";
 import { ErrorResponse } from "../responses/error.response";
@@ -11,7 +12,7 @@ import type { ConsoleErrorCode } from "./error-codes";
 
 const CODE_BY_STATUS: Partial<Record<number, ConsoleErrorCode>> = {
     400: CommonErrorCode.VALIDATION_FAILED,
-    401: "UNAUTHENTICATED",
+    401: AuthErrorCode.UNAUTHENTICATED,
     404: CommonErrorCode.NOT_FOUND,
     405: CommonErrorCode.VALIDATION_FAILED,
     413: CommonErrorCode.VALIDATION_FAILED,

@@ -4,7 +4,7 @@ import type { Server } from "node:http";
 import { Logger } from "@nestjs/common";
 import type { JWK, KeyLike } from "jose";
 import { exportJWK, generateKeyPair, jwtVerify, SignJWT } from "jose";
-import { remoteKeySet } from "./jwt-key-set";
+import { remoteKeySet } from "../../../src/modules/auth/jwt-key-set";
 
 const TEN_MINUTES_MS = 10 * 60 * 1000;
 const COOLDOWN_MS = 30 * 1000;
@@ -64,9 +64,9 @@ describe("remoteKeySet", () => {
         jest.spyOn(Date, "now").mockReturnValue(now + ms);
     };
 
-    it("keeps verifying with the last key set fetched when a refetch of a stale set fails, and warns", async () => {
+    it("should keep verifying with the last key set fetched when a refetch of a stale set fails, and warn", async () => {
         const warn = jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
-        const keySet = remoteKeySet(url);
+        const keySet = remoteKeySet(url, 6_000, 30_000);
         await jwtVerify(await token("k1"), keySet);
         healthy = false;
         ageCacheBy(TEN_MINUTES_MS + 1);
@@ -76,9 +76,9 @@ describe("remoteKeySet", () => {
         expect(warn).toHaveBeenCalledWith(expect.stringContaining("JWKS refetch failed, verified with the last key set fetched"));
     });
 
-    it("verifies with the last key set fetched without refetching for 30 s after a refetch fails", async () => {
+    it("should verify with the last key set fetched without refetching for 30 s after a refetch fails", async () => {
         jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
-        const keySet = remoteKeySet(url);
+        const keySet = remoteKeySet(url, 6_000, 30_000);
         await jwtVerify(await token("k1"), keySet);
         healthy = false;
         ageCacheBy(TEN_MINUTES_MS + 1);
@@ -94,9 +94,27 @@ describe("remoteKeySet", () => {
         expect(fetches).toBe(3);
     });
 
-    it("gives up on a refetch whose body stalls after 6 s and keeps the last key set until a fresh fetch succeeds", async () => {
+    it("should refetch 5 s after a refetch fails when the cooldown is 5 s", async () => {
+        jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
+        const keySet = remoteKeySet(url, 6_000, 5_000);
+        await jwtVerify(await token("k1"), keySet);
+        healthy = false;
+        ageCacheBy(TEN_MINUTES_MS + 1);
+        await jwtVerify(await token("k1"), keySet);
+        expect(fetches).toBe(2);
+
+        ageCacheBy(4_999);
+        await expect(jwtVerify(await token("k1"), keySet)).resolves.toMatchObject({ protectedHeader: { kid: "k1" } });
+        expect(fetches).toBe(2);
+
+        ageCacheBy(1);
+        await expect(jwtVerify(await token("k1"), keySet)).resolves.toMatchObject({ protectedHeader: { kid: "k1" } });
+        expect(fetches).toBe(3);
+    });
+
+    it("should give up on a refetch whose body stalls after 6 s and keep the last key set until a fresh fetch succeeds", async () => {
         const warn = jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
-        const keySet = remoteKeySet(url);
+        const keySet = remoteKeySet(url, 6_000, 30_000);
         await jwtVerify(await token("k1"), keySet);
         const arrived = new Promise<void>((resolve) => (stalled = resolve));
         ageCacheBy(TEN_MINUTES_MS + 1);
@@ -122,9 +140,9 @@ describe("remoteKeySet", () => {
         expect(fetches).toBe(4);
     });
 
-    it("keeps a key set fetched after a deadline when an older check's deadline passes later", async () => {
+    it("should keep a key set fetched after a deadline when an older check's deadline passes later", async () => {
         jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
-        const keySet = remoteKeySet(url);
+        const keySet = remoteKeySet(url, 6_000, 30_000);
         await jwtVerify(await token("k1"), keySet);
         const arrived = new Promise<void>((resolve) => (stalled = resolve));
         ageCacheBy(TEN_MINUTES_MS + 1);
@@ -148,9 +166,9 @@ describe("remoteKeySet", () => {
         expect(fetches).toBe(3);
     });
 
-    it("refuses a rotated-out key when an older check's deadline passes after a newer key set was fetched", async () => {
+    it("should refuse a rotated-out key when an older check's deadline passes after a newer key set was fetched", async () => {
         jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
-        const keySet = remoteKeySet(url);
+        const keySet = remoteKeySet(url, 6_000, 30_000);
         await jwtVerify(await token("k1"), keySet);
         const arrived = new Promise<void>((resolve) => (stalled = resolve));
         ageCacheBy(TEN_MINUTES_MS + 1);
@@ -176,9 +194,9 @@ describe("remoteKeySet", () => {
         expect(fetches).toBe(3);
     });
 
-    it("lets an older check answer only its own request while a newer key set is still being fetched", async () => {
+    it("should let an older check answer only its own request while a newer key set is still being fetched", async () => {
         jest.spyOn(Logger.prototype, "warn").mockImplementation(() => undefined);
-        const keySet = remoteKeySet(url);
+        const keySet = remoteKeySet(url, 6_000, 30_000);
         await jwtVerify(await token("k1"), keySet);
         const arrived = new Promise<void>((resolve) => (stalled = resolve));
         ageCacheBy(TEN_MINUTES_MS + 1);
@@ -214,8 +232,8 @@ describe("remoteKeySet", () => {
         expect(fetches).toBe(3);
     });
 
-    it("rethrows the outage when the last key set fetched does not hold the token's key either", async () => {
-        const keySet = remoteKeySet(url);
+    it("should rethrow the outage when the last key set fetched does not hold the token's key either", async () => {
+        const keySet = remoteKeySet(url, 6_000, 30_000);
         await jwtVerify(await token("k1"), keySet);
         healthy = false;
         ageCacheBy(TEN_MINUTES_MS + 1);
@@ -223,8 +241,8 @@ describe("remoteKeySet", () => {
         await expect(jwtVerify(await token("k2"), keySet)).rejects.toMatchObject({ code: "ERR_JOSE_GENERIC" });
     });
 
-    it("stops verifying a key the endpoint removed once a refetch succeeds", async () => {
-        const keySet = remoteKeySet(url);
+    it("should stop verifying a key the endpoint removed once a refetch succeeds", async () => {
+        const keySet = remoteKeySet(url, 6_000, 30_000);
         await jwtVerify(await token("k1"), keySet);
         keys = [{ ...firstKey, kid: "k2" }];
         ageCacheBy(TEN_MINUTES_MS + 1);
@@ -232,9 +250,9 @@ describe("remoteKeySet", () => {
         await expect(jwtVerify(await token("k1"), keySet)).rejects.toMatchObject({ code: "ERR_JWKS_NO_MATCHING_KEY" });
     });
 
-    it("rethrows the outage when no key set was ever fetched", async () => {
+    it("should rethrow the outage when no key set was ever fetched", async () => {
         healthy = false;
 
-        await expect(jwtVerify(await token("k1"), remoteKeySet(url))).rejects.toMatchObject({ code: "ERR_JOSE_GENERIC" });
+        await expect(jwtVerify(await token("k1"), remoteKeySet(url, 6_000, 30_000))).rejects.toMatchObject({ code: "ERR_JOSE_GENERIC" });
     });
 });
