@@ -6,7 +6,7 @@ const OUTCOME_TEXT = { copied: "Copied", failed: "Copy failed" } as const;
 
 export function CopyButton({ value, label, className }: { value: string; label: string; className?: string }) {
     const [outcome, setOutcome] = useState<keyof typeof OUTCOME_TEXT>();
-    const reset = useRef<number>();
+    const reset = useRef<number>(undefined);
     useEffect(() => () => window.clearTimeout(reset.current), []);
 
     const copy = async () => {

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { cn } from "../lib/cn";
 import { Button } from "./Button";
-import styles from "./Dialog.module.css";
 import { Field } from "./Field";
 
 type DialogTone = "ok" | "warn" | "danger";
@@ -16,7 +16,11 @@ type DialogProps = {
     children: ReactNode;
 };
 
-const ICON_TONES: Record<DialogTone, string | undefined> = { ok: styles.iconOk, warn: styles.iconWarn, danger: styles.iconDanger };
+const ICON_TONES: Record<DialogTone, string> = {
+    ok: "bg-ok-bg text-ok-ink",
+    warn: "bg-warning-bg text-warning-ink",
+    danger: "bg-danger-bg text-danger-ink",
+};
 
 export function Dialog({ open, onClose, title, description, icon, tone = "ok", busy = false, children }: DialogProps) {
     const ref = useRef<HTMLDialogElement>(null);
@@ -44,7 +48,7 @@ export function Dialog({ open, onClose, title, description, icon, tone = "ok", b
     return (
         <dialog
             ref={ref}
-            className={styles.dialog}
+            className="w-[min(520px,calc(100vw_-_32px))] rounded-lg border-0 bg-surface p-7 text-md leading-[1.5] text-ink shadow-modal backdrop:bg-backdrop"
             aria-labelledby={titleId}
             aria-describedby={open && description ? descriptionId : undefined}
             onKeyDown={handleKeyDown}
@@ -58,18 +62,24 @@ export function Dialog({ open, onClose, title, description, icon, tone = "ok", b
         >
             {open && (
                 <>
-                    <div className={styles.header}>
+                    <div className="mb-5 flex gap-3.5">
                         {icon && (
-                            <span className={`${styles.icon} ${ICON_TONES[tone]}`} aria-hidden="true">
+                            <span
+                                className={cn("flex size-10 flex-none items-center justify-center rounded-pill", ICON_TONES[tone])}
+                                aria-hidden="true"
+                            >
                                 {icon}
                             </span>
                         )}
-                        <div className={styles.heading}>
-                            <h2 id={titleId} className={styles.title}>
+                        <div className="flex min-w-0 flex-col gap-1">
+                            <h2 id={titleId} className="m-0 text-[20px] leading-[1.3] font-bold tracking-tight wrap-anywhere">
                                 {title}
                             </h2>
                             {description && (
-                                <div id={descriptionId} className={styles.description}>
+                                <div
+                                    id={descriptionId}
+                                    className="text-[14px] text-ink-subtle wrap-anywhere [&_code]:font-mono [&_code]:text-sm [&_code]:text-ink [&_strong]:font-semibold [&_strong]:text-ink"
+                                >
                                     {description}
                                 </div>
                             )}
@@ -138,11 +148,12 @@ function ConfirmForm({ children, onConfirm, confirmText, reason, ...actions }: C
         >
             {children}
             {confirmText !== undefined && (
-                <div className={styles.confirmField}>
+                <div className="[&_input]:border-danger-border">
                     <Field
                         label={
                             <>
-                                Type <strong>{confirmText}</strong> to confirm
+                                Type <strong className="font-semibold tracking-[0.02em] text-ink normal-case">{confirmText}</strong> to
+                                confirm
                             </>
                         }
                     >
@@ -211,7 +222,7 @@ export function DialogForm({
 }: DialogFormProps) {
     return (
         <form
-            className={styles.body}
+            className="grid gap-5"
             noValidate
             onSubmit={(event) => {
                 event.preventDefault();
@@ -219,7 +230,7 @@ export function DialogForm({
             }}
         >
             {children}
-            <div className={styles.actions}>
+            <div className="flex flex-wrap justify-end gap-2.5 pt-1">
                 <Button variant="secondary" disabled={loading} onClick={onClose}>
                     {cancelLabel}
                 </Button>

@@ -1,18 +1,17 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
-import { Button } from "./Button";
+import { Button } from "../../../src/ui/Button";
 
 describe("Button", () => {
-    it("is a named button that does not submit forms by default", () => {
+    it("should be a named button that does not submit forms by default", () => {
         render(<Button>Save</Button>);
 
         expect(screen.getByRole("button", { name: "Save" })).toHaveAttribute("type", "button");
     });
 
-    it("stays focusable but ignores clicks while loading", async () => {
+    it("should stay focusable but ignore clicks while loading", async () => {
         const user = userEvent.setup();
-        const onClick = vi.fn();
+        const onClick = jest.fn();
         render(
             <Button loading onClick={onClick}>
                 Save

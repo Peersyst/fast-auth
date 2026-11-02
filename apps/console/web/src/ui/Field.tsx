@@ -1,5 +1,7 @@
 import { useId, type ReactNode } from "react";
-import styles from "./Field.module.css";
+import { cn } from "../lib/cn";
+
+const TAG_TONES = { required: "text-danger-ink", optional: "text-ink-subtle" } as const;
 
 type FieldControlProps = {
     id: string;
@@ -24,27 +26,28 @@ export function Field({ label, tag, hint, error, children }: FieldProps) {
     const describedBy = [hint ? hintId : "", error ? errorId : ""].filter(Boolean).join(" ");
 
     return (
-        <div className={styles.field}>
-            <div className={styles.labelRow}>
-                <label htmlFor={id} className={styles.label}>
+        <div className="flex min-w-0 flex-col gap-2">
+            <div className="flex flex-wrap items-baseline gap-2">
+                <label htmlFor={id} className="font-mono text-[11px] font-medium tracking-[0.08em] text-ink-3 uppercase">
                     {label}
                 </label>
-                {tag && <span className={styles[tag]}>{tag}</span>}
+                {tag && <span className={cn("font-mono text-[10px] font-medium tracking-kicker uppercase", TAG_TONES[tag])}>{tag}</span>}
             </div>
             {hint && (
-                <p id={hintId} className={styles.hint}>
+                <p id={hintId} className="text-sm text-ink-subtle">
                     {hint}
                 </p>
             )}
             {children({
                 id,
-                className: styles.control,
+                className:
+                    "h-control w-full rounded-[12px] border border-border-strong bg-surface px-3 py-0 text-[14px] text-ink placeholder:text-faint aria-invalid:border-danger-ink [textarea&]:h-auto [textarea&]:resize-y [textarea&]:py-[10px]",
                 "aria-describedby": describedBy || undefined,
                 "aria-invalid": error ? true : undefined,
                 "aria-required": tag === "required" || undefined,
             })}
             {error && (
-                <p id={errorId} className={styles.error} role="alert">
+                <p id={errorId} className="text-sm text-danger-ink" role="alert">
                     {error}
                 </p>
             )}

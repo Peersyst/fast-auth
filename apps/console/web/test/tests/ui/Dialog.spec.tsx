@@ -1,8 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
-import { ConfirmDialog, Dialog } from "./Dialog";
+import { ConfirmDialog, Dialog } from "../../../src/ui/Dialog";
 
 function Harness() {
     const [open, setOpen] = useState(false);
@@ -17,7 +16,7 @@ function Harness() {
 }
 
 describe("Dialog", () => {
-    it("opens named by its title", async () => {
+    it("should open named by its title", async () => {
         const user = userEvent.setup();
         render(<Harness />);
 
@@ -26,9 +25,9 @@ describe("Dialog", () => {
         expect(screen.getByRole("dialog", { name: "Edit dApp" })).toBeInTheDocument();
     });
 
-    it("announces its description", () => {
+    it("should announce its description", () => {
         render(
-            <Dialog open onClose={vi.fn()} title="Approve Acme?" description="This creates its Auth0 application." icon={<svg />}>
+            <Dialog open onClose={jest.fn()} title="Approve Acme?" description="This creates its Auth0 application." icon={<svg />}>
                 <button>OK</button>
             </Dialog>,
         );
@@ -36,7 +35,7 @@ describe("Dialog", () => {
         expect(screen.getByRole("dialog", { name: "Approve Acme?" })).toHaveAccessibleDescription("This creates its Auth0 application.");
     });
 
-    it("closes on Escape and gives focus back", async () => {
+    it("should close on Escape and give focus back", async () => {
         const user = userEvent.setup();
         render(<Harness />);
         await user.click(screen.getByRole("button", { name: "Open" }));
@@ -49,13 +48,13 @@ describe("Dialog", () => {
 });
 
 describe("ConfirmDialog", () => {
-    it("confirms only after the confirmation string is typed", async () => {
+    it("should confirm only after the confirmation string is typed", async () => {
         const user = userEvent.setup();
-        const onConfirm = vi.fn();
+        const onConfirm = jest.fn();
         render(
             <ConfirmDialog
                 open
-                onClose={vi.fn()}
+                onClose={jest.fn()}
                 title="Remove Acme?"
                 confirmLabel="Remove"
                 destructive
@@ -72,31 +71,33 @@ describe("ConfirmDialog", () => {
 
         await user.type(screen.getByLabelText("Type Acme to confirm"), "e");
         await user.click(confirm);
-        expect(onConfirm).toHaveBeenCalledExactlyOnceWith();
+        expect(onConfirm).toHaveBeenCalledTimes(1);
+        expect(onConfirm).toHaveBeenCalledWith();
     });
 
     it.each([
         ["a double space", "Acme  App", "Acme App"],
         ["a no-break space", "Acme\u00a0App", "Acme App"],
         ["a decomposed accent", "Cafe\u0301", "Caf\u00e9"],
-    ])("accepts the name as displayed when it has %s", async (_, name, typed) => {
+    ])("should accept the name as displayed when it has %s", async (_, name, typed) => {
         const user = userEvent.setup();
-        const onConfirm = vi.fn();
-        render(<ConfirmDialog open onClose={vi.fn()} title="Remove?" confirmLabel="Remove" confirmText={name} onConfirm={onConfirm} />);
+        const onConfirm = jest.fn();
+        render(<ConfirmDialog open onClose={jest.fn()} title="Remove?" confirmLabel="Remove" confirmText={name} onConfirm={onConfirm} />);
 
         await user.type(screen.getByRole("textbox"), typed);
         await user.click(screen.getByRole("button", { name: "Remove" }));
 
-        expect(onConfirm).toHaveBeenCalledExactlyOnceWith();
+        expect(onConfirm).toHaveBeenCalledTimes(1);
+        expect(onConfirm).toHaveBeenCalledWith();
     });
 
-    it("requires a reason of the minimum length and passes it trimmed", async () => {
+    it("should require a reason of the minimum length and pass it trimmed", async () => {
         const user = userEvent.setup();
-        const onConfirm = vi.fn();
+        const onConfirm = jest.fn();
         render(
             <ConfirmDialog
                 open
-                onClose={vi.fn()}
+                onClose={jest.fn()}
                 title="Reject Acme?"
                 confirmLabel="Reject"
                 reason={{ label: "Reason", minLength: 10, maxLength: 40 }}
@@ -116,13 +117,13 @@ describe("ConfirmDialog", () => {
         expect(onConfirm).toHaveBeenCalledWith("Callback URL is not HTTPS");
     });
 
-    it("caps a reason at its maximum length and says so", async () => {
+    it("should cap a reason at its maximum length and say so", async () => {
         const user = userEvent.setup();
-        const onConfirm = vi.fn();
+        const onConfirm = jest.fn();
         render(
             <ConfirmDialog
                 open
-                onClose={vi.fn()}
+                onClose={jest.fn()}
                 title="Reject Acme?"
                 confirmLabel="Reject"
                 reason={{ label: "Reason", minLength: 10, maxLength: 40 }}
@@ -139,29 +140,29 @@ describe("ConfirmDialog", () => {
         expect(onConfirm).toHaveBeenCalledWith("x".repeat(40));
     });
 
-    it("cancels through onClose", async () => {
+    it("should cancel through onClose", async () => {
         const user = userEvent.setup();
-        const onClose = vi.fn();
-        render(<ConfirmDialog open onClose={onClose} title="Approve Acme?" confirmLabel="Approve" onConfirm={vi.fn()} />);
+        const onClose = jest.fn();
+        render(<ConfirmDialog open onClose={onClose} title="Approve Acme?" confirmLabel="Approve" onConfirm={jest.fn()} />);
 
         await user.click(screen.getByRole("button", { name: "Cancel" }));
 
-        expect(onClose).toHaveBeenCalledOnce();
+        expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it("closes through onClose when the browser asks to cancel it", () => {
-        const onClose = vi.fn();
-        render(<ConfirmDialog open onClose={onClose} title="Approve Acme?" confirmLabel="Approve" onConfirm={vi.fn()} />);
+    it("should close through onClose when the browser asks to cancel it", () => {
+        const onClose = jest.fn();
+        render(<ConfirmDialog open onClose={onClose} title="Approve Acme?" confirmLabel="Approve" onConfirm={jest.fn()} />);
 
         screen.getByRole("dialog").dispatchEvent(new Event("cancel", { cancelable: true }));
 
-        expect(onClose).toHaveBeenCalledOnce();
+        expect(onClose).toHaveBeenCalledTimes(1);
     });
 
-    it("ignores Escape, Cancel and the browser's cancel while the action is in flight", async () => {
+    it("should ignore Escape, Cancel and the browser's cancel while the action is in flight", async () => {
         const user = userEvent.setup();
-        const onClose = vi.fn();
-        render(<ConfirmDialog open onClose={onClose} title="Approve Acme?" confirmLabel="Approve" loading onConfirm={vi.fn()} />);
+        const onClose = jest.fn();
+        render(<ConfirmDialog open onClose={onClose} title="Approve Acme?" confirmLabel="Approve" loading onConfirm={jest.fn()} />);
 
         await user.keyboard("{Escape}");
         await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -171,8 +172,8 @@ describe("ConfirmDialog", () => {
         expect(onClose).not.toHaveBeenCalled();
     });
 
-    it("stays open when the browser closes it while the action is in flight", () => {
-        render(<ConfirmDialog open onClose={vi.fn()} title="Approve Acme?" confirmLabel="Approve" loading onConfirm={vi.fn()} />);
+    it("should stay open when the browser closes it while the action is in flight", () => {
+        render(<ConfirmDialog open onClose={jest.fn()} title="Approve Acme?" confirmLabel="Approve" loading onConfirm={jest.fn()} />);
         const dialog = screen.getByRole("dialog", { name: "Approve Acme?" });
 
         dialog.dispatchEvent(new Event("cancel"));
