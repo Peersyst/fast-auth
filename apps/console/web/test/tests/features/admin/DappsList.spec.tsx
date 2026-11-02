@@ -1,9 +1,8 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
-import { adminDapp, apiError, mockApi, refocus, renderApp, type MockRoutes, type SentRequest } from "../../test/api";
-import { formatDateTime } from "../../lib/format";
-import { DappsList } from "./DappsList";
+import { adminDapp, apiError, mockApi, refocus, renderApp, type MockRoutes, type SentRequest } from "../../../utils/api";
+import { formatDateTime } from "../../../../src/lib/format";
+import { DappsList } from "../../../../src/features/admin/DappsList";
 
 const LIST = "GET /api/console/admin/dapps";
 const pendingChange = {
@@ -30,7 +29,7 @@ function renderList(routes: MockRoutes = {}) {
     ];
     const api = mockApi({
         [LIST]: { body: { items, total: 45, page: 1, pageSize: 20 } },
-        "GET /api/console/admin/settings": { body: { autoApproval: { enabled: false } } },
+        "GET /api/console/admin/settings": { body: { autoApproval: { enabled: false, dailyCap: 10 } } },
         ...routes,
     });
     renderApp([{ path: "/admin/dapps", element: <DappsList /> }], "/admin/dapps");
@@ -42,7 +41,7 @@ function lastQuery(requests: SentRequest[]) {
 }
 
 describe("DappsList", () => {
-    it("shows the review queue first, with a badge on rows with a pending change", async () => {
+    it("should show the review queue first, with a badge on rows with a pending change", async () => {
         const api = renderList();
 
         const beta = (await screen.findByRole("link", { name: "Beta" })).closest("tr")!;
@@ -52,7 +51,7 @@ describe("DappsList", () => {
         expect(screen.getByText("Showing 2 of 45 dApps · page 1 of 3")).toBeInTheDocument();
     });
 
-    it("asks for the review queue oldest-waiting first and shows the waiting-since date", async () => {
+    it("should ask for the review queue oldest-waiting first and show the waiting-since date", async () => {
         const api = renderList();
         await screen.findByRole("link", { name: "Beta" });
 
@@ -65,7 +64,7 @@ describe("DappsList", () => {
         expect(beta).toHaveTextContent(formatDateTime("2026-10-15T10:00:00.000Z"));
     });
 
-    it("shows the date the list is sorted by", async () => {
+    it("should show the date the list is sorted by", async () => {
         const user = userEvent.setup();
         renderList();
         await screen.findByRole("link", { name: "Beta" });
@@ -81,7 +80,7 @@ describe("DappsList", () => {
         expect(screen.getAllByRole("row")[2]).toHaveTextContent(formatDateTime("2026-10-01T10:00:00.000Z"));
     });
 
-    it("asks for newest first when the review queue order is changed", async () => {
+    it("should ask for newest first when the review queue order is changed", async () => {
         const user = userEvent.setup();
         const api = renderList();
         await screen.findByRole("link", { name: "Beta" });
@@ -93,7 +92,7 @@ describe("DappsList", () => {
         expect(lastQuery(api.sent(LIST))).toEqual({ needsReview: "true", page: "1", order: "desc" });
     });
 
-    it("shows an erased owner as Erased and any other owner by email", async () => {
+    it("should show an erased owner as Erased and any other owner by email", async () => {
         renderList({
             [LIST]: {
                 body: {
@@ -113,7 +112,7 @@ describe("DappsList", () => {
         expect(within(beta).queryByText("Erased")).not.toBeInTheDocument();
     });
 
-    it("filters by status, searches, sorts and pages", async () => {
+    it("should filter by status, search, sort and page", async () => {
         const user = userEvent.setup();
         const api = renderList();
         await screen.findByRole("link", { name: "Beta" });
@@ -134,7 +133,7 @@ describe("DappsList", () => {
         });
     });
 
-    it("searches every dApp when the search starts from the review queue", async () => {
+    it("should search every dApp when the search starts from the review queue", async () => {
         const user = userEvent.setup();
         const api = renderList();
         await screen.findByRole("link", { name: "Beta" });
@@ -145,7 +144,7 @@ describe("DappsList", () => {
         expect(screen.getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
     });
 
-    it("keeps focus in the search box after a search", async () => {
+    it("should keep focus in the search box after a search", async () => {
         const user = userEvent.setup();
         renderList();
         await screen.findByRole("link", { name: "Beta" });
@@ -156,11 +155,11 @@ describe("DappsList", () => {
         expect(screen.getByRole("searchbox", { name: "Search dApps" })).toHaveFocus();
     });
 
-    it("shows the URL's search in the search box after Back", async () => {
+    it("should show the URL's search in the search box after Back", async () => {
         const user = userEvent.setup();
         const api = mockApi({
             [LIST]: ONE_DAPP,
-            "GET /api/console/admin/settings": { body: { autoApproval: { enabled: false } } },
+            "GET /api/console/admin/settings": { body: { autoApproval: { enabled: false, dailyCap: 10 } } },
         });
         const router = renderApp([{ path: "/admin/dapps", element: <DappsList /> }], "/admin/dapps?view=all&q=old");
         const box = await screen.findByRole("searchbox", { name: "Search dApps" });
@@ -176,14 +175,14 @@ describe("DappsList", () => {
         expect(screen.getByRole("searchbox", { name: "Search dApps" })).toHaveValue("old");
     });
 
-    it("says when nothing needs review", async () => {
+    it("should say when nothing needs review", async () => {
         renderList({ [LIST]: { body: { items: [], total: 0, page: 1, pageSize: 20 } } });
 
         await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Nothing needs review."));
         expect(screen.queryByRole("table")).not.toBeInTheDocument();
     });
 
-    it("announces the new result count, or that nothing matches, after a filter", async () => {
+    it("should announce the new result count, or that nothing matches, after a filter", async () => {
         const user = userEvent.setup();
         renderList({
             [LIST]: (request) =>
@@ -201,7 +200,7 @@ describe("DappsList", () => {
         await waitFor(() => expect(status).toHaveTextContent("Showing 1 of 1 dApp · page 1 of 1"));
     });
 
-    it("keeps announcing the shown page while the next one loads", async () => {
+    it("should keep announcing the shown page while the next one loads", async () => {
         const user = userEvent.setup();
         let release = () => {};
         renderList({
@@ -225,7 +224,7 @@ describe("DappsList", () => {
         expect(status).toHaveTextContent("Showing 1 of 45 dApps · page 2 of 3");
     });
 
-    it("keeps the empty text while another view loads", async () => {
+    it("should keep the empty text while another view loads", async () => {
         const user = userEvent.setup();
         const empty = { body: { items: [], total: 0, page: 1, pageSize: 20 } };
         const api = renderList({ [LIST]: (request) => (request.query.get("status") === "removed" ? new Promise(() => {}) : empty) });
@@ -237,7 +236,7 @@ describe("DappsList", () => {
         expect(status).toHaveTextContent("Nothing needs review.");
     });
 
-    it("says when the list could not be loaded, and loads it on Try again", async () => {
+    it("should say when the list could not be loaded, and load it on Try again", async () => {
         const user = userEvent.setup();
         let fail = true;
         renderList({ [LIST]: () => (fail ? apiError(429, "RATE_LIMITED") : ONE_DAPP) });
@@ -250,7 +249,7 @@ describe("DappsList", () => {
         expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
 
-    it("keeps the loaded list and warns that it may be out of date when a refresh fails", async () => {
+    it("should keep the loaded list and warn that it may be out of date when a refresh fails", async () => {
         let fail = false;
         renderList({ [LIST]: () => (fail ? apiError(429, "RATE_LIMITED") : ONE_DAPP) });
         await screen.findByRole("link", { name: "Acme Wallet" });
@@ -263,13 +262,13 @@ describe("DappsList", () => {
         expect(screen.getByRole("status")).toHaveTextContent("Showing 1 of 1 dApp · page 1 of 1");
     });
 
-    it("steps back from a page past the end", async () => {
+    it("should step back from a page past the end", async () => {
         const api = mockApi({
             [LIST]: (request) => {
                 const page = Number(request.query.get("page"));
                 return { body: { items: page > 1 ? [] : [adminDapp()], total: 20, page, pageSize: 20 } };
             },
-            "GET /api/console/admin/settings": { body: { autoApproval: { enabled: false } } },
+            "GET /api/console/admin/settings": { body: { autoApproval: { enabled: false, dailyCap: 10 } } },
         });
         renderApp([{ path: "/admin/dapps", element: <DappsList /> }], "/admin/dapps?page=3");
 
@@ -279,10 +278,10 @@ describe("DappsList", () => {
         expect(screen.queryByText("Nothing needs review.")).not.toBeInTheDocument();
     });
 
-    it("clamps a page past the API's maximum", async () => {
+    it("should clamp a page past the API's maximum", async () => {
         const api = mockApi({
             [LIST]: { body: { items: [adminDapp()], total: 1, page: 10000, pageSize: 20 } },
-            "GET /api/console/admin/settings": { body: { autoApproval: { enabled: false } } },
+            "GET /api/console/admin/settings": { body: { autoApproval: { enabled: false, dailyCap: 10 } } },
         });
         renderApp([{ path: "/admin/dapps", element: <DappsList /> }], "/admin/dapps?page=99999");
 

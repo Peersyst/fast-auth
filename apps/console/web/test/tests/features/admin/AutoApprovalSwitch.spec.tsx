@@ -1,18 +1,17 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
-import { apiError, mockApi, refocus, renderApp, type MockRoutes } from "../../test/api";
-import { AutoApprovalSwitch } from "./AutoApprovalSwitch";
+import { apiError, mockApi, refocus, renderApp, type MockRoutes } from "../../../utils/api";
+import { AutoApprovalSwitch } from "../../../../src/features/admin/AutoApprovalSwitch";
 
 const SETTINGS = "/api/console/admin/settings";
 
 async function renderSwitch(enabled: boolean, routes: MockRoutes = {}) {
     let saved = enabled;
     const api = mockApi({
-        [`GET ${SETTINGS}`]: () => ({ body: { autoApproval: { enabled: saved } } }),
+        [`GET ${SETTINGS}`]: () => ({ body: { autoApproval: { enabled: saved, dailyCap: 10 } } }),
         [`PUT ${SETTINGS}`]: (request) => {
             saved = (request.body as { autoApproval: { enabled: boolean } }).autoApproval.enabled;
-            return { body: { autoApproval: { enabled: saved } } };
+            return { body: { autoApproval: { enabled: saved, dailyCap: 10 } } };
         },
         ...routes,
     });
@@ -22,7 +21,7 @@ async function renderSwitch(enabled: boolean, routes: MockRoutes = {}) {
 }
 
 describe("AutoApprovalSwitch", () => {
-    it("turns off at once, without asking", async () => {
+    it("should turn off at once, without asking", async () => {
         const user = userEvent.setup();
         const { api, toggle } = await renderSwitch(true);
         expect(toggle).toBeChecked();
@@ -34,13 +33,14 @@ describe("AutoApprovalSwitch", () => {
         await waitFor(() => expect(toggle).not.toBeChecked());
     });
 
-    it("asks before turning on", async () => {
+    it("should ask before turning on", async () => {
         const user = userEvent.setup();
         const { api, toggle } = await renderSwitch(false);
         expect(toggle).not.toBeChecked();
 
         await user.click(toggle);
         const dialog = screen.getByRole("dialog", { name: "Turn on auto-approval?" });
+        expect(dialog).toHaveTextContent("up to 10 every 24 hours");
         expect(api.sent(`PUT ${SETTINGS}`)).toHaveLength(0);
         await user.click(within(dialog).getByRole("button", { name: "Turn on auto-approval" }));
 
@@ -49,11 +49,12 @@ describe("AutoApprovalSwitch", () => {
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
-    it("shows the saved value from the save's answer, without loading the setting again", async () => {
+    it("should show the saved value from the save's answer, without loading the setting again", async () => {
         const user = userEvent.setup();
         let loads = 0;
         const { toggle } = await renderSwitch(true, {
-            [`GET ${SETTINGS}`]: () => (loads++ === 0 ? { body: { autoApproval: { enabled: true } } } : new Promise(() => {})),
+            [`GET ${SETTINGS}`]: () =>
+                loads++ === 0 ? { body: { autoApproval: { enabled: true, dailyCap: 10 } } } : new Promise(() => {}),
         });
 
         await user.click(toggle);
@@ -63,7 +64,7 @@ describe("AutoApprovalSwitch", () => {
         expect(toggle).toBeEnabled();
     });
 
-    it("keeps keyboard focus on the switch and ignores another toggle while saving", async () => {
+    it("should keep keyboard focus on the switch and ignore another toggle while saving", async () => {
         const user = userEvent.setup();
         const { api, toggle } = await renderSwitch(true, { [`PUT ${SETTINGS}`]: () => new Promise(() => {}) });
 
@@ -79,7 +80,7 @@ describe("AutoApprovalSwitch", () => {
         expect(api.sent(`PUT ${SETTINGS}`).map((request) => request.body)).toEqual([{ autoApproval: { enabled: false } }]);
     });
 
-    it("keeps the switch on and says so when turning off fails", async () => {
+    it("should keep the switch on and say so when turning off fails", async () => {
         const user = userEvent.setup();
         const { toggle } = await renderSwitch(true, { [`PUT ${SETTINGS}`]: apiError(429, "RATE_LIMITED") });
 
@@ -90,7 +91,7 @@ describe("AutoApprovalSwitch", () => {
         expect(toggle).toBeChecked();
     });
 
-    it("shows a failed turn-on in the dialog and leaves the switch off", async () => {
+    it("should show a failed turn-on in the dialog and leave the switch off", async () => {
         const user = userEvent.setup();
         const { toggle } = await renderSwitch(false, { [`PUT ${SETTINGS}`]: apiError(500, "INTERNAL") });
 
@@ -102,10 +103,11 @@ describe("AutoApprovalSwitch", () => {
         expect(toggle).not.toBeChecked();
     });
 
-    it("keeps the loaded setting and warns that it may be out of date when a refresh fails", async () => {
+    it("should keep the loaded setting and warn that it may be out of date when a refresh fails", async () => {
         let loads = 0;
         const { toggle } = await renderSwitch(true, {
-            [`GET ${SETTINGS}`]: () => (loads++ === 0 ? { body: { autoApproval: { enabled: true } } } : apiError(429, "RATE_LIMITED")),
+            [`GET ${SETTINGS}`]: () =>
+                loads++ === 0 ? { body: { autoApproval: { enabled: true, dailyCap: 10 } } } : apiError(429, "RATE_LIMITED"),
         });
 
         refocus();
@@ -116,10 +118,12 @@ describe("AutoApprovalSwitch", () => {
         expect(toggle).toBeEnabled();
     });
 
-    it("says when the setting could not be loaded without claiming On or Off, and loads it on Try again", async () => {
+    it("should say when the setting could not be loaded without claiming On or Off, and load it on Try again", async () => {
         const user = userEvent.setup();
         let fail = true;
-        mockApi({ [`GET ${SETTINGS}`]: () => (fail ? apiError(429, "RATE_LIMITED") : { body: { autoApproval: { enabled: true } } }) });
+        mockApi({
+            [`GET ${SETTINGS}`]: () => (fail ? apiError(429, "RATE_LIMITED") : { body: { autoApproval: { enabled: true, dailyCap: 10 } } }),
+        });
         renderApp([{ path: "/", element: <AutoApprovalSwitch /> }], "/");
 
         expect(await screen.findByRole("alert")).toHaveTextContent("The setting could not be loadedToo many changes in a short time.");
