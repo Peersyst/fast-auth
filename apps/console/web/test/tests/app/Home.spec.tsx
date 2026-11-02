@@ -1,7 +1,6 @@
 import { screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
-import { mockApi, renderApp } from "../test/api";
-import { Home } from "./Home";
+import { mockApi, renderApp } from "../../utils/api";
+import { Home } from "../../../src/app/Home";
 
 const ROUTES = [
     { path: "/", element: <Home /> },
@@ -9,14 +8,14 @@ const ROUTES = [
 ];
 
 describe("Home", () => {
-    it("sends an admin to the dApps list", async () => {
+    it("should send an admin to the dApps list", async () => {
         mockApi({});
         renderApp(ROUTES, "/", { email: "admin@acme.xyz", role: "admin", emailVerified: true });
 
         expect(await screen.findByRole("heading", { name: "All dApps" })).toBeInTheDocument();
     });
 
-    it("shows an owner their own dApp page", async () => {
+    it("should show an owner their own dApp page", async () => {
         mockApi({ "GET /api/console/dapp": { body: { dapp: null } } });
         renderApp(ROUTES, "/");
 

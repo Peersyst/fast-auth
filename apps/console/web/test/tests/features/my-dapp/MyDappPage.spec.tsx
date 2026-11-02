@@ -1,9 +1,8 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent, { type UserEvent } from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
-import type { ClientConfig } from "../../api/client";
-import { apiError, CLIENT_CONFIG, DAPP_ID, mockApi, ownerDapp, refocus, renderApp, type MockRoutes } from "../../test/api";
-import { MyDappPage } from "./MyDappPage";
+import type { ClientConfig } from "../../../../src/api/client";
+import { apiError, CLIENT_CONFIG, DAPP_ID, mockApi, ownerDapp, refocus, renderApp, type MockRoutes } from "../../../utils/api";
+import { MyDappPage } from "../../../../src/features/my-dapp/MyDappPage";
 
 function renderPage(routes: MockRoutes, config?: ClientConfig) {
     const api = mockApi(routes);
@@ -33,7 +32,7 @@ const CHANGE = {
 };
 
 describe("MyDappPage", () => {
-    it("explains the console and offers the form when there is no dApp, then submits it", async () => {
+    it("should explain the console and offer the form when there is no dApp, then submit it", async () => {
         const user = userEvent.setup();
         const api = renderPage({
             "GET /api/console/dapp": { body: { dapp: null } },
@@ -61,7 +60,7 @@ describe("MyDappPage", () => {
         });
     });
 
-    it("moves focus to the dApp's title once the first submission shows it", async () => {
+    it("should move focus to the dApp's title once the first submission shows it", async () => {
         const user = userEvent.setup();
         renderPage({
             "GET /api/console/dapp": { body: { dapp: null } },
@@ -75,13 +74,13 @@ describe("MyDappPage", () => {
         expect(await screen.findByRole("heading", { name: "Acme Wallet", level: 1 })).toHaveFocus();
     });
 
-    it("does not take focus when an existing dApp loads", async () => {
+    it("should not take focus when an existing dApp loads", async () => {
         renderPage({ "GET /api/console/dapp": { body: { dapp: ownerDapp() } } });
 
         expect(await screen.findByRole("heading", { name: "Acme Wallet", level: 1 })).not.toHaveFocus();
     });
 
-    it("goes back from the form to the first-visit card on Cancel", async () => {
+    it("should go back from the form to the first-visit card on Cancel", async () => {
         const user = userEvent.setup();
         renderPage({ "GET /api/console/dapp": { body: { dapp: null } } });
 
@@ -92,7 +91,7 @@ describe("MyDappPage", () => {
         expect(screen.getByRole("button", { name: "Register your dApp" })).toHaveFocus();
     });
 
-    it("shows a pending dApp and edits it in place with the version it showed", async () => {
+    it("should show a pending dApp and edit it in place with the version it showed", async () => {
         const user = userEvent.setup();
         const api = renderPage({
             "GET /api/console/dapp": { body: { dapp: ownerDapp() } },
@@ -111,7 +110,7 @@ describe("MyDappPage", () => {
         expect(api.sent(PUT_DAPP)[0]?.body).toMatchObject({ description: "The wallet.", expectedVersion: 3 });
     });
 
-    it("shows an approved dApp's client ID", async () => {
+    it("should show an approved dApp's client ID", async () => {
         renderPage({ "GET /api/console/dapp": { body: { dapp: ownerDapp({ status: "approved", auth0ClientId: "client-abc" }) } } });
 
         expect(await screen.findByText("client-abc")).toBeInTheDocument();
@@ -138,7 +137,7 @@ describe("MyDappPage", () => {
             "https://docs.auth.near.org/resources/mainnet",
         ],
     ] as const)(
-        "shows an approved dApp the %s settings it plugs into",
+        "should show an approved dApp the %s settings it plugs into",
         async (network, audience, fastAuth, mpc, resources, resourcesUrl) => {
             renderPage(
                 { "GET /api/console/dapp": { body: { dapp: ownerDapp({ status: "approved", auth0ClientId: "client-abc" }) } } },
@@ -155,7 +154,7 @@ describe("MyDappPage", () => {
         },
     );
 
-    it("names the deployment's network to a user with no dApp", async () => {
+    it("should name the deployment's network to a user with no dApp", async () => {
         renderPage({ "GET /api/console/dapp": { body: { dapp: null } } }, { ...CLIENT_CONFIG, nearNetwork: "testnet" });
 
         expect(await screen.findByText("Testnet access")).toBeInTheDocument();
@@ -163,7 +162,7 @@ describe("MyDappPage", () => {
         expect(screen.queryByText(/mainnet/i)).not.toBeInTheDocument();
     });
 
-    it("shows the change under review with its proposed values, and withdraws it by saving the live values", async () => {
+    it("should show the change under review with its proposed values, and withdraw it by saving the live values", async () => {
         const user = userEvent.setup();
         const dapp = ownerDapp({
             status: "approved",
@@ -198,7 +197,7 @@ describe("MyDappPage", () => {
         });
     });
 
-    it("shows a rejection's reason and resubmits through the form", async () => {
+    it("should show a rejection's reason and resubmit through the form", async () => {
         const user = userEvent.setup();
         const dapp = ownerDapp({ status: "rejected", rejectionReason: "The callback URL points at a staging host." });
         const api = renderPage({ "GET /api/console/dapp": { body: { dapp } }, [PUT_DAPP]: { body: ownerDapp({ version: 4 }) } });
@@ -210,7 +209,7 @@ describe("MyDappPage", () => {
         expect(api.sent(PUT_DAPP)[0]?.body).toMatchObject({ name: "Acme Wallet", expectedVersion: 3 });
     });
 
-    it("removes the dApp once its name is typed, with the version it showed", async () => {
+    it("should remove the dApp once its name is typed, with the version it showed", async () => {
         const user = userEvent.setup();
         const api = renderPage({
             "GET /api/console/dapp": { body: { dapp: ownerDapp() } },
@@ -231,7 +230,7 @@ describe("MyDappPage", () => {
         expect(api.sent(DELETE_DAPP)[0]?.query.get("expectedVersion")).toBe("3");
     });
 
-    it("removes against the version shown when the dialog opened; a newer one closes it", async () => {
+    it("should remove against the version shown when the dialog opened; a newer one closes it", async () => {
         const user = userEvent.setup();
         const routes: MockRoutes = {
             "GET /api/console/dapp": { body: { dapp: ownerDapp() } },
@@ -253,7 +252,7 @@ describe("MyDappPage", () => {
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
-    it("announces that a withdrawal did nothing when the dApp changed meanwhile", async () => {
+    it("should announce that a withdrawal did nothing when the dApp changed meanwhile", async () => {
         const user = userEvent.setup();
         const dapp = ownerDapp({
             status: "approved",
@@ -269,7 +268,7 @@ describe("MyDappPage", () => {
         expect(await screen.findByRole("alert")).toHaveTextContent("Nothing was done");
     });
 
-    it("keeps the edit form and its edits when a background refetch fails", async () => {
+    it("should keep the edit form and its edits when a background refetch fails", async () => {
         const user = userEvent.setup();
         const routes: MockRoutes = { "GET /api/console/dapp": { body: { dapp: ownerDapp() } } };
         renderPage(routes);
@@ -283,7 +282,7 @@ describe("MyDappPage", () => {
         expect(screen.getByLabelText("Application name")).toHaveValue("Acme Wallet v2");
     });
 
-    it("says when the dApp changed meanwhile and reloads the latest version", async () => {
+    it("should say when the dApp changed meanwhile and reload the latest version", async () => {
         const user = userEvent.setup();
         const routes: MockRoutes = {
             "GET /api/console/dapp": { body: { dapp: ownerDapp() } },
@@ -309,7 +308,7 @@ describe("MyDappPage", () => {
         expect(versions).toEqual([3, 4]);
     });
 
-    it("leaves the form when its change is withdrawn, as the form's version is then out of date", async () => {
+    it("should leave the form when its change is withdrawn, as the form's version is then out of date", async () => {
         const user = userEvent.setup();
         const dapp = ownerDapp({
             status: "approved",
@@ -331,7 +330,7 @@ describe("MyDappPage", () => {
         expect(screen.queryByLabelText("Application name")).not.toBeInTheDocument();
     });
 
-    it("clears a dialog's Nothing was done once the user edits again", async () => {
+    it("should clear a dialog's Nothing was done once the user edits again", async () => {
         const user = userEvent.setup();
         renderPage({
             "GET /api/console/dapp": { body: { dapp: ownerDapp() } },
@@ -352,7 +351,7 @@ describe("MyDappPage", () => {
         expect(screen.queryByText("Nothing was done")).not.toBeInTheDocument();
     });
 
-    it("moves focus to the title when switching between the details and the form", async () => {
+    it("should move focus to the title when switching between the details and the form", async () => {
         const user = userEvent.setup();
         renderPage({ "GET /api/console/dapp": { body: { dapp: ownerDapp() } } });
 
@@ -362,7 +361,7 @@ describe("MyDappPage", () => {
         expect(screen.getByRole("heading", { name: "Acme Wallet", level: 1 })).toHaveFocus();
     });
 
-    it("moves focus to the title once a change withdrawn from the details is gone", async () => {
+    it("should move focus to the title once a change withdrawn from the details is gone", async () => {
         const user = userEvent.setup();
         const dapp = ownerDapp({
             status: "approved",
