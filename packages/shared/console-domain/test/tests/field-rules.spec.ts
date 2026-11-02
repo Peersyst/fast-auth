@@ -1,4 +1,4 @@
-import type { UrlListField } from "./field-rules";
+import type { UrlListField } from "../../src/field-rules";
 import {
     isContactEmail,
     isCallbackUrl,
@@ -8,7 +8,7 @@ import {
     isValidUrlList,
     isWebOrigin,
     normaliseUrlList,
-} from "./field-rules";
+} from "../../src/field-rules";
 
 type SingleValueRule = "callbackUrl" | "webOrigin" | "logoUrl" | "name" | "description" | "contactEmail";
 
@@ -25,6 +25,12 @@ const LIST_RULES: UrlListField[] = ["callbackUrls", "logoutUrls", "webOrigins"];
 
 type Vectors<T> = { valid: T[]; invalid: T[] };
 
+/**
+ * Builds numbered URLs, counting from 1.
+ * @param count How many URLs to build.
+ * @param url Builds the URL for a number.
+ * @returns The URLs.
+ */
 const urls = (count: number, url: (i: number) => string): string[] => Array.from({ length: count }, (_, i) => url(i + 1));
 
 const SINGLE_VALUE_VECTORS: Record<SingleValueRule, Vectors<string>> = {
@@ -244,11 +250,11 @@ const NORMALISE_URL_LIST_VECTORS: { input: string[]; output: string[] }[] = [
 describe.each(SINGLE_VALUE_RULES)("%s", (key, isValid) => {
     const { valid, invalid } = SINGLE_VALUE_VECTORS[key];
 
-    it.each(valid)("accepts %j", (value) => {
+    it.each(valid)("should accept %j", (value) => {
         expect(isValid(value)).toBe(true);
     });
 
-    it.each(invalid)("refuses %j", (value) => {
+    it.each(invalid)("should refuse %j", (value) => {
         expect(isValid(value)).toBe(false);
     });
 });
@@ -256,11 +262,11 @@ describe.each(SINGLE_VALUE_RULES)("%s", (key, isValid) => {
 describe.each(LIST_RULES)("%s", (field) => {
     const { valid, invalid } = LIST_VECTORS[field];
 
-    it.each(valid.map((list) => [list]))("accepts %j", (list) => {
+    it.each(valid.map((list) => [list]))("should accept %j", (list) => {
         expect(isValidUrlList(field, list)).toBe(true);
     });
 
-    it.each(invalid.map((list) => [list]))("refuses %j", (list) => {
+    it.each(invalid.map((list) => [list]))("should refuse %j", (list) => {
         expect(isValidUrlList(field, list)).toBe(false);
     });
 });
@@ -308,11 +314,11 @@ describe("edge cases", () => {
         ["two zero-width non-joiners", "\u0645\u06CC\u200C\u200C\u062E"],
         ["a combining grapheme joiner", "Acme\u034F"],
         ["a Hangul filler between letters", "Ac\u3164me"],
-    ])("refuses a name with %s", (_case, name) => {
+    ])("should refuse a name with %s", (_case, name) => {
         expect(isValidName(name)).toBe(false);
     });
 
-    it("keeps names with joined emoji and non-Latin scripts", () => {
+    it("should keep names with joined emoji and non-Latin scripts", () => {
         expect(isValidName("Acme \u{1F468}\u200D\u{1F4BB}")).toBe(true);
         expect(isValidName("\u0645\u062B\u0627\u0644")).toBe(true);
         expect(isValidName("\u{1F680}")).toBe(true);
@@ -335,7 +341,7 @@ describe("edge cases", () => {
         ).toBe(true);
     });
 
-    it("keeps line breaks in a description and refuses overrides, controls and lone surrogates", () => {
+    it("should keep line breaks in a description and refuse overrides, controls and lone surrogates", () => {
         expect(isValidDescription("Line one\nLine two\twith a tab")).toBe(true);
         expect(isValidDescription("Line one\r\nLine two")).toBe(true);
         expect(isValidDescription("Acme\u202Etellaw")).toBe(false);
@@ -360,11 +366,11 @@ describe("edge cases", () => {
         ["a label starting with a hyphen", "https://-acme.xyz/callback"],
         ["a label ending with a hyphen", "https://acme-.xyz/callback"],
         ["2049 characters", `https://acme.xyz/${"a".repeat(2049 - "https://acme.xyz/".length)}`],
-    ])("refuses a callback URL with %s", (_case, url) => {
+    ])("should refuse a callback URL with %s", (_case, url) => {
         expect(isCallbackUrl(url)).toBe(false);
     });
 
-    it("keeps a callback URL of exactly 2048 characters and one on a host with an underscore", () => {
+    it("should keep a callback URL of exactly 2048 characters and one on a host with an underscore", () => {
         expect(isCallbackUrl(`https://acme.xyz/${"a".repeat(2048 - "https://acme.xyz/".length)}`)).toBe(true);
         expect(isCallbackUrl("https://my_app.acme.xyz/callback")).toBe(true);
         expect(isCallbackUrl("https://_app.acme.xyz/callback")).toBe(true);
@@ -380,18 +386,18 @@ describe("edge cases", () => {
         "https://cdn/logo.png",
         "https://router.home.arpa/logo.png",
         "https://printer.local/logo.png",
-    ])("refuses a logo on a host that is not public: %s", (url) => {
+    ])("should refuse a logo on a host that is not public: %s", (url) => {
         expect(isLogoUrl(url)).toBe(false);
     });
 
-    it("caps a contact email at 254 characters", () => {
+    it("should cap a contact email at 254 characters", () => {
         expect(isContactEmail(`${"a".repeat(64)}@${"b".repeat(185)}.com`)).toBe(true);
         expect(isContactEmail(`${"a".repeat(64)}@${"b".repeat(186)}.com`)).toBe(false);
     });
 });
 
 describe("normaliseUrlList", () => {
-    it.each(NORMALISE_URL_LIST_VECTORS)("normalises $input", ({ input, output }) => {
+    it.each(NORMALISE_URL_LIST_VECTORS)("should normalise $input", ({ input, output }) => {
         expect(normaliseUrlList(input)).toEqual(output);
     });
 });

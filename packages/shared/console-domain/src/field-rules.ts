@@ -25,14 +25,29 @@ const LOCAL_HOST = /(?:^|\.)(?:localhost|local|internal|lan|home|corp|home\.arpa
 const EMAIL =
     /^(?:[A-Za-z0-9_'+-]+\.)*[A-Za-z0-9_'+-]+@(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+(?:[A-Za-z]{2,}|[Xx][Nn]--[A-Za-z0-9-]*[A-Za-z0-9])$/;
 
+/**
+ * Trims the URL and lowercases its scheme and authority, leaving the path, query and fragment as typed.
+ * @param value The URL.
+ * @returns The normalised URL.
+ */
 export function normaliseUrl(value: string): string {
     return value.trim().replace(/^[^/?#]*\/\/[^/?#]*/, (schemeAndAuthority) => schemeAndAuthority.toLowerCase());
 }
 
+/**
+ * Normalises each URL and drops duplicates, keeping the first-seen order.
+ * @param values The URLs.
+ * @returns The normalised, unique URLs.
+ */
 export function normaliseUrlList(values: readonly string[]): string[] {
     return [...new Set(values.map(normaliseUrl))];
 }
 
+/**
+ * Parses an https URL, or gives null when it is too long, holds unsafe characters, or has credentials or an authority the parser would rewrite.
+ * @param value The normalised URL.
+ * @returns The parsed URL, or null.
+ */
 function parseHttpsUrl(value: string): URL | null {
     if (value.length > URL_MAX_LENGTH || UNSAFE_URL_CHARACTERS.test(value)) return null;
     let url: URL;
@@ -45,6 +60,11 @@ function parseHttpsUrl(value: string): URL | null {
     return value.startsWith(prefix) && /^(?:[/?#]|$)/.test(value.slice(prefix.length)) ? url : null;
 }
 
+/**
+ * Accepts only dotted DNS names outside the local and special-use zones, so IP addresses fail.
+ * @param url The parsed URL.
+ * @returns Whether the host is public.
+ */
 function isPublicHost(url: URL): boolean {
     const { hostname } = url;
     const isIpv4 = /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
@@ -52,18 +72,33 @@ function isPublicHost(url: URL): boolean {
     return !isIpv4 && labels.length >= 2 && labels.every((label) => HOST_LABEL.test(label)) && !LOCAL_HOST.test(hostname);
 }
 
+/**
+ * Accepts a public https URL with no fragment, once normalised.
+ * @param value The URL as entered.
+ * @returns Whether it is a valid callback or logout URL.
+ */
 export function isCallbackUrl(value: string): boolean {
     const normalised = normaliseUrl(value);
     const url = parseHttpsUrl(normalised);
     return url !== null && !normalised.includes("#") && isPublicHost(url);
 }
 
+/**
+ * Accepts a public https origin with nothing after the host and port, once normalised.
+ * @param value The origin as entered.
+ * @returns Whether it is a valid web origin.
+ */
 export function isWebOrigin(value: string): boolean {
     const normalised = normaliseUrl(value);
     const url = parseHttpsUrl(normalised);
     return url !== null && normalised === url.origin && isPublicHost(url);
 }
 
+/**
+ * Accepts a public https URL within Auth0's metadata length limit, once normalised.
+ * @param value The URL as entered.
+ * @returns Whether it is a valid logo URL.
+ */
 export function isLogoUrl(value: string): boolean {
     const normalised = normaliseUrl(value);
     const url = parseHttpsUrl(normalised);
@@ -73,6 +108,11 @@ export function isLogoUrl(value: string): boolean {
 /** NUL, which Postgres `text` cannot store. */
 export const NUL = "\u0000";
 
+/**
+ * Accepts a name within the length limit, with a visible character and no angle brackets or hidden characters.
+ * @param name The dApp name.
+ * @returns Whether the name is valid.
+ */
 export function isValidName(name: string): boolean {
     return (
         name.length <= NAME_MAX_LENGTH &&
@@ -82,10 +122,20 @@ export function isValidName(name: string): boolean {
     );
 }
 
+/**
+ * Accepts a description within Auth0's limit, with no control characters other than tabs and line breaks, no direction controls and no lone surrogates.
+ * @param description The dApp description.
+ * @returns Whether the description is valid.
+ */
 export function isValidDescription(description: string): boolean {
     return description.length <= DESCRIPTION_MAX_LENGTH && !UNSAFE_DESCRIPTION_CHARACTERS.test(description);
 }
 
+/**
+ * Accepts a plain address on a dotted domain, without quoted parts or IP literals, within the length limit.
+ * @param email The email address.
+ * @returns Whether the address is valid.
+ */
 export function isContactEmail(email: string): boolean {
     return email.length <= EMAIL_MAX_LENGTH && EMAIL.test(email);
 }
@@ -97,6 +147,12 @@ const URL_LIST_RULES = {
 } as const;
 export type UrlListField = keyof typeof URL_LIST_RULES;
 
+/**
+ * Normalises and deduplicates the list, then checks its size against the field's bounds and each URL against the field's rule.
+ * @param field The URL list field.
+ * @param values The URLs as entered.
+ * @returns Whether the list is valid.
+ */
 export function isValidUrlList(field: UrlListField, values: readonly string[]): boolean {
     const { min, max, isValid } = URL_LIST_RULES[field];
     const list = normaliseUrlList(values);

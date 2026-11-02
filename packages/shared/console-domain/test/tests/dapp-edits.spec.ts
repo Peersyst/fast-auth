@@ -1,6 +1,6 @@
-import type { DappFields, SyncedFields } from "./dapp";
-import { DAPP_FIELDS, DIRECT_FIELDS, SYNCED_FIELDS } from "./dapp";
-import { classifyEdit, diffFields } from "./dapp-edits";
+import type { DappFields, SyncedFields } from "../../src/dapp";
+import { DAPP_FIELDS, DIRECT_FIELDS, MauBracket, SYNCED_FIELDS } from "../../src/dapp";
+import { classifyEdit, diffFields } from "../../src/dapp-edits";
 
 const LIVE: DappFields = {
     name: "Acme",
@@ -10,7 +10,7 @@ const LIVE: DappFields = {
     logoutUrls: [],
     webOrigins: ["https://acme.xyz"],
     contactEmail: "dev@acme.xyz",
-    mauBracket: "lt1k",
+    mauBracket: MauBracket.LT_1K,
 };
 
 const PENDING: SyncedFields = {
@@ -23,12 +23,12 @@ const PENDING: SyncedFields = {
 };
 
 describe("diffFields", () => {
-    it("finds no change between equal values", () => {
+    it("should find no change between equal values", () => {
         expect(diffFields(DAPP_FIELDS, LIVE, { ...LIVE })).toEqual([]);
     });
 
-    it("records synced and MAU changes with their values, in field order", () => {
-        const after: DappFields = { ...LIVE, mauBracket: "gt25k", name: "Acme Wallet", logoutUrls: ["https://acme.xyz/"] };
+    it("should record synced and MAU changes with their values, in field order", () => {
+        const after: DappFields = { ...LIVE, mauBracket: MauBracket.GT_25K, name: "Acme Wallet", logoutUrls: ["https://acme.xyz/"] };
         expect(diffFields(DAPP_FIELDS, LIVE, after)).toEqual([
             { field: "name", before: "Acme", after: "Acme Wallet" },
             { field: "logoutUrls", before: [], after: ["https://acme.xyz/"] },
@@ -36,12 +36,12 @@ describe("diffFields", () => {
         ]);
     });
 
-    it("records a contact-email change by field name only", () => {
+    it("should record a contact-email change by field name only", () => {
         const changes = diffFields(DAPP_FIELDS, LIVE, { ...LIVE, contactEmail: "ops@acme.xyz" });
         expect(changes).toEqual([{ field: "contactEmail" }]);
     });
 
-    it("treats lists as sets, so order and duplicates are not changes", () => {
+    it("should treat lists as sets, so order and duplicates are not changes", () => {
         const after: DappFields = {
             ...LIVE,
             callbackUrls: ["https://acme.xyz/silent", "https://acme.xyz/callback", "https://acme.xyz/silent"],
@@ -49,22 +49,22 @@ describe("diffFields", () => {
         expect(diffFields(DAPP_FIELDS, LIVE, after)).toEqual([]);
     });
 
-    it("sees a list change when sizes match but members differ", () => {
+    it("should see a list change when sizes match but members differ", () => {
         const after: DappFields = { ...LIVE, callbackUrls: ["https://acme.xyz/callback", "https://acme.xyz/other"] };
         expect(diffFields(DAPP_FIELDS, LIVE, after)).toEqual([
             { field: "callbackUrls", before: LIVE.callbackUrls, after: ["https://acme.xyz/callback", "https://acme.xyz/other"] },
         ]);
     });
 
-    it("sees a list change when a member is removed", () => {
+    it("should see a list change when a member is removed", () => {
         const after: DappFields = { ...LIVE, callbackUrls: ["https://acme.xyz/callback"] };
         expect(diffFields(DAPP_FIELDS, LIVE, after)).toEqual([
             { field: "callbackUrls", before: LIVE.callbackUrls, after: ["https://acme.xyz/callback"] },
         ]);
     });
 
-    it("only compares the fields it is given", () => {
-        const after: DappFields = { ...LIVE, name: "Acme Wallet", mauBracket: "gt25k" };
+    it("should only compare the fields it is given", () => {
+        const after: DappFields = { ...LIVE, name: "Acme Wallet", mauBracket: MauBracket.GT_25K };
         expect(diffFields(SYNCED_FIELDS, LIVE, after)).toEqual([{ field: "name", before: "Acme", after: "Acme Wallet" }]);
         expect(diffFields(DIRECT_FIELDS, LIVE, after)).toEqual([{ field: "mauBracket", before: "lt1k", after: "gt25k" }]);
     });
@@ -72,19 +72,19 @@ describe("diffFields", () => {
 
 describe("classifyEdit", () => {
     describe("without a pending change", () => {
-        it("does nothing when nothing changed", () => {
+        it("should do nothing when nothing changed", () => {
             expect(classifyEdit(LIVE, null, { ...LIVE })).toEqual({ directChanges: [], pendingChange: { kind: "unchanged" } });
         });
 
-        it("applies direct fields at once", () => {
-            expect(classifyEdit(LIVE, null, { ...LIVE, mauBracket: "1k_10k", contactEmail: "ops@acme.xyz" })).toEqual({
+        it("should apply direct fields at once", () => {
+            expect(classifyEdit(LIVE, null, { ...LIVE, mauBracket: MauBracket.FROM_1K_TO_10K, contactEmail: "ops@acme.xyz" })).toEqual({
                 directChanges: [{ field: "contactEmail" }, { field: "mauBracket", before: "lt1k", after: "1k_10k" }],
                 pendingChange: { kind: "unchanged" },
             });
         });
 
-        it("requests a change for synced fields, recording each from its live value to the requested one", () => {
-            const proposed: DappFields = { ...LIVE, ...PENDING, mauBracket: "gt25k" };
+        it("should request a change for synced fields, recording each from its live value to the requested one", () => {
+            const proposed: DappFields = { ...LIVE, ...PENDING, mauBracket: MauBracket.GT_25K };
             expect(classifyEdit(LIVE, null, proposed)).toEqual({
                 directChanges: [{ field: "mauBracket", before: "lt1k", after: "gt25k" }],
                 pendingChange: {
@@ -99,7 +99,7 @@ describe("classifyEdit", () => {
             });
         });
 
-        it("puts only synced fields in the requested change", () => {
+        it("should put only synced fields in the requested change", () => {
             expect(classifyEdit(LIVE, null, { ...LIVE, description: "A better wallet" }).pendingChange).toEqual({
                 kind: "replaced",
                 change: {
@@ -116,14 +116,14 @@ describe("classifyEdit", () => {
     });
 
     describe("with a pending change", () => {
-        it("keeps it when the synced fields equal it", () => {
+        it("should keep it when the synced fields equal it", () => {
             expect(classifyEdit(LIVE, PENDING, { ...LIVE, ...PENDING })).toEqual({
                 directChanges: [],
                 pendingChange: { kind: "unchanged" },
             });
         });
 
-        it("keeps it when the lists equal it as sets, and still applies direct fields", () => {
+        it("should keep it when the lists equal it as sets, and still apply direct fields", () => {
             const proposed: DappFields = {
                 ...LIVE,
                 ...PENDING,
@@ -136,18 +136,18 @@ describe("classifyEdit", () => {
             });
         });
 
-        it("withdraws it when the synced fields are back to live", () => {
+        it("should withdraw it when the synced fields are back to live", () => {
             expect(classifyEdit(LIVE, PENDING, { ...LIVE })).toEqual({ directChanges: [], pendingChange: { kind: "withdrawn" } });
         });
 
-        it("withdraws it and applies direct fields", () => {
-            expect(classifyEdit(LIVE, PENDING, { ...LIVE, mauBracket: "10k_25k" })).toEqual({
+        it("should withdraw it and apply direct fields", () => {
+            expect(classifyEdit(LIVE, PENDING, { ...LIVE, mauBracket: MauBracket.FROM_10K_TO_25K })).toEqual({
                 directChanges: [{ field: "mauBracket", before: "lt1k", after: "10k_25k" }],
                 pendingChange: { kind: "withdrawn" },
             });
         });
 
-        it("replaces it with anything else, recording each field from its live value to the requested one", () => {
+        it("should replace it with anything else, recording each field from its live value to the requested one", () => {
             const proposed: DappFields = { ...LIVE, ...PENDING, name: "Acme Pay" };
             expect(classifyEdit(LIVE, PENDING, proposed)).toEqual({
                 directChanges: [],

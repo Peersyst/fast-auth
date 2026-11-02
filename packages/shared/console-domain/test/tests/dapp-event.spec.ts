@@ -1,4 +1,4 @@
-import { DappEventType, isDappEventDetails } from "./dapp-event";
+import { DappEventType, isDappEventDetails } from "../../src/dapp-event";
 
 const PAYLOAD = {
     name: "Acme",
@@ -21,35 +21,35 @@ const CHANGES = [
 ];
 
 const VALID: { type: DappEventType; details: unknown }[] = [
-    { type: "submitted", details: { chosenForAutoApproval: false } },
-    { type: "submitted", details: { chosenForAutoApproval: true } },
-    { type: "edited", details: { changes: CHANGES } },
-    { type: "edited", details: { changes: [] } },
-    { type: "resubmitted", details: {} },
-    { type: "approved", details: {} },
-    { type: "auto_approved", details: {} },
-    { type: "rejected", details: { reason: "The logo does not load." } },
-    { type: "change_requested", details: { changes: CHANGES } },
-    { type: "change_withdrawn", details: {} },
-    { type: "change_approved", details: { changes: CHANGES } },
-    { type: "change_rejected", details: { reason: "The new callback is not yours." } },
-    { type: "owner_changed", details: {} },
-    { type: "removed", details: {} },
-    { type: "removed", details: { reason: "Abandoned by its owner." } },
-    { type: "auth0_created", details: { clientId: "abc", payload: PAYLOAD } },
-    { type: "auth0_updated", details: { clientId: "abc", payload: PAYLOAD } },
-    { type: "auth0_deleted", details: { clientId: "abc" } },
-    { type: "auth0_failed", details: { op: "create", error: "timeout" } },
-    { type: "auth0_failed", details: { op: "delete", error: "tag_mismatch", clientId: "abc" } },
-    { type: "auth0_failed", details: { op: "find", error: "timeout" } },
-    { type: "auth0_failed", details: { op: "update", error: "502", clientId: "abc" } },
-    { type: "email_sent", details: { template: "dapp_approved" } },
-    { type: "email_sent", details: { template: "dapp_rejected" } },
-    { type: "email_sent", details: { template: "change_approved" } },
-    { type: "email_sent", details: { template: "change_rejected" } },
-    { type: "email_sent", details: { template: "changed_by_admin" } },
-    { type: "email_sent", details: { template: "removed_by_admin" } },
-    { type: "email_failed", details: { template: "admin_alert", error: "MessageRejected" } },
+    { type: DappEventType.SUBMITTED, details: { chosenForAutoApproval: false } },
+    { type: DappEventType.SUBMITTED, details: { chosenForAutoApproval: true } },
+    { type: DappEventType.EDITED, details: { changes: CHANGES } },
+    { type: DappEventType.EDITED, details: { changes: [] } },
+    { type: DappEventType.RESUBMITTED, details: {} },
+    { type: DappEventType.APPROVED, details: {} },
+    { type: DappEventType.AUTO_APPROVED, details: {} },
+    { type: DappEventType.REJECTED, details: { reason: "The logo does not load." } },
+    { type: DappEventType.CHANGE_REQUESTED, details: { changes: CHANGES } },
+    { type: DappEventType.CHANGE_WITHDRAWN, details: {} },
+    { type: DappEventType.CHANGE_APPROVED, details: { changes: CHANGES } },
+    { type: DappEventType.CHANGE_REJECTED, details: { reason: "The new callback is not yours." } },
+    { type: DappEventType.OWNER_CHANGED, details: {} },
+    { type: DappEventType.REMOVED, details: {} },
+    { type: DappEventType.REMOVED, details: { reason: "Abandoned by its owner." } },
+    { type: DappEventType.AUTH0_CREATED, details: { clientId: "abc", payload: PAYLOAD } },
+    { type: DappEventType.AUTH0_UPDATED, details: { clientId: "abc", payload: PAYLOAD } },
+    { type: DappEventType.AUTH0_DELETED, details: { clientId: "abc" } },
+    { type: DappEventType.AUTH0_FAILED, details: { op: "create", error: "timeout" } },
+    { type: DappEventType.AUTH0_FAILED, details: { op: "delete", error: "tag_mismatch", clientId: "abc" } },
+    { type: DappEventType.AUTH0_FAILED, details: { op: "find", error: "timeout" } },
+    { type: DappEventType.AUTH0_FAILED, details: { op: "update", error: "502", clientId: "abc" } },
+    { type: DappEventType.EMAIL_SENT, details: { template: "dapp_approved" } },
+    { type: DappEventType.EMAIL_SENT, details: { template: "dapp_rejected" } },
+    { type: DappEventType.EMAIL_SENT, details: { template: "change_approved" } },
+    { type: DappEventType.EMAIL_SENT, details: { template: "change_rejected" } },
+    { type: DappEventType.EMAIL_SENT, details: { template: "changed_by_admin" } },
+    { type: DappEventType.EMAIL_SENT, details: { template: "removed_by_admin" } },
+    { type: DappEventType.EMAIL_FAILED, details: { template: "admin_alert", error: "MessageRejected" } },
 ];
 
 const INVALID: { type: string; details: unknown }[] = [
@@ -108,25 +108,25 @@ const INVALID: { type: string; details: unknown }[] = [
 ];
 
 describe("isDappEventDetails", () => {
-    it("has a valid sample for every event type", () => {
+    it("should have a valid sample for every event type", () => {
         expect(new Set(VALID.map((row) => row.type))).toEqual(new Set(Object.values(DappEventType)));
     });
 
-    it.each(VALID)("accepts $type with $details", (row) => {
+    it.each(VALID)("should accept $type with $details", (row) => {
         expect(isDappEventDetails(row)).toBe(true);
     });
 
-    it.each(INVALID)("refuses $type with $details", (row) => {
+    it.each(INVALID)("should refuse $type with $details", (row) => {
         expect(isDappEventDetails(row)).toBe(false);
     });
 
-    it("narrows a row to the member its type names", () => {
+    it("should narrow a row to the member its type names", () => {
         const row: { id: number; type: string; details: unknown } = {
             id: 1,
             type: "auth0_failed",
             details: { op: "update", error: "502" },
         };
-        if (!isDappEventDetails(row) || row.type !== "auth0_failed") throw new Error("expected an auth0_failed row");
+        if (!isDappEventDetails(row) || row.type !== DappEventType.AUTH0_FAILED) throw new Error("expected an auth0_failed row");
         const details: { op: string; error: string; clientId?: string } = row.details;
         expect(details.op).toBe("update");
     });

@@ -3,21 +3,19 @@ import { z } from "zod";
 export type DappId = string & { readonly __brand: "DappId" };
 export type Auth0ClientId = string & { readonly __brand: "Auth0ClientId" };
 
-export const DappStatus = {
-    Pending: "pending",
-    Approved: "approved",
-    Rejected: "rejected",
-    Removed: "removed",
-} as const;
-export type DappStatus = (typeof DappStatus)[keyof typeof DappStatus];
+export enum DappStatus {
+    PENDING = "pending",
+    APPROVED = "approved",
+    REJECTED = "rejected",
+    REMOVED = "removed",
+}
 
-export const MauBracket = {
-    Lt1k: "lt1k",
-    From1kTo10k: "1k_10k",
-    From10kTo25k: "10k_25k",
-    Gt25k: "gt25k",
-} as const;
-export type MauBracket = (typeof MauBracket)[keyof typeof MauBracket];
+export enum MauBracket {
+    LT_1K = "lt1k",
+    FROM_1K_TO_10K = "1k_10k",
+    FROM_10K_TO_25K = "10k_25k",
+    GT_25K = "gt25k",
+}
 
 export const syncedFieldsSchema = z.strictObject({
     name: z.string(),
@@ -39,6 +37,11 @@ export type DappField = keyof DappFields;
 
 export const DAPP_FIELDS = [...SYNCED_FIELDS, ...DIRECT_FIELDS] as const;
 
+/**
+ * Copies only the fields that sync to Auth0, dropping any others the object carries.
+ * @param fields An object that holds the synced fields.
+ * @returns A new object with only the synced fields.
+ */
 export function syncedFieldsOf(fields: SyncedFields): SyncedFields {
     const { name, description, logoUrl, callbackUrls, logoutUrls, webOrigins } = fields;
     return { name, description, logoUrl, callbackUrls, logoutUrls, webOrigins };
