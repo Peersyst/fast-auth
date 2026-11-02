@@ -2,8 +2,8 @@ import { ApiPropertyOptional } from "@nestjs/swagger";
 import { Transform, Type } from "class-transformer";
 import { IsBoolean, IsIn, IsInt, IsOptional, Max, Min, MaxLength } from "class-validator";
 import { DappStatus } from "@shared/console-domain/dapp";
-import { HasNoNul } from "../../dapps/requests/dapp-field.decorators";
-import { DappOrderBy, SortOrder } from "../../dapps/repositories/dapps.repository";
+import { HasNoNul } from "../../dapps/decorators/dapp-field.decorator";
+import { DappOrderBy, SortOrder } from "../../dapps/dapp-order";
 
 export const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;

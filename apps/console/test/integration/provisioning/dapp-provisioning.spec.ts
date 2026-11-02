@@ -1,14 +1,16 @@
 import { Logger } from "@nestjs/common";
 import { syncedFieldsOf } from "@shared/console-domain/dapp";
-import { DappsRepository } from "../src/modules/dapps/repositories/dapps.repository";
-import { dappForm, expectError, expectStatus, REASON, untilHeld, useConsoleApi } from "./utils/console-api";
-import { ADMIN_EMAIL } from "./utils/contract";
-import type { AdminDappResponse } from "../src/modules/admin/responses/admin-dapp.response";
-import type { OwnerDappResponse } from "../src/modules/dapps/responses/owner-dapp.response";
+import { DappsRepository } from "../../../src/modules/dapps/repositories/dapps.repository";
+import { CommonErrorCode } from "../../../src/modules/common/exception/common-error-codes";
+import { DappsErrorCode } from "../../../src/modules/dapps/error/dapps-error-codes";
+import { dappForm, expectError, expectStatus, REASON, untilHeld, useConsoleApi } from "../../utils/console-api";
+import { ADMIN_EMAIL } from "../../utils/contract";
+import type { AdminDappResponse } from "../../../src/modules/admin/responses/admin-dapp.response";
+import type { OwnerDappResponse } from "../../../src/modules/dapps/responses/owner-dapp.response";
 
 const CREATE_FAILURES = [
-    ["rejected", 422, "PROVISIONING_REJECTED"],
-    ["failed", 502, "PROVISIONING_FAILED"],
+    ["rejected", 422, DappsErrorCode.PROVISIONING_REJECTED],
+    ["failed", 502, DappsErrorCode.PROVISIONING_FAILED],
 ] as const;
 
 describe("Auth0 failures, concurrency and email failures", () => {
@@ -16,7 +18,7 @@ describe("Auth0 failures, concurrency and email failures", () => {
 
     describe("approve", () => {
         it.each(CREATE_FAILURES)(
-            "a scripted %s create answers %i %s, keeps the dApp as it was, and a retry with the same version approves",
+            "should answer a scripted %s create with %i %s, keep the dApp as it was, and approve on a retry with the same version",
             async (outcome, status, code) => {
                 const owner = await api.user();
                 const dapp = await api.submitDapp(owner);
@@ -37,25 +39,25 @@ describe("Auth0 failures, concurrency and email failures", () => {
             },
         );
 
-        it("logs a 422 as refused and a 502 as failed", async () => {
+        it("should log a 422 as refused and a 502 as failed", async () => {
             const log = jest.spyOn(Logger.prototype, "log");
             const owner = await api.user();
             const dapp = await api.submitDapp(owner);
 
             api.provisioner.script("createClient", "rejected");
-            expectError(await api.approve(dapp.id, dapp.version), 422, "PROVISIONING_REJECTED");
+            expectError(await api.approve(dapp.id, dapp.version), 422, DappsErrorCode.PROVISIONING_REJECTED);
             api.provisioner.script("createClient", "failed");
-            expectError(await api.approve(dapp.id, dapp.version), 502, "PROVISIONING_FAILED");
+            expectError(await api.approve(dapp.id, dapp.version), 502, DappsErrorCode.PROVISIONING_FAILED);
 
             expect(log).toHaveBeenCalledWith(`approve dApp ${dapp.id} by admin refused: PROVISIONING_REJECTED`);
             expect(log).toHaveBeenCalledWith(`approve dApp ${dapp.id} by admin failed: PROVISIONING_FAILED`);
         });
 
-        it("a retry after a create that timed out after success adopts that client instead of creating a second", async () => {
+        it("should adopt the client on a retry after a create that timed out after success, instead of creating a second", async () => {
             const owner = await api.user();
             const dapp = await api.submitDapp(owner);
             api.provisioner.script("createClient", "timeout_after_success");
-            expectError(await api.approve(dapp.id, dapp.version), 502, "PROVISIONING_FAILED");
+            expectError(await api.approve(dapp.id, dapp.version), 502, DappsErrorCode.PROVISIONING_FAILED);
             const [orphan] = [...api.provisioner.clients.keys()];
             expect(api.provisioner.clients.size).toBe(1);
             expect(await api.adminDapp(dapp.id)).toMatchObject({
@@ -84,7 +86,7 @@ describe("Auth0 failures, concurrency and email failures", () => {
     });
 
     describe("change approval and admin edit", () => {
-        it("a tag_mismatch update answers 422 PROVISIONING_REJECTED, keeps the change pending, and a retry applies it", async () => {
+        it("should answer 422 PROVISIONING_REJECTED to a tag_mismatch update, keep the change pending, and apply it on a retry", async () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const requested = await api.requestChange(owner, approved, { name: "Acme Pay" });
@@ -92,7 +94,7 @@ describe("Auth0 failures, concurrency and email failures", () => {
             const checkpoint = await api.checkpoint(approved.id);
             api.provisioner.script("updateClient", "tag_mismatch");
 
-            expectError(await api.approveChange(approved.id, requested.version), 422, "PROVISIONING_REJECTED");
+            expectError(await api.approveChange(approved.id, requested.version), 422, DappsErrorCode.PROVISIONING_REJECTED);
 
             expect(await api.adminDapp(approved.id)).toEqual({ ...before, auth0Error: expect.any(String), updatedAt: expect.any(String) });
             expect([...api.provisioner.clients]).toEqual([
@@ -106,12 +108,12 @@ describe("Auth0 failures, concurrency and email failures", () => {
             expect(result).toMatchObject({ name: "Acme Pay", pendingChange: null, auth0Error: null });
         });
 
-        it("rejecting a change whose update timed out after success puts the live fields back in Auth0", async () => {
+        it("should put the live fields back in Auth0 when rejecting a change whose update timed out after success", async () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const requested = await api.requestChange(owner, approved, { name: "Acme Pay" });
             api.provisioner.script("updateClient", "timeout_after_success");
-            expectError(await api.approveChange(approved.id, requested.version), 502, "PROVISIONING_FAILED");
+            expectError(await api.approveChange(approved.id, requested.version), 502, DappsErrorCode.PROVISIONING_FAILED);
             const checkpoint = await api.checkpoint(approved.id);
 
             const result = expectStatus<AdminDappResponse>(await api.rejectChange(approved.id, requested.version), 200);
@@ -127,12 +129,12 @@ describe("Auth0 failures, concurrency and email failures", () => {
             ]);
         });
 
-        it("rejecting a change whose approval failed after the update for a reason other than Auth0 puts the live fields back in Auth0", async () => {
+        it("should put the live fields back in Auth0 when rejecting a change whose approval failed after the update for a reason other than Auth0", async () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const requested = await api.requestChange(owner, approved, { name: "Acme Pay" });
             jest.spyOn(api.app.get(DappsRepository), "update").mockRejectedValueOnce(new Error("connection terminated"));
-            expectError(await api.approveChange(approved.id, requested.version), 500, "INTERNAL");
+            expectError(await api.approveChange(approved.id, requested.version), 500, CommonErrorCode.INTERNAL);
             expect([...api.provisioner.clients]).toEqual([
                 [approved.auth0ClientId, { dappId: approved.id, input: syncedFieldsOf(dappForm({ name: "Acme Pay" })) }],
             ]);
@@ -145,23 +147,27 @@ describe("Auth0 failures, concurrency and email failures", () => {
             ]);
         });
 
-        it("a failed update on an admin edit of an approved dApp leaves its fields as they were", async () => {
+        it("should leave the fields of an approved dApp as they were when the update on an admin edit of it fails", async () => {
             const approved = await api.approvedDapp(await api.user());
             const before = await api.adminDapp(approved.id);
             api.provisioner.script("updateClient", "failed");
 
-            expectError(await api.adminEdit(approved.id, dappForm({ name: "Acme Pay" }), approved.version), 502, "PROVISIONING_FAILED");
+            expectError(
+                await api.adminEdit(approved.id, dappForm({ name: "Acme Pay" }), approved.version),
+                502,
+                DappsErrorCode.PROVISIONING_FAILED,
+            );
 
             expect(await api.adminDapp(approved.id)).toEqual({ ...before, auth0Error: expect.any(String), updatedAt: expect.any(String) });
             expect(api.emailer.send.mock.calls.map(([email]) => email.template)).not.toContain("changed_by_admin");
         });
 
-        it("an admin saving the live fields unchanged after a withdrawn change's update timed out after success puts them back in Auth0", async () => {
+        it("should put the live fields back in Auth0 when an admin saves them unchanged after a withdrawn change's update timed out after success", async () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const requested = await api.requestChange(owner, approved, { name: "Acme Pay" });
             api.provisioner.script("updateClient", "timeout_after_success");
-            expectError(await api.approveChange(approved.id, requested.version), 502, "PROVISIONING_FAILED");
+            expectError(await api.approveChange(approved.id, requested.version), 502, DappsErrorCode.PROVISIONING_FAILED);
             const withdrawn = expectStatus<OwnerDappResponse>(await api.edit(owner, approved.id, dappForm(), requested.version), 200);
             expect(withdrawn.pendingChange).toBeNull();
             const checkpoint = await api.checkpoint(approved.id);
@@ -181,14 +187,14 @@ describe("Auth0 failures, concurrency and email failures", () => {
     });
 
     describe("remove", () => {
-        it("a failed delete keeps the dApp and its client; a retry with the same version removes it", async () => {
+        it("should keep the dApp and its client after a failed delete, and remove it on a retry with the same version", async () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const before = await api.adminDapp(approved.id);
             const checkpoint = await api.checkpoint(approved.id);
             api.provisioner.script("deleteClient", "failed");
 
-            expectError(await api.removeOwn(owner, approved.id, approved.version), 502, "PROVISIONING_FAILED");
+            expectError(await api.removeOwn(owner, approved.id, approved.version), 502, DappsErrorCode.PROVISIONING_FAILED);
 
             expect(await api.adminDapp(approved.id)).toEqual({ ...before, auth0Error: expect.any(String), updatedAt: expect.any(String) });
             expect(await api.ownDapp(owner)).toMatchObject({ status: "approved" });
@@ -200,7 +206,7 @@ describe("Auth0 failures, concurrency and email failures", () => {
             expect(api.provisioner.clients.size).toBe(0);
         });
 
-        it("a client with other tags is left in place: the dApp is still removed and `auth0_failed` records the client id", async () => {
+        it("should leave a client with other tags in place, still remove the dApp and record the client id in `auth0_failed`", async () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const checkpoint = await api.checkpoint(approved.id);
@@ -224,12 +230,12 @@ describe("Auth0 failures, concurrency and email failures", () => {
             const owner = await api.user();
             const dapp = await api.submitDapp(owner);
             api.provisioner.script("createClient", "timeout_after_success");
-            expectError(await api.approve(dapp.id, dapp.version), 502, "PROVISIONING_FAILED");
+            expectError(await api.approve(dapp.id, dapp.version), 502, DappsErrorCode.PROVISIONING_FAILED);
             const [orphan] = [...api.provisioner.clients.keys()];
             return { owner, dapp, orphan };
         };
 
-        it("reject deletes the client tagged with the dApp, logging `rejected` then `auth0_deleted`", async () => {
+        it("should delete the client tagged with the dApp on reject, logging `rejected` then `auth0_deleted`", async () => {
             const { dapp, orphan } = await pendingWithOrphan();
             const checkpoint = await api.checkpoint(dapp.id);
 
@@ -245,10 +251,10 @@ describe("Auth0 failures, concurrency and email failures", () => {
             expect(effects.events).toMatchObject([{ type: "rejected" }, { type: "auth0_deleted", details: { clientId: orphan } }]);
         });
 
-        it("reject deletes a client left by an approve that failed after the create for a reason other than Auth0", async () => {
+        it("should delete on reject a client left by an approve that failed after the create for a reason other than Auth0", async () => {
             const dapp = await api.submitDapp(await api.user());
             jest.spyOn(api.app.get(DappsRepository), "update").mockRejectedValueOnce(new Error("connection terminated"));
-            expectError(await api.approve(dapp.id, dapp.version), 500, "INTERNAL");
+            expectError(await api.approve(dapp.id, dapp.version), 500, CommonErrorCode.INTERNAL);
             const [orphan] = [...api.provisioner.clients.keys()];
             const checkpoint = await api.checkpoint(dapp.id);
 
@@ -262,7 +268,7 @@ describe("Auth0 failures, concurrency and email failures", () => {
             expect(api.provisioner.clients.size).toBe(0);
         });
 
-        it("an owner's removal of the pending dApp deletes it too, logging `removed` then `auth0_deleted`", async () => {
+        it("should delete the client on an owner's removal of the pending dApp too, logging `removed` then `auth0_deleted`", async () => {
             const { owner, dapp, orphan } = await pendingWithOrphan();
             const checkpoint = await api.checkpoint(dapp.id);
 
@@ -276,16 +282,16 @@ describe("Auth0 failures, concurrency and email failures", () => {
             expect(effects.events).toMatchObject([{ type: "removed" }, { type: "auth0_deleted", details: { clientId: orphan } }]);
         });
 
-        it("a failed removal of a rejected dApp sets auth0Error, and editing it (a resubmission) clears it", async () => {
+        it("should set auth0Error on a failed removal of a rejected dApp, and clear it when the dApp is edited (a resubmission)", async () => {
             const owner = await api.user();
             const dapp = await api.submitDapp(owner);
             api.provisioner.script("createClient", "rejected");
-            expectError(await api.approve(dapp.id, dapp.version), 422, "PROVISIONING_REJECTED");
+            expectError(await api.approve(dapp.id, dapp.version), 422, DappsErrorCode.PROVISIONING_REJECTED);
             const rejected = expectStatus<AdminDappResponse>(await api.reject(dapp.id, dapp.version), 200);
             expect(rejected.auth0Error).toBeNull();
             api.provisioner.script("findClient", "failed");
 
-            expectError(await api.removeOwn(owner, rejected.id, rejected.version), 502, "PROVISIONING_FAILED");
+            expectError(await api.removeOwn(owner, rejected.id, rejected.version), 502, DappsErrorCode.PROVISIONING_FAILED);
             expect(await api.adminDapp(dapp.id)).toMatchObject({
                 status: "rejected",
                 auth0Error: expect.any(String),
@@ -302,7 +308,7 @@ describe("Auth0 failures, concurrency and email failures", () => {
     });
 
     describe("concurrency", () => {
-        it("two admins approving at once create one client: the second waits for the row lock and gets 409 DAPP_CHANGED", async () => {
+        it("should create one client when two admins approve at once: the second waits for the row lock and gets 409 DAPP_CHANGED", async () => {
             const dapp = await api.submitDapp(await api.user());
             const otherAdmin = await api.user(ADMIN_EMAIL);
             const hold = api.provisioner.hold("createClient");
@@ -316,7 +322,7 @@ describe("Auth0 failures, concurrency and email failures", () => {
             }
 
             expectStatus(await first, 200);
-            expectError(await second, 409, "DAPP_CHANGED");
+            expectError(await second, 409, DappsErrorCode.DAPP_CHANGED);
             const types = (await api.events(dapp.id)).map((event) => event.type);
             expect(types.filter((type) => type === "auth0_created")).toHaveLength(1);
             expect(types.filter((type) => type === "approved")).toHaveLength(1);
@@ -325,7 +331,7 @@ describe("Auth0 failures, concurrency and email failures", () => {
         });
 
         describe("an Auth0 failure is recorded before the row lock is released", () => {
-            it("a reject waiting on an approve whose create timed out after success sees the failure and deletes the client", async () => {
+            it("should see the failure and delete the client when a reject waits on an approve whose create timed out after success", async () => {
                 const dapp = await api.submitDapp(await api.user());
                 const otherAdmin = await api.user(ADMIN_EMAIL);
                 const hold = api.provisioner.hold("findClient");
@@ -340,14 +346,14 @@ describe("Auth0 failures, concurrency and email failures", () => {
                     hold.release();
                 }
 
-                expectError(await approve, 502, "PROVISIONING_FAILED");
+                expectError(await approve, 502, DappsErrorCode.PROVISIONING_FAILED);
                 expect(expectStatus<AdminDappResponse>(await reject, 200)).toMatchObject({ status: "rejected", auth0Error: null });
                 expect(api.provisioner.clients.size).toBe(0);
                 const events = (await api.events(dapp.id)).filter((event) => !event.type.startsWith("email_")).reverse();
                 expect(events.map((event) => event.type)).toEqual(["submitted", "auth0_failed", "rejected", "auth0_deleted"]);
             });
 
-            it("an approve waiting on a failed approve ends approved without a stale auth0Error", async () => {
+            it("should end approved without a stale auth0Error when an approve waits on a failed approve", async () => {
                 const dapp = await api.submitDapp(await api.user());
                 const otherAdmin = await api.user(ADMIN_EMAIL);
                 const holdFind = api.provisioner.hold("findClient");
@@ -366,7 +372,7 @@ describe("Auth0 failures, concurrency and email failures", () => {
                     holdCreate.release();
                 }
 
-                expectError(await first, 422, "PROVISIONING_REJECTED");
+                expectError(await first, 422, DappsErrorCode.PROVISIONING_REJECTED);
                 expect(expectStatus<AdminDappResponse>(await second, 200)).toMatchObject({ status: "approved", auth0Error: null });
                 expect(await api.adminDapp(dapp.id)).toMatchObject({ status: "approved", auth0Error: null });
                 const events = (await api.events(dapp.id)).filter((event) => !event.type.startsWith("email_")).reverse();
@@ -376,7 +382,7 @@ describe("Auth0 failures, concurrency and email failures", () => {
     });
 
     describe("email failures", () => {
-        it("a failed owner email still approves and keeps the provider's message in `email_failed`, not in the logs", async () => {
+        it("should still approve when the owner email fails, and keep the provider's message in `email_failed`, not in the logs", async () => {
             const owner = await api.user();
             const dapp = await api.submitDapp(owner);
             const checkpoint = await api.checkpoint(dapp.id);

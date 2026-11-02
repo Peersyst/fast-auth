@@ -47,6 +47,11 @@ export function syncedFieldsOf(fields: SyncedFields): SyncedFields {
     return { name, description, logoUrl, callbackUrls, logoutUrls, webOrigins };
 }
 
+/**
+ * Copies only the fields an owner may change without review, dropping any others the object carries.
+ * @param fields An object that holds the direct fields.
+ * @returns A new object with only the direct fields.
+ */
 export function directFieldsOf(fields: DirectFields): DirectFields {
     const { contactEmail, mauBracket } = fields;
     return { contactEmail, mauBracket };
@@ -72,3 +77,13 @@ export type Dapp = DappFields & {
     createdAt: Date;
     updatedAt: Date;
 };
+
+/**
+ * Reads an approved dApp's Auth0 client id, throwing when it has none.
+ * @param dapp The approved dApp.
+ * @returns The client id.
+ */
+export function clientIdOf(dapp: Dapp): Auth0ClientId {
+    if (dapp.auth0ClientId === null) throw new Error(`Approved dApp ${dapp.id} has no Auth0 client`);
+    return dapp.auth0ClientId;
+}

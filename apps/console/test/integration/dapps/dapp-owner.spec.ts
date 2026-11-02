@@ -178,7 +178,7 @@ describe("owner API", () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const checkpoint = await api.checkpoint(approved.id);
-            const form = dappForm({ contactEmail: "ops@acme.xyz", mauBracket: "gt25k" });
+            const form = dappForm({ contactEmail: "ops@acme.xyz", mauBracket: MauBracket.GT_25K });
 
             const edited = expectStatus<OwnerDappResponse>(await api.edit(owner, approved.id, form, approved.version), 200);
 
@@ -231,7 +231,7 @@ describe("owner API", () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const checkpoint = await api.checkpoint(approved.id);
-            const form = dappForm({ description: "Pay with Acme.", mauBracket: "1k_10k" });
+            const form = dappForm({ description: "Pay with Acme.", mauBracket: MauBracket.FROM_1K_TO_10K });
 
             const edited = expectStatus<OwnerDappResponse>(await api.edit(owner, approved.id, form, approved.version), 200);
 

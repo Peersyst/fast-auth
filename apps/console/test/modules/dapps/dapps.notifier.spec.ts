@@ -10,7 +10,7 @@ import { DappEventsRepository } from "../../../src/modules/dapps/repositories/da
 import { EMAILER } from "../../../src/modules/notifications/emailer";
 import { SLACK_NOTIFIER } from "../../../src/modules/notifications/slack-notifier";
 import { DappEventsRepositoryMock, DappsMetricsMock, EmailerMock, SlackNotifierMock } from "../../mocks";
-import { makeDapp } from "../../utils/dapp";
+import { CLIENT_ID, makeDapp } from "../../utils/dapp";
 import { TEST_CONFIG } from "../../utils/test-config";
 
 describe("DappsNotifier", () => {
@@ -103,6 +103,104 @@ describe("DappsNotifier", () => {
 
             await expect(notifier.submitted(dapp)).resolves.toBeUndefined();
             expect(warn.mock.calls).toEqual([[`Slack alert submitted for dApp ${dapp.id} failed: Error`]]);
+        });
+    });
+
+    describe("resubmitted", () => {
+        it("should email the admins a resubmitted alert and post a resubmitted Slack alert with the rejected dApp and its reason", async () => {
+            const rejected = makeDapp({ status: DappStatus.REJECTED, auth0ClientId: null, rejectionReason: "Logo is blurry" });
+
+            await notifier.resubmitted(dapp, rejected);
+
+            expect(emailer.send.mock.calls).toEqual([[{ template: "admin_alert", to: ["admin@example.test"], dapp, kind: "resubmitted" }]]);
+            expect(slack.notify.mock.calls).toEqual([[{ kind: "resubmitted", dapp, rejected, rejectionReason: "Logo is blurry" }]]);
+        });
+    });
+
+    describe("changeRequested", () => {
+        it("should email the admins a change_requested alert without posting to Slack", async () => {
+            const approved = makeDapp();
+
+            await notifier.changeRequested(approved);
+
+            expect(emailer.send.mock.calls).toEqual([
+                [{ template: "admin_alert", to: ["admin@example.test"], dapp: approved, kind: "change_requested" }],
+            ]);
+            expect(slack.notify.mock.calls).toEqual([]);
+        });
+    });
+
+    describe("approved", () => {
+        it("should email the owner the approval with the Auth0 client id", async () => {
+            const approved = makeDapp();
+
+            await notifier.approved(approved);
+
+            expect(emailer.send.mock.calls).toEqual([
+                [{ template: "dapp_approved", to: "owner@acme.example", dapp: approved, clientId: CLIENT_ID }],
+            ]);
+            expect(slack.notify.mock.calls).toEqual([]);
+        });
+
+        it("should throw before sending anything when the dApp has no Auth0 client", async () => {
+            await expect(notifier.approved(dapp)).rejects.toThrow(`Approved dApp ${dapp.id} has no Auth0 client`);
+            expect(emailer.send.mock.calls).toEqual([]);
+            expect(events.append.mock.calls).toEqual([]);
+        });
+    });
+
+    describe("rejected", () => {
+        it("should email the owner the rejection with the reason", async () => {
+            await notifier.rejected(dapp, "Logo is blurry");
+
+            expect(emailer.send.mock.calls).toEqual([
+                [{ template: "dapp_rejected", to: "owner@acme.example", dapp, reason: "Logo is blurry" }],
+            ]);
+            expect(slack.notify.mock.calls).toEqual([]);
+        });
+    });
+
+    describe("changeApproved", () => {
+        it("should email the owner that the change was approved", async () => {
+            const approved = makeDapp();
+
+            await notifier.changeApproved(approved);
+
+            expect(emailer.send.mock.calls).toEqual([[{ template: "change_approved", to: "owner@acme.example", dapp: approved }]]);
+            expect(slack.notify.mock.calls).toEqual([]);
+        });
+    });
+
+    describe("changeRejected", () => {
+        it("should email the owner that the change was rejected with the reason", async () => {
+            const approved = makeDapp();
+
+            await notifier.changeRejected(approved, "Callback is not HTTPS");
+
+            expect(emailer.send.mock.calls).toEqual([
+                [{ template: "change_rejected", to: "owner@acme.example", dapp: approved, reason: "Callback is not HTTPS" }],
+            ]);
+            expect(slack.notify.mock.calls).toEqual([]);
+        });
+    });
+
+    describe("editedByAdmin", () => {
+        it("should email the owner that an admin changed the dApp", async () => {
+            await notifier.editedByAdmin(dapp);
+
+            expect(emailer.send.mock.calls).toEqual([[{ template: "changed_by_admin", to: "owner@acme.example", dapp }]]);
+            expect(slack.notify.mock.calls).toEqual([]);
+        });
+    });
+
+    describe("removedByAdmin", () => {
+        it("should email the owner the removal with the reason", async () => {
+            await notifier.removedByAdmin(dapp, "Phishing");
+
+            expect(emailer.send.mock.calls).toEqual([
+                [{ template: "removed_by_admin", to: "owner@acme.example", dapp, reason: "Phishing" }],
+            ]);
+            expect(slack.notify.mock.calls).toEqual([]);
         });
     });
 });

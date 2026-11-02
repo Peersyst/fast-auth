@@ -50,7 +50,7 @@ describe("errors, guards and throttling", () => {
 
         it("should answer 404 DAPP_NOT_FOUND for an unknown dApp id", async () => {
             expectError(await api.detail(UNKNOWN_ID), 404, DappsErrorCode.DAPP_NOT_FOUND);
-            expectError(await api.approve(UNKNOWN_ID, 1), 404, "DAPP_NOT_FOUND");
+            expectError(await api.approve(UNKNOWN_ID, 1), 404, DappsErrorCode.DAPP_NOT_FOUND);
         });
 
         it("should answer 400 VALIDATION_FAILED for a dApp id that is not a uuid", async () => {
@@ -153,7 +153,7 @@ describe("errors, guards and throttling", () => {
             const replaced = await api.requestChange(owner, requested, { name: "Acme Cash" });
             const callsBefore = api.provisioner.calls.length;
 
-            expectError(await api.approveChange(approved.id, requested.version), 409, "DAPP_CHANGED");
+            expectError(await api.approveChange(approved.id, requested.version), 409, DappsErrorCode.DAPP_CHANGED);
 
             expect(await api.adminDapp(approved.id)).toMatchObject({ name: "Acme Wallet", pendingChange: replaced.pendingChange });
             expect(api.provisioner.calls).toHaveLength(callsBefore);

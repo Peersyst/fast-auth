@@ -403,13 +403,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "admin"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "admin"
                 ]
             }
         },
@@ -501,13 +501,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "admin"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "admin"
                 ]
             }
         },
@@ -556,13 +556,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "admin"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "admin"
                 ]
             }
         },
@@ -611,13 +611,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "admin"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "admin"
                 ]
             }
         },
@@ -666,13 +666,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "admin"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "admin"
                 ]
             }
         },
@@ -721,13 +721,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "admin"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "admin"
                 ]
             }
         },
@@ -776,13 +776,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "admin"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "admin"
                 ]
             }
         },
@@ -831,13 +831,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "admin"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "admin"
                 ]
             }
         },

@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { DataSource } from "typeorm";
 import type { ConsoleConfig } from "../../config/console-config";
 import type { Dapp } from "@shared/console-domain/dapp";
+import { clientIdOf } from "@shared/console-domain/dapp";
 import type { DappEventDetails } from "@shared/console-domain/dapp-event";
 import { ActorRole, DappEventType, EmailTemplate } from "@shared/console-domain/dapp-event";
 import { describeError } from "../common/exception/describe-error";
@@ -15,6 +16,16 @@ import type { Actor } from "./repositories/dapp-events.repository";
 import { DappEventsRepository } from "./repositories/dapp-events.repository";
 
 const SYSTEM: Actor = { email: null, role: ActorRole.SYSTEM };
+
+/**
+ * Reads a rejected dApp's rejection reason, throwing when it has none.
+ * @param dapp The rejected dApp.
+ * @returns The reason.
+ */
+function rejectionReasonOf(dapp: Dapp): string {
+    if (dapp.rejectionReason === null) throw new Error(`Rejected dApp ${dapp.id} has no rejection reason`);
+    return dapp.rejectionReason;
+}
 
 @Injectable()
 export class DappsNotifier {
@@ -36,6 +47,75 @@ export class DappsNotifier {
     async submitted(dapp: Dapp): Promise<void> {
         await this.sendEmails([this.adminAlert(dapp, DappEventType.SUBMITTED)]);
         await this.notifySlack({ kind: "submitted", dapp });
+    }
+
+    /**
+     * Alerts the admins by email and Slack that a rejected dApp was resubmitted.
+     * @param dapp The resubmitted dApp.
+     * @param rejected The dApp as it was when rejected.
+     */
+    async resubmitted(dapp: Dapp, rejected: Dapp): Promise<void> {
+        await this.sendEmails([this.adminAlert(dapp, DappEventType.RESUBMITTED)]);
+        await this.notifySlack({ kind: "resubmitted", dapp, rejected, rejectionReason: rejectionReasonOf(rejected) });
+    }
+
+    /**
+     * Alerts the admins by email that an approved dApp's owner requested a change.
+     * @param dapp The dApp with its pending change.
+     */
+    async changeRequested(dapp: Dapp): Promise<void> {
+        await this.sendEmails([this.adminAlert(dapp, DappEventType.CHANGE_REQUESTED)]);
+    }
+
+    /**
+     * Emails the owner that their dApp was approved, with its Auth0 client id.
+     * @param dapp The approved dApp.
+     */
+    async approved(dapp: Dapp): Promise<void> {
+        await this.sendEmails([{ template: EmailTemplate.DAPP_APPROVED, to: dapp.ownerEmail, dapp, clientId: clientIdOf(dapp) }]);
+    }
+
+    /**
+     * Emails the owner that their dApp was rejected and why.
+     * @param dapp The rejected dApp.
+     * @param reason Why it was rejected.
+     */
+    async rejected(dapp: Dapp, reason: string): Promise<void> {
+        await this.sendEmails([{ template: EmailTemplate.DAPP_REJECTED, to: dapp.ownerEmail, dapp, reason }]);
+    }
+
+    /**
+     * Emails the owner that their dApp's change was approved.
+     * @param dapp The updated dApp.
+     */
+    async changeApproved(dapp: Dapp): Promise<void> {
+        await this.sendEmails([{ template: EmailTemplate.CHANGE_APPROVED, to: dapp.ownerEmail, dapp }]);
+    }
+
+    /**
+     * Emails the owner that their dApp's change was rejected and why.
+     * @param dapp The dApp.
+     * @param reason Why the change was rejected.
+     */
+    async changeRejected(dapp: Dapp, reason: string): Promise<void> {
+        await this.sendEmails([{ template: EmailTemplate.CHANGE_REJECTED, to: dapp.ownerEmail, dapp, reason }]);
+    }
+
+    /**
+     * Emails the owner that an admin edited their dApp.
+     * @param dapp The edited dApp.
+     */
+    async editedByAdmin(dapp: Dapp): Promise<void> {
+        await this.sendEmails([{ template: EmailTemplate.CHANGED_BY_ADMIN, to: dapp.ownerEmail, dapp }]);
+    }
+
+    /**
+     * Emails the owner that an admin removed their dApp and why.
+     * @param dapp The removed dApp.
+     * @param reason Why it was removed.
+     */
+    async removedByAdmin(dapp: Dapp, reason: string): Promise<void> {
+        await this.sendEmails([{ template: EmailTemplate.REMOVED_BY_ADMIN, to: dapp.ownerEmail, dapp, reason }]);
     }
 
     /**

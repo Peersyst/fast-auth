@@ -1,15 +1,16 @@
 import type request from "supertest";
-import { syncedFieldsOf } from "@shared/console-domain/dapp";
-import { changesOf, dappForm, expectError, expectStatus, NO_EFFECTS, REASON, useConsoleApi } from "./utils/console-api";
-import { ADMIN_EMAIL } from "./utils/contract";
-import type { AdminDappResponse } from "../src/modules/admin/responses/admin-dapp.response";
-import type { OwnerDappResponse } from "../src/modules/dapps/responses/owner-dapp.response";
+import { MauBracket, syncedFieldsOf } from "@shared/console-domain/dapp";
+import { DappsErrorCode } from "../../../src/modules/dapps/error/dapps-error-codes";
+import { changesOf, dappForm, expectError, expectStatus, NO_EFFECTS, REASON, useConsoleApi } from "../../utils/console-api";
+import { ADMIN_EMAIL } from "../../utils/contract";
+import type { AdminDappResponse } from "../../../src/modules/admin/responses/admin-dapp.response";
+import type { OwnerDappResponse } from "../../../src/modules/dapps/responses/owner-dapp.response";
 
 describe("admin API", () => {
     const api = useConsoleApi();
 
     describe("pending → approve", () => {
-        it("creates the client, approves, emails the owner the client id and logs `approved` then `auth0_created`", async () => {
+        it("should create the client, approve, email the owner the client id and log `approved` then `auth0_created`", async () => {
             const owner = await api.user();
             const dapp = await api.submitDapp(owner);
             const checkpoint = await api.checkpoint(dapp.id);
@@ -49,7 +50,7 @@ describe("admin API", () => {
     });
 
     describe("pending → reject", () => {
-        it("rejects with the reason, emails it to the owner and logs `rejected`; with no client tagged with the dApp, nothing is deleted", async () => {
+        it("should reject with the reason, email it to the owner and log `rejected`; with no client tagged with the dApp, nothing is deleted", async () => {
             const owner = await api.user();
             const dapp = await api.submitDapp(owner);
             const checkpoint = await api.checkpoint(dapp.id);
@@ -72,7 +73,7 @@ describe("admin API", () => {
             expect(effects.emails).toEqual([{ template: "dapp_rejected", to: owner.email, reason: REASON }]);
         });
 
-        it("counts the reason in UTF-16 code units, as the SPA does", async () => {
+        it("should count the reason in UTF-16 code units, as the SPA does", async () => {
             const dapp = await api.submitDapp(await api.user());
             const reason = "No logo 👎";
 
@@ -83,7 +84,7 @@ describe("admin API", () => {
     });
 
     describe("approved → approveChange", () => {
-        it("applies the change, updates the client, emails the owner, logs `change_approved` then `auth0_updated`", async () => {
+        it("should apply the change, update the client, email the owner, log `change_approved` then `auth0_updated`", async () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const requested = await api.requestChange(owner, approved, { name: "Acme Pay", logoUrl: "https://cdn.acme.xyz/logo.png" });
@@ -117,7 +118,7 @@ describe("admin API", () => {
     });
 
     describe("approved → rejectChange", () => {
-        it("discards the change, puts the live fields back in Auth0, emails the reason to the owner and logs `change_rejected`", async () => {
+        it("should discard the change, put the live fields back in Auth0, email the reason to the owner and log `change_rejected`", async () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const requested = await api.requestChange(owner, approved, { name: "Acme Pay" });
@@ -142,21 +143,21 @@ describe("admin API", () => {
         it.each<[string, (id: string, version: number) => Promise<request.Response>]>([
             ["approve", (id, version) => api.approveChange(id, version)],
             ["reject", (id, version) => api.rejectChange(id, version)],
-        ])("%s a change of an approved dApp without one is 409 NO_PENDING_CHANGE", async (_name, review) => {
+        ])("should refuse to %s a change of an approved dApp without one with 409 NO_PENDING_CHANGE", async (_name, review) => {
             const approved = await api.approvedDapp(await api.user());
 
-            expectError(await review(approved.id, approved.version), 409, "NO_PENDING_CHANGE");
+            expectError(await review(approved.id, approved.version), 409, DappsErrorCode.NO_PENDING_CHANGE);
         });
 
-        it("reviewing a change of a pending dApp is 409 INVALID_TRANSITION", async () => {
+        it("should refuse reviewing a change of a pending dApp with 409 INVALID_TRANSITION", async () => {
             const dapp = await api.submitDapp(await api.user());
 
-            expectError(await api.approveChange(dapp.id, dapp.version), 409, "INVALID_TRANSITION");
+            expectError(await api.approveChange(dapp.id, dapp.version), 409, DappsErrorCode.INVALID_TRANSITION);
         });
     });
 
     describe("any live → adminEdit", () => {
-        it("edits a pending dApp in place without Auth0, emails the owner, logs `edited` by the admin", async () => {
+        it("should edit a pending dApp in place without Auth0, email the owner, log `edited` by the admin", async () => {
             const owner = await api.user();
             const dapp = await api.submitDapp(owner);
             const checkpoint = await api.checkpoint(dapp.id);
@@ -176,7 +177,7 @@ describe("admin API", () => {
             expect(effects.emails).toEqual([{ template: "changed_by_admin", to: owner.email }]);
         });
 
-        it("applies synced fields of an approved dApp at once and updates the client: `edited` then `auth0_updated`", async () => {
+        it("should apply synced fields of an approved dApp at once and update the client: `edited` then `auth0_updated`", async () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const checkpoint = await api.checkpoint(approved.id);
@@ -196,13 +197,13 @@ describe("admin API", () => {
             expect(effects.emails).toEqual([{ template: "changed_by_admin", to: owner.email }]);
         });
 
-        it("does not call Auth0 when only direct fields of an approved dApp change", async () => {
+        it("should not call Auth0 when only direct fields of an approved dApp change", async () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const checkpoint = await api.checkpoint(approved.id);
 
             const result = expectStatus<AdminDappResponse>(
-                await api.adminEdit(approved.id, dappForm({ mauBracket: "gt25k" }), approved.version),
+                await api.adminEdit(approved.id, dappForm({ mauBracket: MauBracket.GT_25K }), approved.version),
                 200,
             );
 
@@ -213,7 +214,7 @@ describe("admin API", () => {
             expect(effects.emails).toEqual([{ template: "changed_by_admin", to: owner.email }]);
         });
 
-        it("saving the dApp's own values writes no event, sends no email and makes no Auth0 call", async () => {
+        it("should write no event, send no email and make no Auth0 call when saving the dApp's own values", async () => {
             const approved = await api.approvedDapp(await api.user());
             const checkpoint = await api.checkpoint(approved.id);
 
@@ -223,7 +224,7 @@ describe("admin API", () => {
             expect(await checkpoint.effects()).toEqual(NO_EFFECTS);
         });
 
-        it("keeps a rejected dApp rejected", async () => {
+        it("should keep a rejected dApp rejected", async () => {
             const rejected = await api.rejectedDapp(await api.user());
 
             const result = expectStatus<AdminDappResponse>(
@@ -234,18 +235,22 @@ describe("admin API", () => {
             expect(result).toMatchObject({ name: "Acme Pay", status: "rejected", rejectionReason: REASON });
         });
 
-        it("refuses an approved dApp with a pending change with 409 INVALID_TRANSITION", async () => {
+        it("should refuse an approved dApp with a pending change with 409 INVALID_TRANSITION", async () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const requested = await api.requestChange(owner, approved, { name: "Acme Pay" });
 
-            expectError(await api.adminEdit(approved.id, dappForm({ name: "Acme Admin" }), requested.version), 409, "INVALID_TRANSITION");
+            expectError(
+                await api.adminEdit(approved.id, dappForm({ name: "Acme Admin" }), requested.version),
+                409,
+                DappsErrorCode.INVALID_TRANSITION,
+            );
             expect(api.provisioner.calls.filter((call) => call.op === "updateClient")).toEqual([]);
         });
     });
 
     describe("any live → changeOwner", () => {
-        it("moves the dApp to the new owner, keeping status and client, logging `owner_changed` without Auth0 or email", async () => {
+        it("should move the dApp to the new owner, keeping status and client, logging `owner_changed` without Auth0 or email", async () => {
             const owner = await api.user();
             const newOwner = await api.user();
             const approved = await api.approvedDapp(owner);
@@ -263,13 +268,17 @@ describe("admin API", () => {
             expect(effects.emails).toEqual([]);
         });
 
-        it("lets the new owner edit the dApp, and the old one no longer can", async () => {
+        it("should let the new owner edit the dApp, and the old one no longer can", async () => {
             const owner = await api.user();
             const newOwner = await api.user();
             const dapp = await api.submitDapp(owner);
             const moved = expectStatus<AdminDappResponse>(await api.changeOwner(dapp.id, dapp.version, newOwner.email), 200);
 
-            expectError(await api.edit(owner, moved.id, dappForm({ name: "Old Owner" }), moved.version), 404, "DAPP_NOT_FOUND");
+            expectError(
+                await api.edit(owner, moved.id, dappForm({ name: "Old Owner" }), moved.version),
+                404,
+                DappsErrorCode.DAPP_NOT_FOUND,
+            );
             const edited = expectStatus<OwnerDappResponse>(
                 await api.edit(newOwner, moved.id, dappForm({ name: "New Owner" }), moved.version),
                 200,
@@ -278,17 +287,17 @@ describe("admin API", () => {
             expect(edited).toMatchObject({ id: dapp.id, name: "New Owner" });
         });
 
-        it("refuses a new owner who already has a live dApp with 409 DAPP_ALREADY_EXISTS", async () => {
+        it("should refuse a new owner who already has a live dApp with 409 DAPP_ALREADY_EXISTS", async () => {
             const busyOwner = await api.user();
             await api.submitDapp(busyOwner);
             const dapp = await api.submitDapp(await api.user());
 
-            expectError(await api.changeOwner(dapp.id, dapp.version, busyOwner.email), 409, "DAPP_ALREADY_EXISTS");
+            expectError(await api.changeOwner(dapp.id, dapp.version, busyOwner.email), 409, DappsErrorCode.DAPP_ALREADY_EXISTS);
         });
     });
 
     describe("any live → remove (admin)", () => {
-        it("removes with a reason, deletes the client, emails the owner, logs `removed` then `auth0_deleted`", async () => {
+        it("should remove with a reason, delete the client, email the owner, log `removed` then `auth0_deleted`", async () => {
             const owner = await api.user();
             const approved = await api.approvedDapp(owner);
             const checkpoint = await api.checkpoint(approved.id);
@@ -314,10 +323,10 @@ describe("admin API", () => {
             expect(await api.submitDapp(owner, dappForm({ name: "Acme Wallet 2" }))).toMatchObject({ status: "pending" });
         });
 
-        it("clears the error of an earlier failed approval that left no client", async () => {
+        it("should clear the error of an earlier failed approval that left no client", async () => {
             const dapp = await api.submitDapp(await api.user());
             api.provisioner.script("createClient", "rejected");
-            expectError(await api.approve(dapp.id, dapp.version), 422, "PROVISIONING_REJECTED");
+            expectError(await api.approve(dapp.id, dapp.version), 422, DappsErrorCode.PROVISIONING_REJECTED);
             expect(await api.adminDapp(dapp.id)).toMatchObject({ status: "pending", auth0Error: expect.any(String) });
 
             const result = expectStatus<AdminDappResponse>(await api.adminRemove(dapp.id, dapp.version, REASON), 200);
@@ -326,18 +335,18 @@ describe("admin API", () => {
         });
     });
 
-    it("approving a removed dApp is 409 INVALID_TRANSITION and changes nothing", async () => {
+    it("should refuse approving a removed dApp with 409 INVALID_TRANSITION and change nothing", async () => {
         const owner = await api.user();
         const dapp = await api.submitDapp(owner);
         expectStatus(await api.removeOwn(owner, dapp.id, dapp.version), 204);
         const removed = await api.adminDapp(dapp.id);
 
-        expectError(await api.approve(removed.id, removed.version), 409, "INVALID_TRANSITION");
+        expectError(await api.approve(removed.id, removed.version), 409, DappsErrorCode.INVALID_TRANSITION);
         expect(await api.adminDapp(dapp.id)).toEqual(removed);
     });
 
     describe("GET /admin/dapps/:id/events", () => {
-        it("serves the activity log newest first, each event in the contract's shape", async () => {
+        it("should serve the activity log newest first, each event in the contract's shape", async () => {
             const approved = await api.approvedDapp(await api.user());
 
             const events = await api.events(approved.id);

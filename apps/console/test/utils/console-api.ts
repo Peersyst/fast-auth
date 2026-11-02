@@ -101,6 +101,11 @@ export function expectValidationFailed(response: request.Response, field?: strin
     if (field !== undefined) expect(body.details).toEqual(expect.arrayContaining([expect.objectContaining({ field })]));
 }
 
+/**
+ * Waits until the request reaches the held Auth0 call, failing if it answers first.
+ * @param hold The held call.
+ * @param call The request in flight.
+ */
 export async function untilHeld(hold: FakeHold, call: Promise<request.Response>): Promise<void> {
     const early = await Promise.race([hold.reached.then(() => undefined), call]);
     if (early !== undefined) {
@@ -246,6 +251,12 @@ export class ConsoleApi {
         return this.send("delete", `/dapp/${id}?expectedVersion=${expectedVersion}`, owner);
     }
 
+    /**
+     * Lists dApps through the admin's GET /admin/dapps.
+     * @param query The query parameters.
+     * @param admin The admin, by default the one reset signs in.
+     * @returns The response.
+     */
     list(query: Record<string, string | number | boolean> = {}, admin = this.admin): Promise<request.Response> {
         const search = new URLSearchParams(Object.entries(query).map(([key, value]): [string, string] => [key, String(value)])).toString();
         return this.send("get", `/admin/dapps${search ? `?${search}` : ""}`, admin);
@@ -261,30 +272,79 @@ export class ConsoleApi {
         return this.send("get", `/admin/dapps/${id}`, admin);
     }
 
+    /**
+     * Edits a dApp through PUT /admin/dapps/:id.
+     * @param id The dApp id.
+     * @param form The new fields.
+     * @param expectedVersion The version the admin last read.
+     * @returns The response.
+     */
     adminEdit(id: string, form: UpsertDappRequest, expectedVersion: number): Promise<request.Response> {
         return this.send("put", `/admin/dapps/${id}`, this.admin, { ...form, expectedVersion });
     }
 
+    /**
+     * Approves a dApp through POST /admin/dapps/:id/approve.
+     * @param id The dApp id.
+     * @param expectedVersion The version the admin last read.
+     * @param admin The admin, by default the one reset signs in.
+     * @returns The response.
+     */
     approve(id: string, expectedVersion: number, admin = this.admin): Promise<request.Response> {
         return this.send("post", `/admin/dapps/${id}/approve`, admin, { expectedVersion });
     }
 
+    /**
+     * Rejects a dApp through POST /admin/dapps/:id/reject.
+     * @param id The dApp id.
+     * @param expectedVersion The version the admin last read.
+     * @param reason The reason, by default a valid one.
+     * @param admin The admin, by default the one reset signs in.
+     * @returns The response.
+     */
     reject(id: string, expectedVersion: number, reason = REASON, admin = this.admin): Promise<request.Response> {
         return this.send("post", `/admin/dapps/${id}/reject`, admin, { expectedVersion, reason });
     }
 
+    /**
+     * Approves a pending change through POST /admin/dapps/:id/change/approve.
+     * @param id The dApp id.
+     * @param expectedVersion The version the admin last read.
+     * @returns The response.
+     */
     approveChange(id: string, expectedVersion: number): Promise<request.Response> {
         return this.send("post", `/admin/dapps/${id}/change/approve`, this.admin, { expectedVersion });
     }
 
+    /**
+     * Rejects a pending change through POST /admin/dapps/:id/change/reject.
+     * @param id The dApp id.
+     * @param expectedVersion The version the admin last read.
+     * @param reason The reason, by default a valid one.
+     * @returns The response.
+     */
     rejectChange(id: string, expectedVersion: number, reason = REASON): Promise<request.Response> {
         return this.send("post", `/admin/dapps/${id}/change/reject`, this.admin, { expectedVersion, reason });
     }
 
+    /**
+     * Moves a dApp to another owner through POST /admin/dapps/:id/owner.
+     * @param id The dApp id.
+     * @param expectedVersion The version the admin last read.
+     * @param ownerEmail The new owner's email.
+     * @returns The response.
+     */
     changeOwner(id: string, expectedVersion: number, ownerEmail: string): Promise<request.Response> {
         return this.send("post", `/admin/dapps/${id}/owner`, this.admin, { expectedVersion, ownerEmail });
     }
 
+    /**
+     * Removes a dApp through POST /admin/dapps/:id/remove.
+     * @param id The dApp id.
+     * @param expectedVersion The version the admin last read.
+     * @param reason The reason, by default a valid one.
+     * @returns The response.
+     */
     adminRemove(id: string, expectedVersion: number, reason = REASON): Promise<request.Response> {
         return this.send("post", `/admin/dapps/${id}/remove`, this.admin, { expectedVersion, reason });
     }
@@ -326,16 +386,35 @@ export class ConsoleApi {
         return expectStatus<DappEvent[]>(await this.send("get", `/admin/dapps/${id}/events`, this.admin), 200);
     }
 
+    /**
+     * Submits a form and has the admin approve it.
+     * @param owner The owner.
+     * @param form The form, by default a valid one.
+     * @returns The approved dApp.
+     */
     async approvedDapp(owner: Actor, form = dappForm()): Promise<AdminDappResponse> {
         const dapp = await this.submitDapp(owner, form);
         return expectStatus<AdminDappResponse>(await this.approve(dapp.id, dapp.version), 200);
     }
 
+    /**
+     * Submits a form and has the admin reject it.
+     * @param owner The owner.
+     * @param form The form, by default a valid one.
+     * @returns The rejected dApp.
+     */
     async rejectedDapp(owner: Actor, form = dappForm()): Promise<AdminDappResponse> {
         const dapp = await this.submitDapp(owner, form);
         return expectStatus<AdminDappResponse>(await this.reject(dapp.id, dapp.version), 200);
     }
 
+    /**
+     * Edits an approved dApp's synced fields, which the console holds as a pending change, and expects 200.
+     * @param owner The owner.
+     * @param dapp The dApp's current fields, id and version.
+     * @param change The synced fields to change.
+     * @returns The dApp with its pending change.
+     */
     async requestChange(
         owner: Actor,
         dapp: UpsertDappRequest & { id: string; version: number },

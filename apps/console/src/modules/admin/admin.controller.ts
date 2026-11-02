@@ -34,7 +34,7 @@ export class AdminController {
             { needsReview: query.needsReview ?? false, status: query.status, q: query.q, orderBy: query.orderBy, order: query.order },
             { page, pageSize },
         );
-        return { items: items.map(toAdminDappResponse), total, page, pageSize };
+        return PaginatedDappsResponse.fromDapps(items, total, { page, pageSize });
     }
 
     @Get(":id")
@@ -51,7 +51,7 @@ export class AdminController {
         @Param("id", ParseUUIDPipe) id: DappId,
         @Body() body: UpdateDappRequest,
     ): Promise<AdminDappResponse> {
-        return toAdminDappResponse(await this.dapps.adminEdit(admin, id, body.expectedVersion, toDappFields(body)));
+        return AdminDappResponse.fromDapp(await this.dapps.adminEdit(admin, id, body.expectedVersion, toDappFields(body)));
     }
 
     @Post(":id/approve")
@@ -63,7 +63,7 @@ export class AdminController {
         @Param("id", ParseUUIDPipe) id: DappId,
         @Body() body: ExpectedVersionRequest,
     ): Promise<AdminDappResponse> {
-        return toAdminDappResponse(await this.dapps.approve(admin, id, body.expectedVersion));
+        return AdminDappResponse.fromDapp(await this.dapps.approve(admin, id, body.expectedVersion));
     }
 
     @Post(":id/reject")
@@ -75,7 +75,7 @@ export class AdminController {
         @Param("id", ParseUUIDPipe) id: DappId,
         @Body() body: ReasonRequest,
     ): Promise<AdminDappResponse> {
-        return toAdminDappResponse(await this.dapps.reject(admin, id, body.expectedVersion, body.reason));
+        return AdminDappResponse.fromDapp(await this.dapps.reject(admin, id, body.expectedVersion, body.reason));
     }
 
     @Post(":id/change/approve")
@@ -87,7 +87,7 @@ export class AdminController {
         @Param("id", ParseUUIDPipe) id: DappId,
         @Body() body: ExpectedVersionRequest,
     ): Promise<AdminDappResponse> {
-        return toAdminDappResponse(await this.dapps.approveChange(admin, id, body.expectedVersion));
+        return AdminDappResponse.fromDapp(await this.dapps.approveChange(admin, id, body.expectedVersion));
     }
 
     @Post(":id/change/reject")
@@ -99,7 +99,7 @@ export class AdminController {
         @Param("id", ParseUUIDPipe) id: DappId,
         @Body() body: ReasonRequest,
     ): Promise<AdminDappResponse> {
-        return toAdminDappResponse(await this.dapps.rejectChange(admin, id, body.expectedVersion, body.reason));
+        return AdminDappResponse.fromDapp(await this.dapps.rejectChange(admin, id, body.expectedVersion, body.reason));
     }
 
     @Post(":id/owner")
@@ -111,7 +111,7 @@ export class AdminController {
         @Param("id", ParseUUIDPipe) id: DappId,
         @Body() body: ChangeOwnerRequest,
     ): Promise<AdminDappResponse> {
-        return toAdminDappResponse(await this.dapps.changeOwner(admin, id, body.expectedVersion, body.ownerEmail));
+        return AdminDappResponse.fromDapp(await this.dapps.changeOwner(admin, id, body.expectedVersion, body.ownerEmail));
     }
 
     @Post(":id/remove")
@@ -123,7 +123,7 @@ export class AdminController {
         @Param("id", ParseUUIDPipe) id: DappId,
         @Body() body: ReasonRequest,
     ): Promise<AdminDappResponse> {
-        return toAdminDappResponse(await this.dapps.adminRemove(admin, id, body.expectedVersion, body.reason));
+        return AdminDappResponse.fromDapp(await this.dapps.adminRemove(admin, id, body.expectedVersion, body.reason));
     }
 
     @Get(":id/events")

@@ -1,7 +1,12 @@
-import { dappForm, expectStatus, expectValidationFailed, REASON, useConsoleApi } from "./utils/console-api";
-import type { UpsertDappRequest } from "../src/modules/dapps/requests/upsert-dapp.request";
-import type { PaginatedDappsResponse } from "../src/modules/admin/responses/paginated-dapps.response";
+import { dappForm, expectStatus, expectValidationFailed, REASON, useConsoleApi } from "../../utils/console-api";
+import type { UpsertDappRequest } from "../../../src/modules/dapps/requests/upsert-dapp.request";
+import type { PaginatedDappsResponse } from "../../../src/modules/admin/responses/paginated-dapps.response";
 
+/**
+ * Builds a valid form that matches none of the list's search terms.
+ * @param overrides The fields to replace.
+ * @returns The form.
+ */
 function zetaForm(overrides: Partial<UpsertDappRequest> = {}): UpsertDappRequest {
     return dappForm({
         name: "Zeta",
@@ -21,7 +26,7 @@ describe("GET /admin/dapps", () => {
     const list = async (query: Record<string, string | number | boolean> = {}): Promise<PaginatedDappsResponse> =>
         expectStatus<PaginatedDappsResponse>(await api.list(query), 200);
 
-    it("status=pending&q=acme&page=2&pageSize=2&orderBy=name&order=desc returns the second page", async () => {
+    it("should return the second page for status=pending&q=acme&page=2&pageSize=2&orderBy=name&order=desc", async () => {
         for (let n = 1; n <= 5; n += 1) await api.submitDapp(await api.user(), zetaForm({ name: `Acme ${n}` }));
         await api.submitDapp(await api.user(), zetaForm({ name: "Zeta 1" }));
         await api.approvedDapp(await api.user(), zetaForm({ name: "Acme 9" }));
@@ -39,7 +44,7 @@ describe("GET /admin/dapps", () => {
         ["updatedAt", [1, 0, 2, 3]],
         ["name", [1, 3, 2, 0]],
         ["status", [1, 2, 0, 3]],
-    ] as const)("orderBy=%s&order=asc sorts by that column alone", async (orderBy, expected) => {
+    ] as const)("should sort by the given column alone for orderBy=%s&order=asc", async (orderBy, expected) => {
         const bravoOwner = await api.user();
         const delta = await api.submitDapp(await api.user(), zetaForm({ name: "Delta" }));
         const alpha = await api.submitDapp(await api.user(), zetaForm({ name: "Alpha" }));
@@ -55,7 +60,7 @@ describe("GET /admin/dapps", () => {
         expect(sorted.items.map((dapp) => dapp.id)).toEqual(expected.map((index) => submitted[index]?.id));
     });
 
-    it("matches q against the name, the owner email, the contact email and the Auth0 client id, ignoring case", async () => {
+    it("should match q against the name, the owner email, the contact email and the Auth0 client id, ignoring case", async () => {
         const byName = await api.submitDapp(await api.user(), zetaForm({ name: "Nebula Pay" }));
         const byOwner = await api.submitDapp(await api.user("ops@orbit-labs.xyz"), zetaForm());
         const byContact = await api.submitDapp(await api.user(), zetaForm({ contactEmail: "hello@quasar.io" }));
@@ -69,7 +74,7 @@ describe("GET /admin/dapps", () => {
         expect(await search(String(byClient.auth0ClientId).toUpperCase())).toEqual([byClient.id]);
     });
 
-    it("status=removed lists the removed dApps, oldest submission first", async () => {
+    it("should list the removed dApps for status=removed, oldest submission first", async () => {
         const owner = await api.user();
         const removedByOwner = await api.submitDapp(owner, zetaForm());
         expectStatus(await api.removeOwn(owner, removedByOwner.id, removedByOwner.version), 204);
@@ -86,7 +91,7 @@ describe("GET /admin/dapps", () => {
         ]);
     });
 
-    it("lists every dApp by default, oldest submission first", async () => {
+    it("should list every dApp by default, oldest submission first", async () => {
         const pending = await api.submitDapp(await api.user(), zetaForm({ name: "Pending" }));
         const approved = await api.approvedDapp(await api.user(), zetaForm({ name: "Approved" }));
         const rejected = await api.rejectedDapp(await api.user(), zetaForm({ name: "Rejected" }));
@@ -97,7 +102,7 @@ describe("GET /admin/dapps", () => {
         expect(all.items.map((dapp) => dapp.id)).toEqual([pending.id, approved.id, rejected.id]);
     });
 
-    it("needsReview=true lists pending dApps and approved ones with a pending change, oldest first", async () => {
+    it("should list pending dApps and approved ones with a pending change for needsReview=true, oldest first", async () => {
         const first = await api.submitDapp(await api.user(), zetaForm({ name: "First" }));
         const changeOwner = await api.user();
         const changed = await api.approvedDapp(changeOwner, zetaForm({ name: "Changed" }));
@@ -116,7 +121,7 @@ describe("GET /admin/dapps", () => {
         expect(queue.items[2]).toMatchObject({ status: "approved", pendingChange: { name: "Changed 2" } });
     });
 
-    it("refuses pageSize over 100, unknown values and unknown query fields with 400 VALIDATION_FAILED", async () => {
+    it("should refuse pageSize over 100, unknown values and unknown query fields with 400 VALIDATION_FAILED", async () => {
         expect(await list({ pageSize: 100 })).toMatchObject({ pageSize: 100 });
 
         expectValidationFailed(await api.list({ pageSize: 101 }));
@@ -125,7 +130,7 @@ describe("GET /admin/dapps", () => {
         expectValidationFailed(await api.list({ sort: "name" }));
     });
 
-    it("refuses a page past the 10000 cap, such as one whose OFFSET would overflow bigint", async () => {
+    it("should refuse a page past the 10000 cap, such as one whose OFFSET would overflow bigint", async () => {
         expectValidationFailed(await api.list({ page: "1000000000000000000" }));
         expect(await list({ page: 10_000 })).toMatchObject({ items: [], page: 10_000 });
     });

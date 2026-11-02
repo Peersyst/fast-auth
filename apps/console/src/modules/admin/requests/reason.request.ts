@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { HasLength, HasNoNul, Trim } from "../../dapps/requests/dapp-field.decorators";
+import { HasLength, HasNoNul, Trim } from "../../dapps/decorators/dapp-field.decorator";
 import { ExpectedVersionRequest } from "../../dapps/requests/expected-version.request";
 
 const REASON_MIN_LENGTH = 10;
