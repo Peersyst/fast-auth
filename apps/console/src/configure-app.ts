@@ -35,9 +35,15 @@ export function createOpenApiDocument(app: INestApplication): OpenAPIObject {
     );
 }
 
+/**
+ * Serves the SPA build, falling back to index.html for GET routes outside the API that name no file.
+ * @param app The app to serve it from.
+ * @param env The environment, which decides whether a missing build is fatal.
+ * @param publicDir The directory holding the SPA build.
+ */
 function serveSpa(app: NestExpressApplication, env: ConfigEnv, publicDir: string): void {
     if (!existsSync(publicDir)) {
-        if (env === ConfigEnv.Development || env === ConfigEnv.Test) return;
+        if (env === ConfigEnv.DEVELOPMENT || env === ConfigEnv.TEST) return;
         throw new Error(`The SPA build is missing: ${publicDir} does not exist`);
     }
     const indexHtml = join(publicDir, "index.html");
@@ -96,8 +102,6 @@ export function configureApp(app: NestExpressApplication, config: ConsoleConfig,
                 },
             },
             crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" },
-            // helmet 6 sends require-corp by default, which blocks the Auth0 iframe and hot-linked logos.
-            crossOriginEmbedderPolicy: false,
         }),
     );
     serveSpa(app, env, publicDir);

@@ -1,7 +1,7 @@
 import { errorMessage } from "../api/error-message";
 import { Button } from "../ui/Button";
 import { Callout } from "../ui/Callout";
-import styles from "./app.module.css";
+import { appClasses } from "./classes";
 
 type LoadErrorProps = {
     title: string;
@@ -12,7 +12,7 @@ type LoadErrorProps = {
 
 export function LoadError({ title, error, onRetry, retrying }: LoadErrorProps) {
     return (
-        <div className={styles.boot}>
+        <div className={appClasses.boot}>
             <Callout tone="error" title={title}>
                 <p>{errorMessage(error)}</p>
             </Callout>

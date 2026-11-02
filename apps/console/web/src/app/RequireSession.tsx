@@ -11,7 +11,7 @@ import { useSignOut } from "../features/auth/useSignOut";
 import { VerifyEmail } from "../features/auth/VerifyEmail";
 import { Button } from "../ui/Button";
 import { Callout } from "../ui/Callout";
-import styles from "./app.module.css";
+import { appClasses } from "./classes";
 import { LoadError } from "./LoadError";
 import { LoadingScreen } from "./LoadingScreen";
 import { NotFound } from "./NotFound";
@@ -37,7 +37,7 @@ export function RequireSession({ role }: RequireSessionProps) {
     if (isAuthenticated) {
         if (me.error instanceof ApiError && me.error.code === "UNAUTHENTICATED") {
             return (
-                <div className={styles.boot}>
+                <div className={appClasses.boot}>
                     <Callout tone="error" title="Your session has expired">
                         <p>Sign in again to continue.</p>
                     </Callout>

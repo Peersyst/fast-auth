@@ -2,7 +2,7 @@ import { useId } from "react";
 import { Button } from "../../ui/Button";
 import { Callout } from "../../ui/Callout";
 import { Spinner } from "../../ui/Spinner";
-import styles from "./auth.module.css";
+import { authClasses } from "./classes";
 
 type SigningInProps = {
     popupBlocked: boolean;
@@ -13,14 +13,14 @@ type SigningInProps = {
 export function SigningIn({ popupBlocked, onRetryPopup, onContinueInTab }: SigningInProps) {
     const blockedId = useId();
     return (
-        <section className={styles.card}>
+        <section className={authClasses.card}>
             <h1>Signing you in</h1>
             {popupBlocked ? (
                 <>
                     <Callout tone="warning" id={blockedId} title="Your browser blocked the sign-in window">
                         <p>Continue in this tab instead; you will come back here once you have signed in.</p>
                     </Callout>
-                    <div className={styles.actions}>
+                    <div className={authClasses.actions}>
                         <Button autoFocus aria-describedby={blockedId} onClick={onContinueInTab}>
                             Continue in this tab
                         </Button>
@@ -30,7 +30,7 @@ export function SigningIn({ popupBlocked, onRetryPopup, onContinueInTab }: Signi
                     </div>
                 </>
             ) : (
-                <p className={styles.status} role="status">
+                <p className="flex items-center gap-3 text-ink-subtle" role="status">
                     <Spinner />
                     Complete sign-in in the NEAR Auth window.
                 </p>

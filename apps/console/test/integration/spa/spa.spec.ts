@@ -4,10 +4,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import request from "supertest";
-import { loadConfig } from "../src/config";
-import { configureApp } from "../src/configure-app";
-import { expectError } from "./utils/console-api";
-import { createTestApp } from "./utils/test-app";
+import { loadConfig } from "../../../src/config";
+import { ConfigEnv } from "../../../src/config/console-config";
+import { configureApp } from "../../../src/configure-app";
+import { CommonErrorCode } from "../../../src/modules/common/exception/common-error-codes";
+import { expectError } from "../../utils/console-api";
+import { createTestApp } from "../../utils/test-app";
 
 const INDEX_HTML = "<!doctype html><title>NEAR Auth Console</title>";
 
@@ -28,7 +30,7 @@ describe("SPA serving", () => {
         rmSync(publicDir, { recursive: true, force: true });
     });
 
-    it("serves index.html for a route outside the API, with no token", async () => {
+    it("should serve index.html for a route outside the API, with no token", async () => {
         const response = await request(app.getHttpServer()).get("/some/deep/route");
 
         expect(response.status).toBe(200);
@@ -36,14 +38,14 @@ describe("SPA serving", () => {
         expect(response.text).toBe(INDEX_HTML);
     });
 
-    it("serves a built file as itself, not as index.html", async () => {
+    it("should serve a built file as itself, not as index.html", async () => {
         const response = await request(app.getHttpServer()).get("/assets/app.js");
 
         expect(response.status).toBe(200);
         expect(response.text).toBe("console.log('app');");
     });
 
-    it("lets browsers cache a hashed asset for good, but revalidates index.html", async () => {
+    it("should let browsers cache a hashed asset for good, but revalidate index.html", async () => {
         const asset = await request(app.getHttpServer()).get("/assets/app.js");
         const index = await request(app.getHttpServer()).get("/");
         const fallback = await request(app.getHttpServer()).get("/some/deep/route");
@@ -53,27 +55,27 @@ describe("SPA serving", () => {
         expect(fallback.headers["cache-control"]).toBe("public, max-age=0");
     });
 
-    it("answers a missing file with the JSON 404, not index.html", async () => {
+    it("should answer a missing file with the JSON 404, not index.html", async () => {
         const response = await request(app.getHttpServer()).get("/assets/index-OLDHASH.js");
 
-        expectError(response, 404, "NOT_FOUND");
+        expectError(response, 404, CommonErrorCode.NOT_FOUND);
         expect(response.headers["content-type"]).toMatch(/^application\/json/);
     });
 
-    it("answers an unknown API route with the JSON 404 NOT_FOUND, not index.html", async () => {
+    it("should answer an unknown API route with the JSON 404 NOT_FOUND, not index.html", async () => {
         const response = await request(app.getHttpServer()).get("/api/console/unknown");
 
-        expectError(response, 404, "NOT_FOUND");
+        expectError(response, 404, CommonErrorCode.NOT_FOUND);
         expect(response.headers["content-type"]).toMatch(/^application\/json/);
     });
 
-    it("refuses to boot in staging without the SPA build, since no SPA would be served", async () => {
+    it("should refuse to boot in staging without the SPA build, since no SPA would be served", async () => {
         const config = loadConfig();
         const bare = (await Test.createTestingModule({}).compile()).createNestApplication<NestExpressApplication>();
 
         try {
             expect(() =>
-                configureApp(bare, { ...config, server: { ...config.server, env: "staging" } }, join(publicDir, "missing")),
+                configureApp(bare, { ...config, server: { ...config.server, env: ConfigEnv.STAGING } }, join(publicDir, "missing")),
             ).toThrow(/SPA build/);
         } finally {
             await bare.close();

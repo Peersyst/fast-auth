@@ -1,5 +1,4 @@
 import "./lib/zod-jitless";
-import "./ui/tokens.css";
 import "./ui/global.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

@@ -3,13 +3,12 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
-import { describe, expect, it, vi } from "vitest";
-import { apiError, mockApi, type MockRoutes } from "../test/api";
-import { AuthProvider } from "./AuthProvider";
-import { createQueryClient } from "./query-client";
+import { apiError, mockApi, type MockRoutes } from "../../utils/api";
+import { AuthProvider } from "../../../src/app/AuthProvider";
+import { createQueryClient } from "../../../src/app/query-client";
 
-vi.mock("@auth0/auth0-react", async (importOriginal) => ({
-    ...(await importOriginal<typeof Auth0>()),
+jest.mock("@auth0/auth0-react", () => ({
+    ...jest.requireActual<typeof Auth0>("@auth0/auth0-react"),
     Auth0Provider: ({ domain, clientId, children }: { domain: string; clientId: string; children: ReactNode }) => (
         <>
             <p>
@@ -35,7 +34,7 @@ function renderProvider(routes: MockRoutes) {
 }
 
 describe("AuthProvider", () => {
-    it("loads the config before mounting Auth0 with it", async () => {
+    it("should load the config before mounting Auth0 with it", async () => {
         let answer: () => void = () => undefined;
         const gate = new Promise<void>((resolve) => (answer = resolve));
         const api = renderProvider({
@@ -55,7 +54,7 @@ describe("AuthProvider", () => {
         expect(api.sent("GET /api/console/config")).toHaveLength(1);
     });
 
-    it("explains a config that did not load and loads it again on Try again", async () => {
+    it("should explain a config that did not load and load it again on Try again", async () => {
         const user = userEvent.setup();
         const routes: MockRoutes = { "GET /api/console/config": apiError(404, "NOT_FOUND") };
         const api = renderProvider(routes);

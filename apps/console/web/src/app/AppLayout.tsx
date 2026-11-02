@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { CONFIG_QUERY_KEY, useMe } from "../api/hooks";
 import { useSignOut } from "../features/auth/useSignOut";
-import styles from "./app.module.css";
 import { AppHeader } from "./AppHeader";
 
 export function AppLayout() {
@@ -20,7 +19,7 @@ export function AppLayout() {
     return (
         <>
             <AppHeader account={isAuthenticated ? { email: user?.email, session } : undefined} onSignOut={signOut} />
-            <main className={styles.main}>
+            <main className="mx-auto my-0 max-w-content px-4 py-10">
                 <Outlet />
             </main>
         </>

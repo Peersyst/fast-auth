@@ -6,7 +6,7 @@ import { ME_QUERY_KEY } from "../../api/hooks";
 import { SUPPORT_URL } from "../../lib/links";
 import { Button } from "../../ui/Button";
 import { Callout } from "../../ui/Callout";
-import styles from "./auth.module.css";
+import { authClasses } from "./classes";
 
 export function VerifyEmail() {
     const { user, getAccessTokenSilently } = useAuth0();
@@ -29,7 +29,7 @@ export function VerifyEmail() {
     };
 
     return (
-        <section className={styles.card}>
+        <section className={authClasses.card}>
             <h1>Verify your email</h1>
             <p>
                 Open the verification email NEAR Auth sent to <strong>{user?.email}</strong> and follow its link, then come back here.
@@ -44,12 +44,12 @@ export function VerifyEmail() {
                     <p>Follow the link in the verification email, then check again. It can take a minute to arrive.</p>
                 </Callout>
             )}
-            <div className={styles.actions}>
+            <div className={authClasses.actions}>
                 <Button loading={checking} onClick={() => void recheck()}>
                     I&apos;ve verified my email
                 </Button>
             </div>
-            <p className={styles.support}>
+            <p className={authClasses.support}>
                 No email? <a href={SUPPORT_URL}>Contact the NEAR Auth team</a>.
             </p>
         </section>

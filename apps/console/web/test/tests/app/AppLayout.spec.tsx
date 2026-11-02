@@ -2,12 +2,11 @@ import { Auth0Context, initialContext, type Auth0ContextInterface } from "@auth0
 import { QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { describe, expect, it } from "vitest";
-import { useSession } from "../features/auth/session";
-import { mockApi, signedInAuth0, type MockRoutes } from "../test/api";
-import { AppLayout } from "./AppLayout";
-import { createQueryClient } from "./query-client";
-import { RequireSession } from "./RequireSession";
+import { useSession } from "../../../src/features/auth/session";
+import { mockApi, signedInAuth0, type MockRoutes } from "../../utils/api";
+import { AppLayout } from "../../../src/app/AppLayout";
+import { createQueryClient } from "../../../src/app/query-client";
+import { RequireSession } from "../../../src/app/RequireSession";
 
 const signedIn = signedInAuth0();
 
@@ -16,7 +15,7 @@ function PrivatePage() {
 }
 
 describe("AppLayout", () => {
-    it("forgets the previous user's session when Auth0 signs them out in the tab", async () => {
+    it("should forget the previous user's session when Auth0 signs them out in the tab", async () => {
         const routes: MockRoutes = { "GET /api/console/me": { body: { email: "admin@acme.xyz", role: "admin", emailVerified: true } } };
         mockApi(routes);
         const router = createMemoryRouter(
