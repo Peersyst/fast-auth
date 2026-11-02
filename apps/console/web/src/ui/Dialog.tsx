@@ -1,4 +1,7 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useId, useRef, type KeyboardEvent, type ReactNode } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { cn } from "../lib/cn";
 import { Button } from "./Button";
 import { Field } from "./Field";
@@ -129,22 +132,33 @@ export function ConfirmDialog({ open, onClose, title, description, icon, tone, .
     );
 }
 
+function confirmFormSchema(confirmText: string | undefined, reason: Reason | undefined) {
+    return z.object({
+        typed: z.string().refine((typed) => confirmText === undefined || collapseSpaces(typed) === collapseSpaces(confirmText)),
+        reason: z
+            .string()
+            .trim()
+            .min(reason?.minLength ?? 0),
+    });
+}
+
+type ConfirmFormValues = z.infer<ReturnType<typeof confirmFormSchema>>;
+
 function ConfirmForm({ children, onConfirm, confirmText, reason, ...actions }: ConfirmFormProps & { onClose: () => void }) {
-    const [typed, setTyped] = useState("");
-    const [reasonText, setReasonText] = useState("");
-    const trimmedReason = reasonText.trim();
-    const canConfirm =
-        (confirmText === undefined || collapseSpaces(typed) === collapseSpaces(confirmText)) &&
-        (!reason || trimmedReason.length >= reason.minLength);
+    const schema = confirmFormSchema(confirmText, reason);
+    const form = useForm<ConfirmFormValues>({ resolver: zodResolver(schema), defaultValues: { typed: "", reason: "" } });
+    const values = form.watch();
 
     return (
         <DialogForm
             {...actions}
-            canConfirm={canConfirm}
-            onSubmit={() => {
-                if (reason) onConfirm(trimmedReason);
-                else onConfirm();
-            }}
+            canConfirm={schema.safeParse(values).success}
+            onSubmit={() =>
+                void form.handleSubmit((confirmed) => {
+                    if (reason) onConfirm(confirmed.reason);
+                    else onConfirm();
+                })()
+            }
         >
             {children}
             {confirmText !== undefined && (
@@ -160,8 +174,7 @@ function ConfirmForm({ children, onConfirm, confirmText, reason, ...actions }: C
                         {(control) => (
                             <input
                                 {...control}
-                                value={typed}
-                                onChange={(event) => setTyped(event.target.value)}
+                                {...form.register("typed")}
                                 placeholder={confirmText}
                                 autoComplete="off"
                                 spellCheck={false}
@@ -176,7 +189,7 @@ function ConfirmForm({ children, onConfirm, confirmText, reason, ...actions }: C
                     tag="required"
                     hint={[
                         reason.hint,
-                        reasonText.length < reason.maxLength
+                        values.reason.length < reason.maxLength
                             ? `Between ${reason.minLength} and ${reason.maxLength} characters.`
                             : `Between ${reason.minLength} and ${reason.maxLength} characters. You've reached the limit.`,
                     ]
@@ -189,8 +202,7 @@ function ConfirmForm({ children, onConfirm, confirmText, reason, ...actions }: C
                             rows={4}
                             maxLength={reason.maxLength}
                             placeholder={reason.placeholder}
-                            value={reasonText}
-                            onChange={(event) => setReasonText(event.target.value)}
+                            {...form.register("reason")}
                         />
                     )}
                 </Field>

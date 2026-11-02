@@ -2,16 +2,20 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useId, useRef, useState, type ReactNode } from "react";
 import { useFieldArray, useForm, type DefaultValues, type UseFormReturn } from "react-hook-form";
 import { DESCRIPTION_MAX_LENGTH, NAME_MAX_LENGTH } from "@shared/console-domain/field-rules";
+import { MAU_LABELS } from "@shared/console-domain/dapp";
 import { ApiError, type DappFormFields, type OwnerDapp } from "../../api/client";
 import { errorMessage } from "../../api/error-message";
-import { MAU_BRACKETS, MAU_LABELS } from "../../lib/dapp-fields";
-import { dappFormSchema, FIELD_REASONS, FORM_LABELS, URL_LISTS, type DappFormInput } from "../../lib/dapp-schema";
+import { cn } from "../../lib/cn";
+import { dappFormSchema, FIELD_REASONS, FORM_LABELS, MAU_BRACKETS, URL_LISTS, type DappFormInput } from "../../lib/dapp-schema";
 import { Button } from "../../ui/Button";
 import { Callout } from "../../ui/Callout";
-import { Field } from "../../ui/Field";
-import fieldStyles from "../../ui/Field.module.css";
+import { Field, fieldClasses } from "../../ui/Field";
 import { CloseIcon, PlusIcon } from "../../ui/icons";
-import styles from "./DappForm.module.css";
+
+const SECTION =
+    "m-0 flex min-w-0 flex-col gap-6 border-0 p-0 [&_h2]:text-xl [&_h2]:leading-[1.5] [&_h2]:font-bold [&_h2]:tracking-[-0.015em] [&>legend]:w-full [&>legend]:p-0";
+const SECTION_HINT = "mt-1 border-b border-b-border pb-3 text-[14px] text-ink-subtle";
+const CODE = "rounded-[4px] bg-surface-muted px-[5px] py-px font-mono text-sm";
 
 type EditedDapp = DappFormFields & Pick<OwnerDapp, "status" | "pendingChange">;
 
@@ -69,7 +73,7 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
     const [saveError, setSaveError] = useState<unknown>(null);
     const synced = (hint?: ReactNode) => (
         <>
-            {reviewed && <span className={styles.review}>Changes wait for review. </span>}
+            {reviewed && <span className="font-semibold text-warning-ink">Changes wait for review. </span>}
             {hint}
         </>
     );
@@ -91,7 +95,7 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
     });
 
     return (
-        <form className={styles.form} noValidate onSubmit={(event) => void submit(event)}>
+        <form className="flex min-w-0 flex-col gap-10" noValidate onSubmit={(event) => void submit(event)}>
             {mode === "admin" && values?.status === "approved" && (
                 <Callout tone="warning" title="This dApp is live">
                     <p>
@@ -101,11 +105,11 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
                 </Callout>
             )}
 
-            <fieldset className={styles.section}>
+            <fieldset className={SECTION}>
                 <legend>
                     <h2>Application</h2>
                 </legend>
-                <p className={styles.sectionHint}>Shown to your users on the NEAR Auth login and transaction-approval screens.</p>
+                <p className={SECTION_HINT}>Shown to your users on the NEAR Auth login and transaction-approval screens.</p>
                 <Field
                     label={FORM_LABELS.name}
                     tag="required"
@@ -146,14 +150,14 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
                 </Field>
             </fieldset>
 
-            <fieldset className={styles.section}>
+            <fieldset className={SECTION}>
                 <legend>
                     <h2>Capacity</h2>
                 </legend>
-                <p className={styles.sectionHint}>Lets us provision capacity and set rate limits for your app.</p>
+                <p className={SECTION_HINT}>Lets us provision capacity and set rate limits for your app.</p>
                 <Field label={FORM_LABELS.mauBracket} tag="required" error={errors.mauBracket?.message}>
                     {(control) => (
-                        <select {...control} className={`${control.className} ${styles.mau}`} {...register("mauBracket")}>
+                        <select {...control} className={cn(control.className, "max-w-[320px]")} {...register("mauBracket")}>
                             {!values && <option value="">Choose a bracket</option>}
                             {MAU_BRACKETS.map((bracket) => (
                                 <option key={bracket} value={bracket}>
@@ -165,14 +169,14 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
                 </Field>
             </fieldset>
 
-            <fieldset className={styles.section}>
+            <fieldset className={SECTION}>
                 <legend>
                     <h2>Whitelisted URLs</h2>
                 </legend>
-                <p className={styles.sectionHint}>Register production and staging together. Add one entry per environment.</p>
+                <p className={SECTION_HINT}>Register production and staging together. Add one entry per environment.</p>
                 <Callout tone="warning">
                     <p>
-                        <strong>HTTPS is required</strong> for every URL. Plain <code className={styles.plainCode}>http://</code> URLs are
+                        <strong>HTTPS is required</strong> for every URL. Plain <code className="font-mono text-sm">http://</code> URLs are
                         rejected.
                     </p>
                 </Callout>
@@ -184,7 +188,7 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
                     hint={synced(
                         <>
                             Where NEAR Auth may redirect after login and after a signature request. Must match the{" "}
-                            <code className={styles.code}>redirectUri</code> you configure in the SDK.
+                            <code className={CODE}>redirectUri</code> you configure in the SDK.
                         </>,
                     )}
                 />
@@ -195,7 +199,7 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
                     placeholder="https://app.example.com"
                     hint={synced(
                         <>
-                            Only needed if you pass a return URL when calling <code className={styles.code}>logout</code>.
+                            Only needed if you pass a return URL when calling <code className={CODE}>logout</code>.
                         </>,
                     )}
                 />
@@ -208,11 +212,11 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
                 />
             </fieldset>
 
-            <fieldset className={styles.section}>
+            <fieldset className={SECTION}>
                 <legend>
                     <h2>Contact</h2>
                 </legend>
-                <p className={styles.sectionHint}>How the NEAR Auth team can reach your team about your app.</p>
+                <p className={SECTION_HINT}>How the NEAR Auth team can reach your team about your app.</p>
                 <Field
                     label={FORM_LABELS.contactEmail}
                     tag="required"
@@ -227,7 +231,7 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
                     {(control) => (
                         <input
                             {...control}
-                            className={`${control.className} ${styles.contact}`}
+                            className={cn(control.className, "max-w-[420px]")}
                             {...register("contactEmail")}
                             type="email"
                             autoComplete="email"
@@ -249,16 +253,16 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
                     )}
                 </Callout>
             )}
-            <div className={styles.actions}>
+            <div className="flex flex-wrap items-center gap-3 border-t border-t-border pt-6">
                 <Button type="submit" loading={formState.isSubmitting}>
                     {saveLabel}
                 </Button>
                 <Button variant="secondary" onClick={onCancel}>
                     Cancel
                 </Button>
-                {saveHint && <span className={styles.saveHint}>{saveHint}</span>}
+                {saveHint && <span className="text-sm text-ink-subtle">{saveHint}</span>}
                 {onRemove && (
-                    <Button variant="danger" className={styles.remove} onClick={onRemove}>
+                    <Button variant="danger" className="ml-auto" onClick={onRemove}>
                         Remove dApp
                     </Button>
                 )}
@@ -294,23 +298,26 @@ function UrlListField({ form, name, itemLabel, placeholder, hint }: UrlListField
     }
 
     return (
-        <fieldset className={styles.list} aria-describedby={listError ? `${hintId} ${listErrorId}` : hintId}>
-            <legend className={fieldStyles.label}>{FORM_LABELS[name]}</legend>
-            <span className={fieldStyles[tag]}>{tag}</span>
-            <p id={hintId} className={fieldStyles.hint}>
+        <fieldset
+            className="m-0 grid min-w-0 grid-cols-[auto_minmax(0,1fr)] items-baseline gap-2 border-0 p-0"
+            aria-describedby={listError ? `${hintId} ${listErrorId}` : hintId}
+        >
+            <legend className={cn(fieldClasses.label, "float-left p-0")}>{FORM_LABELS[name]}</legend>
+            <span className={fieldClasses[tag]}>{tag}</span>
+            <p id={hintId} className={cn(fieldClasses.hint, "col-span-full")}>
                 {hint}
             </p>
-            <div className={styles.rows}>
+            <div className="col-span-full flex flex-col gap-2">
                 {fields.map((row, index) => {
                     const error = errors?.[index]?.value?.message;
                     const errorId = `${id}-${index}-error`;
                     return (
-                        <div key={row.id} className={styles.row}>
+                        <div key={row.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                             <input
                                 {...form.register(`${name}.${index}.value`, {
                                     onChange: () => listError && form.clearErrors(name),
                                 })}
-                                className={fieldStyles.control}
+                                className={fieldClasses.control}
                                 type="url"
                                 placeholder={placeholder}
                                 aria-label={`${itemLabel} ${index + 1}`}
@@ -319,7 +326,7 @@ function UrlListField({ form, name, itemLabel, placeholder, hint }: UrlListField
                             />
                             <button
                                 type="button"
-                                className={styles.removeRow}
+                                className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-pill border border-border bg-surface p-0 text-ink-subtle not-disabled:hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
                                 disabled={fields.length <= min}
                                 aria-label={`Remove ${noun} ${index + 1}`}
                                 onClick={() => removeRow(index)}
@@ -327,7 +334,7 @@ function UrlListField({ form, name, itemLabel, placeholder, hint }: UrlListField
                                 <CloseIcon />
                             </button>
                             {error && (
-                                <p id={errorId} className={`${fieldStyles.error} ${styles.rowError}`} role="alert">
+                                <p id={errorId} className={cn(fieldClasses.error, "col-span-full")} role="alert">
                                     {error}
                                 </p>
                             )}
@@ -335,7 +342,7 @@ function UrlListField({ form, name, itemLabel, placeholder, hint }: UrlListField
                     );
                 })}
                 {listError && (
-                    <p id={listErrorId} className={fieldStyles.error} role="alert">
+                    <p id={listErrorId} className={fieldClasses.error} role="alert">
                         {listError}
                     </p>
                 )}

@@ -13,8 +13,10 @@ import {
     URL_LIST_RULES,
     type UrlListField,
 } from "@shared/console-domain/field-rules";
+import { MauBracket } from "@shared/console-domain/dapp";
 import type { DappFormFields } from "../api/client";
-import { MAU_BRACKETS } from "./dapp-fields";
+
+export const MAU_BRACKETS: `${MauBracket}`[] = Object.values(MauBracket);
 
 const URL_RULE = "an https URL on a public host, without a #fragment or credentials";
 

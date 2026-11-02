@@ -237,8 +237,8 @@ export class DappsService {
                     before: live,
                 }),
             );
-            if (alert === "change_requested") await this.notifier.changeRequested(dapp);
-            if (alert === "resubmitted") await this.notifier.resubmitted(dapp, before);
+            if (alert === DappEventType.CHANGE_REQUESTED) await this.notifier.changeRequested(dapp);
+            if (alert === DappEventType.RESUBMITTED) await this.notifier.resubmitted(dapp, before);
             return dapp;
         });
     }
@@ -493,7 +493,7 @@ export class DappsService {
         const events: DappEventDetails[] = changes.length > 0 ? [{ type: DappEventType.EDITED, details: { changes } }] : [];
         if (resubmitted) events.push({ type: DappEventType.RESUBMITTED, details: {} });
         await this.appendEvents(manager, live.id, owner, events);
-        return { dapp, alert: resubmitted ? "resubmitted" : null };
+        return { dapp, alert: resubmitted ? DappEventType.RESUBMITTED : null };
     }
 
     /**
@@ -519,7 +519,7 @@ export class DappsService {
         const events = [...effects.events];
         if (directChanges.length > 0) events.push({ type: DappEventType.EDITED, details: { changes: directChanges } });
         await this.appendEvents(manager, live.id, owner, events);
-        return { dapp, alert: pendingChange.kind === "replaced" ? "change_requested" : null };
+        return { dapp, alert: pendingChange.kind === "replaced" ? DappEventType.CHANGE_REQUESTED : null };
     }
 
     /**

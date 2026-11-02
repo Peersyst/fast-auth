@@ -21,10 +21,10 @@ export enum MauBracket {
 }
 
 export const MAU_LABELS: Record<MauBracket, string> = {
-    lt1k: "Less than 1,000",
-    "1k_10k": "1,000 – 10,000",
-    "10k_25k": "10,000 – 25,000",
-    gt25k: "More than 25,000",
+    [MauBracket.LT_1K]: "Less than 1,000",
+    [MauBracket.FROM_1K_TO_10K]: "1,000 – 10,000",
+    [MauBracket.FROM_10K_TO_25K]: "10,000 – 25,000",
+    [MauBracket.GT_25K]: "More than 25,000",
 };
 
 export const FIELD_LABELS: Record<DappField, string> = {

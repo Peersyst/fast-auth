@@ -1,5 +1,4 @@
-import { describe, expect, it } from "vitest";
-import { dappFormSchema, type DappFormInput } from "./dapp-schema";
+import { dappFormSchema, type DappFormInput } from "../../../src/lib/dapp-schema";
 
 const URL_REASON = "Enter an https URL on a public host, without a #fragment or credentials.";
 const ORIGIN_REASON = "Enter an https origin on a public host, like https://app.example.com, with no path or trailing slash.";
@@ -18,7 +17,7 @@ const VALID: DappFormInput = {
 const rows = (...values: string[]) => values.map((value) => ({ value }));
 
 describe("dApp form schema", () => {
-    it("accepts a valid form", () => {
+    it("should accept a valid form", () => {
         expect(dappFormSchema.safeParse(VALID).success).toBe(true);
     });
 
@@ -62,13 +61,13 @@ describe("dApp form schema", () => {
             "Add 1 to 10 web origins, each an https origin on a public host, like https://app.example.com, with no path or trailing slash.",
         ],
         ["a 255-character email", { contactEmail: `${"a".repeat(246)}@acme.xyz` }, ["contactEmail"], "Enter a valid email address."],
-    ])("refuses %s", (_, override, path, message) => {
+    ])("should refuse %s", (_, override, path, message) => {
         const result = dappFormSchema.safeParse({ ...VALID, ...override });
 
         expect(result.error?.issues.map((issue) => ({ path: issue.path, message: issue.message }))).toEqual([{ path, message }]);
     });
 
-    it("outputs the normalised values the API stores", () => {
+    it("should output the normalised values the API stores", () => {
         const result = dappFormSchema.parse({
             name: "  Acme  ",
             description: " A wallet. ",

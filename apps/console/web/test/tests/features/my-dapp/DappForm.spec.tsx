@@ -1,9 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
-import { ApiError } from "../../api/client";
-import { ownerDapp } from "../../test/api";
-import { DappForm } from "./DappForm";
+import { ApiError } from "../../../../src/api/client";
+import { ownerDapp } from "../../../utils/api";
+import { DappForm } from "../../../../src/features/my-dapp/DappForm";
 
 const PROPOSED = {
     name: "Acme Wallet 2",
@@ -15,10 +14,10 @@ const PROPOSED = {
 };
 
 describe("DappForm", () => {
-    it("explains every invalid field and does not save", async () => {
+    it("should explain every invalid field and not save", async () => {
         const user = userEvent.setup();
-        const onSave = vi.fn();
-        render(<DappForm mode="owner" values={null} saveLabel="Submit for review" onSave={onSave} onCancel={vi.fn()} />);
+        const onSave = jest.fn();
+        render(<DappForm mode="owner" values={null} saveLabel="Submit for review" onSave={onSave} onCancel={jest.fn()} />);
 
         await user.type(screen.getByLabelText("Application name"), "Acme\u200BWallet");
         await user.type(screen.getByLabelText("Application logo"), "http://cdn.acme.xyz/logo.png");
@@ -50,9 +49,9 @@ describe("DappForm", () => {
         expect(onSave).not.toHaveBeenCalled();
     });
 
-    it("focuses a new URL row, and a neighbour or the Add button after a removal", async () => {
+    it("should focus a new URL row, and a neighbour or the Add button after a removal", async () => {
         const user = userEvent.setup();
-        render(<DappForm mode="owner" values={null} saveLabel="Submit for review" onSave={vi.fn()} onCancel={vi.fn()} />);
+        render(<DappForm mode="owner" values={null} saveLabel="Submit for review" onSave={jest.fn()} onCancel={jest.fn()} />);
         const add = screen.getByRole("button", { name: "Add callback URL" });
 
         await user.click(add);
@@ -73,9 +72,9 @@ describe("DappForm", () => {
         expect(screen.getByRole("button", { name: "Add logout URL" })).toHaveFocus();
     });
 
-    it("adds and removes URL rows, keeping at least one callback URL and at most ten", async () => {
+    it("should add and remove URL rows, keeping at least one callback URL and at most ten", async () => {
         const user = userEvent.setup();
-        render(<DappForm mode="owner" values={null} saveLabel="Submit for review" onSave={vi.fn()} onCancel={vi.fn()} />);
+        render(<DappForm mode="owner" values={null} saveLabel="Submit for review" onSave={jest.fn()} onCancel={jest.fn()} />);
         const add = screen.getByRole("button", { name: "Add callback URL" });
 
         expect(screen.getByRole("button", { name: "Remove callback URL 1" })).toBeDisabled();
@@ -94,10 +93,10 @@ describe("DappForm", () => {
         expect(screen.getByRole("button", { name: "Remove logout URL 1" })).toBeEnabled();
     });
 
-    it("saves the normalised fields", async () => {
+    it("should save the normalised fields", async () => {
         const user = userEvent.setup();
-        const onSave = vi.fn(async () => {});
-        render(<DappForm mode="owner" values={null} saveLabel="Submit for review" onSave={onSave} onCancel={vi.fn()} />);
+        const onSave = jest.fn(async () => {});
+        render(<DappForm mode="owner" values={null} saveLabel="Submit for review" onSave={onSave} onCancel={jest.fn()} />);
 
         await user.type(screen.getByLabelText("Application name"), "  Acme Wallet ");
         await user.type(screen.getByLabelText("Application logo"), "https://CDN.acme.xyz/Logo.png");
@@ -121,9 +120,9 @@ describe("DappForm", () => {
         });
     });
 
-    it("shows an approved dApp's pending change and marks the fields that wait for review", () => {
+    it("should show an approved dApp's pending change and mark the fields that wait for review", () => {
         const dapp = ownerDapp({ status: "approved", auth0ClientId: "client-1", pendingChange: PROPOSED });
-        render(<DappForm mode="owner" values={dapp} saveLabel="Save changes" onSave={vi.fn()} onCancel={vi.fn()} />);
+        render(<DappForm mode="owner" values={dapp} saveLabel="Save changes" onSave={jest.fn()} onCancel={jest.fn()} />);
 
         expect(screen.getByLabelText("Application name")).toHaveValue("Acme Wallet 2");
         expect(screen.getByLabelText("Callback URL 2")).toHaveValue("https://app.acme.xyz/silent");
@@ -139,15 +138,15 @@ describe("DappForm", () => {
         expect(screen.getByLabelText("Expected monthly active users")).not.toHaveAccessibleDescription(expect.stringContaining("review"));
     });
 
-    it("does not mark fields for review on a pending dApp or for an admin", () => {
+    it("should not mark fields for review on a pending dApp or for an admin", () => {
         const { unmount } = render(
-            <DappForm mode="owner" values={ownerDapp()} saveLabel="Save changes" onSave={vi.fn()} onCancel={vi.fn()} />,
+            <DappForm mode="owner" values={ownerDapp()} saveLabel="Save changes" onSave={jest.fn()} onCancel={jest.fn()} />,
         );
         expect(screen.getByLabelText("Application name")).not.toHaveAccessibleDescription(expect.stringContaining("review"));
         unmount();
 
         const approved = ownerDapp({ status: "approved", auth0ClientId: "client-1" });
-        render(<DappForm mode="admin" values={approved} saveLabel="Save changes" onSave={vi.fn()} onCancel={vi.fn()} />);
+        render(<DappForm mode="admin" values={approved} saveLabel="Save changes" onSave={jest.fn()} onCancel={jest.fn()} />);
         expect(screen.getByLabelText("Application name")).toHaveValue("Acme Wallet");
         expect(screen.getByLabelText("Application name")).not.toHaveAccessibleDescription(expect.stringContaining("review"));
         expect(
@@ -157,9 +156,9 @@ describe("DappForm", () => {
         ).toBeInTheDocument();
     });
 
-    it("explains the server's field errors and focuses the first refused field", async () => {
+    it("should explain the server's field errors and focus the first refused field", async () => {
         const user = userEvent.setup();
-        const onSave = vi.fn(async () => {
+        const onSave = jest.fn(async () => {
             throw new ApiError({
                 statusCode: 400,
                 code: "VALIDATION_FAILED",
@@ -170,7 +169,7 @@ describe("DappForm", () => {
                 ],
             });
         });
-        render(<DappForm mode="owner" values={ownerDapp()} saveLabel="Save changes" onSave={onSave} onCancel={vi.fn()} />);
+        render(<DappForm mode="owner" values={ownerDapp()} saveLabel="Save changes" onSave={onSave} onCancel={jest.fn()} />);
 
         await user.click(screen.getByRole("button", { name: "Save changes" }));
 
@@ -191,9 +190,9 @@ describe("DappForm", () => {
         expect(screen.getAllByRole("alert").map((alert) => alert.textContent)).toEqual([nameReason]);
     });
 
-    it("focuses the first row of a refused URL list", async () => {
+    it("should focus the first row of a refused URL list", async () => {
         const user = userEvent.setup();
-        const onSave = vi.fn(async () => {
+        const onSave = jest.fn(async () => {
             throw new ApiError({
                 statusCode: 400,
                 code: "VALIDATION_FAILED",
@@ -201,7 +200,7 @@ describe("DappForm", () => {
                 details: [{ field: "webOrigins", constraint: "isUrlList" }],
             });
         });
-        render(<DappForm mode="owner" values={ownerDapp()} saveLabel="Save changes" onSave={onSave} onCancel={vi.fn()} />);
+        render(<DappForm mode="owner" values={ownerDapp()} saveLabel="Save changes" onSave={onSave} onCancel={jest.fn()} />);
 
         await user.click(screen.getByRole("button", { name: "Save changes" }));
 
@@ -211,14 +210,21 @@ describe("DappForm", () => {
         );
     });
 
-    it("shows other errors in a callout, with Reload when the dApp changed", async () => {
+    it("should show other errors in a callout, with Reload when the dApp changed", async () => {
         const user = userEvent.setup();
-        const onReload = vi.fn();
-        const onSave = vi.fn(async () => {
+        const onReload = jest.fn();
+        const onSave = jest.fn(async () => {
             throw new ApiError({ statusCode: 409, code: "DAPP_CHANGED", message: "Changed" });
         });
         render(
-            <DappForm mode="owner" values={ownerDapp()} saveLabel="Save changes" onSave={onSave} onCancel={vi.fn()} onReload={onReload} />,
+            <DappForm
+                mode="owner"
+                values={ownerDapp()}
+                saveLabel="Save changes"
+                onSave={onSave}
+                onCancel={jest.fn()}
+                onReload={onReload}
+            />,
         );
 
         await user.click(screen.getByRole("button", { name: "Save changes" }));
@@ -226,6 +232,6 @@ describe("DappForm", () => {
         expect(alert).toHaveTextContent("This dApp changed since you opened it.");
         await user.click(within(alert).getByRole("button", { name: "Reload" }));
 
-        expect(onReload).toHaveBeenCalledOnce();
+        expect(onReload).toHaveBeenCalledTimes(1);
     });
 });

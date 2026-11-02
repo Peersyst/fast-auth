@@ -50,6 +50,12 @@ export function diffFields<F extends DappField>(
     return changes;
 }
 
+/**
+ * Lists the synced fields whose values differ, with before and after values for every one.
+ * @param live The live fields.
+ * @param change The changed fields.
+ * @returns One change per differing synced field.
+ */
 export function diffSyncedFields(live: SyncedFields, change: SyncedFields): FieldValueChange[] {
     return SYNCED_FIELDS.filter((field) => !isSameValue(live[field], change[field])).map((field) => ({
         field,
