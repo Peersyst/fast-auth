@@ -22,9 +22,19 @@ export type Anonymisation = {
     scrubbedDetails: number;
 };
 
+/**
+ * Replaces every email address in the object's values, recursing into nested arrays and objects.
+ * @param value The object to scrub.
+ * @returns A new object with the scrubbed values.
+ */
 const scrubObject = (value: object): Record<string, unknown> =>
     Object.fromEntries(Object.entries(value).map(([key, inner]) => [key, scrub(inner)]));
 
+/**
+ * Replaces every email address in a string, or in the strings nested in an array or object.
+ * @param value The value to scrub.
+ * @returns The scrubbed value, or the value itself when it holds no string.
+ */
 function scrub(value: unknown): unknown {
     if (typeof value === "string") return value.replace(EMAIL_ADDRESS, ERASED);
     if (Array.isArray(value)) return value.map(scrub);
@@ -32,8 +42,20 @@ function scrub(value: unknown): unknown {
     return value;
 }
 
+/**
+ * Tells whether an identity column still holds something other than the erased marker.
+ * @param value The column value.
+ * @returns True when the value is set and not yet erased.
+ */
 const needsErasing = (value: string | null): value is string => value !== null && value !== ERASED;
 
+/**
+ * Works out the changes that erase a dApp's personal data, without writing anything. Values already erased are left out, so a
+ * rerun yields no changes.
+ * @param dapp The dApp's identity and text columns.
+ * @param events The dApp's events.
+ * @returns The changes per row and what they erase.
+ */
 export function anonymise(dapp: AnonymisableDapp, events: readonly AnonymisableEvent[]): Anonymisation {
     const result: Anonymisation = { dapp: {}, events: [], erasedColumns: [], scrubbedColumns: [], erasedActors: 0, scrubbedDetails: 0 };
     for (const column of IDENTITY_COLUMNS) {

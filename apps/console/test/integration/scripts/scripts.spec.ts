@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { Auth0ClientId, Dapp, DappId } from "@shared/console-domain/dapp";
-import { DappEventEntity } from "../src/modules/dapps/entities/dapp-event.entity";
-import { runAnonymise } from "../src/scripts/anonymise";
-import { runReconcile } from "../src/scripts/reconcile";
-import type { SeedState } from "../src/scripts/seed";
-import { runSeed, seedFields, seedOwner } from "../src/scripts/seed";
-import { dappForm, expectStatus, useConsoleApi } from "./utils/console-api";
-import type { AdminDappResponse } from "../src/modules/admin/responses/admin-dapp.response";
+import { ActorRole, DappEventType } from "@shared/console-domain/dapp-event";
+import { DappEventEntity } from "../../../src/modules/dapps/entities/dapp-event.entity";
+import { runAnonymise } from "../../../src/scripts/anonymise";
+import { runReconcile } from "../../../src/scripts/reconcile";
+import { runSeed, SeedState, seedFields, seedOwner } from "../../../src/scripts/seed";
+import { dappForm, expectStatus, useConsoleApi } from "../../utils/console-api";
+import type { AdminDappResponse } from "../../../src/modules/admin/responses/admin-dapp.response";
 
 describe("operational scripts", () => {
     const api = useConsoleApi();
@@ -34,15 +34,15 @@ describe("operational scripts", () => {
     async function insertEmailFailure(dappId: DappId, error: string): Promise<void> {
         await api.dataSource.manager.insert(DappEventEntity, {
             dappId,
-            type: "email_failed",
+            type: DappEventType.EMAIL_FAILED,
             actorEmail: null,
-            actorRole: "system",
+            actorRole: ActorRole.SYSTEM,
             details: { template: "dapp_approved", error },
         });
     }
 
     describe("seed", () => {
-        it("creates one dApp per state through the service, then skips owners that already have one", async () => {
+        it("should create one dApp per state through the service, then skip owners that already have one", async () => {
             const dapps = await seed();
 
             expect(dapps.pending).toMatchObject({ status: "pending", ownerEmail: "seed-pending@example.com", auth0ClientId: null });
@@ -69,7 +69,7 @@ describe("operational scripts", () => {
             expect(await api.dataSource.query("SELECT count(*)::int AS count FROM dapps")).toEqual([{ count: 5 }]);
         });
 
-        it("refuses while auto-approval is on", async () => {
+        it("should refuse while auto-approval is on", async () => {
             await api.setAutoApproval(true);
 
             await expect(runSeed(api.app)).rejects.toThrow("Auto-approval is on");
@@ -77,7 +77,7 @@ describe("operational scripts", () => {
     });
 
     describe("reconcile", () => {
-        it("is clean when the tagged clients and the approved dApps match", async () => {
+        it("should be clean when the tagged clients and the approved dApps match", async () => {
             await seed();
 
             const report = await runReconcile(api.app);
@@ -85,10 +85,10 @@ describe("operational scripts", () => {
             expect(report).toEqual({ clientCount: 2, dappCount: 5, orphanClients: [], missingClients: [] });
         });
 
-        it("reports tagged clients that no approved dApp uses and approved dApps whose client is missing, deleting nothing", async () => {
+        it("should report tagged clients that no approved dApp uses and approved dApps whose client is missing, deleting nothing", async () => {
             const dapps = await seed();
             const unknownDapp = randomUUID() as DappId;
-            const input = seedFields("removed");
+            const input = seedFields(SeedState.REMOVED);
             api.provisioner.clients.delete(dapps.approved.auth0ClientId as Auth0ClientId);
             api.provisioner.clients.set("fake_left-behind" as Auth0ClientId, { dappId: dapps.removed.id, input });
             api.provisioner.clients.set("fake_restored-away" as Auth0ClientId, { dappId: unknownDapp, input });
@@ -124,10 +124,10 @@ describe("operational scripts", () => {
     });
 
     describe("anonymise", () => {
-        it("erases the identities of a removed dApp and every email address in its events, keeps its business data and the rows", async () => {
+        it("should erase the identities of a removed dApp and every email address in its events, keep its business data and the rows", async () => {
             const dapps = await seed();
             const { id } = dapps.removed;
-            await insertEmailFailure(id, `Email address is not verified: ${seedOwner("removed").email.toUpperCase()}`);
+            await insertEmailFailure(id, `Email address is not verified: ${seedOwner(SeedState.REMOVED).email.toUpperCase()}`);
             const eventsBefore = await api.events(id);
 
             const result = await runAnonymise(api.dataSource, id);
@@ -139,7 +139,7 @@ describe("operational scripts", () => {
                 erasedActors: eventsBefore.filter((event) => event.actorEmail !== null).length,
                 scrubbedDetails: 1,
             });
-            const { contactEmail: _, ...businessData } = seedFields("removed");
+            const { contactEmail: _, ...businessData } = seedFields(SeedState.REMOVED);
             expect(await api.adminDapp(id)).toMatchObject({
                 ...businessData,
                 status: "removed",
@@ -162,7 +162,7 @@ describe("operational scripts", () => {
             expect(text.events).toContain("Email address is not verified: erased");
         });
 
-        it("is idempotent: a second run changes nothing", async () => {
+        it("should be idempotent: a second run changes nothing", async () => {
             const { removed } = await seed();
             await runAnonymise(api.dataSource, removed.id);
             const before = await rowsAsText(removed.id);
@@ -173,10 +173,10 @@ describe("operational scripts", () => {
             expect(await rowsAsText(removed.id)).toEqual(before);
         });
 
-        it("erases on a rerun an address that reached the events after the first run", async () => {
+        it("should erase on a rerun an address that reached the events after the first run", async () => {
             const { removed } = await seed();
             await runAnonymise(api.dataSource, removed.id);
-            await insertEmailFailure(removed.id, `Email address is not verified: ${seedOwner("removed").email}`);
+            await insertEmailFailure(removed.id, `Email address is not verified: ${seedOwner(SeedState.REMOVED).email}`);
 
             const result = await runAnonymise(api.dataSource, removed.id);
 
@@ -184,7 +184,7 @@ describe("operational scripts", () => {
             expect((await rowsAsText(removed.id)).events).not.toContain("@");
         });
 
-        it("erases the address of an owner from the middle of an owner-change chain, who never acted", async () => {
+        it("should erase the address of an owner from the middle of an owner-change chain, who never acted", async () => {
             const first = await api.submitDapp(await api.user("first@owners.test"));
             const id = first.id as DappId;
             const middle = expectStatus<AdminDappResponse>(await api.changeOwner(id, first.version, "middle@owners.test"), 200);
@@ -200,7 +200,7 @@ describe("operational scripts", () => {
             expect(text.events).toContain("Email address is not verified: erased");
         });
 
-        it("erases an email address typed into the name or description", async () => {
+        it("should erase an email address typed into the name or description", async () => {
             const owner = await api.user("alice@example.com");
             const form = dappForm({ name: "Pay alice@example.com", description: "Ask alice@example.com for access." });
             const dapp = await api.submitDapp(owner, form);
@@ -213,7 +213,7 @@ describe("operational scripts", () => {
             expect((await rowsAsText(dapp.id)).dapp).not.toContain("@");
         });
 
-        it("refuses a dApp that is not removed, or does not exist, and changes nothing", async () => {
+        it("should refuse a dApp that is not removed, or does not exist, and change nothing", async () => {
             const dapps = await seed();
             const before = await rowsAsText(dapps.approved.id);
 

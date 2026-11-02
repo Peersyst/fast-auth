@@ -1,4 +1,5 @@
-import type { Dapp, DappStatus } from "@shared/console-domain/dapp";
+import type { Dapp } from "@shared/console-domain/dapp";
+import { DappStatus } from "@shared/console-domain/dapp";
 import type { ManagedClient } from "../modules/provisioning/auth0-provisioner";
 
 export type ReconcileDapp = Pick<Dapp, "id" | "name" | "status" | "auth0ClientId">;
@@ -6,10 +7,10 @@ export type ReconcileDapp = Pick<Dapp, "id" | "name" | "status" | "auth0ClientId
 type OrphanClient = ManagedClient & { dappStatus: DappStatus | null };
 
 const DAPP_STATE: Record<DappStatus, string> = {
-    pending: "pending",
-    approved: "approved, which uses another client",
-    rejected: "rejected",
-    removed: "removed",
+    [DappStatus.PENDING]: "pending",
+    [DappStatus.APPROVED]: "approved, which uses another client",
+    [DappStatus.REJECTED]: "rejected",
+    [DappStatus.REMOVED]: "removed",
 };
 
 export type ReconcileReport = {
@@ -19,20 +20,34 @@ export type ReconcileReport = {
     missingClients: ReconcileDapp[];
 };
 
+/**
+ * Compares the tagged Auth0 clients with the dApps, without changing either.
+ * @param clients The Auth0 clients tagged for this environment.
+ * @param dapps Every dApp in the database.
+ * @returns The counts, the clients no approved dApp uses and the approved dApps whose client is missing.
+ */
 export function reconcile(clients: readonly ManagedClient[], dapps: readonly ReconcileDapp[]): ReconcileReport {
     const dappsById = new Map(dapps.map((dapp) => [dapp.id, dapp]));
     const clientIds = new Set(clients.map((client) => client.clientId));
     const orphanClients = clients.flatMap((client): OrphanClient[] => {
         const dapp = client.dappId === null ? undefined : dappsById.get(client.dappId);
         if (dapp === undefined) return [{ ...client, dappStatus: null }];
-        return dapp.status === "approved" && dapp.auth0ClientId === client.clientId ? [] : [{ ...client, dappStatus: dapp.status }];
+        return dapp.status === DappStatus.APPROVED && dapp.auth0ClientId === client.clientId
+            ? []
+            : [{ ...client, dappStatus: dapp.status }];
     });
     const missingClients = dapps.filter(
-        (dapp) => dapp.status === "approved" && (dapp.auth0ClientId === null || !clientIds.has(dapp.auth0ClientId)),
+        (dapp) => dapp.status === DappStatus.APPROVED && (dapp.auth0ClientId === null || !clientIds.has(dapp.auth0ClientId)),
     );
     return { clientCount: clients.length, dappCount: dapps.length, orphanClients, missingClients };
 }
 
+/**
+ * Renders the report as the lines the reconcile script prints.
+ * @param report The reconcile report.
+ * @param managedBy The tag the clients were listed by.
+ * @returns The report text, ending in a newline.
+ */
 export function formatReport(report: ReconcileReport, managedBy: string): string {
     const lines = [`Reconcile ${managedBy}: ${report.clientCount} tagged Auth0 clients, ${report.dappCount} dApps in the database.`];
     if (report.orphanClients.length === 0 && report.missingClients.length === 0) {

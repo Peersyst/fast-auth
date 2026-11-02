@@ -11,6 +11,11 @@ import type { ReconcileReport } from "./reconcile-report";
 import { formatReport, reconcile } from "./reconcile-report";
 import { runScript } from "./run-script";
 
+/**
+ * Lists the tagged Auth0 clients and the dApps through the app's provisioner and database, and compares them.
+ * @param app The Nest application context.
+ * @returns The reconcile report.
+ */
 export async function runReconcile(app: INestApplicationContext): Promise<ReconcileReport> {
     const clients = await app.get<Auth0Provisioner>(AUTH0_PROVISIONER).listClients();
     const dapps = await app
@@ -19,6 +24,9 @@ export async function runReconcile(app: INestApplicationContext): Promise<Reconc
     return reconcile(clients, dapps);
 }
 
+/**
+ * Prints the reconcile report and sets the exit code to 1 when it lists anything.
+ */
 async function main(): Promise<void> {
     const config = loadConfig();
     const app = await NestFactory.createApplicationContext(AppModule.forRoot(config), { logger: ["error", "warn"], abortOnError: false });

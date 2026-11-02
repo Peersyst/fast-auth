@@ -1,5 +1,5 @@
-import type { AnonymisableDapp, AnonymisableEvent } from "./anonymisation";
-import { anonymise } from "./anonymisation";
+import type { AnonymisableDapp, AnonymisableEvent } from "../../src/scripts/anonymisation";
+import { anonymise } from "../../src/scripts/anonymisation";
 
 const dapp: AnonymisableDapp = {
     name: "Acme",
@@ -21,7 +21,7 @@ const events: AnonymisableEvent[] = [
 ];
 
 describe("anonymise", () => {
-    it("erases every identity column and actor email, and every email address in reasons and event details", () => {
+    it("should erase every identity column and actor email, and every email address in reasons and event details", () => {
         const result = anonymise(dapp, events);
 
         expect(result).toEqual({
@@ -44,7 +44,7 @@ describe("anonymise", () => {
         });
     });
 
-    it("changes nothing on a second run", () => {
+    it("should change nothing on a second run", () => {
         const first = anonymise(dapp, events);
         const anonymised = { ...dapp, ...first.dapp };
         const anonymisedEvents = events.map((event) => ({ ...event, ...first.events.find(({ id }) => id === event.id)?.changes }));
@@ -67,18 +67,18 @@ describe("anonymise", () => {
         ["Contact us @acme or at acme@", "Contact us @acme or at acme@"],
         ["Requested by jean.o'neil@example.com", "Requested by erased"],
         ["'bob@example.org'", "'erased'"],
-    ])("replaces every email address in %j", (reason, scrubbed) => {
+    ])("should replace every email address in %j", (reason, scrubbed) => {
         expect(anonymise({ ...dapp, rejectionReason: reason }, []).dapp.rejectionReason ?? reason).toBe(scrubbed);
     });
 
-    it("erases an email address typed into the name or description", () => {
+    it("should erase an email address typed into the name or description", () => {
         const result = anonymise({ ...dapp, name: "Acme by bob@example.org", description: "Write to bob@example.org for access." }, []);
 
         expect(result.dapp).toMatchObject({ name: "Acme by erased", description: "Write to erased for access." });
         expect(result.scrubbedColumns).toEqual(["name", "description", "removalReason"]);
     });
 
-    it("erases an address whose local part has an apostrophe from event details", () => {
+    it("should erase an address whose local part has an apostrophe from event details", () => {
         const result = anonymise(dapp, [
             { id: "e1", actorEmail: null, details: { error: "Email address is not verified: jean.o'neil@example.com" } },
         ]);
@@ -86,7 +86,7 @@ describe("anonymise", () => {
         expect(result.events).toEqual([{ id: "e1", changes: { details: { error: "Email address is not verified: erased" } } }]);
     });
 
-    it("leaves null columns and text without email addresses untouched", () => {
+    it("should leave null columns and text without email addresses untouched", () => {
         const system = { ...dapp, reviewedBy: null, removalReason: null, auth0Error: "Auth0 update answered 400: bad callback" };
 
         const result = anonymise(system, [{ id: "e1", actorEmail: null, details: { reason: "Not a wallet." } }]);

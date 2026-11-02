@@ -1,8 +1,16 @@
 import type { Auth0ClientId, DappId } from "@shared/console-domain/dapp";
-import type { ManagedClient } from "../modules/provisioning/auth0-provisioner";
-import type { ReconcileDapp } from "./reconcile-report";
-import { formatReport, reconcile } from "./reconcile-report";
+import { DappStatus } from "@shared/console-domain/dapp";
+import type { ManagedClient } from "../../src/modules/provisioning/auth0-provisioner";
+import type { ReconcileDapp } from "../../src/scripts/reconcile-report";
+import { formatReport, reconcile } from "../../src/scripts/reconcile-report";
 
+/**
+ * Builds a reconcile dApp whose name derives from its id.
+ * @param id The dApp id.
+ * @param status The dApp status.
+ * @param auth0ClientId The stored client id, or null for none.
+ * @returns The dApp.
+ */
 const dapp = (id: string, status: ReconcileDapp["status"], auth0ClientId: string | null = null): ReconcileDapp => ({
     id: id as DappId,
     name: `dApp ${id}`,
@@ -10,6 +18,12 @@ const dapp = (id: string, status: ReconcileDapp["status"], auth0ClientId: string
     auth0ClientId: auth0ClientId as Auth0ClientId | null,
 });
 
+/**
+ * Builds a tagged client whose name and callback derive from its id.
+ * @param clientId The client id.
+ * @param dappId The dApp id in its tag, or null for no tag.
+ * @returns The client.
+ */
 const client = (clientId: string, dappId: string | null): ManagedClient => ({
     clientId: clientId as Auth0ClientId,
     dappId: dappId as DappId | null,
@@ -18,14 +32,14 @@ const client = (clientId: string, dappId: string | null): ManagedClient => ({
 });
 
 describe("reconcile", () => {
-    it("is clean when every tagged client belongs to an approved dApp that uses it, and every approved dApp has its client", () => {
+    it("should be clean when every tagged client belongs to an approved dApp that uses it, and every approved dApp has its client", () => {
         const report = reconcile(
             [client("c1", "approved")],
             [
-                dapp("approved", "approved", "c1"),
-                dapp("rejected", "rejected"),
-                dapp("removed", "removed", "gone"),
-                dapp("pending", "pending"),
+                dapp("approved", DappStatus.APPROVED, "c1"),
+                dapp("rejected", DappStatus.REJECTED),
+                dapp("removed", DappStatus.REMOVED, "gone"),
+                dapp("pending", DappStatus.PENDING),
             ],
         );
 
@@ -36,14 +50,14 @@ describe("reconcile", () => {
         );
     });
 
-    it("reports tagged clients of removed or unknown dApps, and approved dApps whose client is missing", () => {
+    it("should report tagged clients of removed or unknown dApps, and approved dApps whose client is missing", () => {
         const report = reconcile(
             [client("c1", "removed"), client("c2", "restored-away"), client("c3", null), client("c4", "approved")],
             [
-                dapp("removed", "removed", "c1"),
-                dapp("approved", "approved", "c4"),
-                dapp("lost", "approved", "c9"),
-                dapp("none", "approved"),
+                dapp("removed", DappStatus.REMOVED, "c1"),
+                dapp("approved", DappStatus.APPROVED, "c4"),
+                dapp("lost", DappStatus.APPROVED, "c9"),
+                dapp("none", DappStatus.APPROVED),
             ],
         );
 
@@ -52,7 +66,7 @@ describe("reconcile", () => {
             { ...client("c2", "restored-away"), dappStatus: null },
             { ...client("c3", null), dappStatus: null },
         ]);
-        expect(report.missingClients).toEqual([dapp("lost", "approved", "c9"), dapp("none", "approved")]);
+        expect(report.missingClients).toEqual([dapp("lost", DappStatus.APPROVED, "c9"), dapp("none", DappStatus.APPROVED)]);
         expect(formatReport(report, "console-production")).toBe(
             [
                 "Reconcile console-production: 4 tagged Auth0 clients, 4 dApps in the database.",
@@ -75,10 +89,10 @@ describe("reconcile", () => {
         );
     });
 
-    it("reports the tagged clients of pending and rejected dApps, and a second tagged client of an approved dApp", () => {
+    it("should report the tagged clients of pending and rejected dApps, and a second tagged client of an approved dApp", () => {
         const report = reconcile(
             [client("c1", "live"), client("dup", "live"), client("c2", "pending"), client("c3", "rejected")],
-            [dapp("live", "approved", "c1"), dapp("pending", "pending"), dapp("rejected", "rejected")],
+            [dapp("live", DappStatus.APPROVED, "c1"), dapp("pending", DappStatus.PENDING), dapp("rejected", DappStatus.REJECTED)],
         );
 
         expect(report.orphanClients).toEqual([

@@ -1,4 +1,4 @@
-import { runScript } from "./run-script";
+import { runScript } from "../../src/scripts/run-script";
 
 describe("runScript", () => {
     let stderr: jest.SpyInstance;
@@ -18,20 +18,20 @@ describe("runScript", () => {
         await new Promise(setImmediate);
     };
 
-    it("names the errno of a refused database connection, whose AggregateError has no message", async () => {
+    it("should name the errno of a refused database connection, whose AggregateError has no message", async () => {
         await failWith(Object.assign(new AggregateError([], ""), { code: "ECONNREFUSED" }));
 
         expect(stderr.mock.calls).toEqual([["anonymise failed: ECONNREFUSED\n"]]);
         expect(exit.mock.calls).toEqual([[1]]);
     });
 
-    it("prints the message of an ordinary error", async () => {
+    it("should print the message of an ordinary error", async () => {
         await failWith(new Error('password authentication failed for user "console"'));
 
         expect(stderr.mock.calls).toEqual([['anonymise failed: password authentication failed for user "console"\n']]);
     });
 
-    it("exits with the given failure code", async () => {
+    it("should exit with the given failure code", async () => {
         await failWith(new Error("boom"), 2);
 
         expect(exit.mock.calls).toEqual([[2]]);
