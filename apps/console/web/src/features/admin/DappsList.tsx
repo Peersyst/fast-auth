@@ -11,8 +11,8 @@ import { initials } from "../../lib/initials";
 import { Button, buttonClassName } from "../../ui/Button";
 import { SearchIcon } from "../../ui/icons";
 import { STATUS_BADGES, StatusBadge } from "../dapp/StatusBadge";
-import styles from "./admin.module.css";
 import { AutoApprovalSwitch } from "./AutoApprovalSwitch";
+import { adminClasses } from "./classes";
 import { OwnerEmail } from "./Email";
 
 type View = "review" | DappStatus | "all";
@@ -35,6 +35,13 @@ const ORDER_OPTIONS: Record<DappOrderBy, { label: string; asc: string; desc: str
 };
 const ORDER_BYS = Object.keys(ORDER_OPTIONS) as DappOrderBy[];
 
+const SELECT_BOX =
+    "inline-flex h-[38px] items-center gap-2 rounded-[12px] border border-border-strong bg-surface py-0 pr-1.5 pl-3 focus-within:outline-2 focus-within:outline-focus focus-within:outline-offset-2";
+const SELECT_LABEL = "font-mono text-[11px] font-medium tracking-kicker whitespace-nowrap text-ink-subtle uppercase";
+const SELECT = "h-full cursor-pointer border-0 bg-transparent text-[14px] focus-visible:outline-none";
+const HEAD = "border-b border-b-border bg-canvas px-4 py-3 font-mono text-[10px] font-medium tracking-kicker text-ink-subtle uppercase";
+const CELL = "border-b border-b-border px-4 text-ink-2 [tr:last-child_&]:border-b-0";
+const ACTIONS = "text-right whitespace-nowrap";
 function oneOf<T extends string>(values: readonly T[], value: string | null): T | undefined {
     return values.find((allowed) => allowed === value);
 }
@@ -102,11 +109,11 @@ export function DappsList() {
     else stepBack.delete("page");
 
     return (
-        <div className={styles.page}>
-            <div className={styles.listHead}>
-                <div className={styles.titleBlock}>
-                    <h1 className={styles.title}>dApps</h1>
-                    <p className={styles.lede}>
+        <div className={adminClasses.page}>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex flex-[1_1_360px] flex-col gap-1.5">
+                    <h1 className={adminClasses.title}>dApps</h1>
+                    <p className="text-[14px] text-ink-subtle">
                         Applications registered for NEAR Auth. Approving one creates its Auth0 application and emails the client ID to its
                         owner.
                     </p>
@@ -114,13 +121,17 @@ export function DappsList() {
                 <AutoApprovalSwitch />
             </div>
 
-            <div className={styles.toolbar}>
-                <div role="group" aria-label="Filter by status" className={styles.filters}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <div
+                    role="group"
+                    aria-label="Filter by status"
+                    className="flex flex-wrap gap-1 rounded-pill border border-border bg-surface p-1"
+                >
                     {VIEWS.map((option) => (
                         <button
                             key={option}
                             type="button"
-                            className={styles.filter}
+                            className="inline-flex h-8 cursor-pointer items-center rounded-pill border-0 bg-transparent px-3 py-0 text-sm font-semibold text-ink-subtle hover:text-ink aria-pressed:bg-chip-strong-bg aria-pressed:text-chip-strong-ink"
                             aria-pressed={option === view}
                             onClick={() => {
                                 if (option !== view) update({ view: option === "review" ? undefined : option });
@@ -130,10 +141,11 @@ export function DappsList() {
                         </button>
                     ))}
                 </div>
-                <div className={styles.toolbarEnd}>
-                    <label className={styles.selectBox}>
-                        <span>Sort by</span>
+                <div className="flex flex-wrap items-center gap-3">
+                    <label className={SELECT_BOX}>
+                        <span className={SELECT_LABEL}>Sort by</span>
                         <select
+                            className={SELECT}
                             value={orderBy ?? (view === "review" ? "" : "submittedAt")}
                             onChange={(event) => update({ orderBy: event.target.value })}
                         >
@@ -145,18 +157,27 @@ export function DappsList() {
                             ))}
                         </select>
                     </label>
-                    <label className={styles.selectBox}>
-                        <span>Order</span>
-                        <select value={order} onChange={(event) => update({ order: event.target.value === "desc" ? "desc" : undefined })}>
+                    <label className={SELECT_BOX}>
+                        <span className={SELECT_LABEL}>Order</span>
+                        <select
+                            className={SELECT}
+                            value={order}
+                            onChange={(event) => update({ order: event.target.value === "desc" ? "desc" : undefined })}
+                        >
                             <option value="asc">{ascLabel}</option>
                             <option value="desc">{descLabel}</option>
                         </select>
                     </label>
-                    <form role="search" className={styles.search} onSubmit={search}>
+                    <form
+                        role="search"
+                        className="flex h-[38px] w-[280px] max-w-full items-center gap-2 rounded-[12px] border border-border-strong bg-surface px-3 py-0 text-faint focus-within:outline-2 focus-within:outline-focus focus-within:outline-offset-2 [&_svg]:flex-none"
+                        onSubmit={search}
+                    >
                         <SearchIcon />
                         <input
                             ref={searchInput}
                             name="q"
+                            className="min-w-0 flex-auto border-0 bg-transparent text-[14px] text-ink placeholder:text-faint focus-visible:outline-none"
                             type="search"
                             defaultValue={q}
                             maxLength={SEARCH_MAX_LENGTH}
@@ -182,15 +203,26 @@ export function DappsList() {
                 <>
                     {list.isError && <RefreshError error={list.error} />}
                     {!empty && (
-                        <div className={styles.tableWrap}>
-                            <table className={styles.table} aria-busy={list.isPlaceholderData || undefined}>
+                        <div className="overflow-x-auto rounded-[12px] border border-border bg-surface">
+                            <table
+                                className="w-full min-w-[880px] border-collapse text-[14px] aria-busy:opacity-60"
+                                aria-busy={list.isPlaceholderData || undefined}
+                            >
                                 <thead>
                                     <tr>
-                                        <th scope="col">dApp</th>
-                                        <th scope="col">Expected MAU</th>
-                                        <th scope="col">{dateColumn.label}</th>
-                                        <th scope="col">Status</th>
-                                        <th scope="col" className={styles.actionsCell}>
+                                        <th scope="col" className={`${HEAD} text-left`}>
+                                            dApp
+                                        </th>
+                                        <th scope="col" className={`${HEAD} text-left`}>
+                                            Expected MAU
+                                        </th>
+                                        <th scope="col" className={`${HEAD} text-left`}>
+                                            {dateColumn.label}
+                                        </th>
+                                        <th scope="col" className={`${HEAD} text-left`}>
+                                            Status
+                                        </th>
+                                        <th scope="col" className={`${HEAD} ${ACTIONS}`}>
                                             Actions
                                         </th>
                                     </tr>
@@ -198,36 +230,43 @@ export function DappsList() {
                                 <tbody>
                                     {list.data.items.map((dapp) => (
                                         <tr key={dapp.id}>
-                                            <td>
-                                                <div className={styles.dappCell}>
-                                                    <span className={styles.initials} aria-hidden="true">
+                                            <td className={`${CELL} py-[14px]`}>
+                                                <div className="flex items-center gap-3">
+                                                    <span
+                                                        className="flex size-9 flex-none items-center justify-center rounded-[10px] bg-surface-muted text-[14px] font-bold text-ink-2"
+                                                        aria-hidden="true"
+                                                    >
                                                         {initials(dapp.name)}
                                                     </span>
-                                                    <div className={styles.dappName}>
-                                                        <Link to={`/admin/dapps/${dapp.id}`} state={listState}>
+                                                    <div className="flex min-w-0 flex-col gap-0.5">
+                                                        <Link
+                                                            to={`/admin/dapps/${dapp.id}`}
+                                                            state={listState}
+                                                            className="font-semibold text-ink no-underline hover:underline"
+                                                        >
                                                             {dapp.name}
                                                         </Link>
-                                                        <span>
+                                                        <span className="text-sm text-ink-subtle">
                                                             <OwnerEmail email={dapp.ownerEmail} />
                                                         </span>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>{MAU_LABELS[dapp.mauBracket]}</td>
-                                            <td className={styles.nowrap}>{formatDateTime(dateColumn.of(dapp))}</td>
-                                            <td>
-                                                <span className={styles.badges}>
+                                            <td className={`${CELL} py-[14px]`}>{MAU_LABELS[dapp.mauBracket]}</td>
+                                            <td className={`${CELL} py-[14px] whitespace-nowrap`}>{formatDateTime(dateColumn.of(dapp))}</td>
+                                            <td className={`${CELL} py-[14px]`}>
+                                                <span className="inline-flex flex-wrap gap-2">
                                                     <StatusBadge status={dapp.status} />
                                                     {dapp.pendingChange && <StatusBadge status="change-under-review" />}
                                                 </span>
                                             </td>
-                                            <td className={styles.actionsCell}>
+                                            <td className={`${CELL} py-2.5 ${ACTIONS}`}>
                                                 <Link
                                                     to={`/admin/dapps/${dapp.id}`}
                                                     state={listState}
                                                     className={buttonClassName({ variant: "secondary", size: "small" })}
                                                 >
-                                                    View<span className={styles.srOnly}> {dapp.name}</span>
+                                                    View<span className="sr-only"> {dapp.name}</span>
                                                 </Link>
                                             </td>
                                         </tr>
@@ -236,10 +275,16 @@ export function DappsList() {
                             </table>
                         </div>
                     )}
-                    <div className={empty ? styles.empty : styles.pagination}>
+                    <div
+                        className={
+                            empty
+                                ? "rounded-[12px] border border-border bg-surface px-4 py-12 text-center text-ink-subtle"
+                                : "flex flex-wrap items-center justify-between gap-3 text-sm text-ink-subtle"
+                        }
+                    >
                         <p role="status">{announcement.current}</p>
                         {!empty && (
-                            <nav className={styles.pager} aria-label="Pages">
+                            <nav className="flex gap-2" aria-label="Pages">
                                 <Button
                                     variant="secondary"
                                     size="small"

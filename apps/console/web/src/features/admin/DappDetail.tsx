@@ -1,15 +1,17 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useState, type ReactNode } from "react";
+import { useForm } from "react-hook-form";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { ApiError, type AdminDapp, type ErrorCode } from "../../api/client";
 import { errorMessage } from "../../api/error-message";
 import { useAdminAction, useAdminDapp, useAdminEditDapp } from "../../api/hooks";
 import { LoadError, RefreshError } from "../../app/LoadError";
 import { LoadingScreen } from "../../app/LoadingScreen";
-import { transition, type DappAction } from "@shared/console-domain/dapp-transitions";
-import { isContactEmail, REASON_MAX_LENGTH, REASON_MIN_LENGTH } from "@shared/console-domain/field-rules";
+import { MAU_LABELS, type DappStatus } from "@shared/console-domain/dapp";
+import { DappAction, transition } from "@shared/console-domain/dapp-transitions";
+import { REASON_MAX_LENGTH, REASON_MIN_LENGTH } from "@shared/console-domain/field-rules";
 import { diffSyncedFields, type FieldValueChange } from "@shared/console-domain/dapp-edits";
-import { MAU_LABELS } from "@shared/console-domain/dapp";
-import { FIELD_REASONS } from "../../lib/dapp-schema";
+import { changeOwnerSchema, type ChangeOwnerInput } from "../../lib/dapp-schema";
 import { formatDateTime, shortClientId } from "../../lib/format";
 import { initials } from "../../lib/initials";
 import { Button } from "../../ui/Button";
@@ -21,12 +23,15 @@ import { ChangeDiff } from "../dapp/ChangeDiff";
 import { DappForm } from "../dapp/DappForm";
 import { StatusBadge } from "../dapp/StatusBadge";
 import { useHeadingFocus } from "../dapp/useHeadingFocus";
-import valueStyles from "../dapp/values.module.css";
+import { valueClasses } from "../dapp/FieldValues";
 import { ActivityLog } from "./ActivityLog";
-import styles from "./admin.module.css";
 import { ChangeReview } from "./ChangeReview";
+import { adminClasses } from "./classes";
 import { DappFacts, DappRecord } from "./DappFacts";
 import { EmailText } from "./Email";
+
+const REASON_TEXT = "whitespace-pre-wrap wrap-anywhere";
+const DIALOG_NOTE = "text-sm text-ink-subtle [&_strong]:font-semibold [&_strong]:text-ink";
 
 const AUTH0_ERROR_TITLE = "The last Auth0 call failed";
 
@@ -61,10 +66,10 @@ export function DappDetail() {
         if (!dapp.isError) return <LoadingScreen />;
         if (dapp.error instanceof ApiError && (dapp.error.statusCode === 400 || dapp.error.statusCode === 404)) {
             return (
-                <section className={styles.page}>
-                    <h1 className={styles.title}>dApp not found</h1>
+                <section className={adminClasses.page}>
+                    <h1 className={adminClasses.title}>dApp not found</h1>
                     <p>
-                        <Link to={listPath} className={styles.link}>
+                        <Link to={listPath} className="text-link">
                             Back to the dApps
                         </Link>
                     </p>
@@ -81,7 +86,7 @@ export function DappDetail() {
         );
     }
     return (
-        <div className={styles.page}>
+        <div className={adminClasses.page}>
             {dapp.isError && <RefreshError error={dapp.error} />}
             <AdminDappView key={dapp.data.id} dapp={dapp.data} />
         </div>
@@ -110,7 +115,8 @@ function AdminDappView({ dapp }: { dapp: AdminDapp }) {
     const [liveSave, setLiveSave] = useState<{ changes: FieldValueChange[]; decide: (apply: boolean) => void } | null>(null);
     const edit = useAdminEditDapp(dapp.id);
     const run = useAdminAction(dapp.id);
-    const can = (action: DappAction) => transition({ status: dapp.status, hasPendingChange: dapp.pendingChange !== null }, action).ok;
+    const can = (action: DappAction) =>
+        transition({ status: dapp.status as DappStatus, hasPendingChange: dapp.pendingChange !== null }, action).ok;
     const active = dapp.status !== "removed";
     const { heading, focusHeadingAfterRender } = useHeadingFocus(false);
     const listPath = useListPath();
@@ -154,51 +160,60 @@ function AdminDappView({ dapp }: { dapp: AdminDapp }) {
 
     return (
         <>
-            <nav aria-label="Breadcrumb" className={styles.breadcrumb}>
-                <Link to={listPath}>dApps</Link>
+            <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-ink-subtle [&_svg]:flex-none">
+                <Link to={listPath} className="text-ink-subtle no-underline hover:underline">
+                    dApps
+                </Link>
                 <ChevronRightIcon size={14} />
-                <span aria-current="page">{dapp.name}</span>
+                <span aria-current="page" className="min-w-0 font-medium text-ink wrap-anywhere">
+                    {dapp.name}
+                </span>
             </nav>
 
-            <div className={styles.detailHead}>
-                <span className={styles.headMark} aria-hidden="true">
+            <div className="flex flex-wrap items-center gap-4">
+                <span
+                    className="flex size-12 flex-none items-center justify-center rounded-[12px] bg-ok-bg text-[18px] font-bold text-ok-ink"
+                    aria-hidden="true"
+                >
                     {initials(dapp.name)}
                 </span>
-                <div className={styles.headText}>
-                    <div className={styles.headTitle}>
-                        <h1 ref={heading} tabIndex={-1} className={styles.title}>
+                <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1">
+                    <div className="flex flex-wrap items-center gap-2.5">
+                        <h1 ref={heading} tabIndex={-1} className={adminClasses.title}>
                             {dapp.name}
                         </h1>
-                        <span className={styles.badges}>
+                        <span className="inline-flex flex-wrap gap-2">
                             <StatusBadge status={dapp.status} />
                             {dapp.pendingChange && <StatusBadge status="change-under-review" />}
                         </span>
                     </div>
-                    <span className={styles.headMeta}>
+                    <span className="text-sm text-ink-subtle wrap-anywhere">
                         Submitted {formatDateTime(dapp.submittedAt)} · owned by <EmailText email={dapp.ownerEmail} />
                     </span>
                 </div>
                 {active && !editing && (
-                    <div className={styles.headActions}>
-                        {can("approve") && (
+                    <div className="flex flex-wrap gap-2">
+                        {can(DappAction.APPROVE) && (
                             <Button onClick={() => open("approve")}>
                                 <CheckIcon size={16} />
                                 Approve
                             </Button>
                         )}
-                        {can("reject") && (
+                        {can(DappAction.REJECT) && (
                             <Button variant="danger" onClick={() => open("reject")}>
                                 Reject
                             </Button>
                         )}
-                        <Button variant="secondary" disabled={!can("adminEdit")} onClick={() => switchEditing(dapp)}>
+                        <Button variant="secondary" disabled={!can(DappAction.ADMIN_EDIT)} onClick={() => switchEditing(dapp)}>
                             <PencilIcon size={15} />
                             Edit
                         </Button>
                     </div>
                 )}
             </div>
-            {active && !editing && !can("adminEdit") && <p className={styles.hint}>Approve or reject the pending change before editing.</p>}
+            {active && !editing && !can(DappAction.ADMIN_EDIT) && (
+                <p className="-mt-3 text-sm text-ink-subtle">Approve or reject the pending change before editing.</p>
+            )}
 
             {changed && (
                 <div role="alert">
@@ -210,14 +225,14 @@ function AdminDappView({ dapp }: { dapp: AdminDapp }) {
             {dapp.auth0Error && (
                 <Callout tone="error" title={AUTH0_ERROR_TITLE}>
                     <p>
-                        <code className={valueStyles.code}>{dapp.auth0Error}</code>
+                        <code className={valueClasses.code}>{dapp.auth0Error}</code>
                     </p>
                     <p>{AUTH0_ERROR_OUTCOMES[dapp.status]}</p>
                 </Callout>
             )}
             {dapp.status === "rejected" && (
                 <Callout tone="warning" title="Rejected">
-                    <p className={styles.reason}>{dapp.rejectionReason}</p>
+                    <p className={REASON_TEXT}>{dapp.rejectionReason}</p>
                 </Callout>
             )}
             {dapp.status === "removed" && (
@@ -232,13 +247,13 @@ function AdminDappView({ dapp }: { dapp: AdminDapp }) {
                         )}
                         .
                     </p>
-                    {dapp.removalReason && <p className={styles.reason}>{dapp.removalReason}</p>}
+                    {dapp.removalReason && <p className={REASON_TEXT}>{dapp.removalReason}</p>}
                 </Callout>
             )}
 
-            <div className={styles.columns}>
-                <div className={styles.mainColumn}>
-                    {dapp.pendingChange && can("approveChange") && (
+            <div className="flex flex-wrap items-start gap-6">
+                <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-6">
+                    {dapp.pendingChange && can(DappAction.APPROVE_CHANGE) && (
                         <ChangeReview
                             dapp={dapp}
                             change={dapp.pendingChange}
@@ -261,26 +276,26 @@ function AdminDappView({ dapp }: { dapp: AdminDapp }) {
                                 switchEditing(null);
                             }}
                             onCancel={() => switchEditing(null)}
-                            onReload={() => switchEditing(can("adminEdit") ? dapp : null)}
+                            onReload={() => switchEditing(can(DappAction.ADMIN_EDIT) ? dapp : null)}
                             errorText={adminErrorMessage}
                         />
                     ) : (
-                        <DappFacts dapp={dapp} onChangeOwner={can("changeOwner") ? () => open("owner") : undefined} />
+                        <DappFacts dapp={dapp} onChangeOwner={can(DappAction.CHANGE_OWNER) ? () => open("owner") : undefined} />
                     )}
 
                     <ActivityLog id={dapp.id} />
                 </div>
 
-                <aside className={styles.sideColumn}>
+                <aside className="flex min-w-0 flex-[1_1_300px] flex-col gap-6">
                     <DappRecord dapp={dapp} />
-                    {can("remove") && !editing && (
-                        <section className={`${styles.sideCard} ${styles.dangerCard}`}>
-                            <h2>Danger zone</h2>
-                            <p>
+                    {can(DappAction.REMOVE) && !editing && (
+                        <section className="flex flex-col gap-2.5 rounded-lg border border-danger-border p-5">
+                            <h2 className="text-[14px] font-semibold tracking-[normal] text-danger-ink">Danger zone</h2>
+                            <p className="text-sm text-ink-subtle">
                                 Deletes its Auth0 application, if any; the record and its activity log are kept. You&apos;ll be asked to
                                 confirm and give a reason, which is emailed to the owner. The owner can submit again with the same email.
                             </p>
-                            <Button variant="danger" size="small" className={styles.dangerAction} onClick={() => open("remove")}>
+                            <Button variant="danger" size="small" className="self-start" onClick={() => open("remove")}>
                                 Remove dApp…
                             </Button>
                         </section>
@@ -321,9 +336,9 @@ function AdminDappView({ dapp }: { dapp: AdminDapp }) {
                 loading={run.isPending}
                 onConfirm={() => action && run.mutate({ action: "approve", body: { expectedVersion: action.version } }, settle)}
             >
-                <dl className={styles.summary}>
+                <dl className="m-0 grid grid-cols-[150px_minmax(0,1fr)] gap-x-4 gap-y-2 rounded-[12px] border border-border bg-canvas px-4 py-[14px] text-sm [&_dd]:m-0 [&_dd]:min-w-0 [&_dd]:wrap-anywhere [&_dt]:font-mono [&_dt]:text-[11px] [&_dt]:leading-[19.5px] [&_dt]:font-medium [&_dt]:tracking-kicker [&_dt]:text-ink-subtle [&_dt]:uppercase">
                     <dt>Auth0 application</dt>
-                    <dd className={styles.strong}>{dapp.name}</dd>
+                    <dd className="font-medium">{dapp.name}</dd>
                     <dt>Callback URLs</dt>
                     <dd>{dapp.callbackUrls.length}</dd>
                     <dt>Web origins</dt>
@@ -333,7 +348,7 @@ function AdminDappView({ dapp }: { dapp: AdminDapp }) {
                     <dt>Expected MAU</dt>
                     <dd>{MAU_LABELS[dapp.mauBracket]}</dd>
                 </dl>
-                <p className={styles.dialogNote}>
+                <p className={DIALOG_NOTE}>
                     Later owner changes to the name, description, logo or URLs come back for review; contact email and MAU changes apply at
                     once. You can remove the dApp at any time.
                 </p>
@@ -423,7 +438,7 @@ function AdminDappView({ dapp }: { dapp: AdminDapp }) {
                     action && run.mutate({ action: "remove", body: { expectedVersion: action.version, reason } }, settle)
                 }
             >
-                <p className={styles.dialogNote}>
+                <p className={DIALOG_NOTE}>
                     The reason is emailed to <strong>{dapp.ownerEmail}</strong>. The record and its activity log are kept.
                 </p>
                 {failure(run.error)}
@@ -464,25 +479,21 @@ type ChangeOwnerFormProps = {
 };
 
 function ChangeOwnerForm({ onClose, onConfirm, loading, children }: ChangeOwnerFormProps) {
-    const [email, setEmail] = useState("");
-    const [attempted, setAttempted] = useState(false);
-    const trimmed = email.trim();
-    const valid = isContactEmail(trimmed);
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm<ChangeOwnerInput>({ resolver: zodResolver(changeOwnerSchema), defaultValues: { ownerEmail: "" } });
 
     return (
         <DialogForm
             onClose={onClose}
             confirmLabel="Change owner"
             loading={loading}
-            onSubmit={() => {
-                setAttempted(true);
-                if (valid) onConfirm(trimmed);
-            }}
+            onSubmit={() => void handleSubmit(({ ownerEmail }) => onConfirm(ownerEmail))()}
         >
-            <Field label="New owner's email" error={attempted && !valid ? FIELD_REASONS.contactEmail : undefined}>
-                {(control) => (
-                    <input {...control} type="email" value={email} autoComplete="off" onChange={(event) => setEmail(event.target.value)} />
-                )}
+            <Field label="New owner's email" error={errors.ownerEmail?.message}>
+                {(control) => <input {...control} {...register("ownerEmail")} type="email" autoComplete="off" />}
             </Field>
             {children}
         </DialogForm>

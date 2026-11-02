@@ -79,3 +79,7 @@ export const dappFormSchema = z.object({
 });
 
 export type DappFormInput = z.input<typeof dappFormSchema>;
+
+export const changeOwnerSchema = z.object({ ownerEmail: dappFormSchema.shape.contactEmail });
+
+export type ChangeOwnerInput = z.input<typeof changeOwnerSchema>;

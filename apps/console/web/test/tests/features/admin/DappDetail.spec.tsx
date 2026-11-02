@@ -1,12 +1,11 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { Link } from "react-router-dom";
-import { describe, expect, it } from "vitest";
-import type { AdminDapp, DappEvent } from "../../api/client";
-import { formatDateTime } from "../../lib/format";
-import { adminDapp, apiError, mockApi, refocus, renderApp, type MockRoutes } from "../../test/api";
-import { DappDetail } from "./DappDetail";
-import { DappsList } from "./DappsList";
+import type { AdminDapp, DappEvent } from "../../../../src/api/client";
+import { formatDateTime } from "../../../../src/lib/format";
+import { adminDapp, apiError, mockApi, refocus, renderApp, type MockRoutes } from "../../../utils/api";
+import { DappDetail } from "../../../../src/features/admin/DappDetail";
+import { DappsList } from "../../../../src/features/admin/DappsList";
 
 const ID = "0d9f3b8e-1c5e-4a40-9c0e-6a6f7f0b5a11";
 const PATH = `/api/console/admin/dapps/${ID}`;
@@ -76,7 +75,7 @@ async function openDialog(name: string) {
 }
 
 describe("DappDetail", () => {
-    it("shows the dApp, its logo, the Auth0 error and the activity log", async () => {
+    it("should show the dApp, its logo, the Auth0 error and the activity log", async () => {
         renderDetail(adminDapp({ auth0Error: "Auth0 timed out" }));
 
         expect(await screen.findByRole("heading", { name: "Acme Wallet" })).toBeInTheDocument();
@@ -95,7 +94,7 @@ describe("DappDetail", () => {
         expect(within(log).getByText("Timeout after 10000 ms")).toBeInTheDocument();
     });
 
-    it("announces that the activity is loading", async () => {
+    it("should announce that the activity is loading", async () => {
         renderDetail(adminDapp(), { [`GET ${PATH}/events`]: () => new Promise(() => undefined) });
 
         const activity = await screen.findByRole("region", { name: "Activity" });
@@ -103,7 +102,7 @@ describe("DappDetail", () => {
         expect(within(activity).getByRole("status")).toHaveTextContent("Loading the activity");
     });
 
-    it("approves with the version on screen", async () => {
+    it("should approve with the version on screen", async () => {
         const api = renderDetail(adminDapp(), { [`POST ${PATH}/approve`]: { body: adminDapp({ status: "approved", version: 4 }) } });
 
         const dialog = await openDialog("Approve");
@@ -112,7 +111,7 @@ describe("DappDetail", () => {
         expect(api.sent(`POST ${PATH}/approve`)[0]?.body).toEqual({ expectedVersion: 3 });
     });
 
-    it("rejects with a reason", async () => {
+    it("should reject with a reason", async () => {
         const api = renderDetail(adminDapp(), { [`POST ${PATH}/reject`]: { body: adminDapp({ status: "rejected", version: 4 }) } });
 
         const dialog = await openDialog("Reject");
@@ -122,7 +121,7 @@ describe("DappDetail", () => {
         expect(api.sent(`POST ${PATH}/reject`)[0]?.body).toEqual({ expectedVersion: 3, reason: REASON });
     });
 
-    it("reviews a pending change from its diff", async () => {
+    it("should review a pending change from its diff", async () => {
         const pendingChange = { ...PENDING_CHANGE, logoUrl: "https://cdn.acme.xyz/pay.png" };
         const dapp = adminDapp({ status: "approved", auth0ClientId: "client-abc", pendingChange, version: 7 });
         const api = renderDetail(dapp, {
@@ -144,7 +143,7 @@ describe("DappDetail", () => {
         expect(api.sent(`POST ${PATH}/change/reject`)[0]?.body).toEqual({ expectedVersion: 7, reason: REASON });
     });
 
-    it("changes the owner to a valid email, explaining an invalid one", async () => {
+    it("should change the owner to a valid email, explaining an invalid one", async () => {
         const api = renderDetail(adminDapp(), { [`POST ${PATH}/owner`]: { body: adminDapp({ ownerEmail: "new@acme.xyz", version: 4 }) } });
 
         const dialog = await openDialog("Change owner");
@@ -161,7 +160,7 @@ describe("DappDetail", () => {
         expect(api.sent(`POST ${PATH}/owner`)[0]?.body).toEqual({ expectedVersion: 3, ownerEmail: "new@acme.xyz" });
     });
 
-    it("says the new owner already has a dApp when the email is taken", async () => {
+    it("should say the new owner already has a dApp when the email is taken", async () => {
         renderDetail(adminDapp(), { [`POST ${PATH}/owner`]: apiError(409, "DAPP_ALREADY_EXISTS") });
 
         const dialog = await openDialog("Change owner");
@@ -172,7 +171,7 @@ describe("DappDetail", () => {
         expect(dialog).not.toHaveTextContent("Reload to see it");
     });
 
-    it("removes once the name and a reason are given", async () => {
+    it("should remove once the name and a reason are given", async () => {
         const api = renderDetail(adminDapp(), { [`POST ${PATH}/remove`]: { body: adminDapp({ status: "removed", version: 4 }) } });
 
         const dialog = await openDialog("Remove dApp…");
@@ -185,7 +184,7 @@ describe("DappDetail", () => {
         expect(api.sent(`POST ${PATH}/remove`)[0]?.body).toEqual({ expectedVersion: 3, reason: REASON });
     });
 
-    it("edits on behalf of the owner with the version it showed", async () => {
+    it("should edit on behalf of the owner with the version it showed", async () => {
         const api = renderDetail(adminDapp(), { [`PUT ${PATH}`]: { body: adminDapp({ version: 4 }) } });
 
         await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
@@ -196,7 +195,7 @@ describe("DappDetail", () => {
         expect(api.sent(`PUT ${PATH}`)[0]?.body).toMatchObject({ name: "Acme Pay", expectedVersion: 3 });
     });
 
-    it("asks before saving an approved dApp's synced fields, lists what changes, and saves only on Save and apply", async () => {
+    it("should ask before saving an approved dApp's synced fields, list what changes, and save only on Save and apply", async () => {
         const approved = adminDapp({ status: "approved", auth0ClientId: "abcDEF123" });
         const api = renderDetail(approved, { [`PUT ${PATH}`]: { body: adminDapp({ status: "approved", version: 4 }) } });
 
@@ -219,7 +218,7 @@ describe("DappDetail", () => {
         expect(api.sent(`PUT ${PATH}`)[0]?.body).toMatchObject({ name: "Acme Pay", expectedVersion: 3 });
     });
 
-    it("saves an approved dApp's contact email without asking, since it does not touch the live client", async () => {
+    it("should save an approved dApp's contact email without asking, since it does not touch the live client", async () => {
         const approved = adminDapp({ status: "approved", auth0ClientId: "abcDEF123" });
         const api = renderDetail(approved, { [`PUT ${PATH}`]: { body: adminDapp({ status: "approved", version: 4 }) } });
 
@@ -232,7 +231,7 @@ describe("DappDetail", () => {
         expect(screen.queryByRole("dialog", { name: "Apply changes to the live app?" })).not.toBeInTheDocument();
     });
 
-    it("decides on the version shown when the dialog opened; a newer one closes it so the admin reviews again", async () => {
+    it("should decide on the version shown when the dialog opened; a newer one closes it so the admin reviews again", async () => {
         const routes: MockRoutes = {
             [`GET ${PATH}`]: { body: adminDapp() },
             [`GET ${PATH}/events`]: { body: [] },
@@ -258,7 +257,7 @@ describe("DappDetail", () => {
         expect(api.sent(`POST ${PATH}/approve`).map((request) => request.body)).toEqual([{ expectedVersion: 3 }, { expectedVersion: 4 }]);
     });
 
-    it("keeps the dialog open while the action is in flight, so an answer that the dApp changed is still reported", async () => {
+    it("should keep the dialog open while the action is in flight, so an answer that the dApp changed is still reported", async () => {
         let answer: () => void = () => undefined;
         const gate = new Promise<void>((resolve) => (answer = resolve));
         renderDetail(adminDapp(), {
@@ -280,7 +279,7 @@ describe("DappDetail", () => {
         expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
-    it("cannot be cancelled while the owner change is in flight", async () => {
+    it("should not be cancellable while the owner change is in flight", async () => {
         let answer: () => void = () => undefined;
         const gate = new Promise<void>((resolve) => (answer = resolve));
         renderDetail(adminDapp(), {
@@ -301,7 +300,7 @@ describe("DappDetail", () => {
         expect(await screen.findByText("Nothing was done")).toBeInTheDocument();
     });
 
-    it("starts each dApp's page afresh when moving between dApps that are already loaded", async () => {
+    it("should start each dApp's page afresh when moving between dApps that are already loaded", async () => {
         const other = "5b1c2d3e-0000-4000-8000-000000000002";
         const otherPath = `/api/console/admin/dapps/${other}`;
         mockApi({
@@ -336,7 +335,7 @@ describe("DappDetail", () => {
         expect(screen.queryByLabelText("Application name")).not.toBeInTheDocument();
     });
 
-    it("approves a change on the version shown when its dialog opened", async () => {
+    it("should approve a change on the version shown when its dialog opened", async () => {
         const routes: MockRoutes = {
             [`GET ${PATH}`]: { body: adminDapp({ status: "approved", version: 7, pendingChange: PENDING_CHANGE }) },
             [`GET ${PATH}/events`]: { body: [] },
@@ -357,7 +356,7 @@ describe("DappDetail", () => {
         expect(await screen.findByText("Nothing was done")).toBeInTheDocument();
     });
 
-    it("closes the edit form on Reload when the latest version has a pending change", async () => {
+    it("should close the edit form on Reload when the latest version has a pending change", async () => {
         const routes: MockRoutes = {
             [`GET ${PATH}`]: { body: adminDapp({ status: "approved", auth0ClientId: "client-abc" }) },
             [`GET ${PATH}/events`]: { body: [] },
@@ -378,7 +377,7 @@ describe("DappDetail", () => {
         expect(screen.getByRole("region", { name: "Change under review" })).toBeInTheDocument();
     });
 
-    it("keeps the page and an open form when a background refetch fails", async () => {
+    it("should keep the page and an open form when a background refetch fails", async () => {
         const routes: MockRoutes = { [`GET ${PATH}`]: { body: adminDapp() }, [`GET ${PATH}/events`]: { body: [] } };
         mockApi(routes);
         renderApp([{ path: "/admin/dapps/:id", element: <DappDetail /> }], `/admin/dapps/${ID}`);
@@ -397,7 +396,7 @@ describe("DappDetail", () => {
         ["approved", adminDapp({ status: "approved", auth0ClientId: "abcDEF123" }), ["Edit", "Change owner", "Copy", "Remove dApp…"]],
         ["rejected", adminDapp({ status: "rejected", rejectionReason: REASON }), ["Edit", "Change owner", "Remove dApp…"]],
         ["removed", REMOVED, []],
-    ])("offers only the actions a %s dApp allows", async (_status, dapp, buttons) => {
+    ])("should offer only the actions a %s dApp allows", async (_status, dapp, buttons) => {
         renderDetail(dapp, { [`GET ${PATH}/events`]: { body: [] } });
 
         await screen.findByRole("heading", { name: "Acme Wallet", level: 1 });
@@ -405,7 +404,7 @@ describe("DappDetail", () => {
         expect(screen.queryAllByRole("button").map((button) => button.textContent)).toEqual(buttons);
     });
 
-    it("shows when, by whom and why a dApp was removed", async () => {
+    it("should show when, by whom and why a dApp was removed", async () => {
         renderDetail(REMOVED);
 
         const notice = (await screen.findByText("Removed", { selector: "p" })).parentElement;
@@ -413,7 +412,7 @@ describe("DappDetail", () => {
         expect(notice).toHaveTextContent(`${formatDateTime(AT)} by admin@near.org.${REASON}`);
     });
 
-    it("shows a removed dApp's Auth0 client as its former one, deleted at removal, with nothing to copy", async () => {
+    it("should show a removed dApp's Auth0 client as its former one, deleted at removal, with nothing to copy", async () => {
         renderDetail(REMOVED);
 
         await screen.findByRole("heading", { name: "Acme Wallet", level: 1 });
@@ -425,7 +424,7 @@ describe("DappDetail", () => {
         expect(screen.queryByRole("button", { name: "Copy client ID" })).not.toBeInTheDocument();
     });
 
-    it("says a removal went through when the console left a client not tagged as the dApp's", async () => {
+    it("should say a removal went through when the console left a client not tagged as the dApp's", async () => {
         renderDetail(adminDapp({ status: "removed", auth0ClientId: "c1", removedAt: AT, auth0Error: MISMATCH }), {
             [`GET ${PATH}/events`]: { body: [] },
         });
@@ -438,7 +437,7 @@ describe("DappDetail", () => {
         expect(screen.queryByText("Deleted from Auth0")).not.toBeInTheDocument();
     });
 
-    it("says a rejection went through when the console left a client not tagged as the dApp's, and that a failed removal saved nothing", async () => {
+    it("should say a rejection went through when the console left a client not tagged as the dApp's, and that a failed removal saved nothing", async () => {
         renderDetail(adminDapp({ status: "rejected", rejectionReason: REASON, auth0Error: MISMATCH }), {
             [`GET ${PATH}/events`]: { body: [] },
         });
@@ -450,7 +449,7 @@ describe("DappDetail", () => {
         );
     });
 
-    it("shows erased personal data as erased, never as an address or a person", async () => {
+    it("should show erased personal data as erased, never as an address or a person", async () => {
         renderDetail(
             adminDapp({
                 status: "removed",
@@ -481,7 +480,7 @@ describe("DappDetail", () => {
         expect(screen.getByText("Owner").nextElementSibling).toHaveTextContent("Erased · owns this dApp");
     });
 
-    it("shows what each kind of event recorded", async () => {
+    it("should show what each kind of event recorded", async () => {
         const system = { actorEmail: null, actorRole: "system", createdAt: AT } as const;
         const admin = { actorEmail: "admin@near.org", actorRole: "admin", createdAt: AT } as const;
         const owner = { actorEmail: "owner@acme.xyz", actorRole: "user", createdAt: AT } as const;
@@ -561,7 +560,7 @@ describe("DappDetail", () => {
         expect(eventItem(log, "Submitted for review")).toHaveTextContent("Chosen for auto-approval.");
     });
 
-    it("keeps the loaded activity when a background refetch of it fails", async () => {
+    it("should keep the loaded activity when a background refetch of it fails", async () => {
         const routes: MockRoutes = { [`GET ${PATH}`]: { body: adminDapp() }, [`GET ${PATH}/events`]: { body: EVENTS } };
         mockApi(routes);
         renderApp([{ path: "/admin/dapps/:id", element: <DappDetail /> }], `/admin/dapps/${ID}`);
@@ -576,7 +575,7 @@ describe("DappDetail", () => {
         expect(within(log).getByText("3 events · newest first")).toBeInTheDocument();
     });
 
-    it("moves focus to the title when the edit form opens, is cancelled, and saves", async () => {
+    it("should move focus to the title when the edit form opens, is cancelled, and saves", async () => {
         renderDetail(adminDapp(), { [`PUT ${PATH}`]: { body: adminDapp({ version: 4 }) } });
         const title = await screen.findByRole("heading", { name: "Acme Wallet", level: 1 });
 
@@ -591,7 +590,7 @@ describe("DappDetail", () => {
         expect(title).toHaveFocus();
     });
 
-    it("announces an action refused because the dApp changed, and moves focus to the title", async () => {
+    it("should announce an action refused because the dApp changed, and move focus to the title", async () => {
         renderDetail(adminDapp(), { [`GET ${PATH}/events`]: { body: [] }, [`POST ${PATH}/approve`]: apiError(409, "DAPP_CHANGED") });
 
         const dialog = await openDialog("Approve");
@@ -630,26 +629,29 @@ describe("DappDetail", () => {
             REASON,
             "Acme Wallet",
         ],
-    ] as const)("moves focus to the title after a successful %s", async (_name, before, open, path, confirm, after, reason, typed) => {
-        let current: AdminDapp = before;
-        renderDetail(before, {
-            [`GET ${PATH}`]: () => ({ body: current }),
-            [`POST ${PATH}/${path}`]: () => {
-                current = after;
-                return { body: after };
-            },
-        });
+    ] as const)(
+        "should move focus to the title after a successful %s",
+        async (_name, before, open, path, confirm, after, reason, typed) => {
+            let current: AdminDapp = before;
+            renderDetail(before, {
+                [`GET ${PATH}`]: () => ({ body: current }),
+                [`POST ${PATH}/${path}`]: () => {
+                    current = after;
+                    return { body: after };
+                },
+            });
 
-        const dialog = await openDialog(open);
-        if (reason) await userEvent.type(within(dialog).getByLabelText("Reason"), reason);
-        if (typed) await userEvent.type(within(dialog).getByLabelText(`Type ${typed} to confirm`), typed);
-        await userEvent.click(within(dialog).getByRole("button", { name: confirm }));
+            const dialog = await openDialog(open);
+            if (reason) await userEvent.type(within(dialog).getByLabelText("Reason"), reason);
+            if (typed) await userEvent.type(within(dialog).getByLabelText(`Type ${typed} to confirm`), typed);
+            await userEvent.click(within(dialog).getByRole("button", { name: confirm }));
 
-        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-        expect(screen.getByRole("heading", { name: "Acme Wallet", level: 1 })).toHaveFocus();
-    });
+            await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+            expect(screen.getByRole("heading", { name: "Acme Wallet", level: 1 })).toHaveFocus();
+        },
+    );
 
-    it("clears the warning that the dApp changed once the next save succeeds", async () => {
+    it("should clear the warning that the dApp changed once the next save succeeds", async () => {
         const api = renderDetail(adminDapp(), {
             [`POST ${PATH}/approve`]: apiError(409, "DAPP_CHANGED"),
             [`PUT ${PATH}`]: { body: adminDapp({ name: "Acme Pay", version: 4 }) },
@@ -664,7 +666,7 @@ describe("DappDetail", () => {
         await waitFor(() => expect(screen.queryByText("Nothing was done")).not.toBeInTheDocument());
     });
 
-    it("points an admin to the stored Auth0 error when Auth0 refuses, without sending them to the NEAR Auth team", async () => {
+    it("should point an admin to the stored Auth0 error when Auth0 refuses, without sending them to the NEAR Auth team", async () => {
         renderDetail(adminDapp(), { [`POST ${PATH}/approve`]: apiError(422, "PROVISIONING_REJECTED") });
 
         const dialog = await openDialog("Approve");
@@ -675,7 +677,7 @@ describe("DappDetail", () => {
         );
     });
 
-    it("points an admin to the stored Auth0 error when the console could not finish in Auth0", async () => {
+    it("should point an admin to the stored Auth0 error when the console could not finish in Auth0", async () => {
         renderDetail(adminDapp(), { [`POST ${PATH}/approve`]: apiError(502, "PROVISIONING_FAILED") });
 
         const dialog = await openDialog("Approve");
@@ -686,7 +688,7 @@ describe("DappDetail", () => {
         );
     });
 
-    it("shows the admin wording, not the owner's, when saving an edit is refused by Auth0", async () => {
+    it("should show the admin wording, not the owner's, when saving an edit is refused by Auth0", async () => {
         renderDetail(adminDapp(), { [`PUT ${PATH}`]: apiError(422, "PROVISIONING_REJECTED") });
 
         await userEvent.click(await screen.findByRole("button", { name: "Edit" }));
@@ -697,10 +699,10 @@ describe("DappDetail", () => {
         );
     });
 
-    it("goes back to the list it was opened from, with its view, search, page and sort", async () => {
+    it("should go back to the list it was opened from, with its view, search, page and sort", async () => {
         mockApi({
             "GET /api/console/admin/dapps": { body: { items: [adminDapp()], total: 45, page: 2, pageSize: 20 } },
-            "GET /api/console/admin/settings": { body: { autoApproval: { enabled: false } } },
+            "GET /api/console/admin/settings": { body: { autoApproval: { enabled: false, dailyCap: 10 } } },
             [`GET ${PATH}`]: { body: adminDapp() },
             [`GET ${PATH}/events`]: { body: [] },
         });
@@ -723,7 +725,7 @@ describe("DappDetail", () => {
         expect(router.state.location.search).toBe("?view=pending&q=acme&page=2&orderBy=name&order=desc");
     });
 
-    it("says when the dApp does not exist", async () => {
+    it("should say when the dApp does not exist", async () => {
         mockApi({ [`GET ${PATH}`]: apiError(404, "DAPP_NOT_FOUND") });
         renderApp([{ path: "/admin/dapps/:id", element: <DappDetail /> }], `/admin/dapps/${ID}`);
 
