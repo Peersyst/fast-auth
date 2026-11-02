@@ -8,13 +8,13 @@ COPY apps/console /project/apps/console
 RUN pnpm install --frozen-lockfile
 
 RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
-    npx turbo run check-types --filter=console --filter=console-web
-RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
     npx turbo run lint --filter=console --filter=console-web
 RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
     npx turbo run test --filter=console --filter=console-web
 RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
     npx turbo run build --filter=console
+RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
+    npx turbo run check-types --filter=console --filter=console-web
 
 RUN --mount=type=secret,id=turbo_token,env=TURBO_TOKEN \
     pnpm --filter=console deploy --prod /artifacts
