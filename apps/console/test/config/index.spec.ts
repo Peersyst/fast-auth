@@ -1,4 +1,4 @@
-import { loadConfig } from "./index";
+import { loadConfig } from "../../src/config";
 
 const VALID_ENV = {
     CONFIG_ENV: "test",
@@ -6,7 +6,7 @@ const VALID_ENV = {
     PUBLIC_URL: "https://console.example.com/",
     DB_HOST: "localhost",
     DB_PORT: "5432",
-    DB_NAME: "console",
+    DB_DATABASE: "console",
     DB_USER: "console",
     DB_PASSWORD: "s3cret-password",
     DB_POOL_SIZE: "",
@@ -38,6 +38,11 @@ const REAL_ADAPTERS = {
     SES_REGION: "us-east-1",
 };
 
+/**
+ * Returns the message loadConfig throws for an environment, failing the test when it does not throw.
+ * @param env The environment to load.
+ * @returns The error message.
+ */
 function loadError(env: NodeJS.ProcessEnv): string {
     try {
         loadConfig(env);
@@ -48,10 +53,18 @@ function loadError(env: NodeJS.ProcessEnv): string {
 }
 
 describe("loadConfig", () => {
-    it("parses a valid environment into typed sections", () => {
+    it("should parse a valid environment into typed sections", () => {
         const config = loadConfig(VALID_ENV);
 
-        expect(config.server).toEqual({ env: "test", port: 3000, publicUrl: "https://console.example.com" });
+        expect(config.server).toEqual({
+            env: "test",
+            port: 3000,
+            publicUrl: "https://console.example.com",
+            metricsPort: 9464,
+            readyzTimeoutMs: 2000,
+            shutdownDelayMs: 0,
+        });
+        expect(config.logger).toEqual({ level: "warn", file: null });
         expect(config.database).toEqual({
             host: "localhost",
             port: 5432,
@@ -60,6 +73,7 @@ describe("loadConfig", () => {
             password: "s3cret-password",
             poolSize: 10,
             ssl: false,
+            connectTimeoutMs: 5000,
             lockTimeoutMs: 10000,
         });
         expect(config.auth0).toEqual({
@@ -72,22 +86,49 @@ describe("loadConfig", () => {
         expect(config.slack).toEqual({ webhookUrl: null });
     });
 
-    it("parses a set DB_LOCK_TIMEOUT_MS", () => {
-        expect(loadConfig({ ...VALID_ENV, DB_LOCK_TIMEOUT_MS: "500" }).database.lockTimeoutMs).toBe(500);
+    it("should parse set tunables instead of their defaults", () => {
+        const config = loadConfig({
+            ...VALID_ENV,
+            METRICS_PORT: "9100",
+            READYZ_TIMEOUT_MS: "750",
+            SHUTDOWN_DELAY_MS: "15000",
+            DB_CONNECT_TIMEOUT_MS: "1500",
+            DB_LOCK_TIMEOUT_MS: "500",
+        });
+
+        expect(config.server.metricsPort).toBe(9100);
+        expect(config.server.readyzTimeoutMs).toBe(750);
+        expect(config.server.shutdownDelayMs).toBe(15000);
+        expect(config.database.connectTimeoutMs).toBe(1500);
+        expect(config.database.lockTimeoutMs).toBe(500);
     });
 
-    it("refuses a DB_POOL_SIZE below 2, which the migration lock cannot run with", () => {
+    it("should default LOG_LEVEL to info outside tests and parse a set LOG_LEVEL and LOG_FILE", () => {
+        expect(loadConfig({ ...VALID_ENV, CONFIG_ENV: "development" }).logger).toEqual({ level: "info", file: null });
+        expect(loadConfig({ ...VALID_ENV, LOG_LEVEL: "debug", LOG_FILE: "/var/log/console.log" }).logger).toEqual({
+            level: "debug",
+            file: "/var/log/console.log",
+        });
+        expect(loadError({ ...VALID_ENV, LOG_LEVEL: "loud" })).toContain("LOG_LEVEL:");
+    });
+
+    it("should refuse a DB_POOL_SIZE below 2, which the migration lock cannot run with", () => {
         expect(loadError({ ...VALID_ENV, DB_POOL_SIZE: "1" })).toContain(
             "DB_POOL_SIZE: must be at least 2: migrations hold a lock on one connection and run on another",
         );
         expect(loadConfig({ ...VALID_ENV, DB_POOL_SIZE: "2" }).database.poolSize).toBe(2);
     });
 
-    it("lowercases and splits ADMIN_EMAILS", () => {
+    it("should refuse a negative SHUTDOWN_DELAY_MS and accept 0", () => {
+        expect(loadError({ ...VALID_ENV, SHUTDOWN_DELAY_MS: "-1" })).toContain("SHUTDOWN_DELAY_MS:");
+        expect(loadConfig({ ...VALID_ENV, SHUTDOWN_DELAY_MS: "0" }).server.shutdownDelayMs).toBe(0);
+    });
+
+    it("should lowercase and split ADMIN_EMAILS", () => {
         expect([...loadConfig(VALID_ENV).admin.emails]).toEqual(["alice@example.com", "bob@example.com"]);
     });
 
-    it("names every bad key and never a value", () => {
+    it("should name every bad key and never a value", () => {
         const message = loadError({
             ...VALID_ENV,
             DB_HOST: "",
@@ -102,11 +143,11 @@ describe("loadConfig", () => {
         expect(message).not.toContain("betanet");
     });
 
-    it("treats a value of only spaces as missing", () => {
+    it("should treat a value of only spaces as missing", () => {
         expect(loadError({ ...VALID_ENV, AUTH0_CONSOLE_CLIENT_ID: "   " })).toContain("AUTH0_CONSOLE_CLIENT_ID: missing or empty");
     });
 
-    it("requires the M2M and template keys only with the management provisioner", () => {
+    it("should require the M2M and template keys only with the management provisioner", () => {
         const message = loadError({ ...VALID_ENV, AUTH0_PROVISIONER: "management" });
 
         for (const key of ["AUTH0_MGMT_DOMAIN", "AUTH0_M2M_CLIENT_ID", "AUTH0_M2M_CLIENT_SECRET", "AUTH0_TEMPLATE_CLIENT_ID"]) {
@@ -115,7 +156,7 @@ describe("loadConfig", () => {
         expect(message).not.toContain("SES_");
     });
 
-    it("requires the SES keys only with the ses email provider", () => {
+    it("should require the SES keys only with the ses email provider", () => {
         const message = loadError({ ...VALID_ENV, EMAIL_PROVIDER: "ses" });
 
         expect(message).toContain("SES_FROM: missing or empty");
@@ -123,14 +164,14 @@ describe("loadConfig", () => {
         expect(message).not.toContain("AUTH0_");
     });
 
-    it("refuses fake adapters in production", () => {
+    it("should refuse fake adapters in production", () => {
         const message = loadError({ ...VALID_ENV, CONFIG_ENV: "production" });
 
         expect(message).toContain("AUTH0_PROVISIONER: must be management when CONFIG_ENV=production");
         expect(message).toContain("EMAIL_PROVIDER: must be ses when CONFIG_ENV=production");
     });
 
-    it("accepts the real adapters in production", () => {
+    it("should accept the real adapters in production", () => {
         const config = loadConfig({ ...VALID_ENV, ...REAL_ADAPTERS, CONFIG_ENV: "production" });
 
         expect(config.auth0).toMatchObject({
@@ -141,7 +182,7 @@ describe("loadConfig", () => {
         expect(config.email).toEqual({ provider: "ses", from: "no-reply@auth.near.org", region: "us-east-1" });
     });
 
-    it("accepts an http origin with a port for PUBLIC_URL", () => {
+    it("should accept an http origin with a port for PUBLIC_URL", () => {
         expect(loadConfig({ ...VALID_ENV, PUBLIC_URL: "http://localhost:3000" }).server.publicUrl).toBe("http://localhost:3000");
     });
 
@@ -155,11 +196,11 @@ describe("loadConfig", () => {
         ["a fragment", "https://console.example.com/#top"],
         ["credentials", "https://user:pass@console.example.com"],
         ["empty credentials", "https://@console.example.com"],
-    ])("refuses a PUBLIC_URL with %s, naming the key", (_shape, url) => {
+    ])("should refuse a PUBLIC_URL with %s, naming the key", (_shape, url) => {
         expect(loadError({ ...VALID_ENV, PUBLIC_URL: url })).toContain("PUBLIC_URL: must be an http or https origin");
     });
 
-    it("accepts a Slack incoming webhook and refuses any other URL without echoing it", () => {
+    it("should accept a Slack incoming webhook and refuse any other URL without echoing it", () => {
         const webhookUrl = "https://hooks.slack.com/services/T000/B000/s3cret-token";
         expect(loadConfig({ ...VALID_ENV, SLACK_WEBHOOK_URL: webhookUrl }).slack).toEqual({ webhookUrl });
 
@@ -170,7 +211,7 @@ describe("loadConfig", () => {
         }
     });
 
-    it("rejects a login domain with a scheme and an invalid admin email", () => {
+    it("should reject a login domain with a scheme and an invalid admin email", () => {
         const message = loadError({ ...VALID_ENV, AUTH0_LOGIN_DOMAIN: "https://login.example.com", ADMIN_EMAILS: "alice@example.com,bob" });
 
         expect(message).toContain("AUTH0_LOGIN_DOMAIN: must be a host name");

@@ -1,25 +1,47 @@
-export const ConfigEnv = {
-    Development: "development",
-    Test: "test",
-    Staging: "staging",
-    Production: "production",
-} as const;
-export type ConfigEnv = (typeof ConfigEnv)[keyof typeof ConfigEnv];
+export enum ConfigEnv {
+    DEVELOPMENT = "development",
+    TEST = "test",
+    STAGING = "staging",
+    PRODUCTION = "production",
+}
 
-export const NEAR_NETWORKS = ["testnet", "mainnet"] as const;
-export type NearNetwork = (typeof NEAR_NETWORKS)[number];
+export enum NearNetwork {
+    TESTNET = "testnet",
+    MAINNET = "mainnet",
+}
 
-export const AUTH0_PROVISIONERS = ["management", "fake"] as const;
-export type Auth0ProvisionerName = (typeof AUTH0_PROVISIONERS)[number];
+export enum Auth0ProvisionerName {
+    MANAGEMENT = "management",
+    FAKE = "fake",
+}
 
-export const EMAIL_PROVIDERS = ["ses", "fake"] as const;
-export type EmailProviderName = (typeof EMAIL_PROVIDERS)[number];
+export enum EmailProviderName {
+    SES = "ses",
+    FAKE = "fake",
+}
+
+export enum LogLevel {
+    ERROR = "error",
+    WARN = "warn",
+    INFO = "info",
+    HTTP = "http",
+    VERBOSE = "verbose",
+    DEBUG = "debug",
+    SILLY = "silly",
+}
 
 export type ConsoleConfig = {
     readonly server: {
         readonly env: ConfigEnv;
         readonly port: number;
         readonly publicUrl: string;
+        readonly metricsPort: number;
+        readonly readyzTimeoutMs: number;
+        readonly shutdownDelayMs: number;
+    };
+    readonly logger: {
+        readonly level: LogLevel;
+        readonly file: string | null;
     };
     readonly database: {
         readonly host: string;
@@ -29,6 +51,7 @@ export type ConsoleConfig = {
         readonly password: string;
         readonly poolSize: number;
         readonly ssl: boolean;
+        readonly connectTimeoutMs: number;
         readonly lockTimeoutMs: number;
     };
     readonly auth0: {
@@ -37,15 +60,17 @@ export type ConsoleConfig = {
         readonly nearNetwork: NearNetwork;
     } & (
         | {
-              readonly provisioner: "management";
+              readonly provisioner: Auth0ProvisionerName.MANAGEMENT;
               readonly mgmtDomain: string;
               readonly m2mClientId: string;
               readonly m2mClientSecret: string;
               readonly templateClientId: string;
           }
-        | { readonly provisioner: "fake" }
+        | { readonly provisioner: Auth0ProvisionerName.FAKE }
     );
-    readonly email: { readonly provider: "ses"; readonly from: string; readonly region: string } | { readonly provider: "fake" };
+    readonly email:
+        | { readonly provider: EmailProviderName.SES; readonly from: string; readonly region: string }
+        | { readonly provider: EmailProviderName.FAKE };
     readonly admin: {
         readonly emails: ReadonlySet<string>;
     };
@@ -54,7 +79,5 @@ export type ConsoleConfig = {
     };
 };
 
-export type ManagementAuth0Config = Extract<ConsoleConfig["auth0"], { provisioner: "management" }>;
-export type SesEmailConfig = Extract<ConsoleConfig["email"], { provider: "ses" }>;
-
-export const CONSOLE_CONFIG = Symbol("CONSOLE_CONFIG");
+export type ManagementAuth0Config = Extract<ConsoleConfig["auth0"], { provisioner: Auth0ProvisionerName.MANAGEMENT }>;
+export type SesEmailConfig = Extract<ConsoleConfig["email"], { provider: EmailProviderName.SES }>;

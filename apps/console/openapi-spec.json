@@ -66,8 +66,8 @@
     },
     "info": {
         "title": "NEAR Auth Console",
-        "description": "",
-        "version": "1.0.0",
+        "description": "NEAR Auth Console: dApp registration, review and Auth0 provisioning",
+        "version": "0.0.0",
         "contact": {}
     },
     "tags": [],
@@ -113,7 +113,11 @@
                         "type": "number"
                     },
                     "code": {
-                        "$ref": "#/components/schemas/ErrorCode"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ErrorCode"
+                            }
+                        ]
                     },
                     "message": {
                         "type": "string"

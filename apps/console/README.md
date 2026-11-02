@@ -6,21 +6,23 @@ Self-service dApp registration for NEAR Auth. A dApp team submits its app, an ad
 
 ## Run it locally
 
-1. Start Postgres with `docker compose up -d`. The first start also creates `console_e2e` for the e2e tests.
+1. Start Postgres with `pnpm docker:start:dev` from the repository root. The first start also creates `console_e2e` for the integration tests.
 2. Copy `.env.example` to `.env`, fill in `AUTH0_CONSOLE_CLIENT_ID` and your email in `ADMIN_EMAILS`, and export it with `set -a; . ./.env; set +a`.
 3. Run `pnpm start`. The API migrates the database, then listens on `APP_PORT` under `/api/console`, with Swagger UI at `/api/console/docs`.
 
 ## Checks
 
-| Command                         | What it checks                                                                              |
-| ------------------------------- | ------------------------------------------------------------------------------------------- |
-| `pnpm lint`, `pnpm check-types` | ESLint and TypeScript                                                                       |
-| `pnpm test`                     | Unit tests                                                                                  |
-| `pnpm test:e2e`                 | The API against `console_e2e`. Needs Postgres. The suite loads `.env.test` itself.          |
-| `pnpm spec`                     | Rewrites `openapi-spec.json`. Needs Postgres. CI fails if the committed file differs.       |
-| `pnpm migration:check`          | Fails if the entities differ from the migrations. Rebuilds `console_e2e`. Needs Postgres.   |
+| Command                         | What it checks                                                                            |
+| ------------------------------- | ----------------------------------------------------------------------------------------- |
+| `pnpm lint`, `pnpm check-types` | ESLint and TypeScript                                                                     |
+| `pnpm test`                     | Unit tests                                                                                |
+| `pnpm test:watch`               | Unit tests, rerun on every change                                                         |
+| `pnpm test:coverage`            | Unit tests with a coverage report in `coverage/`                                          |
+| `pnpm test:integration`         | The API against `console_e2e`. Needs Postgres. The suite loads `test/env.cjs`.            |
+| `pnpm spec`                     | Rewrites `openapi-spec.json`. Needs Postgres. CI fails if the committed file differs.     |
+| `pnpm migration:check`          | Fails if the entities differ from the migrations. Rebuilds `console_e2e`. Needs Postgres. |
 
-`pnpm test:e2e` and `pnpm migration:check` both drop and rebuild `console_e2e`, so run only one of them at a time against the same Postgres.
+`pnpm test:integration` and `pnpm migration:check` both drop and rebuild `console_e2e`, so run only one of them at a time against the same Postgres.
 
 ## Configuration
 

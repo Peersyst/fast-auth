@@ -22,4 +22,15 @@ export class ErrorResponse {
 
     @ApiPropertyOptional({ type: [ErrorDetail] })
     details?: ErrorDetail[];
+
+    /**
+     * Builds the envelope for an error code, with that code's status and message.
+     * @param code The error code.
+     * @param details The broken constraints, if any.
+     * @returns The error envelope.
+     */
+    static fromCode(code: ConsoleErrorCode, details?: ErrorDetail[]): ErrorResponse {
+        const { status, message } = ERROR_CODES[code];
+        return { statusCode: status, code, message, ...(details && { details }) };
+    }
 }

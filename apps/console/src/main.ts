@@ -5,14 +5,17 @@ import { createServer } from "node:http";
 import { collectDefaultMetrics, register } from "prom-client";
 import { AppModule } from "./app.module";
 import { loadConfig } from "./config";
-import type { ConfigEnv } from "./config/console-config";
+import type { ConsoleConfig } from "./config/console-config";
 import { configureApp } from "./configure-app";
 import { runMigrations } from "./database/migrate";
 
-const METRICS_PORT = 9464;
 const logger = new Logger("Metrics");
 
-function startMetricsServer(environment: ConfigEnv): void {
+/**
+ * Serves Prometheus metrics on their own port, outside the API.
+ * @param server The server config section.
+ */
+function startMetricsServer({ env: environment, metricsPort }: ConsoleConfig["server"]): void {
     collectDefaultMetrics();
     register.setDefaultLabels({ app: "console", environment });
     createServer((req, res) => {
@@ -26,10 +29,13 @@ function startMetricsServer(environment: ConfigEnv): void {
         );
     })
         .on("error", (error) => logger.error(`Metrics server is down: ${error.message}`, error.stack))
-        .listen(METRICS_PORT)
+        .listen(metricsPort)
         .unref();
 }
 
+/**
+ * Migrates the database, then starts the API and the metrics server.
+ */
 async function bootstrap(): Promise<void> {
     const config = loadConfig();
     await runMigrations(config);
@@ -37,7 +43,7 @@ async function bootstrap(): Promise<void> {
     configureApp(app, config);
     app.enableShutdownHooks();
     await app.listen(config.server.port);
-    startMetricsServer(config.server.env);
+    startMetricsServer(config.server);
 }
 
 bootstrap();

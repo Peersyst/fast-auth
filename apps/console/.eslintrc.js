@@ -9,7 +9,6 @@ module.exports = {
         "@typescript-eslint/no-explicit-any": "error",
         "@typescript-eslint/switch-exhaustiveness-check": "error",
         "@typescript-eslint/consistent-type-imports": "error",
-        "jsdoc/require-jsdoc": "off",
     },
     ignorePatterns: ["web/", "src/database/migrations/", "/*.js", "dist", "coverage"],
 };

@@ -1,6 +1,6 @@
 import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
-import { createTestApp } from "./utils/test-app";
+import { createTestApp } from "../../utils/test-app";
 
 describe("health", () => {
     let app: NestExpressApplication;
@@ -13,15 +13,15 @@ describe("health", () => {
         await app.close();
     });
 
-    it("GET /livez answers without a token", async () => {
+    it("should answer GET /livez without a token", async () => {
         await request(app.getHttpServer()).get("/api/console/livez").expect(200, { status: "ok" });
     });
 
-    it("GET /readyz answers ok when the database is reachable", async () => {
+    it("should answer ok on GET /readyz when the database is reachable", async () => {
         await request(app.getHttpServer()).get("/api/console/readyz").expect(200, { status: "ok" });
     });
 
-    it("sends the explicit security headers", async () => {
+    it("should send the explicit security headers", async () => {
         const response = await request(app.getHttpServer()).get("/api/console/livez").expect(200);
 
         const csp = response.headers["content-security-policy"];

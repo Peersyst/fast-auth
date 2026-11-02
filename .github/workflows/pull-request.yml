@@ -92,15 +92,15 @@ jobs:
               run: pnpm install --frozen-lockfile
             - name: Lint
               run: pnpm --filter console lint
-            - name: Type check
-              run: pnpm --filter console check-types
             - name: Unit tests
               run: pnpm --filter console test
-            - name: E2E tests
-              run: pnpm --filter console test:e2e
+            - name: Integration tests
+              run: pnpm --filter console test:integration
             - name: Check schema drift
               run: pnpm --filter console migration:check
             - name: Check OpenAPI spec drift
               run: |
                   pnpm --filter console spec
                   git diff --exit-code
+            - name: Type check
+              run: pnpm --filter console check-types

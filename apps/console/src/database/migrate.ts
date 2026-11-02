@@ -4,6 +4,10 @@ import { dataSourceOptions } from "./data-source";
 
 const MIGRATION_LOCK_KEY = 7_041_826_013;
 
+/**
+ * Runs pending migrations under a Postgres advisory lock, so instances that start together migrate one at a time.
+ * @param config The validated config.
+ */
 export async function runMigrations(config: ConsoleConfig): Promise<void> {
     const dataSource = await new DataSource(dataSourceOptions(config)).initialize();
     const lockRunner = dataSource.createQueryRunner();
