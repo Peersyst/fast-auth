@@ -6,12 +6,14 @@ import type { Auth0Provisioner, ManagedClient } from "./auth0-provisioner";
 import { ProvisioningError } from "./auth0-provisioner";
 import type { Auth0Call, Auth0Outcome, ProvisioningMetrics } from "./provisioning.metrics";
 
-const TIMEOUT_MS = 10_000;
 const PAGE_SIZE = 100;
 const CONNECTION_PAGE_SIZE = 50;
-const DEFAULT_RETRY_AFTER_MS = 1_000;
-const MAX_RETRY_AFTER_MS = 10_000;
 
+/**
+ * Builds the `managed_by` tag that marks the clients this environment owns.
+ * @param env The environment.
+ * @returns The tag value.
+ */
 export const managedByTag = (env: ConfigEnv): string => `console-${env}`;
 
 type Failure = { outcome: Exclude<Auth0Outcome, "success">; retryAfterMs: number | null; message: string };
@@ -26,16 +28,29 @@ class Auth0CallError extends ProvisioningError {
     }
 }
 
-function retryAfterMs(headers: Headers): number {
+/**
+ * Reads a 429's Retry-After header, capped, falling back to a default when it is missing or invalid.
+ * @param headers The response headers.
+ * @param auth0 The config that holds the default wait and the cap.
+ * @returns The wait before the retry, in milliseconds.
+ */
+function retryAfterMs(headers: Headers, auth0: ManagementAuth0Config): number {
     const seconds = Number(headers.get("retry-after") ?? NaN);
-    return Number.isFinite(seconds) && seconds >= 0 ? Math.min(seconds * 1000, MAX_RETRY_AFTER_MS) : DEFAULT_RETRY_AFTER_MS;
+    return Number.isFinite(seconds) && seconds >= 0 ? Math.min(seconds * 1000, auth0.mgmtMaxRetryAfterMs) : auth0.mgmtRetryAfterMs;
 }
 
-function classify(op: Auth0Call, error: unknown): Failure {
+/**
+ * Maps an SDK error to a metric outcome and decides whether the call may be retried once.
+ * @param op The Auth0 call that failed.
+ * @param error What the call threw.
+ * @param auth0 The config that holds the retry waits.
+ * @returns The outcome, the wait before a retry or null for none, and the message.
+ */
+function classify(op: Auth0Call, error: unknown, auth0: ManagementAuth0Config): Failure {
     if (error instanceof ManagementApiError || error instanceof ResponseError || error instanceof AuthApiError) {
         const status = error.statusCode;
         const message = `Auth0 ${op} answered ${status}: ${error.message}`;
-        if (status === 429) return { outcome: "rate_limited", retryAfterMs: retryAfterMs(error.headers), message };
+        if (status === 429) return { outcome: "rate_limited", retryAfterMs: retryAfterMs(error.headers, auth0), message };
         // A 401 or 403, or a 4xx the token endpoint answers in JSON, means the console's own credentials or scopes are wrong,
         // not the dApp's data, and a retry cannot fix it.
         if (status === 401 || status === 403 || (error instanceof AuthApiError && status < 500)) {
@@ -50,13 +65,18 @@ function classify(op: Auth0Call, error: unknown): Failure {
         }
         if (status >= 400 && status < 500) return { outcome: "rejected", retryAfterMs: null, message };
         // A create that answered 5xx may still have made the client, so only the caller's find-then-create may repeat it.
-        return { outcome: "failed", retryAfterMs: op === "create" ? null : DEFAULT_RETRY_AFTER_MS, message };
+        return { outcome: "failed", retryAfterMs: op === "create" ? null : auth0.mgmtRetryAfterMs, message };
     }
     return { outcome: "failed", retryAfterMs: null, message: `Auth0 ${op} failed: ${causeChain(error)}` };
 }
 
-// The SDK reports a network failure as "fetch failed" and keeps what failed, such as DNS, in `cause`.
-// Node's fetch reports a host whose every address refused as an AggregateError with an empty message and an errno `code`.
+/**
+ * Joins the messages down an error's `cause` chain. The SDK reports a network failure as "fetch failed" and keeps what failed,
+ * such as DNS, in `cause`. Node's fetch reports a host whose every address refused as an AggregateError with an empty message
+ * and an errno `code`.
+ * @param error What the call threw.
+ * @returns The distinct messages, or codes, joined with colons.
+ */
 function causeChain(error: unknown): string {
     const messages: string[] = [];
     for (let current = error; current instanceof Error; current = current.cause) {
@@ -66,6 +86,11 @@ function causeChain(error: unknown): string {
     return messages.length > 0 ? messages.join(": ") : String(error);
 }
 
+/**
+ * Resolves after the given delay.
+ * @param ms The delay in milliseconds.
+ * @returns A promise that resolves after the delay.
+ */
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class Auth0ManagementProvisioner implements Auth0Provisioner {
@@ -84,15 +109,26 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
             retry: { enabled: false },
             // The SDK's own timeout stops at the response headers. A token response that stalls after them would hold every
             // later call, so this deadline covers each request through its body, the token refresh included.
-            fetch: (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(TIMEOUT_MS) }),
+            fetch: (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(auth0.mgmtTimeoutMs) }),
         });
         this.managedBy = managedByTag(env);
     }
 
+    /**
+     * Finds the dApp's client by listing every client this environment manages.
+     * @param dappId The dApp.
+     * @returns The client id, or null when no managed client names the dApp.
+     */
     async findClient(dappId: DappId): Promise<Auth0ClientId | null> {
         return (await this.listClients()).find((client) => client.dappId === dappId)?.clientId ?? null;
     }
 
+    /**
+     * Creates the client from the template client's settings and the dApp's fields, then copies the template's connections.
+     * @param dappId The dApp.
+     * @param input The fields synced to Auth0.
+     * @returns The new client id.
+     */
     async createClient(dappId: DappId, input: SyncedFields): Promise<Auth0ClientId> {
         const template = await this.send("get", () => this.client.clients.get({ client_id: this.auth0.templateClientId }));
         const wanted = await this.templateConnections();
@@ -103,6 +139,12 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
         return clientId;
     }
 
+    /**
+     * Writes the dApp's fields to its client and resyncs the template's connections, after checking the client's tags.
+     * @param dappId The dApp.
+     * @param clientId The dApp's client.
+     * @param input The fields synced to Auth0.
+     */
     async updateClient(dappId: DappId, clientId: Auth0ClientId, input: SyncedFields): Promise<void> {
         await this.readTagged(dappId, clientId);
         const wanted = await this.templateConnections();
@@ -110,6 +152,11 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
         await this.syncConnections(clientId, wanted);
     }
 
+    /**
+     * Deletes the client after checking its tags.
+     * @param dappId The dApp.
+     * @param clientId The dApp's client.
+     */
     async deleteClient(dappId: DappId, clientId: Auth0ClientId): Promise<void> {
         try {
             await this.readTagged(dappId, clientId);
@@ -119,6 +166,9 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
         }
     }
 
+    /**
+     * Throws unless the template client and its connections can be read.
+     */
     async checkHealth(): Promise<void> {
         await this.send("get", () =>
             this.client.clients.get({ client_id: this.auth0.templateClientId, fields: "client_id", include_fields: true }),
@@ -126,6 +176,10 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
         await this.templateConnections();
     }
 
+    /**
+     * Pages through every client and keeps those tagged with this environment.
+     * @returns The managed clients.
+     */
     async listClients(): Promise<ManagedClient[]> {
         const managed: ManagedClient[] = [];
         let from: string | undefined;
@@ -156,6 +210,11 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
         return managed;
     }
 
+    /**
+     * Throws a tag_mismatch unless the client is tagged with this dApp and this environment.
+     * @param dappId The dApp.
+     * @param clientId The client to check.
+     */
     private async readTagged(dappId: DappId, clientId: Auth0ClientId): Promise<void> {
         const client = await this.send("get", () =>
             this.client.clients.get({ client_id: clientId, fields: "client_id,client_metadata", include_fields: true }),
@@ -166,6 +225,11 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
         }
     }
 
+    /**
+     * Reads the console's tags from a client's metadata.
+     * @param client The client.
+     * @returns The dApp it names, and whether this environment manages it.
+     */
     private tagsOf(client: Pick<Client, "client_metadata">): { dappId: DappId | null; managed: boolean } {
         const metadata: Record<string, unknown> = client.client_metadata ?? {};
         return {
@@ -174,6 +238,10 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
         };
     }
 
+    /**
+     * Reads the template client's enabled connections, and throws when there are none.
+     * @returns The connection ids.
+     */
     private async templateConnections(): Promise<Set<string>> {
         const { templateClientId } = this.auth0;
         const connections = await this.enabledConnections(templateClientId);
@@ -183,6 +251,11 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
         return connections;
     }
 
+    /**
+     * Enables and disables connections until the client has exactly the wanted ones.
+     * @param clientId The client.
+     * @param wanted The connection ids to leave enabled.
+     */
     private async syncConnections(clientId: Auth0ClientId, wanted: Set<string>): Promise<void> {
         const enabled = await this.enabledConnections(clientId);
         const changes = [
@@ -196,6 +269,11 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
         }
     }
 
+    /**
+     * Pages through a client's enabled connections.
+     * @param clientId The client.
+     * @returns The connection ids.
+     */
     private async enabledConnections(clientId: string): Promise<Set<string>> {
         const ids = new Set<string>();
         let from: string | undefined;
@@ -215,6 +293,13 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
         return ids;
     }
 
+    /**
+     * Builds a create request from the template's settings plus the dApp's fields.
+     * @param template The template client.
+     * @param dappId The dApp.
+     * @param input The fields synced to Auth0.
+     * @returns The create request body.
+     */
     private createBody(template: Client, dappId: DappId, input: SyncedFields): ClientCreate {
         const { lifetime_in_seconds, alg, scopes } = template.jwt_configuration;
         return {
@@ -234,6 +319,12 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
         };
     }
 
+    /**
+     * Maps the dApp's fields and the console's tags to Auth0 client fields.
+     * @param dappId The dApp.
+     * @param input The fields synced to Auth0.
+     * @returns The client fields.
+     */
     private dappFields(dappId: DappId, input: SyncedFields): ClientCreate & ClientUpdate {
         return {
             name: input.name,
@@ -247,6 +338,12 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
         };
     }
 
+    /**
+     * Runs an SDK call, records its duration and outcome, retries it once when the failure allows, and otherwise throws a ProvisioningError.
+     * @param op The Auth0 call, for metrics and messages.
+     * @param call The SDK call.
+     * @returns The response data.
+     */
     private async send<T>(op: Auth0Call, call: () => Promise<ApiResponse<T>>): Promise<T> {
         for (let attempt = 1; ; attempt++) {
             const done = this.metrics.startAuth0Request(op);
@@ -255,7 +352,7 @@ export class Auth0ManagementProvisioner implements Auth0Provisioner {
                 done("success");
                 return response.data;
             } catch (error) {
-                const failure = classify(op, error);
+                const failure = classify(op, error, this.auth0);
                 done(failure.outcome);
                 if (attempt === 1 && failure.retryAfterMs !== null) {
                     await sleep(failure.retryAfterMs);

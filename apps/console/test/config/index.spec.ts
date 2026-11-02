@@ -82,6 +82,7 @@ describe("loadConfig", () => {
             nearNetwork: "testnet",
             jwksTimeoutMs: 6000,
             jwksRefetchCooldownMs: 30000,
+            healthCheckIntervalMs: 600000,
             provisioner: "fake",
         });
         expect(config.throttle).toEqual({ submitDappPerMinute: 5, editDappPerMinute: 10, adminMutationPerMinute: 60 });
@@ -102,6 +103,7 @@ describe("loadConfig", () => {
             THROTTLE_SUBMIT_DAPP_PER_MINUTE: "3",
             THROTTLE_EDIT_DAPP_PER_MINUTE: "20",
             THROTTLE_ADMIN_MUTATION_PER_MINUTE: "120",
+            AUTH0_HEALTH_CHECK_INTERVAL_MS: "60000",
         });
 
         expect(config.server.metricsPort).toBe(9100);
@@ -112,6 +114,16 @@ describe("loadConfig", () => {
         expect(config.auth0.jwksTimeoutMs).toBe(4000);
         expect(config.auth0.jwksRefetchCooldownMs).toBe(45000);
         expect(config.throttle).toEqual({ submitDappPerMinute: 3, editDappPerMinute: 20, adminMutationPerMinute: 120 });
+        expect(config.auth0.healthCheckIntervalMs).toBe(60000);
+        expect(
+            loadConfig({
+                ...VALID_ENV,
+                ...REAL_ADAPTERS,
+                AUTH0_MGMT_TIMEOUT_MS: "2500",
+                AUTH0_MGMT_RETRY_AFTER_MS: "500",
+                AUTH0_MGMT_MAX_RETRY_AFTER_MS: "5000",
+            }).auth0,
+        ).toMatchObject({ mgmtTimeoutMs: 2500, mgmtRetryAfterMs: 500, mgmtMaxRetryAfterMs: 5000 });
     });
 
     it("should default LOG_LEVEL to info outside tests and parse a set LOG_LEVEL and LOG_FILE", () => {
@@ -140,6 +152,8 @@ describe("loadConfig", () => {
         "THROTTLE_SUBMIT_DAPP_PER_MINUTE",
         "THROTTLE_EDIT_DAPP_PER_MINUTE",
         "THROTTLE_ADMIN_MUTATION_PER_MINUTE",
+        "AUTH0_MGMT_RETRY_AFTER_MS",
+        "AUTH0_MGMT_MAX_RETRY_AFTER_MS",
     ])("should refuse a %s that is not a positive integer", (key) => {
         for (const value of ["0", "-1", "1.5", "many"])
             expect(loadError({ ...VALID_ENV, ...REAL_ADAPTERS, [key]: value })).toContain(`${key}:`);
@@ -199,6 +213,9 @@ describe("loadConfig", () => {
             provisioner: "management",
             m2mClientSecret: "m2m-secret-value",
             mgmtDomain: "tenant.auth0.com",
+            mgmtTimeoutMs: 10000,
+            mgmtRetryAfterMs: 1000,
+            mgmtMaxRetryAfterMs: 10000,
         });
         expect(config.email).toEqual({ provider: "ses", from: "no-reply@auth.near.org", region: "us-east-1" });
     });

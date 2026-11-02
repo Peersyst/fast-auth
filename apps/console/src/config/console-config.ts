@@ -60,6 +60,7 @@ export type ConsoleConfig = {
         readonly nearNetwork: NearNetwork;
         readonly jwksTimeoutMs: number;
         readonly jwksRefetchCooldownMs: number;
+        readonly healthCheckIntervalMs: number;
     } & (
         | {
               readonly provisioner: Auth0ProvisionerName.MANAGEMENT;
@@ -67,6 +68,9 @@ export type ConsoleConfig = {
               readonly m2mClientId: string;
               readonly m2mClientSecret: string;
               readonly templateClientId: string;
+              readonly mgmtRetryAfterMs: number;
+              readonly mgmtMaxRetryAfterMs: number;
+              readonly mgmtTimeoutMs: number;
           }
         | { readonly provisioner: Auth0ProvisionerName.FAKE }
     );
