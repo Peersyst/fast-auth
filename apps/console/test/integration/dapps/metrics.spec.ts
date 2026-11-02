@@ -1,13 +1,14 @@
 import { register } from "prom-client";
-import { dappForm, expectError, useConsoleApi } from "./utils/console-api";
+import { DappsErrorCode } from "../../../src/modules/dapps/error/dapps-error-codes";
+import { dappForm, expectError, useConsoleApi } from "../../utils/console-api";
 
 describe("metrics", () => {
     const api = useConsoleApi();
 
-    it("counts a submission and a duplicate, and gauges the pending dApp", async () => {
+    it("should count a submission and a duplicate, and gauge the pending dApp", async () => {
         const owner = await api.user();
         await api.submitDapp(owner);
-        expectError(await api.submit(owner, dappForm()), 409, "DAPP_ALREADY_EXISTS");
+        expectError(await api.submit(owner, dappForm()), 409, DappsErrorCode.DAPP_ALREADY_EXISTS);
 
         const lines = (await register.metrics()).split("\n");
 

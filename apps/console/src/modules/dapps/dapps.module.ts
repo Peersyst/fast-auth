@@ -4,6 +4,7 @@ import { NotificationsModule } from "../notifications/notifications.module";
 import { DappsController } from "./dapps.controller";
 import { DappsGauge } from "./dapps.gauge";
 import { DappsMetric, DappsMetrics } from "./dapps.metrics";
+import { DappsNotifier } from "./dapps.notifier";
 import { DappsService } from "./dapps.service";
 import { DappEventsRepository } from "./repositories/dapp-events.repository";
 import { DappsRepository } from "./repositories/dapps.repository";
@@ -13,6 +14,7 @@ import { DappsRepository } from "./repositories/dapps.repository";
     controllers: [DappsController],
     providers: [
         DappsService,
+        DappsNotifier,
         DappsRepository,
         DappEventsRepository,
         DappsGauge,

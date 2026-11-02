@@ -3,7 +3,11 @@ import { ApiExtraModels, ApiProperty, getSchemaPath } from "@nestjs/swagger";
 import type { Dapp } from "@shared/console-domain/dapp";
 import { DappStatus, MauBracket } from "@shared/console-domain/dapp";
 
-// OpenAPI 3.0 has no null type, and `nullable` beside a `$ref` still requires the referenced object, so null gets its own branch.
+/**
+ * Lets a property be null or the referenced model. OpenAPI 3.0 has no null type, and `nullable` beside a `$ref` still requires the referenced object, so null gets its own branch.
+ * @param model The schema path of the model.
+ * @returns The property options.
+ */
 function nullableModel(model: string): ApiPropertyOptions {
     return { anyOf: [{ $ref: model }, { type: "object", nullable: true, enum: [null] }] };
 }
@@ -77,31 +81,45 @@ export class OwnerDappResponse {
 
     @ApiProperty({ format: "date-time" })
     submittedAt: string;
+
+    /**
+     * Maps a dApp to the owner's view, with dates as ISO strings and without the admin-only fields.
+     * @param dapp The dApp.
+     * @returns The owner's view.
+     */
+    static fromDapp(dapp: Dapp): OwnerDappResponse {
+        return {
+            id: dapp.id,
+            name: dapp.name,
+            description: dapp.description,
+            logoUrl: dapp.logoUrl,
+            mauBracket: dapp.mauBracket,
+            callbackUrls: dapp.callbackUrls,
+            logoutUrls: dapp.logoutUrls,
+            webOrigins: dapp.webOrigins,
+            contactEmail: dapp.contactEmail,
+            status: dapp.status,
+            rejectionReason: dapp.rejectionReason,
+            pendingChange: dapp.pendingChange,
+            pendingChangeAt: dapp.pendingChangeAt?.toISOString() ?? null,
+            auth0ClientId: dapp.auth0ClientId,
+            version: dapp.version,
+            submittedAt: dapp.submittedAt.toISOString(),
+        };
+    }
 }
 
 @ApiExtraModels(OwnerDappResponse)
 export class MyDappResponse {
     @ApiProperty(nullableModel(getSchemaPath(OwnerDappResponse)))
     dapp: OwnerDappResponse | null;
-}
 
-export function toOwnerDappResponse(dapp: Dapp): OwnerDappResponse {
-    return {
-        id: dapp.id,
-        name: dapp.name,
-        description: dapp.description,
-        logoUrl: dapp.logoUrl,
-        mauBracket: dapp.mauBracket,
-        callbackUrls: dapp.callbackUrls,
-        logoutUrls: dapp.logoutUrls,
-        webOrigins: dapp.webOrigins,
-        contactEmail: dapp.contactEmail,
-        status: dapp.status,
-        rejectionReason: dapp.rejectionReason,
-        pendingChange: dapp.pendingChange,
-        pendingChangeAt: dapp.pendingChangeAt?.toISOString() ?? null,
-        auth0ClientId: dapp.auth0ClientId,
-        version: dapp.version,
-        submittedAt: dapp.submittedAt.toISOString(),
-    };
+    /**
+     * Wraps the caller's dApp, or null when they have none.
+     * @param dapp The caller's live dApp, or null.
+     * @returns The response.
+     */
+    static fromDapp(dapp: Dapp | null): MyDappResponse {
+        return { dapp: dapp && OwnerDappResponse.fromDapp(dapp) };
+    }
 }

@@ -8,7 +8,7 @@ import { ApiErrorResponses } from "../common/exception/api-error-responses.decor
 import { DappsService } from "./dapps.service";
 import { ExpectedVersionRequest } from "./requests/expected-version.request";
 import { toDappFields, UpdateDappRequest, UpsertDappRequest } from "./requests/upsert-dapp.request";
-import { MyDappResponse, OwnerDappResponse, toOwnerDappResponse } from "./response/owner-dapp.response";
+import { MyDappResponse, OwnerDappResponse } from "./responses/owner-dapp.response";
 
 @ApiTags("dapp")
 @ApiBearerAuth()
@@ -20,15 +20,14 @@ export class DappsController {
     @Get()
     @ApiOkResponse({ type: MyDappResponse })
     async getMine(@CurrentUser() user: SessionUser): Promise<MyDappResponse> {
-        const dapp = await this.dapps.findOwn(user);
-        return { dapp: dapp && toOwnerDappResponse(dapp) };
+        return MyDappResponse.fromDapp(await this.dapps.findOwn(user));
     }
 
     @Post()
     @SubmitDappThrottle()
     @ApiCreatedResponse({ type: OwnerDappResponse })
     async submit(@CurrentUser() user: SessionUser, @Body() body: UpsertDappRequest): Promise<OwnerDappResponse> {
-        return toOwnerDappResponse(await this.dapps.submit(user, toDappFields(body)));
+        return OwnerDappResponse.fromDapp(await this.dapps.submit(user, toDappFields(body)));
     }
 
     @Put(":id")
@@ -39,7 +38,7 @@ export class DappsController {
         @Param("id", ParseUUIDPipe) id: DappId,
         @Body() body: UpdateDappRequest,
     ): Promise<OwnerDappResponse> {
-        return toOwnerDappResponse(await this.dapps.editOwn(user, id, body.expectedVersion, toDappFields(body)));
+        return OwnerDappResponse.fromDapp(await this.dapps.editOwn(user, id, body.expectedVersion, toDappFields(body)));
     }
 
     @Delete(":id")

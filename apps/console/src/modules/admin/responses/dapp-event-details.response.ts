@@ -4,7 +4,7 @@ import { DAPP_FIELDS } from "@shared/console-domain/dapp";
 import type { Auth0ClientId, DappField } from "@shared/console-domain/dapp";
 import { Auth0Op, EmailTemplate } from "@shared/console-domain/dapp-event";
 import type { FieldValue } from "@shared/console-domain/dapp-event";
-import { SyncedFieldsResponse } from "../../dapps/response/owner-dapp.response";
+import { SyncedFieldsResponse } from "../../dapps/responses/owner-dapp.response";
 
 const FIELD_VALUE: ApiPropertyOptions = { oneOf: [{ type: "string" }, { type: "array", items: { type: "string" } }] };
 const EMAIL_TEMPLATE: ApiPropertyOptions = { enum: Object.values(EmailTemplate), enumName: "EmailTemplate" };

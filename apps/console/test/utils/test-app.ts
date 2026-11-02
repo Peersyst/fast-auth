@@ -7,6 +7,7 @@ import { configureApp } from "../../src/configure-app";
 import { JWT_KEY_SET } from "../../src/modules/auth/jwt-key-set";
 import { EMAILER } from "../../src/modules/notifications/emailer";
 import { SLACK_NOTIFIER } from "../../src/modules/notifications/slack-notifier";
+import { EmailerMock, SlackNotifierMock } from "../mocks";
 import { testKeySet } from "./tokens";
 
 /**
@@ -19,16 +20,21 @@ export async function createTestApp(): Promise<NestExpressApplication> {
         .overrideProvider(JWT_KEY_SET)
         .useValue(await testKeySet())
         .overrideProvider(EMAILER)
-        .useValue({ send: jest.fn() })
+        .useValue(new EmailerMock())
         .overrideProvider(SLACK_NOTIFIER)
-        .useValue({ notify: jest.fn() })
+        .useValue(new SlackNotifierMock())
         .compile();
     const app = moduleRef.createNestApplication<NestExpressApplication>({ bufferLogs: true });
     configureApp(app, config);
     return app.init();
 }
 
+/**
+ * Empties every entity table.
+ * @param app The app whose database to empty.
+ */
 export async function resetDatabase(app: NestExpressApplication): Promise<void> {
     const dataSource = app.get(DataSource);
-    await dataSource.query('TRUNCATE "dapp_events", "dapps"');
+    const tables = dataSource.entityMetadatas.map(({ tableName }) => `"${tableName}"`);
+    await dataSource.query(`TRUNCATE ${tables.join(", ")}`);
 }

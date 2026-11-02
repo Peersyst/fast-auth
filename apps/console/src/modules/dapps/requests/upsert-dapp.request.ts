@@ -13,9 +13,14 @@ import {
     NormaliseUrl,
     NormaliseUrlList,
     Trim,
-} from "./dapp-field.decorators";
+} from "../decorators/dapp-field.decorator";
 import { ExpectedVersionRequest } from "./expected-version.request";
 
+/**
+ * Formats the allowed count of a URL list field as a range for the API docs.
+ * @param field The URL list field.
+ * @returns The range, such as 1–10.
+ */
 const urlCount = (field: UrlListField): string => `${URL_LIST_RULES[field].min}–${URL_LIST_RULES[field].max}`;
 
 export class UpsertDappRequest {
@@ -63,6 +68,11 @@ export class UpsertDappRequest {
 
 export class UpdateDappRequest extends IntersectionType(UpsertDappRequest, ExpectedVersionRequest) {}
 
+/**
+ * Keeps only the dApp fields of a request, dropping expectedVersion and anything else.
+ * @param request The validated request.
+ * @returns The fields.
+ */
 export function toDappFields(request: UpsertDappRequest): DappFields {
     const { name, description, logoUrl, mauBracket, callbackUrls, logoutUrls, webOrigins, contactEmail } = request;
     return { name, description, logoUrl, mauBracket, callbackUrls, logoutUrls, webOrigins, contactEmail };

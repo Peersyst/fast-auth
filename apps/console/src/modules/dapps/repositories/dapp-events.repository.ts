@@ -21,6 +21,13 @@ export class DappEventsRepository {
 
     constructor(private readonly dataSource: DataSource) {}
 
+    /**
+     * Inserts one event within the given transaction.
+     * @param manager The transaction's entity manager.
+     * @param dappId The dApp id.
+     * @param actor Who acted.
+     * @param event The event type and details.
+     */
     async append(manager: EntityManager, dappId: DappId, actor: Actor, event: DappEventDetails): Promise<void> {
         await manager.insert(DappEventEntity, {
             dappId,
@@ -31,6 +38,11 @@ export class DappEventsRepository {
         });
     }
 
+    /**
+     * Lists a dApp's events newest first, skipping and logging any whose details do not match their type.
+     * @param dappId The dApp id.
+     * @returns The events.
+     */
     async listForDapp(dappId: DappId): Promise<StoredDappEvent[]> {
         const rows = await this.dataSource.manager.find(DappEventEntity, {
             select: { id: true, type: true, details: true, actorEmail: true, actorRole: true, createdAt: true },

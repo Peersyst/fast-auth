@@ -12,6 +12,9 @@ export class DappsGauge implements OnModuleInit, OnModuleDestroy {
 
     constructor(private readonly dataSource: DataSource) {}
 
+    /**
+     * Registers the gauge, which counts dApps per status in the database on each scrape and resets itself when the query fails.
+     */
     onModuleInit(): void {
         const { dataSource, logger } = this;
         new Gauge({
@@ -34,6 +37,9 @@ export class DappsGauge implements OnModuleInit, OnModuleDestroy {
         });
     }
 
+    /**
+     * Unregisters the gauge, so a later app in the same process can register it again.
+     */
     onModuleDestroy(): void {
         register.removeSingleMetric(METRIC_NAME);
     }

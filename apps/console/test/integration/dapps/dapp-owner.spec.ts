@@ -1,17 +1,17 @@
-import { syncedFieldsOf } from "@shared/console-domain/dapp";
-import { changesOf, dappForm, expectStatus, useConsoleApi } from "./utils/console-api";
-import { ADMIN_EMAILS } from "./utils/contract";
-import type { OwnerDappResponse } from "../src/modules/dapps/response/owner-dapp.response";
+import { MauBracket, syncedFieldsOf } from "@shared/console-domain/dapp";
+import { changesOf, dappForm, expectStatus, useConsoleApi } from "../../utils/console-api";
+import { ADMIN_EMAILS } from "../../utils/contract";
+import type { OwnerDappResponse } from "../../../src/modules/dapps/responses/owner-dapp.response";
 
 describe("owner API", () => {
     const api = useConsoleApi();
 
     describe("GET /dapp", () => {
-        it("answers 200 with a null dApp when the caller has none", async () => {
+        it("should answer 200 with a null dApp when the caller has none", async () => {
             expect(await api.ownDapp(await api.user())).toBeNull();
         });
 
-        it("finds the caller's dApp by email, whatever its case", async () => {
+        it("should find the caller's dApp by email, whatever its case", async () => {
             const dapp = await api.submitDapp(await api.user("alice@acme-owner.test"));
 
             expect(await api.ownDapp(await api.user("ALICE@Acme-Owner.test"))).toEqual(dapp);
@@ -19,7 +19,7 @@ describe("owner API", () => {
     });
 
     describe("∅ → submit", () => {
-        it("inserts a pending dApp, alerts the admins and logs `submitted`", async () => {
+        it("should insert a pending dApp, alert the admins and log `submitted`", async () => {
             const owner = await api.user();
             const start = await api.checkpoint();
 
@@ -66,7 +66,7 @@ describe("owner API", () => {
             expect(effects.slack).toEqual(["submitted"]);
         });
 
-        it("stores and returns the normalised values", async () => {
+        it("should store and return the normalised values", async () => {
             const dapp = await api.submitDapp(await api.user(), {
                 ...dappForm(),
                 name: "  Acme Wallet ",
@@ -83,7 +83,7 @@ describe("owner API", () => {
     });
 
     describe("∅ → submit, when a notification fails", () => {
-        it("a failed admin alert still answers 201 to the submission", async () => {
+        it("should still answer 201 to the submission when the admin alert fails", async () => {
             const owner = await api.user();
             const start = await api.checkpoint();
             api.emailer.send.mockRejectedValueOnce(new Error("SES is down"));
@@ -96,7 +96,7 @@ describe("owner API", () => {
             expect(await api.ownDapp(owner)).toEqual(dapp);
         });
 
-        it("a failed Slack alert still answers 201 to the submission", async () => {
+        it("should still answer 201 to the submission when the Slack alert fails", async () => {
             const owner = await api.user();
             const start = await api.checkpoint();
             api.slack.notify.mockRejectedValueOnce(new Error("Slack is down"));
@@ -111,14 +111,14 @@ describe("owner API", () => {
     });
 
     describe("pending → edit", () => {
-        it("applies every field in place and logs `edited` with before and after, the contact email by name only", async () => {
+        it("should apply every field in place and log `edited` with before and after, the contact email by name only", async () => {
             const owner = await api.user();
             const dapp = await api.submitDapp(owner);
             const checkpoint = await api.checkpoint(dapp.id);
             const form = dappForm({
                 name: "Acme Pay",
                 callbackUrls: ["https://acme.xyz/callback", "https://pay.acme.xyz/callback"],
-                mauBracket: "10k_25k",
+                mauBracket: MauBracket.FROM_10K_TO_25K,
                 contactEmail: "ops@acme.xyz",
             });
 
@@ -141,7 +141,7 @@ describe("owner API", () => {
     });
 
     describe("any live → remove (owner)", () => {
-        it("removes a pending dApp with 204 and no email, logging `removed` without a reason", async () => {
+        it("should remove a pending dApp with 204 and no email, logging `removed` without a reason", async () => {
             const owner = await api.user();
             const dapp = await api.submitDapp(owner);
             const checkpoint = await api.checkpoint(dapp.id);
@@ -164,7 +164,7 @@ describe("owner API", () => {
             expect(effects.emailEvents).toEqual([]);
         });
 
-        it("lets the owner submit again, while admins still see the removed dApp", async () => {
+        it("should let the owner submit again, while admins still see the removed dApp", async () => {
             const owner = await api.user();
             const removed = await api.submitDapp(owner);
             expectStatus(await api.removeOwn(owner, removed.id, removed.version), 204);

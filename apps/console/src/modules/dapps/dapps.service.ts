@@ -1,51 +1,42 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import type { EntityManager } from "typeorm";
 import { DataSource } from "typeorm";
-import type { ConsoleConfig } from "../../config/console-config";
-import { CONSOLE_CONFIG } from "../../config/console-config";
 import type { Dapp, DappFields, DappId, DappStatus } from "@shared/console-domain/dapp";
 import { DAPP_FIELDS } from "@shared/console-domain/dapp";
 import { diffFields } from "@shared/console-domain/dapp-edits";
 import type { DappEventDetails } from "@shared/console-domain/dapp-event";
-import type { DappAction } from "@shared/console-domain/dapp-transitions";
-import { transition } from "@shared/console-domain/dapp-transitions";
+import { ActorRole, DappEventType } from "@shared/console-domain/dapp-event";
+import { DappAction, transition } from "@shared/console-domain/dapp-transitions";
 import type { SessionUser } from "../auth/session-user";
 import { ConsoleException } from "../common/exception/console.exception";
-import { postgresErrorCode } from "../common/exception/console-exception.filter";
-import type { ConsoleErrorCode } from "../common/exception/error-codes";
+import { consoleCode, describeError } from "../common/exception/describe-error";
 import { ERROR_CODES } from "../common/exception/error-codes";
-import type { AdminAlertKind, ConsoleEmail, Emailer } from "../notifications/emailer";
-import { EMAILER } from "../notifications/emailer";
-import type { SlackAlert, SlackNotifier } from "../notifications/slack-notifier";
-import { SLACK_NOTIFIER } from "../notifications/slack-notifier";
 import type { TransitionAction } from "./dapps.metrics";
 import { DappsMetrics } from "./dapps.metrics";
+import { DappsNotifier } from "./dapps.notifier";
+import { DappsErrorCode } from "./error/dapps-error-codes";
 import type { Actor, StoredDappEvent } from "./repositories/dapp-events.repository";
 import { DappEventsRepository } from "./repositories/dapp-events.repository";
 import { DappsRepository } from "./repositories/dapps.repository";
 
-const SYSTEM: Actor = { email: null, role: "system" };
-
 type Apply<T> = (manager: EntityManager, dapp: Dapp, next: DappStatus) => Promise<T>;
 
-function consoleCode(error: unknown): ConsoleErrorCode | undefined {
-    return error instanceof ConsoleException ? error.code : postgresErrorCode(error);
-}
-
-function describeError(error: unknown): string {
-    const consoleErrorCode = consoleCode(error);
-    if (consoleErrorCode !== undefined) return consoleErrorCode;
-    if (!(error instanceof Error)) return typeof error;
-    const code = "code" in error ? error.code : undefined;
-    return typeof code === "string" ? `${error.name} (${code})` : error.name;
-}
-
+/**
+ * Tells a use case refused with a client error apart from one that failed.
+ * @param error The thrown value.
+ * @returns The log word, refused for an error code below 500 and failed otherwise.
+ */
 const refusedOrFailed = (error: unknown): string => {
     const code = consoleCode(error);
     return code !== undefined && ERROR_CODES[code].status < 500 ? "refused" : "failed";
 };
 
-const ownerActor = (user: SessionUser): Actor => ({ email: user.email, role: "user" });
+/**
+ * Builds the event actor for a dApp owner.
+ * @param user The signed-in owner.
+ * @returns The actor.
+ */
+const ownerActor = (user: SessionUser): Actor => ({ email: user.email, role: ActorRole.USER });
 
 @Injectable()
 export class DappsService {
@@ -56,38 +47,57 @@ export class DappsService {
         private readonly dapps: DappsRepository,
         private readonly events: DappEventsRepository,
         private readonly metrics: DappsMetrics,
-        @Inject(EMAILER) private readonly emailer: Emailer,
-        @Inject(SLACK_NOTIFIER) private readonly slack: SlackNotifier,
-        @Inject(CONSOLE_CONFIG) private readonly config: ConsoleConfig,
+        private readonly notifier: DappsNotifier,
     ) {}
 
+    /**
+     * Finds the caller's dApp that is not removed, matching the email in any case.
+     * @param user The caller.
+     * @returns The dApp, or null when the caller has none.
+     */
     findOwn(user: SessionUser): Promise<Dapp | null> {
         return this.dapps.findLiveByOwner(user.email);
     }
 
+    /**
+     * Loads a dApp in any status, or throws DAPP_NOT_FOUND.
+     * @param id The dApp id.
+     * @returns The dApp.
+     */
     async get(id: DappId): Promise<Dapp> {
         const dapp = await this.dapps.findById(id);
-        if (dapp === null) throw new ConsoleException("DAPP_NOT_FOUND");
+        if (dapp === null) throw new ConsoleException(DappsErrorCode.DAPP_NOT_FOUND);
         return dapp;
     }
 
+    /**
+     * Lists a dApp's events newest first, or throws DAPP_NOT_FOUND for an unknown dApp.
+     * @param id The dApp id.
+     * @returns The events.
+     */
     async listEvents(id: DappId): Promise<StoredDappEvent[]> {
         await this.get(id);
         return this.events.listForDapp(id);
     }
 
+    /**
+     * Registers a pending dApp for the caller, then alerts the admins by email and Slack. A failed alert does not fail the submission.
+     * @param user The owner.
+     * @param fields The submitted fields.
+     * @returns The new dApp.
+     */
     submit(user: SessionUser, fields: DappFields): Promise<Dapp> {
         return this.counted("submit", async () => {
             const submission = this.dataSource.transaction(async (manager) => {
                 if ((await this.dapps.findLiveByOwnerForUpdate(manager, user.email)) !== null)
-                    throw new ConsoleException("DAPP_ALREADY_EXISTS");
+                    throw new ConsoleException(DappsErrorCode.DAPP_ALREADY_EXISTS);
                 const dapp = await this.dapps.insert(manager, {
                     ...fields,
                     ownerEmail: user.email,
                     submittedAt: new Date(),
                 });
                 await this.events.append(manager, dapp.id, ownerActor(user), {
-                    type: "submitted",
+                    type: DappEventType.SUBMITTED,
                     details: { chosenForAutoApproval: false },
                 });
                 return dapp;
@@ -97,35 +107,64 @@ export class DappsService {
                 throw error;
             });
             this.logger.log(`submit dApp ${dapp.id} by user: -> pending`);
-            await this.sendEmails([this.adminAlert(dapp, "submitted")]);
-            await this.notifySlack({ kind: "submitted", dapp });
+            await this.notifier.submitted(dapp);
             return dapp;
         });
     }
 
+    /**
+     * Applies the caller's edit to their live dApp at the expected version and logs the changed fields.
+     * @param user The owner.
+     * @param id The dApp id the caller named.
+     * @param expectedVersion The version the caller last read.
+     * @param fields The new fields.
+     * @returns The updated dApp.
+     */
     editOwn(user: SessionUser, id: DappId, expectedVersion: number, fields: DappFields): Promise<Dapp> {
-        return this.counted("edit", () => {
+        return this.counted(DappAction.EDIT, () => {
             const owner = ownerActor(user);
-            return this.mutate("edit", owner, user.email, id, expectedVersion, async (manager, live, next) => {
+            return this.mutate(DappAction.EDIT, owner, user.email, id, expectedVersion, async (manager, live, next) => {
                 const changes = diffFields(DAPP_FIELDS, live, fields);
                 const dapp = await this.dapps.update(manager, live.id, { ...fields, status: next });
-                await this.appendEvents(manager, live.id, owner, changes.length > 0 ? [{ type: "edited", details: { changes } }] : []);
+                await this.appendEvents(
+                    manager,
+                    live.id,
+                    owner,
+                    changes.length > 0 ? [{ type: DappEventType.EDITED, details: { changes } }] : [],
+                );
                 return dapp;
             });
         });
     }
 
+    /**
+     * Removes the caller's live dApp at the expected version.
+     * @param user The owner.
+     * @param id The dApp id the caller named.
+     * @param expectedVersion The version the caller last read.
+     * @returns The removed dApp.
+     */
     removeOwn(user: SessionUser, id: DappId, expectedVersion: number): Promise<Dapp> {
-        return this.counted("remove", () => {
+        return this.counted(DappAction.REMOVE, () => {
             const owner = ownerActor(user);
-            return this.mutate("remove", owner, user.email, id, expectedVersion, async (manager, live, next) => {
+            return this.mutate(DappAction.REMOVE, owner, user.email, id, expectedVersion, async (manager, live, next) => {
                 const dapp = await this.dapps.update(manager, live.id, { status: next, removedAt: new Date(), removedBy: owner.email });
-                await this.appendEvents(manager, live.id, owner, [{ type: "removed", details: {} }]);
+                await this.appendEvents(manager, live.id, owner, [{ type: DappEventType.REMOVED, details: {} }]);
                 return dapp;
             });
         });
     }
 
+    /**
+     * Runs a lifecycle action on the owner's live dApp under a row lock, refusing it when the id or version is stale or the lifecycle forbids it, and logs the outcome.
+     * @param action The lifecycle action.
+     * @param actor Who acts, for the log.
+     * @param ownerEmail The owner whose live dApp is locked.
+     * @param id The dApp id the caller named.
+     * @param expectedVersion The version the caller last read.
+     * @param apply Writes the change inside the transaction.
+     * @returns What apply returns.
+     */
     private async mutate<T>(
         action: DappAction,
         actor: Actor,
@@ -138,11 +177,11 @@ export class DappsService {
         try {
             return await this.dataSource.transaction(async (manager) => {
                 const dapp = await this.dapps.findLiveByOwnerForUpdate(manager, ownerEmail);
-                if (dapp === null) throw new ConsoleException("DAPP_NOT_FOUND");
+                if (dapp === null) throw new ConsoleException(DappsErrorCode.DAPP_NOT_FOUND);
                 dappId = dapp.id;
-                if (dapp.id !== id || dapp.version !== expectedVersion) throw new ConsoleException("DAPP_CHANGED");
+                if (dapp.id !== id || dapp.version !== expectedVersion) throw new ConsoleException(DappsErrorCode.DAPP_CHANGED);
                 const result = transition({ status: dapp.status, hasPendingChange: dapp.pendingChange !== null }, action);
-                if (!result.ok) throw new ConsoleException(result.code);
+                if (!result.ok) throw new ConsoleException(DappsErrorCode[result.code]);
                 const value = await apply(manager, dapp, result.next);
                 this.logger.log(`${action} dApp ${dapp.id} by ${actor.role}: ${dapp.status} -> ${result.next}`);
                 return value;
@@ -153,47 +192,23 @@ export class DappsService {
         }
     }
 
+    /**
+     * Appends events in order inside the caller's transaction.
+     * @param manager The transaction's entity manager.
+     * @param dappId The dApp id.
+     * @param actor Who acted.
+     * @param events The events to append.
+     */
     private async appendEvents(manager: EntityManager, dappId: DappId, actor: Actor, events: DappEventDetails[]): Promise<void> {
         for (const event of events) await this.events.append(manager, dappId, actor, event);
     }
 
-    private adminAlert(dapp: Dapp, kind: AdminAlertKind): ConsoleEmail {
-        return { template: "admin_alert", to: [...this.config.admin.emails], dapp, kind };
-    }
-
-    private async sendEmails(emails: ConsoleEmail[]): Promise<void> {
-        for (const email of emails) {
-            let event: DappEventDetails;
-            try {
-                await this.emailer.send(email);
-                event = { type: "email_sent", details: { template: email.template } };
-            } catch (error) {
-                this.logger.warn(`Email ${email.template} for dApp ${email.dapp.id} failed: ${describeError(error)}`);
-                event = {
-                    type: "email_failed",
-                    details: { template: email.template, error: error instanceof Error ? error.message : String(error) },
-                };
-            }
-            this.metrics.countEmail(email.template, event.type === "email_sent" ? "sent" : "failed");
-            try {
-                await this.events.append(this.dataSource.manager, email.dapp.id, SYSTEM, event);
-            } catch (error) {
-                this.logger.error(
-                    `Could not record ${event.type} for dApp ${email.dapp.id}`,
-                    error instanceof Error ? error.stack : String(error),
-                );
-            }
-        }
-    }
-
-    private async notifySlack(alert: SlackAlert): Promise<void> {
-        try {
-            await this.slack.notify(alert);
-        } catch (error) {
-            this.logger.warn(`Slack alert ${alert.kind} for dApp ${alert.dapp.id} failed: ${describeError(error)}`);
-        }
-    }
-
+    /**
+     * Runs a use case and counts its result under its action.
+     * @param action The use case.
+     * @param work The use case to run.
+     * @returns What work returns.
+     */
     private async counted<T>(action: TransitionAction, work: () => Promise<T>): Promise<T> {
         try {
             const result = await work();

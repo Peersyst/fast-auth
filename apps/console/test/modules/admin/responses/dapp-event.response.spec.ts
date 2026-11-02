@@ -8,7 +8,7 @@ const operations = Object.values(spec.paths as Record<string, Record<string, Ope
 const schemas = spec.components.schemas as Record<string, Schema>;
 
 describe("the published events response", () => {
-    it("names every event type in exactly one schema", () => {
+    it("should name every event type in exactly one schema", () => {
         const listEvents = operations.find((operation) => operation.operationId === "AdminController_listEvents");
         const members = listEvents?.responses["200"]?.content?.["application/json"]?.schema.items?.oneOf ?? [];
         const types = members.flatMap((member) => schemas[member.$ref?.split("/").pop() ?? ""]?.properties?.type?.enum ?? []);

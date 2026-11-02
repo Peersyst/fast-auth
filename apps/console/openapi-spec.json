@@ -156,13 +156,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "dapp"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "dapp"
                 ]
             },
             "post": {
@@ -200,13 +200,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "dapp"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "dapp"
                 ]
             }
         },
@@ -255,13 +255,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "dapp"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "dapp"
                 ]
             },
             "delete": {
@@ -300,13 +300,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "dapp"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "dapp"
                 ]
             }
         },
@@ -345,13 +345,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "admin"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "admin"
                 ]
             }
         },
@@ -424,13 +424,13 @@
                         }
                     }
                 },
-                "tags": [
-                    "admin"
-                ],
                 "security": [
                     {
                         "bearer": []
                     }
+                ],
+                "tags": [
+                    "admin"
                 ]
             }
         }
@@ -657,7 +657,11 @@
                         "type": "string"
                     },
                     "mauBracket": {
-                        "$ref": "#/components/schemas/MauBracket"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/MauBracket"
+                            }
+                        ]
                     },
                     "callbackUrls": {
                         "type": "array",
@@ -681,7 +685,11 @@
                         "type": "string"
                     },
                     "status": {
-                        "$ref": "#/components/schemas/DappStatus"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/DappStatus"
+                            }
+                        ]
                     },
                     "rejectionReason": {
                         "type": "string",
@@ -777,7 +785,11 @@
                         "description": "An `https:` URL of at most 255 characters."
                     },
                     "mauBracket": {
-                        "$ref": "#/components/schemas/MauBracket"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/MauBracket"
+                            }
+                        ]
                     },
                     "callbackUrls": {
                         "description": "1–10 absolute `https:` URLs once de-duplicated.",
@@ -831,7 +843,11 @@
                         "description": "An `https:` URL of at most 255 characters."
                     },
                     "mauBracket": {
-                        "$ref": "#/components/schemas/MauBracket"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/MauBracket"
+                            }
+                        ]
                     },
                     "callbackUrls": {
                         "description": "1–10 absolute `https:` URLs once de-duplicated.",
@@ -891,7 +907,11 @@
                         "type": "string"
                     },
                     "mauBracket": {
-                        "$ref": "#/components/schemas/MauBracket"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/MauBracket"
+                            }
+                        ]
                     },
                     "callbackUrls": {
                         "type": "array",
@@ -915,7 +935,11 @@
                         "type": "string"
                     },
                     "status": {
-                        "$ref": "#/components/schemas/DappStatus"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/DappStatus"
+                            }
+                        ]
                     },
                     "rejectionReason": {
                         "type": "string",
@@ -1065,7 +1089,11 @@
                         "description": "Null for the system."
                     },
                     "actorRole": {
-                        "$ref": "#/components/schemas/ActorRole"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ActorRole"
+                            }
+                        ]
                     },
                     "details": {
                         "$ref": "#/components/schemas/SubmittedDetails"
@@ -1189,7 +1217,11 @@
                         "description": "Null for the system."
                     },
                     "actorRole": {
-                        "$ref": "#/components/schemas/ActorRole"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ActorRole"
+                            }
+                        ]
                     },
                     "details": {
                         "$ref": "#/components/schemas/FieldChangesDetails"
@@ -1235,7 +1267,11 @@
                         "description": "Null for the system."
                     },
                     "actorRole": {
-                        "$ref": "#/components/schemas/ActorRole"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ActorRole"
+                            }
+                        ]
                     },
                     "details": {
                         "$ref": "#/components/schemas/NoDetails"
@@ -1285,7 +1321,11 @@
                         "description": "Null for the system."
                     },
                     "actorRole": {
-                        "$ref": "#/components/schemas/ActorRole"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ActorRole"
+                            }
+                        ]
                     },
                     "details": {
                         "$ref": "#/components/schemas/ReasonDetails"
@@ -1331,7 +1371,11 @@
                         "description": "Null for the system."
                     },
                     "actorRole": {
-                        "$ref": "#/components/schemas/ActorRole"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ActorRole"
+                            }
+                        ]
                     },
                     "details": {
                         "$ref": "#/components/schemas/RemovedDetails"
@@ -1390,7 +1434,11 @@
                         "description": "Null for the system."
                     },
                     "actorRole": {
-                        "$ref": "#/components/schemas/ActorRole"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ActorRole"
+                            }
+                        ]
                     },
                     "details": {
                         "$ref": "#/components/schemas/Auth0WriteDetails"
@@ -1439,7 +1487,11 @@
                         "description": "Null for the system."
                     },
                     "actorRole": {
-                        "$ref": "#/components/schemas/ActorRole"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ActorRole"
+                            }
+                        ]
                     },
                     "details": {
                         "$ref": "#/components/schemas/Auth0DeletedDetails"
@@ -1471,7 +1523,11 @@
                 "type": "object",
                 "properties": {
                     "op": {
-                        "$ref": "#/components/schemas/Auth0Op"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/Auth0Op"
+                            }
+                        ]
                     },
                     "error": {
                         "type": "string"
@@ -1504,7 +1560,11 @@
                         "description": "Null for the system."
                     },
                     "actorRole": {
-                        "$ref": "#/components/schemas/ActorRole"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ActorRole"
+                            }
+                        ]
                     },
                     "details": {
                         "$ref": "#/components/schemas/Auth0FailedDetails"
@@ -1539,7 +1599,11 @@
                 "type": "object",
                 "properties": {
                     "template": {
-                        "$ref": "#/components/schemas/EmailTemplate"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/EmailTemplate"
+                            }
+                        ]
                     }
                 },
                 "required": [
@@ -1565,7 +1629,11 @@
                         "description": "Null for the system."
                     },
                     "actorRole": {
-                        "$ref": "#/components/schemas/ActorRole"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ActorRole"
+                            }
+                        ]
                     },
                     "details": {
                         "$ref": "#/components/schemas/EmailSentDetails"
@@ -1588,7 +1656,11 @@
                 "type": "object",
                 "properties": {
                     "template": {
-                        "$ref": "#/components/schemas/EmailTemplate"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/EmailTemplate"
+                            }
+                        ]
                     },
                     "error": {
                         "type": "string"
@@ -1618,7 +1690,11 @@
                         "description": "Null for the system."
                     },
                     "actorRole": {
-                        "$ref": "#/components/schemas/ActorRole"
+                        "allOf": [
+                            {
+                                "$ref": "#/components/schemas/ActorRole"
+                            }
+                        ]
                     },
                     "details": {
                         "$ref": "#/components/schemas/EmailFailedDetails"

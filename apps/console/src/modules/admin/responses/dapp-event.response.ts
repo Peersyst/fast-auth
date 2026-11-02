@@ -21,11 +21,23 @@ type WithIsoCreatedAt<E> = E extends StoredDappEvent ? Omit<E, "createdAt"> & { 
 
 export type DappEventResponse = WithIsoCreatedAt<StoredDappEvent>;
 
+// DappEventResponse is a union, which no class can name, so its factory lives on a companion object.
+export const DappEventResponse = {
+    fromEvent({ createdAt, ...event }: StoredDappEvent): DappEventResponse {
+        return { ...event, createdAt: createdAt.toISOString() };
+    },
+};
+
 // `never` unless A and B name the same fields, which catches the fields that assignability lets through: one the docs
 // class keeps after the payload drops it, and an optional one the payload adds.
 type SameKeys<A, B> = [Exclude<keyof A & string, keyof B> | Exclude<keyof B & string, keyof A>] extends [never] ? unknown : never;
 
-// One schema per group of event types that share a details schema, so `type` tells the client which details it gets.
+/**
+ * Builds one schema per group of event types that share a details schema, so `type` tells the client which details it gets.
+ * @param types The event types in the group.
+ * @param details The class that documents their details.
+ * @returns The class to list in the OpenAPI spec.
+ */
 function dappEventSchema<T extends DappEventType, D extends Type<DappEventPayloads[T]>>(
     types: T[],
     details: D & SameKeys<InstanceType<D>, DappEventPayloads[T]>,
@@ -87,7 +99,3 @@ export const DAPP_EVENT_SCHEMAS = [
     EmailSentEvent,
     EmailFailedEvent,
 ];
-
-export function toDappEventResponse({ createdAt, ...event }: StoredDappEvent): DappEventResponse {
-    return { ...event, createdAt: createdAt.toISOString() };
-}

@@ -3,7 +3,7 @@ import { DataSource } from "typeorm";
 import { loadConfig } from "../../../src/config";
 import { dataSourceOptions } from "../../../src/database/data-source";
 import type { DappId } from "@shared/console-domain/dapp";
-import { DappStatus, syncedFieldsOf } from "@shared/console-domain/dapp";
+import { syncedFieldsOf } from "@shared/console-domain/dapp";
 import { ActorRole, DappEventType } from "@shared/console-domain/dapp-event";
 import { DappEventEntity } from "../../../src/modules/dapps/entities/dapp-event.entity";
 import { DappEntity } from "../../../src/modules/dapps/entities/dapp.entity";

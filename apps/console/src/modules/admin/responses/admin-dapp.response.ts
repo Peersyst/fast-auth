@@ -1,6 +1,6 @@
 import { ApiProperty } from "@nestjs/swagger";
 import type { Dapp } from "@shared/console-domain/dapp";
-import { OwnerDappResponse, toOwnerDappResponse } from "../../dapps/response/owner-dapp.response";
+import { OwnerDappResponse } from "../../dapps/responses/owner-dapp.response";
 
 export class AdminDappResponse extends OwnerDappResponse {
     @ApiProperty()
@@ -32,20 +32,25 @@ export class AdminDappResponse extends OwnerDappResponse {
 
     @ApiProperty({ format: "date-time" })
     updatedAt: string;
-}
 
-export function toAdminDappResponse(dapp: Dapp): AdminDappResponse {
-    return {
-        ...toOwnerDappResponse(dapp),
-        ownerEmail: dapp.ownerEmail,
-        reviewedAt: dapp.reviewedAt?.toISOString() ?? null,
-        reviewedBy: dapp.reviewedBy,
-        auth0Error: dapp.auth0Error,
-        auth0SyncedAt: dapp.auth0SyncedAt?.toISOString() ?? null,
-        removedAt: dapp.removedAt?.toISOString() ?? null,
-        removedBy: dapp.removedBy,
-        removalReason: dapp.removalReason,
-        createdAt: dapp.createdAt.toISOString(),
-        updatedAt: dapp.updatedAt.toISOString(),
-    };
+    /**
+     * Maps a dApp to the admin view, which adds the owner, review, Auth0 and removal fields to the owner's view.
+     * @param dapp The dApp.
+     * @returns The admin view.
+     */
+    static override fromDapp(dapp: Dapp): AdminDappResponse {
+        return {
+            ...OwnerDappResponse.fromDapp(dapp),
+            ownerEmail: dapp.ownerEmail,
+            reviewedAt: dapp.reviewedAt?.toISOString() ?? null,
+            reviewedBy: dapp.reviewedBy,
+            auth0Error: dapp.auth0Error,
+            auth0SyncedAt: dapp.auth0SyncedAt?.toISOString() ?? null,
+            removedAt: dapp.removedAt?.toISOString() ?? null,
+            removedBy: dapp.removedBy,
+            removalReason: dapp.removalReason,
+            createdAt: dapp.createdAt.toISOString(),
+            updatedAt: dapp.updatedAt.toISOString(),
+        };
+    }
 }
