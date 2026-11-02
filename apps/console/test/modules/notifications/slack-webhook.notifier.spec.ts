@@ -1,5 +1,10 @@
-import { makeDapp } from "../../../test/utils/dapp";
-import { slackMessage, SlackWebhookNotifier } from "./slack-webhook.notifier";
+import { makeDapp } from "../../utils/dapp";
+import { createTestingModuleWithConfig, TEST_CONFIG } from "../../utils/test-config";
+import { MauBracket } from "@shared/console-domain/dapp";
+import { NotificationsModule } from "../../../src/modules/notifications/notifications.module";
+import { SLACK_NOTIFIER } from "../../../src/modules/notifications/slack-notifier";
+import type { SlackNotifier } from "../../../src/modules/notifications/slack-notifier";
+import { slackMessage } from "../../../src/modules/notifications/slack-webhook.notifier";
 
 const WEBHOOK_URL = "https://hooks.slack.com/services/T000/B000/token";
 const PUBLIC_URL = "https://console.example.test";
@@ -7,13 +12,28 @@ const PUBLIC_URL = "https://console.example.test";
 const dapp = makeDapp({
     name: "Acme & Co",
     description: "A wallet for the Acme community.",
-    mauBracket: "1k_10k",
+    mauBracket: MauBracket.FROM_1K_TO_10K,
     callbackUrls: ["https://acme.example/callback", "https://staging.acme.example/callback"],
     contactEmail: "team@acme.example",
 });
 
+/**
+ * Builds the Slack webhook notifier through the notifications module, posting to the webhook above with a 5 s timeout.
+ * @returns The notifier.
+ */
+async function createNotifier(): Promise<SlackNotifier> {
+    const config = {
+        ...TEST_CONFIG,
+        server: { ...TEST_CONFIG.server, publicUrl: PUBLIC_URL },
+        slack: { webhookUrl: WEBHOOK_URL, timeoutMs: 5_000 },
+    };
+
+    const module = await createTestingModuleWithConfig(config, NotificationsModule).compile();
+    return module.get<SlackNotifier>(SLACK_NOTIFIER);
+}
+
 describe("slackMessage", () => {
-    it("says an auto-approved dApp got an Auth0 client, links the admin page and leaves out the owner's email", () => {
+    it("should say an auto-approved dApp got an Auth0 client, link the admin page and leave out the owner's email", () => {
         const { text } = slackMessage({ kind: "auto_approved", dapp }, PUBLIC_URL);
 
         expect(text.startsWith("*A dApp was auto-approved*\nAcme &amp; Co was approved automatically and got an Auth0 client.\n")).toBe(
@@ -23,14 +43,14 @@ describe("slackMessage", () => {
         expect(text).not.toContain(dapp.ownerEmail);
     });
 
-    it("never unfurls links or media, so a submitted logo URL cannot show an image in the channel", () => {
+    it("should never unfurl links or media, so a submitted logo URL cannot show an image in the channel", () => {
         const message = slackMessage({ kind: "submitted", dapp }, PUBLIC_URL);
 
         expect(message.unfurl_links).toBe(false);
         expect(message.unfurl_media).toBe(false);
     });
 
-    it("lists every submitted field after the summary and the link, with a dash for an empty list", () => {
+    it("should list every submitted field after the summary and the link, with a dash for an empty list", () => {
         expect(slackMessage({ kind: "submitted", dapp }, PUBLIC_URL).text).toBe(
             [
                 "*New dApp submission to review*",
@@ -48,7 +68,7 @@ describe("slackMessage", () => {
         );
     });
 
-    it("escapes every submitted text, and shows a dash for an empty description", () => {
+    it("should escape every submitted text, and show a dash for an empty description", () => {
         const { text } = slackMessage(
             { kind: "submitted", dapp: { ...dapp, description: "", contactEmail: "<!here>@acme.example" } },
             PUBLIC_URL,
@@ -59,7 +79,7 @@ describe("slackMessage", () => {
         expect(text).not.toContain("<!here>");
     });
 
-    it("keeps a description with line breaks on its own line, so it cannot fake another field", () => {
+    it("should keep a description with line breaks on its own line, so it cannot fake another field", () => {
         const { text } = slackMessage(
             { kind: "submitted", dapp: { ...dapp, description: "Nice app\n*Contact:* attacker@evil.example" } },
             PUBLIC_URL,
@@ -69,13 +89,13 @@ describe("slackMessage", () => {
         expect(text.match(/^\*Contact:\*/gm)).toHaveLength(1);
     });
 
-    it("treats a line separator in a description as a space", () => {
+    it("should treat a line separator in a description as a space", () => {
         const { text } = slackMessage({ kind: "submitted", dapp: { ...dapp, description: "Nice app\u2028*Contact:* x" } }, PUBLIC_URL);
 
         expect(text).toContain("*Description:* Nice app *Contact:* x\n");
     });
 
-    it("treats a next-line control character in the rejection reason as a space", () => {
+    it("should treat a next-line control character in the rejection reason as a space", () => {
         const { text } = slackMessage(
             { kind: "resubmitted", dapp, rejected: dapp, rejectionReason: "Fix the logo\u0085*Contact:* x" },
             PUBLIC_URL,
@@ -85,7 +105,7 @@ describe("slackMessage", () => {
         expect(text.match(/^\*Contact:\*/gm)).toHaveLength(1);
     });
 
-    it("gives a resubmission's rejection reason and marks each field changed since the rejection, with its old value", () => {
+    it("should give a resubmission's rejection reason and mark each field changed since the rejection, with its old value", () => {
         const rejected = {
             ...dapp,
             description: "Old description",
@@ -115,7 +135,7 @@ describe("slackMessage", () => {
         );
     });
 
-    it("says when a resubmission changed nothing, and compares URL lists as sets", () => {
+    it("should say when a resubmission changed nothing, and compare URL lists as sets", () => {
         const rejected = { ...dapp, callbackUrls: [...dapp.callbackUrls].reverse() };
         const { text } = slackMessage({ kind: "resubmitted", dapp, rejected, rejectionReason: "Add a logout URL." }, PUBLIC_URL);
 
@@ -123,7 +143,7 @@ describe("slackMessage", () => {
         expect(text).not.toContain("(changed)");
     });
 
-    it("escapes the name, so it can neither mention the channel nor hide a link", () => {
+    it("should escape the name, so it can neither mention the channel nor hide a link", () => {
         const { text } = slackMessage({ kind: "submitted", dapp: { ...dapp, name: "<!channel> <https://evil.example|Acme>" } }, PUBLIC_URL);
 
         expect(text).toContain("&lt;!channel&gt; &lt;https://evil.example|Acme&gt;");
@@ -133,59 +153,66 @@ describe("slackMessage", () => {
 
 describe("SlackWebhookNotifier", () => {
     const fetchMock = jest.spyOn(globalThis, "fetch");
+    let notifier: SlackNotifier;
+
+    beforeAll(async () => {
+        notifier = await createNotifier();
+    });
 
     afterEach(() => fetchMock.mockReset());
     afterAll(() => fetchMock.mockRestore());
 
-    it("posts the message as JSON to the webhook", async () => {
-        fetchMock.mockResolvedValue(new Response("ok", { status: 200 }));
+    describe("notify", () => {
+        it("should post the message as JSON to the webhook", async () => {
+            fetchMock.mockResolvedValue(new Response("ok", { status: 200 }));
 
-        await new SlackWebhookNotifier(WEBHOOK_URL, PUBLIC_URL).notify({ kind: "submitted", dapp });
+            await notifier.notify({ kind: "submitted", dapp });
 
-        expect(fetchMock).toHaveBeenCalledTimes(1);
-        const [url, init] = fetchMock.mock.calls[0] ?? [];
-        expect(url).toBe(WEBHOOK_URL);
-        expect(init).toMatchObject({ method: "POST", headers: { "Content-Type": "application/json" } });
-        expect(JSON.parse(init?.body as string)).toEqual(slackMessage({ kind: "submitted", dapp }, PUBLIC_URL));
-    });
-
-    it("aborts the post when the 5 s timeout signal fires", async () => {
-        const controller = new AbortController();
-        const timeout = jest.spyOn(AbortSignal, "timeout").mockReturnValue(controller.signal);
-        fetchMock.mockImplementation(
-            (_, init) =>
-                new Promise((_resolve, reject) => {
-                    init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
-                }),
-        );
-
-        const notified = new SlackWebhookNotifier(WEBHOOK_URL, PUBLIC_URL).notify({ kind: "submitted", dapp });
-        controller.abort();
-
-        await expect(notified).rejects.toThrow("aborted");
-        expect(timeout).toHaveBeenCalledWith(5_000);
-        timeout.mockRestore();
-    });
-
-    it("releases the unread body of a successful answer", async () => {
-        const response = new Response("ok", { status: 200 });
-        const cancel = jest.spyOn(response.body as ReadableStream, "cancel");
-        fetchMock.mockResolvedValue(response);
-
-        await new SlackWebhookNotifier(WEBHOOK_URL, PUBLIC_URL).notify({ kind: "submitted", dapp });
-
-        expect(cancel).toHaveBeenCalledTimes(1);
-    });
-
-    it("throws on a non-2xx answer, naming the status in the error code, and releases the unread body", async () => {
-        const response = new Response("no_service", { status: 404 });
-        const cancel = jest.spyOn(response.body as ReadableStream, "cancel");
-        fetchMock.mockResolvedValue(response);
-
-        await expect(new SlackWebhookNotifier(WEBHOOK_URL, PUBLIC_URL).notify({ kind: "submitted", dapp })).rejects.toMatchObject({
-            code: "HTTP_404",
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+            const [url, init] = fetchMock.mock.calls[0] ?? [];
+            expect(url).toBe(WEBHOOK_URL);
+            expect(init).toMatchObject({ method: "POST", headers: { "Content-Type": "application/json" } });
+            expect(JSON.parse(init?.body as string)).toEqual(slackMessage({ kind: "submitted", dapp }, PUBLIC_URL));
         });
 
-        expect(cancel).toHaveBeenCalledTimes(1);
+        it("should abort the post when the 5 s timeout signal fires", async () => {
+            const controller = new AbortController();
+            const timeout = jest.spyOn(AbortSignal, "timeout").mockReturnValue(controller.signal);
+            fetchMock.mockImplementation(
+                (_, init) =>
+                    new Promise((_resolve, reject) => {
+                        init?.signal?.addEventListener("abort", () => reject(new Error("aborted")));
+                    }),
+            );
+
+            const notified = notifier.notify({ kind: "submitted", dapp });
+            controller.abort();
+
+            await expect(notified).rejects.toThrow("aborted");
+            expect(timeout).toHaveBeenCalledWith(5_000);
+            timeout.mockRestore();
+        });
+
+        it("should release the unread body of a successful answer", async () => {
+            const response = new Response("ok", { status: 200 });
+            const cancel = jest.spyOn(response.body as ReadableStream, "cancel");
+            fetchMock.mockResolvedValue(response);
+
+            await notifier.notify({ kind: "submitted", dapp });
+
+            expect(cancel).toHaveBeenCalledTimes(1);
+        });
+
+        it("should throw on a non-2xx answer, naming the status in the error code, and release the unread body", async () => {
+            const response = new Response("no_service", { status: 404 });
+            const cancel = jest.spyOn(response.body as ReadableStream, "cancel");
+            fetchMock.mockResolvedValue(response);
+
+            await expect(notifier.notify({ kind: "submitted", dapp })).rejects.toMatchObject({
+                code: "HTTP_404",
+            });
+
+            expect(cancel).toHaveBeenCalledTimes(1);
+        });
     });
 });

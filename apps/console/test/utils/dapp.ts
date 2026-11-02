@@ -1,7 +1,13 @@
 import type { Auth0ClientId, Dapp, DappId } from "@shared/console-domain/dapp";
+import { DappStatus, MauBracket } from "@shared/console-domain/dapp";
 
 export const CLIENT_ID = "abcDEF123" as Auth0ClientId;
 
+/**
+ * Builds an approved dApp with fixed values.
+ * @param overrides The fields to replace.
+ * @returns The dApp.
+ */
 export const makeDapp = (overrides: Partial<Dapp> = {}): Dapp => ({
     id: "6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b" as DappId,
     name: "Acme Wallet",
@@ -11,9 +17,9 @@ export const makeDapp = (overrides: Partial<Dapp> = {}): Dapp => ({
     logoutUrls: [],
     webOrigins: ["https://acme.example"],
     contactEmail: "dev@acme.example",
-    mauBracket: "lt1k",
+    mauBracket: MauBracket.LT_1K,
     ownerEmail: "owner@acme.example",
-    status: "approved",
+    status: DappStatus.APPROVED,
     rejectionReason: null,
     pendingChange: null,
     pendingChangeAt: null,

@@ -24,7 +24,13 @@ const managementProvisioner = z.object({
     AUTH0_MGMT_TIMEOUT_MS: milliseconds.default(10000),
 });
 const fakeProvisioner = z.object({ AUTH0_PROVISIONER: z.literal(Auth0ProvisionerName.FAKE) });
-const sesProvider = z.object({ EMAIL_PROVIDER: z.literal(EmailProviderName.SES), SES_FROM: z.email(), SES_REGION: text });
+const sesProvider = z.object({
+    EMAIL_PROVIDER: z.literal(EmailProviderName.SES),
+    SES_FROM: z.email(),
+    SES_REGION: text,
+    SES_TIMEOUT_MS: milliseconds.default(10000),
+    SES_MAX_ATTEMPTS: count.default(2),
+});
 const fakeProvider = z.object({ EMAIL_PROVIDER: z.literal(EmailProviderName.FAKE) });
 
 /**
@@ -88,6 +94,7 @@ function configSchema(raw: Record<string, string>) {
             SLACK_WEBHOOK_URL: z
                 .url({ protocol: /^https$/, hostname: /^hooks\.slack\.com$/, error: "must be an https://hooks.slack.com/ webhook URL" })
                 .optional(),
+            SLACK_TIMEOUT_MS: milliseconds.default(5000),
         })
         .and(auth0Provisioner)
         .and(emailProvider);
@@ -161,7 +168,13 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ConsoleConfig 
         },
         email:
             parsed.EMAIL_PROVIDER === EmailProviderName.SES
-                ? { provider: parsed.EMAIL_PROVIDER, from: parsed.SES_FROM, region: parsed.SES_REGION }
+                ? {
+                      provider: parsed.EMAIL_PROVIDER,
+                      from: parsed.SES_FROM,
+                      region: parsed.SES_REGION,
+                      timeoutMs: parsed.SES_TIMEOUT_MS,
+                      maxAttempts: parsed.SES_MAX_ATTEMPTS,
+                  }
                 : { provider: parsed.EMAIL_PROVIDER },
         admin: { emails: new Set(parsed.ADMIN_EMAILS) },
         throttle: {
@@ -169,6 +182,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ConsoleConfig 
             editDappPerMinute: parsed.THROTTLE_EDIT_DAPP_PER_MINUTE,
             adminMutationPerMinute: parsed.THROTTLE_ADMIN_MUTATION_PER_MINUTE,
         },
-        slack: { webhookUrl: parsed.SLACK_WEBHOOK_URL ?? null },
+        slack: { webhookUrl: parsed.SLACK_WEBHOOK_URL ?? null, timeoutMs: parsed.SLACK_TIMEOUT_MS },
     };
 }

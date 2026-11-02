@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`email templates lays out every block type 1`] = `
+exports[`email templates should lay out every block type 1`] = `
 "<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -29,7 +29,7 @@ exports[`email templates lays out every block type 1`] = `
 "
 `;
 
-exports[`email templates renders the subject and text of admin_alert/auto_approved 1`] = `
+exports[`email templates should render the subject and text of admin_alert/auto_approved 1`] = `
 {
   "subject": "A dApp was auto-approved",
   "text": "NEAR Auth
@@ -45,7 +45,7 @@ Sent by the NEAR Auth Console.
 }
 `;
 
-exports[`email templates renders the subject and text of admin_alert/change_requested 1`] = `
+exports[`email templates should render the subject and text of admin_alert/change_requested 1`] = `
 {
   "subject": "A dApp change request to review",
   "text": "NEAR Auth
@@ -61,7 +61,7 @@ Sent by the NEAR Auth Console.
 }
 `;
 
-exports[`email templates renders the subject and text of admin_alert/resubmitted 1`] = `
+exports[`email templates should render the subject and text of admin_alert/resubmitted 1`] = `
 {
   "subject": "A dApp was resubmitted for review",
   "text": "NEAR Auth
@@ -77,7 +77,7 @@ Sent by the NEAR Auth Console.
 }
 `;
 
-exports[`email templates renders the subject and text of admin_alert/submitted 1`] = `
+exports[`email templates should render the subject and text of admin_alert/submitted 1`] = `
 {
   "subject": "New dApp submission to review",
   "text": "NEAR Auth
@@ -93,7 +93,7 @@ Sent by the NEAR Auth Console.
 }
 `;
 
-exports[`email templates renders the subject and text of change_approved 1`] = `
+exports[`email templates should render the subject and text of change_approved 1`] = `
 {
   "subject": "Your dApp change is approved",
   "text": "NEAR Auth
@@ -109,7 +109,7 @@ Sent by the NEAR Auth Console.
 }
 `;
 
-exports[`email templates renders the subject and text of change_rejected 1`] = `
+exports[`email templates should render the subject and text of change_rejected 1`] = `
 {
   "subject": "Your dApp change was not approved",
   "text": "NEAR Auth
@@ -129,7 +129,7 @@ Sent by the NEAR Auth Console.
 }
 `;
 
-exports[`email templates renders the subject and text of changed_by_admin 1`] = `
+exports[`email templates should render the subject and text of changed_by_admin 1`] = `
 {
   "subject": "The NEAR Auth team updated your dApp",
   "text": "NEAR Auth
@@ -145,7 +145,7 @@ Sent by the NEAR Auth Console.
 }
 `;
 
-exports[`email templates renders the subject and text of dapp_approved 1`] = `
+exports[`email templates should render the subject and text of dapp_approved 1`] = `
 {
   "subject": "Your dApp is approved on NEAR Auth",
   "text": "NEAR Auth
@@ -176,7 +176,7 @@ Sent by the NEAR Auth Console.
 }
 `;
 
-exports[`email templates renders the subject and text of dapp_rejected 1`] = `
+exports[`email templates should render the subject and text of dapp_rejected 1`] = `
 {
   "subject": "Your dApp needs changes before approval",
   "text": "NEAR Auth
@@ -196,7 +196,7 @@ Sent by the NEAR Auth Console.
 }
 `;
 
-exports[`email templates renders the subject and text of removed_by_admin 1`] = `
+exports[`email templates should render the subject and text of removed_by_admin 1`] = `
 {
   "subject": "Your dApp was removed from NEAR Auth",
   "text": "NEAR Auth

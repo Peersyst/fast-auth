@@ -1,19 +1,22 @@
-import type { DappField, DappFields, MauBracket } from "@shared/console-domain/dapp";
-import { DAPP_FIELDS } from "@shared/console-domain/dapp";
+import type { DappField, DappFields } from "@shared/console-domain/dapp";
+import { DAPP_FIELDS, MauBracket } from "@shared/console-domain/dapp";
 import { diffFields } from "@shared/console-domain/dapp-edits";
 import type { SlackAlert, SlackNotifier } from "./slack-notifier";
 import { ADMIN_ALERTS, adminDappUrl } from "./templates/templates";
 
-const TIMEOUT_MS = 5_000;
-
 const MAU_LABELS: Record<MauBracket, string> = {
-    lt1k: "Less than 1,000",
-    "1k_10k": "1,000 – 10,000",
-    "10k_25k": "10,000 – 25,000",
-    gt25k: "More than 25,000",
+    [MauBracket.LT_1K]: "Less than 1,000",
+    [MauBracket.FROM_1K_TO_10K]: "1,000 – 10,000",
+    [MauBracket.FROM_10K_TO_25K]: "10,000 – 25,000",
+    [MauBracket.GT_25K]: "More than 25,000",
 };
 
-// Every field is one line of the message, so a line break in a description could fake another field.
+/**
+ * Escapes Slack mrkdwn and collapses whitespace and control characters to spaces. Every field is one line of the message, so
+ * a line break in a description could fake another field.
+ * @param value The user-supplied text.
+ * @returns The text, safe to put on one line of the message.
+ */
 function escapeMrkdwn(value: string): string {
     return value
         .replace(/[\s\p{Cc}]+/gu, " ")
@@ -22,6 +25,11 @@ function escapeMrkdwn(value: string): string {
         .replace(/>/g, "&gt;");
 }
 
+/**
+ * Formats a URL list on one line, with a dash for an empty list.
+ * @param urls The URLs.
+ * @returns The escaped, comma-separated list.
+ */
 function urlList(urls: readonly string[]): string {
     return urls.length === 0 ? "—" : urls.map(escapeMrkdwn).join(", ");
 }
@@ -37,6 +45,12 @@ const FIELD_LINES: Record<DappField, { label: string; format: (fields: DappField
     contactEmail: { label: "Contact", format: (fields) => escapeMrkdwn(fields.contactEmail) },
 };
 
+/**
+ * Builds the webhook payload for an alert, with every dApp field and, on a resubmission, what changed since the rejection.
+ * @param alert The alert.
+ * @param publicUrl The console's public URL, for the review link.
+ * @returns The webhook payload, with link previews off.
+ */
 export function slackMessage(alert: SlackAlert, publicUrl: string): { text: string; unfurl_links: false; unfurl_media: false } {
     const { dapp } = alert;
     const copy = ADMIN_ALERTS[alert.kind];
@@ -72,14 +86,19 @@ export class SlackWebhookNotifier implements SlackNotifier {
     constructor(
         private readonly webhookUrl: string,
         private readonly publicUrl: string,
+        private readonly timeoutMs: number,
     ) {}
 
+    /**
+     * Posts the alert to the webhook within the configured deadline, and throws when Slack answers with an error status.
+     * @param alert The alert.
+     */
     async notify(alert: SlackAlert): Promise<void> {
         const response = await fetch(this.webhookUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(slackMessage(alert, this.publicUrl)),
-            signal: AbortSignal.timeout(TIMEOUT_MS),
+            signal: AbortSignal.timeout(this.timeoutMs),
         });
         await response.body?.cancel();
         if (!response.ok) {

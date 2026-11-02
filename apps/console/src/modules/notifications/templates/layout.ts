@@ -11,10 +11,20 @@ const HTML_ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const MONO = "Menlo,Consolas,'Liberation Mono',monospace";
 
+/**
+ * Escapes the characters that are special in HTML text and attributes.
+ * @param value The text.
+ * @returns The escaped text.
+ */
 function escapeHtml(value: string): string {
     return value.replace(/[&<>"']/g, (char) => HTML_ESCAPES[char] ?? char);
 }
 
+/**
+ * Renders a block as inline-styled HTML.
+ * @param block The block.
+ * @returns The HTML.
+ */
 function blockHtml(block: Block): string {
     switch (block.type) {
         case "paragraph":
@@ -28,6 +38,11 @@ function blockHtml(block: Block): string {
     }
 }
 
+/**
+ * Renders a block as plain text, with quotes prefixed by > and code indented.
+ * @param block The block.
+ * @returns The text.
+ */
 function blockText(block: Block): string {
     switch (block.type) {
         case "paragraph":
@@ -47,6 +62,13 @@ function blockText(block: Block): string {
     }
 }
 
+/**
+ * Wraps the blocks in the console's email layout, as HTML and as plain text.
+ * @param subject The subject line, also the HTML title.
+ * @param heading The heading above the blocks.
+ * @param blocks The body.
+ * @returns The subject, HTML and text.
+ */
 export function renderLayout(subject: string, heading: string, blocks: Block[]): RenderedEmail {
     const html = `<!DOCTYPE html>
 <html lang="en">

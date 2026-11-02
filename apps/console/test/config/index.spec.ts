@@ -87,7 +87,7 @@ describe("loadConfig", () => {
         });
         expect(config.throttle).toEqual({ submitDappPerMinute: 5, editDappPerMinute: 10, adminMutationPerMinute: 60 });
         expect(config.email).toEqual({ provider: "fake" });
-        expect(config.slack).toEqual({ webhookUrl: null });
+        expect(config.slack).toEqual({ webhookUrl: null, timeoutMs: 5000 });
     });
 
     it("should parse set tunables instead of their defaults", () => {
@@ -104,6 +104,7 @@ describe("loadConfig", () => {
             THROTTLE_EDIT_DAPP_PER_MINUTE: "20",
             THROTTLE_ADMIN_MUTATION_PER_MINUTE: "120",
             AUTH0_HEALTH_CHECK_INTERVAL_MS: "60000",
+            SLACK_TIMEOUT_MS: "2000",
         });
 
         expect(config.server.metricsPort).toBe(9100);
@@ -115,6 +116,11 @@ describe("loadConfig", () => {
         expect(config.auth0.jwksRefetchCooldownMs).toBe(45000);
         expect(config.throttle).toEqual({ submitDappPerMinute: 3, editDappPerMinute: 20, adminMutationPerMinute: 120 });
         expect(config.auth0.healthCheckIntervalMs).toBe(60000);
+        expect(config.slack.timeoutMs).toBe(2000);
+        expect(loadConfig({ ...VALID_ENV, ...REAL_ADAPTERS, SES_TIMEOUT_MS: "3000", SES_MAX_ATTEMPTS: "4" }).email).toMatchObject({
+            timeoutMs: 3000,
+            maxAttempts: 4,
+        });
         expect(
             loadConfig({
                 ...VALID_ENV,
@@ -154,6 +160,7 @@ describe("loadConfig", () => {
         "THROTTLE_ADMIN_MUTATION_PER_MINUTE",
         "AUTH0_MGMT_RETRY_AFTER_MS",
         "AUTH0_MGMT_MAX_RETRY_AFTER_MS",
+        "SES_MAX_ATTEMPTS",
     ])("should refuse a %s that is not a positive integer", (key) => {
         for (const value of ["0", "-1", "1.5", "many"])
             expect(loadError({ ...VALID_ENV, ...REAL_ADAPTERS, [key]: value })).toContain(`${key}:`);
@@ -217,7 +224,13 @@ describe("loadConfig", () => {
             mgmtRetryAfterMs: 1000,
             mgmtMaxRetryAfterMs: 10000,
         });
-        expect(config.email).toEqual({ provider: "ses", from: "no-reply@auth.near.org", region: "us-east-1" });
+        expect(config.email).toEqual({
+            provider: "ses",
+            from: "no-reply@auth.near.org",
+            region: "us-east-1",
+            timeoutMs: 10000,
+            maxAttempts: 2,
+        });
     });
 
     it("should accept an http origin with a port for PUBLIC_URL", () => {
@@ -240,7 +253,7 @@ describe("loadConfig", () => {
 
     it("should accept a Slack incoming webhook and refuse any other URL without echoing it", () => {
         const webhookUrl = "https://hooks.slack.com/services/T000/B000/s3cret-token";
-        expect(loadConfig({ ...VALID_ENV, SLACK_WEBHOOK_URL: webhookUrl }).slack).toEqual({ webhookUrl });
+        expect(loadConfig({ ...VALID_ENV, SLACK_WEBHOOK_URL: webhookUrl }).slack).toEqual({ webhookUrl, timeoutMs: 5000 });
 
         for (const url of ["http://hooks.slack.com/services/T000/B000/s3cret-token", "https://example.com/s3cret-token"]) {
             const message = loadError({ ...VALID_ENV, SLACK_WEBHOOK_URL: url });

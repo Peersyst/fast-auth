@@ -39,7 +39,7 @@ export const TEST_CONFIG: ConsoleConfig = {
     throttle: { submitDappPerMinute: 5, editDappPerMinute: 10, adminMutationPerMinute: 60 },
     email: { provider: EmailProviderName.FAKE },
     admin: { emails: new Set(["admin@example.test"]) },
-    slack: { webhookUrl: null },
+    slack: { webhookUrl: null, timeoutMs: 5000 },
 };
 
 export const MANAGEMENT_AUTH0: ManagementAuth0Config = {
@@ -54,7 +54,13 @@ export const MANAGEMENT_AUTH0: ManagementAuth0Config = {
     mgmtTimeoutMs: 10000,
 };
 
-export const SES_EMAIL: SesEmailConfig = { provider: "ses", from: "no-reply@auth.example.test", region: "eu-west-1" };
+export const SES_EMAIL: SesEmailConfig = {
+    provider: EmailProviderName.SES,
+    from: "no-reply@auth.example.test",
+    region: "eu-west-1",
+    timeoutMs: 10000,
+    maxAttempts: 2,
+};
 
 /**
  * Starts a testing module that imports these modules next to a global ConfigService serving this config.
