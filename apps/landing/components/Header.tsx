@@ -18,8 +18,8 @@ export default function Header({ docsHref, statusHref }: Props) {
           <a className="navLink navLink--status" href={statusHref}>
             <span className="liveDot" /> Status
           </a>
-          <a className="navLink" href="#how">How it works</a>
-          <a className="navLink" href="#faq">FAQ</a>
+          <a className="navLink" href="/#how">How it works</a>
+          <a className="navLink" href="/#faq">FAQ</a>
           <a className="headerCTA" href={docsHref}>
             Get started <ArrowRight />
           </a>
