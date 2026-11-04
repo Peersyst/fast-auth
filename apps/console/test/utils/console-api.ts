@@ -20,6 +20,7 @@ import type { AdminDappResponse } from "../../src/modules/admin/responses/admin-
 import type { UpsertDappRequest } from "../../src/modules/dapps/requests/upsert-dapp.request";
 import type { ErrorResponse } from "../../src/modules/common/responses/error.response";
 import type { OwnerDappResponse } from "../../src/modules/dapps/responses/owner-dapp.response";
+import type { UpdateSettingsRequest } from "../../src/modules/settings/requests/update-settings.request";
 
 export type Actor = { email: string; token: string };
 
@@ -350,6 +351,25 @@ export class ConsoleApi {
     }
 
     /**
+     * Reads the settings through GET /admin/settings.
+     * @param admin The admin, by default the one reset signs in.
+     * @returns The response.
+     */
+    getSettings(admin = this.admin): Promise<request.Response> {
+        return this.send("get", "/admin/settings", admin);
+    }
+
+    /**
+     * Replaces the settings through PUT /admin/settings.
+     * @param settings The new settings.
+     * @param admin The admin, by default the one reset signs in.
+     * @returns The response.
+     */
+    putSettings(settings: UpdateSettingsRequest, admin = this.admin): Promise<request.Response> {
+        return this.send("put", "/admin/settings", admin, settings);
+    }
+
+    /**
      * Submits a form and expects 201.
      * @param owner The owner.
      * @param form The form, by default a valid one.
@@ -423,6 +443,24 @@ export class ConsoleApi {
         return expectStatus<OwnerDappResponse>(
             await this.edit(owner, dapp.id, { ...syncedFieldsOf(dapp), ...directFieldsOf(dapp), ...change }, dapp.version),
             200,
+        );
+    }
+
+    /**
+     * Turns auto-approval on or off and expects 200.
+     * @param enabled Whether auto-approval is on.
+     */
+    async setAutoApproval(enabled: boolean): Promise<void> {
+        expectStatus(await this.putSettings({ autoApproval: { enabled } }), 200);
+    }
+
+    /**
+     * Reads every setting_events row, oldest first.
+     * @returns The rows.
+     */
+    async settingEvents(): Promise<{ key: string; oldValue: unknown; newValue: unknown; actorEmail: string }[]> {
+        return this.dataSource.query(
+            `SELECT "key", "old_value" AS "oldValue", "new_value" AS "newValue", "actor_email" AS "actorEmail" FROM "setting_events" ORDER BY "created_at"`,
         );
     }
 

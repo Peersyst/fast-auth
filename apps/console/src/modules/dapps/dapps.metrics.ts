@@ -5,7 +5,7 @@ import type { DappAction } from "@shared/console-domain/dapp-transitions";
 import type { EmailTemplate } from "@shared/console-domain/dapp-event";
 import type { ConsoleErrorCode } from "../common/exception/error-codes";
 
-export type TransitionAction = DappAction | "submit";
+export type TransitionAction = DappAction | "submit" | "autoApprove";
 
 export enum DappsMetric {
     TRANSITIONS = "console_transitions_total",

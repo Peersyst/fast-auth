@@ -16,6 +16,7 @@ const CONSOLE_CONFIG_PREFIXES = [
     "EMAIL_",
     "SES_",
     "THROTTLE_",
+    "AUTO_APPROVAL_",
 ];
 for (const key of Object.keys(process.env)) {
     if (CONSOLE_CONFIG_PREFIXES.some((prefix) => key.startsWith(prefix))) delete process.env[key];

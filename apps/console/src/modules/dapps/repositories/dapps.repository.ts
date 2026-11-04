@@ -4,6 +4,7 @@ import type { EntityManager, SelectQueryBuilder } from "typeorm";
 import { DataSource, Not } from "typeorm";
 import type { Dapp, DappFields, DappId } from "@shared/console-domain/dapp";
 import { DappStatus } from "@shared/console-domain/dapp";
+import { ActorRole } from "@shared/console-domain/dapp-event";
 import { DappOrderBy, SortOrder } from "../dapp-order";
 import { DappEntity } from "../entities/dapp.entity";
 
@@ -51,6 +52,20 @@ export class DappsRepository {
      */
     findLiveByOwnerForUpdate(manager: EntityManager, ownerEmail: string): Promise<Dapp | null> {
         return manager.findOne(DappEntity, { where: { ownerEmail, status: Not(DappStatus.REMOVED) }, lock: { mode: "pessimistic_write" } });
+    }
+
+    /**
+     * Tells whether the email owns or ever owned a dApp. It also checks the events an owner acted on, because an admin can move a dApp to another owner and ownership alone loses that history.
+     * @param manager The transaction's entity manager.
+     * @param ownerEmail The owner's email.
+     * @returns Whether the email has had a dApp.
+     */
+    async hasHadDapp(manager: EntityManager, ownerEmail: string): Promise<boolean> {
+        const [row]: { found: boolean }[] = await manager.query(
+            "SELECT EXISTS (SELECT 1 FROM dapps WHERE owner_email = $1) OR EXISTS (SELECT 1 FROM dapp_events WHERE actor_role = $2 AND actor_email = $1) AS found",
+            [ownerEmail, ActorRole.USER],
+        );
+        return row?.found === true;
     }
 
     /**
