@@ -4,10 +4,12 @@ import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import type { ConsoleConfig } from "./config/console-config";
 import { dataSourceOptions } from "./database/data-source";
+import { AuthModule } from "./modules/auth/auth.module";
+import { ClientConfigModule } from "./modules/client-config/client-config.module";
 import { HealthModule } from "./modules/health/health.module";
 
 @Module({
-    imports: [HealthModule],
+    imports: [AuthModule, HealthModule, ClientConfigModule],
 })
 export class AppModule {
     /**

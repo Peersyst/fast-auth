@@ -58,6 +58,8 @@ export type ConsoleConfig = {
         readonly loginDomain: string;
         readonly consoleClientId: string;
         readonly nearNetwork: NearNetwork;
+        readonly jwksTimeoutMs: number;
+        readonly jwksRefetchCooldownMs: number;
     } & (
         | {
               readonly provisioner: Auth0ProvisionerName.MANAGEMENT;
@@ -73,6 +75,11 @@ export type ConsoleConfig = {
         | { readonly provider: EmailProviderName.FAKE };
     readonly admin: {
         readonly emails: ReadonlySet<string>;
+    };
+    readonly throttle: {
+        readonly submitDappPerMinute: number;
+        readonly editDappPerMinute: number;
+        readonly adminMutationPerMinute: number;
     };
     readonly slack: {
         readonly webhookUrl: string | null;
