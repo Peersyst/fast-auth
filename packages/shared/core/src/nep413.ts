@@ -45,9 +45,9 @@ export function encodeSignMessage(params: SignMessageParams): number[] {
     const writeU32 = (value: number) => {
         out.push(value & 0xff, (value >>> 8) & 0xff, (value >>> 16) & 0xff, (value >>> 24) & 0xff);
     };
-    const writeBytes = (bytes: ArrayLike<number>) => {
+    const writeBytes = (bytes: Uint8Array) => {
         // Pushed one by one: spreading a long message into push() can exceed the call stack limit.
-        for (let i = 0; i < bytes.length; i++) out.push(bytes[i]);
+        for (const byte of bytes) out.push(byte);
     };
     const writeString = (value: string) => {
         const bytes = new TextEncoder().encode(value);

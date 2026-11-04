@@ -9,7 +9,7 @@
         "openapi-spec.json"
     ],
     "scripts": {
-        "build": "nest build",
+        "build": "nest build && node -e \"require('node:fs').cpSync('web/dist', 'dist/public', { recursive: true })\"",
         "start": "nest start --watch",
         "clean": "rimraf .turbo coverage dist node_modules",
         "test": "jest --maxWorkers=30%",
@@ -61,6 +61,7 @@
         "@types/jest": "29.5.14",
         "@types/node": "22.16.5",
         "@types/supertest": "6.0.3",
+        "console-web": "workspace:*",
         "jest": "29.7.0",
         "rimraf": "6.0.1",
         "supertest": "7.2.2",
