@@ -90,8 +90,12 @@ jobs:
                   version: 9.14.2
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
+            - name: Bundle the console domain
+              run: pnpm --filter @shared/console-domain bundle
             - name: Lint
               run: pnpm --filter console lint
+            - name: Domain unit tests
+              run: pnpm --filter @shared/console-domain test -- --coverage
             - name: Unit tests
               run: pnpm --filter console test
             - name: Integration tests
@@ -101,6 +105,6 @@ jobs:
             - name: Check OpenAPI spec drift
               run: |
                   pnpm --filter console spec
-                  git diff --exit-code
+                  git diff --exit-code -- . ':!packages/shared/console-domain/package.json'
             - name: Type check
               run: pnpm --filter console check-types

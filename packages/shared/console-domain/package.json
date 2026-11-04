@@ -1,0 +1,38 @@
+{
+    "name": "@shared/console-domain",
+    "private": true,
+    "author": "Peersyst",
+    "version": "0.0.0",
+    "license": "UNLICENSED",
+    "scripts": {
+        "dev": "tsup --watch",
+        "build": "tsup",
+        "clean": "rimraf .turbo coverage dist node_modules",
+        "lint": "eslint .",
+        "check-types": "npx tsc --noEmit",
+        "test": "jest --maxWorkers=30% --passWithNoTests",
+        "bundle": "genesys bundle"
+    },
+    "exports": {
+        ".": "./src/index.ts",
+        "./dapp": "./src/dapp.ts",
+        "./dapp-edits": "./src/dapp-edits.ts",
+        "./dapp-event": "./src/dapp-event.ts",
+        "./dapp-transitions": "./src/dapp-transitions.ts",
+        "./field-rules": "./src/field-rules.ts"
+    },
+    "peerDependencies": {
+        "zod": "4.6.5"
+    },
+    "devDependencies": {
+        "@shared/eslint": "workspace:*",
+        "@shared/tsconfig": "workspace:*",
+        "@shared/tsup": "workspace:*",
+        "@types/jest": "29.5.14",
+        "@types/node": "22.16.5",
+        "jest": "29.7.0",
+        "ts-jest": "29.3.4",
+        "typescript": "5.7.3",
+        "zod": "4.6.5"
+    }
+}

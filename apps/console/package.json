@@ -30,6 +30,7 @@
         "@nestjs/platform-express": "11.1.19",
         "@nestjs/swagger": "11.4.2",
         "@nestjs/typeorm": "11.0.1",
+        "@shared/console-domain": "workspace:*",
         "class-transformer": "0.5.1",
         "class-validator": "0.14.0",
         "express": "5.2.1",

@@ -1,0 +1,69 @@
+import { z } from "zod";
+
+export type DappId = string & { readonly __brand: "DappId" };
+export type Auth0ClientId = string & { readonly __brand: "Auth0ClientId" };
+
+export enum DappStatus {
+    PENDING = "pending",
+    APPROVED = "approved",
+    REJECTED = "rejected",
+    REMOVED = "removed",
+}
+
+export enum MauBracket {
+    LT_1K = "lt1k",
+    FROM_1K_TO_10K = "1k_10k",
+    FROM_10K_TO_25K = "10k_25k",
+    GT_25K = "gt25k",
+}
+
+export const syncedFieldsSchema = z.strictObject({
+    name: z.string(),
+    description: z.string(),
+    logoUrl: z.string(),
+    callbackUrls: z.array(z.string()),
+    logoutUrls: z.array(z.string()),
+    webOrigins: z.array(z.string()),
+});
+export type SyncedFields = z.infer<typeof syncedFieldsSchema>;
+export const SYNCED_FIELDS: readonly (keyof SyncedFields)[] = syncedFieldsSchema.keyof().options;
+
+const directFieldsSchema = z.strictObject({ contactEmail: z.string(), mauBracket: z.enum(MauBracket) });
+type DirectFields = z.infer<typeof directFieldsSchema>;
+export const DIRECT_FIELDS: readonly (keyof DirectFields)[] = directFieldsSchema.keyof().options;
+
+export type DappFields = SyncedFields & DirectFields;
+export type DappField = keyof DappFields;
+
+export const DAPP_FIELDS = [...SYNCED_FIELDS, ...DIRECT_FIELDS] as const;
+
+/**
+ * Copies only the fields that sync to Auth0, dropping any others the object carries.
+ * @param fields An object that holds the synced fields.
+ * @returns A new object with only the synced fields.
+ */
+export function syncedFieldsOf(fields: SyncedFields): SyncedFields {
+    const { name, description, logoUrl, callbackUrls, logoutUrls, webOrigins } = fields;
+    return { name, description, logoUrl, callbackUrls, logoutUrls, webOrigins };
+}
+
+export type Dapp = DappFields & {
+    id: DappId;
+    ownerEmail: string;
+    status: DappStatus;
+    rejectionReason: string | null;
+    pendingChange: SyncedFields | null;
+    pendingChangeAt: Date | null;
+    auth0ClientId: Auth0ClientId | null;
+    auth0SyncedAt: Date | null;
+    auth0Error: string | null;
+    submittedAt: Date;
+    reviewedAt: Date | null;
+    reviewedBy: string | null;
+    removedAt: Date | null;
+    removedBy: string | null;
+    removalReason: string | null;
+    version: number;
+    createdAt: Date;
+    updatedAt: Date;
+};

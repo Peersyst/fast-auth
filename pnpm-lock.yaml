@@ -114,6 +114,9 @@ importers:
       '@nestjs/typeorm':
         specifier: 11.0.1
         version: 11.0.1(@nestjs/common@11.1.19(class-transformer@0.5.1)(class-validator@0.14.0)(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.19)(reflect-metadata@0.2.2)(rxjs@7.8.2)(typeorm@0.3.27(pg@8.16.3)(reflect-metadata@0.2.2)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)))
+      '@shared/console-domain':
+        specifier: workspace:*
+        version: link:../../packages/shared/console-domain
       class-transformer:
         specifier: 0.5.1
         version: 0.5.1
@@ -1022,6 +1025,36 @@ importers:
       typescript:
         specifier: ^5.7.3
         version: 5.7.3
+
+  packages/shared/console-domain:
+    devDependencies:
+      '@shared/eslint':
+        specifier: workspace:*
+        version: link:../eslint
+      '@shared/tsconfig':
+        specifier: workspace:*
+        version: link:../tsconfig
+      '@shared/tsup':
+        specifier: workspace:*
+        version: link:../tsup
+      '@types/jest':
+        specifier: 29.5.14
+        version: 29.5.14
+      '@types/node':
+        specifier: 22.16.5
+        version: 22.16.5
+      jest:
+        specifier: 29.7.0
+        version: 29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3))
+      ts-jest:
+        specifier: 29.3.4
+        version: 29.3.4(@babel/core@7.28.0)(@jest/transform@29.7.0)(@jest/types@29.6.3)(babel-jest@29.7.0(@babel/core@7.28.0))(jest@29.7.0(@types/node@22.16.5)(ts-node@10.9.2(@types/node@22.16.5)(typescript@5.7.3)))(typescript@5.7.3)
+      typescript:
+        specifier: 5.7.3
+        version: 5.7.3
+      zod:
+        specifier: 4.6.5
+        version: 4.6.5
 
   packages/shared/core:
     devDependencies:
