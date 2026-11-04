@@ -24,6 +24,7 @@
         "migration:check": "nest build && pnpm typeorm:e2e schema:drop -d dist/database/cli-data-source.js && pnpm typeorm:e2e migration:run -d dist/database/cli-data-source.js && pnpm typeorm:e2e migration:generate --check -d dist/database/cli-data-source.js src/database/migrations/Drift"
     },
     "dependencies": {
+        "@aws-sdk/client-sesv2": "3.1152.0",
         "@nestjs/common": "11.1.19",
         "@nestjs/config": "4.0.4",
         "@nestjs/core": "11.1.19",

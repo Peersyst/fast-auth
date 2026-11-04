@@ -75,7 +75,13 @@ export type ConsoleConfig = {
         | { readonly provisioner: Auth0ProvisionerName.FAKE }
     );
     readonly email:
-        | { readonly provider: EmailProviderName.SES; readonly from: string; readonly region: string }
+        | {
+              readonly provider: EmailProviderName.SES;
+              readonly from: string;
+              readonly region: string;
+              readonly timeoutMs: number;
+              readonly maxAttempts: number;
+          }
         | { readonly provider: EmailProviderName.FAKE };
     readonly admin: {
         readonly emails: ReadonlySet<string>;
@@ -87,6 +93,7 @@ export type ConsoleConfig = {
     };
     readonly slack: {
         readonly webhookUrl: string | null;
+        readonly timeoutMs: number;
     };
 };
 

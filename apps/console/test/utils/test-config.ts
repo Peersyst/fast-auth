@@ -3,7 +3,7 @@ import type { Type } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Test } from "@nestjs/testing";
 import type { TestingModuleBuilder } from "@nestjs/testing";
-import type { ConsoleConfig, ManagementAuth0Config } from "../../src/config/console-config";
+import type { ConsoleConfig, ManagementAuth0Config, SesEmailConfig } from "../../src/config/console-config";
 import { Auth0ProvisionerName, ConfigEnv, EmailProviderName, LogLevel, NearNetwork } from "../../src/config/console-config";
 
 export const TEST_CONFIG: ConsoleConfig = {
@@ -39,7 +39,7 @@ export const TEST_CONFIG: ConsoleConfig = {
     throttle: { submitDappPerMinute: 5, editDappPerMinute: 10, adminMutationPerMinute: 60 },
     email: { provider: EmailProviderName.FAKE },
     admin: { emails: new Set(["admin@example.test"]) },
-    slack: { webhookUrl: null },
+    slack: { webhookUrl: null, timeoutMs: 5000 },
 };
 
 export const MANAGEMENT_AUTH0: ManagementAuth0Config = {
@@ -52,6 +52,14 @@ export const MANAGEMENT_AUTH0: ManagementAuth0Config = {
     mgmtRetryAfterMs: 1000,
     mgmtMaxRetryAfterMs: 10000,
     mgmtTimeoutMs: 10000,
+};
+
+export const SES_EMAIL: SesEmailConfig = {
+    provider: EmailProviderName.SES,
+    from: "no-reply@auth.example.test",
+    region: "eu-west-1",
+    timeoutMs: 10000,
+    maxAttempts: 2,
 };
 
 /**
