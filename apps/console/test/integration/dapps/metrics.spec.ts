@@ -1,0 +1,20 @@
+import { register } from "prom-client";
+import { DappsErrorCode } from "../../../src/modules/dapps/error/dapps-error-codes";
+import { dappForm, expectError, useConsoleApi } from "../../utils/console-api";
+
+describe("metrics", () => {
+    const api = useConsoleApi();
+
+    it("should count a submission and a duplicate, and gauge the pending dApp", async () => {
+        const owner = await api.user();
+        await api.submitDapp(owner);
+        expectError(await api.submit(owner, dappForm()), 409, DappsErrorCode.DAPP_ALREADY_EXISTS);
+
+        const lines = (await register.metrics()).split("\n");
+
+        expect(lines).toContain('console_transitions_total{action="submit",result="success"} 1');
+        expect(lines).toContain('console_transitions_total{action="submit",result="DAPP_ALREADY_EXISTS"} 1');
+        expect(lines).toContain('console_emails_total{template="admin_alert",result="sent"} 1');
+        expect(lines).toContain('console_dapps{status="pending"} 1');
+    });
+});

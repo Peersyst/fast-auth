@@ -9,6 +9,7 @@ import { ErrorResponse } from "../responses/error.response";
 import { CommonErrorCode } from "./common-error-codes";
 import { ConsoleException } from "./console.exception";
 import type { ConsoleErrorCode } from "./error-codes";
+import { postgresErrorCode } from "./describe-error";
 
 const CODE_BY_STATUS: Partial<Record<number, ConsoleErrorCode>> = {
     400: CommonErrorCode.VALIDATION_FAILED,
@@ -75,6 +76,9 @@ export class ConsoleExceptionFilter implements ExceptionFilter {
      */
     toErrorResponse(exception: unknown, requestId: string | undefined): ErrorResponse {
         if (exception instanceof ConsoleException) return exception.body;
+
+        const postgresCode = postgresErrorCode(exception);
+        if (postgresCode) return new ConsoleException(postgresCode).body;
 
         const status = statusOf(exception);
         const code = status === undefined ? undefined : CODE_BY_STATUS[status];

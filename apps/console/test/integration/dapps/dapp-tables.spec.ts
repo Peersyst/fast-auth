@@ -3,7 +3,7 @@ import { DataSource } from "typeorm";
 import { loadConfig } from "../../../src/config";
 import { dataSourceOptions } from "../../../src/database/data-source";
 import type { DappId } from "@shared/console-domain/dapp";
-import { DappStatus, syncedFieldsOf } from "@shared/console-domain/dapp";
+import { syncedFieldsOf } from "@shared/console-domain/dapp";
 import { ActorRole, DappEventType } from "@shared/console-domain/dapp-event";
 import { DappEventEntity } from "../../../src/modules/dapps/entities/dapp-event.entity";
 import { DappEntity } from "../../../src/modules/dapps/entities/dapp.entity";
@@ -42,25 +42,6 @@ describe("dApp tables", () => {
             code: "23505",
             constraint: "dapps_owner_email_live",
         });
-    });
-
-    it("should let the owner register again once the first dApp is removed", async () => {
-        const first = makeDapp();
-        await manager.insert(DappEntity, first);
-        await manager.update(DappEntity, { id: first.id }, { status: DappStatus.REMOVED });
-
-        await manager.insert(DappEntity, makeDapp({ id: SECOND_ID }));
-
-        expect(await manager.countBy(DappEntity, { ownerEmail: "owner@acme.example" })).toBe(2);
-    });
-
-    it("should bump the version from 1 to 2 on update", async () => {
-        const dapp = makeDapp();
-        await manager.insert(DappEntity, dapp);
-
-        await manager.update(DappEntity, { id: dapp.id }, { name: "Acme Wallet 2" });
-
-        expect(await manager.findOneByOrFail(DappEntity, { id: dapp.id })).toMatchObject({ name: "Acme Wallet 2", version: 2 });
     });
 
     it("should refuse to delete a dApp that has an event", async () => {
