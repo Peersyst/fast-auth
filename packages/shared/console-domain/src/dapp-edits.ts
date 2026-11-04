@@ -7,6 +7,8 @@ export type PendingChangeOutcome =
     | { kind: "withdrawn" }
     | { kind: "replaced"; change: SyncedFields; changes: FieldChange[] };
 
+export type FieldValueChange = Extract<FieldChange, { before: FieldValue }>;
+
 type EditOutcome = {
     directChanges: FieldChange[];
     pendingChange: PendingChangeOutcome;
@@ -49,6 +51,20 @@ export function diffFields<F extends DappField>(
 }
 
 /**
+ * Lists the synced fields whose values differ, with before and after values for every one.
+ * @param live The live fields.
+ * @param change The changed fields.
+ * @returns One change per differing synced field.
+ */
+export function diffSyncedFields(live: SyncedFields, change: SyncedFields): FieldValueChange[] {
+    return SYNCED_FIELDS.filter((field) => !isSameValue(live[field], change[field])).map((field) => ({
+        field,
+        before: live[field],
+        after: change[field],
+    }));
+}
+
+/**
  * Splits an edit into direct-field changes, which apply at once, and what happens to the pending change of synced fields.
  * @param live The dApp's live fields.
  * @param pending The pending change, if any.
@@ -67,8 +83,8 @@ export function classifyEdit(live: DappFields, pending: SyncedFields | null, pro
  * @returns The pending change's outcome.
  */
 function classifyPendingChange(live: DappFields, pending: SyncedFields | null, proposed: DappFields): PendingChangeOutcome {
-    if (pending !== null && diffFields(SYNCED_FIELDS, pending, proposed).length === 0) return { kind: "unchanged" };
-    const changes = diffFields(SYNCED_FIELDS, live, proposed);
+    if (pending !== null && diffSyncedFields(pending, proposed).length === 0) return { kind: "unchanged" };
+    const changes = diffSyncedFields(live, proposed);
     if (changes.length > 0) return { kind: "replaced", change: syncedFieldsOf(proposed), changes };
     return pending === null ? { kind: "unchanged" } : { kind: "withdrawn" };
 }

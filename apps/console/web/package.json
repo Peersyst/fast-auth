@@ -15,6 +15,7 @@
     },
     "dependencies": {
         "@auth0/auth0-react": "2.28.2",
+        "@hookform/resolvers": "5.9.1",
         "@shared/console-domain": "workspace:*",
         "@shared/core": "workspace:*",
         "@tanstack/react-query": "5.104.3",
@@ -23,6 +24,7 @@
         "openapi-fetch": "0.17.0",
         "react": "19.2.8",
         "react-dom": "19.2.8",
+        "react-hook-form": "7.90.0",
         "react-router-dom": "7.7.0",
         "tailwind-merge": "3.7.0",
         "zod": "4.6.5"

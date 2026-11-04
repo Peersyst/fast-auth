@@ -1,5 +1,5 @@
 import { cva } from "class-variance-authority";
-import type { ButtonHTMLAttributes } from "react";
+import { forwardRef, type ButtonHTMLAttributes, type ForwardedRef } from "react";
 import { cn } from "../lib/cn";
 import { Spinner } from "./Spinner";
 
@@ -31,19 +31,14 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
     loading?: boolean;
 };
 
-export function Button({
-    variant = "primary",
-    size = "medium",
-    loading = false,
-    type = "button",
-    className,
-    onClick,
-    children,
-    ...rest
-}: ButtonProps) {
+export const Button = forwardRef(function Button(
+    { variant = "primary", size = "medium", loading = false, type = "button", className, onClick, children, ...rest }: ButtonProps,
+    ref: ForwardedRef<HTMLButtonElement>,
+) {
     return (
         <button
             {...rest}
+            ref={ref}
             type={type}
             className={cn(buttonVariants({ variant, size }), className)}
             aria-busy={loading || undefined}
@@ -54,4 +49,4 @@ export function Button({
             {children}
         </button>
     );
-}
+});
