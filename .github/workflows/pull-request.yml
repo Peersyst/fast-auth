@@ -94,10 +94,14 @@ jobs:
               run: pnpm --filter @shared/console-domain bundle
             - name: Lint
               run: pnpm --filter console lint
+            - name: Web lint
+              run: pnpm --filter console-web lint
             - name: Domain unit tests
               run: pnpm --filter @shared/console-domain test -- --coverage
             - name: Unit tests
               run: pnpm --filter console test
+            - name: Web unit tests
+              run: pnpm --filter console-web test
             - name: Integration tests
               run: pnpm --filter console test:integration
             - name: Check schema drift
@@ -108,3 +112,5 @@ jobs:
                   git diff --exit-code -- . ':!packages/shared/console-domain/package.json'
             - name: Type check
               run: pnpm --filter console check-types
+            - name: Web type check
+              run: pnpm --filter console-web check-types

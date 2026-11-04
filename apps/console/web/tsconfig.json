@@ -1,0 +1,8 @@
+{
+    "extends": "@shared/tsconfig/react",
+    "compilerOptions": {
+        "noUncheckedIndexedAccess": true,
+        "types": ["vite/client", "jest"]
+    },
+    "include": ["src", "test", "vite.config.ts"]
+}

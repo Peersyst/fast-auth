@@ -1,0 +1,42 @@
+{
+    "name": "console-web",
+    "version": "0.0.0",
+    "description": "NEAR Auth Console SPA",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "clean": "rimraf .turbo dist node_modules",
+        "test": "jest --maxWorkers=30%",
+        "lint": "eslint .",
+        "check-types": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@shared/console-domain": "workspace:*",
+        "class-variance-authority": "0.7.1",
+        "clsx": "2.1.1",
+        "react": "19.2.8",
+        "react-dom": "19.2.8",
+        "tailwind-merge": "3.7.0"
+    },
+    "devDependencies": {
+        "@shared/eslint": "workspace:*",
+        "@shared/tsconfig": "workspace:*",
+        "@tailwindcss/vite": "4.3.3",
+        "@testing-library/dom": "10.4.2",
+        "@testing-library/jest-dom": "6.9.1",
+        "@testing-library/react": "16.3.3",
+        "@testing-library/user-event": "14.6.8",
+        "@types/jest": "29.5.14",
+        "@types/react": "19.2.18",
+        "@types/react-dom": "19.2.7",
+        "@vitejs/plugin-react": "4.7.0",
+        "identity-obj-proxy": "3.0.0",
+        "jest": "29.7.0",
+        "jest-environment-jsdom": "29.7.0",
+        "rimraf": "6.0.1",
+        "tailwindcss": "4.3.3",
+        "ts-jest": "29.3.4",
+        "typescript": "5.7.3",
+        "vite": "6.3.5"
+    }
+}

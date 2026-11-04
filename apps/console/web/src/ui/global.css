@@ -1,0 +1,291 @@
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@source "..";
+
+@custom-variant hover (&:hover);
+
+/* Utilities resolve to the tokens at the end of this file, which switch for dark mode. Only token names exist in the theme,
+   except that spacing also takes any multiple of 0.25rem. */
+@theme inline reference {
+    --*: initial;
+
+    --spacing: 0.25rem;
+    --spacing-1: var(--space-1);
+    --spacing-2: var(--space-2);
+    --spacing-3: var(--space-3);
+    --spacing-4: var(--space-4);
+    --spacing-5: var(--space-5);
+    --spacing-6: var(--space-6);
+    --spacing-8: var(--space-8);
+    --spacing-10: var(--space-10);
+    --spacing-16: var(--space-16);
+    --spacing-control: var(--control-height);
+    --container-content: var(--content-width);
+
+    --color-canvas: var(--color-canvas);
+    --color-surface: var(--color-surface);
+    --color-surface-muted: var(--color-surface-muted);
+    --color-border: var(--color-border);
+    --color-border-strong: var(--color-border-strong);
+    --color-ink: var(--color-ink);
+    --color-ink-2: var(--color-ink-2);
+    --color-ink-3: var(--color-ink-3);
+    --color-ink-subtle: var(--color-ink-subtle);
+    --color-faint: var(--color-faint);
+    --color-link: var(--color-link);
+    --color-focus: var(--color-focus);
+    --color-accent: var(--color-accent);
+    --color-accent-hover: var(--color-accent-hover);
+    --color-on-accent: var(--color-on-accent);
+    --color-brand-auth: var(--color-brand-auth);
+    --color-chip-strong-bg: var(--color-chip-strong-bg);
+    --color-chip-strong-ink: var(--color-chip-strong-ink);
+    --color-knob: var(--color-knob);
+    --color-backdrop: var(--color-backdrop);
+    --color-ok-bg: var(--color-ok-bg);
+    --color-ok-border: var(--color-ok-border);
+    --color-ok-ink: var(--color-ok-ink);
+    --color-warning-bg: var(--color-warning-bg);
+    --color-warning-border: var(--color-warning-border);
+    --color-warning-ink: var(--color-warning-ink);
+    --color-danger-bg: var(--color-danger-bg);
+    --color-danger-border: var(--color-danger-border);
+    --color-danger-ink: var(--color-danger-ink);
+    --color-danger-ink-strong: var(--color-danger-ink-strong);
+    --color-code-bg: var(--color-code-bg);
+    --color-code-bar: var(--color-code-bar);
+    --color-code-ink: var(--color-code-ink);
+    --color-code-kw: var(--color-code-kw);
+    --color-code-str: var(--color-code-str);
+    --color-code-fn: var(--color-code-fn);
+    --color-code-muted: var(--color-code-muted);
+
+    --font-sans: var(--font-sans);
+    --font-mono: var(--font-mono);
+    --text-xs: var(--font-size-xs);
+    --text-sm: var(--font-size-sm);
+    --text-md: var(--font-size-md);
+    --text-xl: var(--font-size-xl);
+    --text-2xl: var(--font-size-2xl);
+    --font-weight-medium: var(--font-weight-medium);
+    --font-weight-semibold: var(--font-weight-semibold);
+    --font-weight-bold: var(--font-weight-bold);
+    --leading-tight: var(--line-height-tight);
+    --leading-body: var(--line-height-body);
+    --tracking-tight: var(--letter-spacing-tight);
+    --tracking-kicker: var(--letter-spacing-kicker);
+
+    --radius-sm: var(--radius-sm);
+    --radius-lg: var(--radius-lg);
+    --radius-pill: var(--radius-pill);
+
+    --animate-spin: spin 0.8s linear infinite;
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+}
+
+/* Tailwind's shadow-* utilities layer the value under ring and inset shadows; these keep box-shadow equal to the token. */
+@utility shadow-card {
+    box-shadow: var(--shadow-card);
+}
+
+@utility shadow-modal {
+    box-shadow: var(--shadow-modal);
+}
+
+@layer base {
+    *,
+    *::before,
+    *::after {
+        @apply box-border;
+    }
+
+    html,
+    body {
+        @apply m-0 p-0;
+    }
+
+    body {
+        @apply bg-canvas font-sans text-md leading-body text-ink antialiased [text-rendering:optimizeLegibility];
+    }
+
+    h1,
+    h2,
+    h3 {
+        @apply m-0 leading-tight font-bold tracking-tight;
+    }
+
+    p {
+        @apply m-0;
+    }
+
+    a {
+        @apply text-inherit underline-offset-2;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+        @apply text-inherit [font:inherit];
+    }
+
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-focus;
+    }
+
+    ::selection {
+        @apply bg-accent text-on-accent;
+    }
+}
+
+:root {
+    color-scheme: light;
+
+    --color-canvas: #f5f4ed;
+    --color-surface: #ffffff;
+    --color-surface-muted: #ebe9df;
+    --color-border: #ebebeb;
+    --color-border-strong: #d6d4cb;
+
+    --color-ink: #000000;
+    --color-ink-subtle: #5c5c59;
+
+    --color-accent: #00f29b;
+    --color-accent-hover: #92ffd8;
+    --color-on-accent: #000000;
+    --color-brand-auth: #00ec97;
+
+    --color-warning-bg: rgba(176, 122, 8, 0.14);
+    --color-danger-bg: rgba(198, 69, 69, 0.12);
+
+    --color-focus: #000000;
+
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --font-size-xs: 12px;
+    --font-size-sm: 13px;
+    --font-size-md: 15px;
+    --font-size-xl: 22px;
+    --font-size-2xl: 32px;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --line-height-tight: 1.15;
+    --line-height-body: 1.55;
+    --letter-spacing-tight: -0.02em;
+    --letter-spacing-kicker: 0.06em;
+
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --space-10: 40px;
+    --space-16: 64px;
+
+    --control-height: 40px;
+    --content-width: 1184px;
+
+    --radius-sm: 8px;
+    --radius-lg: 16px;
+    --radius-pill: 100px;
+
+    --shadow-card: 0 0 8px rgba(0, 0, 0, 0.08);
+    --color-ink-2: #262624;
+    --color-ink-3: #3d3d3a;
+    --color-faint: #6b6b68;
+    --color-link: #0f7049;
+    --color-chip-strong-bg: #000000;
+    --color-chip-strong-ink: #ffffff;
+    --color-knob: #ffffff;
+    --color-backdrop: rgba(20, 20, 18, 0.5);
+    --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.18);
+    --color-ok-bg: rgba(30, 168, 116, 0.12);
+    --color-ok-border: rgba(30, 168, 116, 0.35);
+    --color-ok-ink: #0f7049;
+    --color-warning-border: rgba(176, 122, 8, 0.35);
+    --color-warning-ink: #845906;
+    --color-danger-border: rgba(198, 69, 69, 0.35);
+    --color-danger-ink: #a83a3a;
+    --color-danger-ink-strong: #7a2424;
+    --color-code-bg: #0b0b0b;
+    --color-code-bar: #111111;
+    --color-code-ink: rgba(255, 255, 255, 0.92);
+    --color-code-kw: #ff7ab2;
+    --color-code-str: #00f29b;
+    --color-code-fn: #82d9ff;
+    --color-code-muted: rgba(255, 255, 255, 0.55);
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+        color-scheme: dark;
+        --color-canvas: #000000;
+        --color-surface: #0b0b0b;
+        --color-surface-muted: #161616;
+        --color-border: #222222;
+        --color-border-strong: #333333;
+        --color-ink: #ffffff;
+        --color-ink-subtle: #a3a3a3;
+        --color-warning-bg: rgba(255, 212, 121, 0.1);
+        --color-danger-bg: rgba(255, 122, 122, 0.1);
+        --color-focus: #ffffff;
+        --shadow-card: none;
+        --color-ink-2: #e0e0e0;
+        --color-ink-3: #c2c2c2;
+        --color-faint: #8c8c8c;
+        --color-link: #00f29b;
+        --color-chip-strong-bg: #ffffff;
+        --color-chip-strong-ink: #000000;
+        --color-backdrop: rgba(0, 0, 0, 0.72);
+        --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.6);
+        --color-ok-bg: rgba(0, 242, 155, 0.1);
+        --color-ok-border: rgba(0, 242, 155, 0.35);
+        --color-ok-ink: #00f29b;
+        --color-warning-border: rgba(255, 212, 121, 0.35);
+        --color-warning-ink: #ffd479;
+        --color-danger-border: rgba(255, 122, 122, 0.38);
+        --color-danger-ink: #ff8a8a;
+        --color-danger-ink-strong: #ffb4b4;
+    }
+}
+
+:root[data-theme="dark"] {
+    color-scheme: dark;
+    --color-canvas: #000000;
+    --color-surface: #0b0b0b;
+    --color-surface-muted: #161616;
+    --color-border: #222222;
+    --color-border-strong: #333333;
+    --color-ink: #ffffff;
+    --color-ink-subtle: #a3a3a3;
+    --color-warning-bg: rgba(255, 212, 121, 0.1);
+    --color-danger-bg: rgba(255, 122, 122, 0.1);
+    --color-focus: #ffffff;
+    --shadow-card: none;
+    --color-ink-2: #e0e0e0;
+    --color-ink-3: #c2c2c2;
+    --color-faint: #8c8c8c;
+    --color-link: #00f29b;
+    --color-chip-strong-bg: #ffffff;
+    --color-chip-strong-ink: #000000;
+    --color-backdrop: rgba(0, 0, 0, 0.72);
+    --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.6);
+    --color-ok-bg: rgba(0, 242, 155, 0.1);
+    --color-ok-border: rgba(0, 242, 155, 0.35);
+    --color-ok-ink: #00f29b;
+    --color-warning-border: rgba(255, 212, 121, 0.35);
+    --color-warning-ink: #ffd479;
+    --color-danger-border: rgba(255, 122, 122, 0.38);
+    --color-danger-ink: #ff8a8a;
+    --color-danger-ink-strong: #ffb4b4;
+}

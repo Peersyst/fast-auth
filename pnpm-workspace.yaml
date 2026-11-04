@@ -1,5 +1,6 @@
 packages:
     - "apps/*"
+    - "apps/console/web"
     - "contracts/*"
     - "contracts/jwt-guards/*"
     - "docs"
