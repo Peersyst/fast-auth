@@ -32,6 +32,8 @@
         "@nestjs/throttler": "6.7.1",
         "@nestjs/typeorm": "11.0.1",
         "@shared/console-domain": "workspace:*",
+        "@willsoto/nestjs-prometheus": "6.0.2",
+        "auth0": "4.37.1",
         "class-transformer": "0.5.1",
         "class-validator": "0.14.0",
         "express": "5.2.1",

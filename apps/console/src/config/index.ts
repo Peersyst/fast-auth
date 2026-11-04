@@ -19,6 +19,9 @@ const managementProvisioner = z.object({
     AUTH0_M2M_CLIENT_ID: text,
     AUTH0_M2M_CLIENT_SECRET: text,
     AUTH0_TEMPLATE_CLIENT_ID: text,
+    AUTH0_MGMT_RETRY_AFTER_MS: milliseconds.default(1000),
+    AUTH0_MGMT_MAX_RETRY_AFTER_MS: milliseconds.default(10000),
+    AUTH0_MGMT_TIMEOUT_MS: milliseconds.default(10000),
 });
 const fakeProvisioner = z.object({ AUTH0_PROVISIONER: z.literal(Auth0ProvisionerName.FAKE) });
 const sesProvider = z.object({ EMAIL_PROVIDER: z.literal(EmailProviderName.SES), SES_FROM: z.email(), SES_REGION: text });
@@ -69,6 +72,7 @@ function configSchema(raw: Record<string, string>) {
             AUTH0_CONSOLE_CLIENT_ID: text,
             AUTH0_JWKS_TIMEOUT_MS: milliseconds.default(6000),
             AUTH0_JWKS_REFETCH_COOLDOWN_MS: milliseconds.default(30000),
+            AUTH0_HEALTH_CHECK_INTERVAL_MS: milliseconds.default(600000),
             NEAR_NETWORK: z.enum(NearNetwork),
             ADMIN_EMAILS: text
                 .transform((emails) =>
@@ -141,6 +145,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ConsoleConfig 
             nearNetwork: parsed.NEAR_NETWORK,
             jwksTimeoutMs: parsed.AUTH0_JWKS_TIMEOUT_MS,
             jwksRefetchCooldownMs: parsed.AUTH0_JWKS_REFETCH_COOLDOWN_MS,
+            healthCheckIntervalMs: parsed.AUTH0_HEALTH_CHECK_INTERVAL_MS,
             ...(parsed.AUTH0_PROVISIONER === Auth0ProvisionerName.MANAGEMENT
                 ? {
                       provisioner: parsed.AUTH0_PROVISIONER,
@@ -148,6 +153,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ConsoleConfig 
                       m2mClientId: parsed.AUTH0_M2M_CLIENT_ID,
                       m2mClientSecret: parsed.AUTH0_M2M_CLIENT_SECRET,
                       templateClientId: parsed.AUTH0_TEMPLATE_CLIENT_ID,
+                      mgmtRetryAfterMs: parsed.AUTH0_MGMT_RETRY_AFTER_MS,
+                      mgmtMaxRetryAfterMs: parsed.AUTH0_MGMT_MAX_RETRY_AFTER_MS,
+                      mgmtTimeoutMs: parsed.AUTH0_MGMT_TIMEOUT_MS,
                   }
                 : { provisioner: parsed.AUTH0_PROVISIONER }),
         },
