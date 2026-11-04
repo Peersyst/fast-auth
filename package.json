@@ -16,7 +16,8 @@
         "lint:contracts": "npx turbo run lint --filter=\"./contracts/**/*\" && echo '🧹 Lint contracts completed'",
         "check-types": "npx turbo run check-types && echo '🔎 Check types completed'",
         "check-types:packages": "npx turbo run check-types --filter=\"./packages/**/*\" && echo '🔎 Check types packages completed'",
-        "bundle": "npx turbo run bundle && echo '📦 Bundle completed'"
+        "bundle": "npx turbo run bundle && echo '📦 Bundle completed'",
+        "docker:start:dev": "docker compose up -d"
     },
     "devDependencies": {
         "@antfu/ni": "^0.23.0",

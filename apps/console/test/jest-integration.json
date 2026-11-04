@@ -1,0 +1,8 @@
+{
+    "preset": "ts-jest",
+    "rootDir": ".",
+    "testRegex": "integration/.*\\.spec\\.ts$",
+    "setupFiles": ["<rootDir>/env.cjs"],
+    "globalSetup": "<rootDir>/integration/setup.ts",
+    "globalTeardown": "<rootDir>/integration/teardown.ts"
+}
