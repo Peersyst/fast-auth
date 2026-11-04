@@ -2,13 +2,16 @@ import type { NestExpressApplication } from "@nestjs/platform-express";
 import request from "supertest";
 import type { QueryRunner } from "typeorm";
 import { DataSource } from "typeorm";
-import { MauBracket } from "@shared/console-domain/dapp";
+import type { SyncedFields } from "@shared/console-domain/dapp";
+import { directFieldsOf, MauBracket, syncedFieldsOf } from "@shared/console-domain/dapp";
 import { CommonErrorCode } from "../../src/modules/common/exception/common-error-codes";
 import type { ConsoleErrorCode } from "../../src/modules/common/exception/error-codes";
 import type { ConsoleEmail, Emailer } from "../../src/modules/notifications/emailer";
 import { EMAILER } from "../../src/modules/notifications/emailer";
 import type { SlackAlertKind, SlackNotifier } from "../../src/modules/notifications/slack-notifier";
 import { SLACK_NOTIFIER } from "../../src/modules/notifications/slack-notifier";
+import { AUTH0_PROVISIONER } from "../../src/modules/provisioning/auth0-provisioner";
+import type { FakeHold, FakeProvisioner, FakeProvisionerCall } from "../../src/modules/provisioning/fake.provisioner";
 import type { DappEvent } from "./contract";
 import { ADMIN_EMAIL } from "./contract";
 import { createTestApp, resetDatabase } from "./test-app";
@@ -20,16 +23,21 @@ import type { OwnerDappResponse } from "../../src/modules/dapps/responses/owner-
 
 export type Actor = { email: string; token: string };
 
-type SentEmail = { template: string; to: string | string[]; kind?: string };
+type SentEmail = { template: string; to: string | string[]; kind?: string; reason?: string };
 
 type Effects = {
     events: DappEvent[];
     emailEvents: { type: string; template: unknown }[];
+    auth0: FakeProvisionerCall[];
     emails: SentEmail[];
     slack: SlackAlertKind[];
 };
 
 type Checkpoint = { effects(dappId?: string): Promise<Effects> };
+
+export const NO_EFFECTS: Effects = { events: [], emailEvents: [], auth0: [], emails: [], slack: [] };
+
+export const REASON = "Please host the logo on your own domain.";
 
 /**
  * Builds a valid dApp form.
@@ -94,6 +102,18 @@ export function expectValidationFailed(response: request.Response, field?: strin
 }
 
 /**
+ * Waits until the request reaches the held Auth0 call, failing if it answers first.
+ * @param hold The held call.
+ * @param call The request in flight.
+ */
+export async function untilHeld(hold: FakeHold, call: Promise<request.Response>): Promise<void> {
+    const early = await Promise.race([hold.reached.then(() => undefined), call]);
+    if (early !== undefined) {
+        throw new Error(`The request answered ${early.status} ${JSON.stringify(early.body)} before reaching the held Auth0 call`);
+    }
+}
+
+/**
  * Reduces a sent email to the fields tests compare.
  * @param email The sent email.
  * @returns The summary.
@@ -103,6 +123,7 @@ function summarise(email: ConsoleEmail): SentEmail {
         template: email.template,
         to: email.to,
         ...("kind" in email && { kind: email.kind }),
+        ...("reason" in email && { reason: email.reason }),
     };
 }
 
@@ -135,6 +156,10 @@ export class ConsoleApi {
     admin: Actor = { email: ADMIN_EMAIL, token: "" };
     private actors = 0;
 
+    get provisioner(): FakeProvisioner {
+        return this.app.get<FakeProvisioner>(AUTH0_PROVISIONER);
+    }
+
     get emailer(): jest.Mocked<Emailer> {
         return this.app.get(EMAILER);
     }
@@ -152,6 +177,7 @@ export class ConsoleApi {
      */
     async reset(): Promise<void> {
         await resetDatabase(this.app);
+        this.provisioner.reset();
         this.emailer.send.mockReset();
         this.slack.notify.mockReset();
         this.admin = await this.user(ADMIN_EMAIL);
@@ -226,6 +252,17 @@ export class ConsoleApi {
     }
 
     /**
+     * Lists dApps through the admin's GET /admin/dapps.
+     * @param query The query parameters.
+     * @param admin The admin, by default the one reset signs in.
+     * @returns The response.
+     */
+    list(query: Record<string, string | number | boolean> = {}, admin = this.admin): Promise<request.Response> {
+        const search = new URLSearchParams(Object.entries(query).map(([key, value]): [string, string] => [key, String(value)])).toString();
+        return this.send("get", `/admin/dapps${search ? `?${search}` : ""}`, admin);
+    }
+
+    /**
      * Reads a dApp through the admin's GET /admin/dapps/:id.
      * @param id The dApp id.
      * @param admin The admin, by default the one reset signs in.
@@ -233,6 +270,83 @@ export class ConsoleApi {
      */
     detail(id: string, admin = this.admin): Promise<request.Response> {
         return this.send("get", `/admin/dapps/${id}`, admin);
+    }
+
+    /**
+     * Edits a dApp through PUT /admin/dapps/:id.
+     * @param id The dApp id.
+     * @param form The new fields.
+     * @param expectedVersion The version the admin last read.
+     * @returns The response.
+     */
+    adminEdit(id: string, form: UpsertDappRequest, expectedVersion: number): Promise<request.Response> {
+        return this.send("put", `/admin/dapps/${id}`, this.admin, { ...form, expectedVersion });
+    }
+
+    /**
+     * Approves a dApp through POST /admin/dapps/:id/approve.
+     * @param id The dApp id.
+     * @param expectedVersion The version the admin last read.
+     * @param admin The admin, by default the one reset signs in.
+     * @returns The response.
+     */
+    approve(id: string, expectedVersion: number, admin = this.admin): Promise<request.Response> {
+        return this.send("post", `/admin/dapps/${id}/approve`, admin, { expectedVersion });
+    }
+
+    /**
+     * Rejects a dApp through POST /admin/dapps/:id/reject.
+     * @param id The dApp id.
+     * @param expectedVersion The version the admin last read.
+     * @param reason The reason, by default a valid one.
+     * @param admin The admin, by default the one reset signs in.
+     * @returns The response.
+     */
+    reject(id: string, expectedVersion: number, reason = REASON, admin = this.admin): Promise<request.Response> {
+        return this.send("post", `/admin/dapps/${id}/reject`, admin, { expectedVersion, reason });
+    }
+
+    /**
+     * Approves a pending change through POST /admin/dapps/:id/change/approve.
+     * @param id The dApp id.
+     * @param expectedVersion The version the admin last read.
+     * @returns The response.
+     */
+    approveChange(id: string, expectedVersion: number): Promise<request.Response> {
+        return this.send("post", `/admin/dapps/${id}/change/approve`, this.admin, { expectedVersion });
+    }
+
+    /**
+     * Rejects a pending change through POST /admin/dapps/:id/change/reject.
+     * @param id The dApp id.
+     * @param expectedVersion The version the admin last read.
+     * @param reason The reason, by default a valid one.
+     * @returns The response.
+     */
+    rejectChange(id: string, expectedVersion: number, reason = REASON): Promise<request.Response> {
+        return this.send("post", `/admin/dapps/${id}/change/reject`, this.admin, { expectedVersion, reason });
+    }
+
+    /**
+     * Moves a dApp to another owner through POST /admin/dapps/:id/owner.
+     * @param id The dApp id.
+     * @param expectedVersion The version the admin last read.
+     * @param ownerEmail The new owner's email.
+     * @returns The response.
+     */
+    changeOwner(id: string, expectedVersion: number, ownerEmail: string): Promise<request.Response> {
+        return this.send("post", `/admin/dapps/${id}/owner`, this.admin, { expectedVersion, ownerEmail });
+    }
+
+    /**
+     * Removes a dApp through POST /admin/dapps/:id/remove.
+     * @param id The dApp id.
+     * @param expectedVersion The version the admin last read.
+     * @param reason The reason, by default a valid one.
+     * @returns The response.
+     */
+    adminRemove(id: string, expectedVersion: number, reason = REASON): Promise<request.Response> {
+        return this.send("post", `/admin/dapps/${id}/remove`, this.admin, { expectedVersion, reason });
     }
 
     /**
@@ -273,12 +387,53 @@ export class ConsoleApi {
     }
 
     /**
+     * Submits a form and has the admin approve it.
+     * @param owner The owner.
+     * @param form The form, by default a valid one.
+     * @returns The approved dApp.
+     */
+    async approvedDapp(owner: Actor, form = dappForm()): Promise<AdminDappResponse> {
+        const dapp = await this.submitDapp(owner, form);
+        return expectStatus<AdminDappResponse>(await this.approve(dapp.id, dapp.version), 200);
+    }
+
+    /**
+     * Submits a form and has the admin reject it.
+     * @param owner The owner.
+     * @param form The form, by default a valid one.
+     * @returns The rejected dApp.
+     */
+    async rejectedDapp(owner: Actor, form = dappForm()): Promise<AdminDappResponse> {
+        const dapp = await this.submitDapp(owner, form);
+        return expectStatus<AdminDappResponse>(await this.reject(dapp.id, dapp.version), 200);
+    }
+
+    /**
+     * Edits an approved dApp's synced fields, which the console holds as a pending change, and expects 200.
+     * @param owner The owner.
+     * @param dapp The dApp's current fields, id and version.
+     * @param change The synced fields to change.
+     * @returns The dApp with its pending change.
+     */
+    async requestChange(
+        owner: Actor,
+        dapp: UpsertDappRequest & { id: string; version: number },
+        change: Partial<SyncedFields>,
+    ): Promise<OwnerDappResponse> {
+        return expectStatus<OwnerDappResponse>(
+            await this.edit(owner, dapp.id, { ...syncedFieldsOf(dapp), ...directFieldsOf(dapp), ...change }, dapp.version),
+            200,
+        );
+    }
+
+    /**
      * Records the current events, emails and Slack alerts, so effects() returns only what happens after.
      * @param dappId The dApp whose events to track. effects() needs it when it is omitted here.
      * @returns The checkpoint.
      */
     async checkpoint(dappId?: string): Promise<Checkpoint> {
         const eventCount = dappId === undefined ? 0 : (await this.events(dappId)).length;
+        const auth0Count = this.provisioner.calls.length;
         const emailCount = this.emailer.send.mock.calls.length;
         const slackCount = this.slack.notify.mock.calls.length;
         return {
@@ -287,12 +442,14 @@ export class ConsoleApi {
                 const events = await this.events(id);
                 const fresh = events.slice(0, events.length - eventCount).reverse();
                 const isEmail = (event: DappEvent): boolean => event.type === "email_sent" || event.type === "email_failed";
+                const auth0 = this.provisioner.calls.slice(auth0Count);
                 return {
                     events: fresh.filter((event) => !isEmail(event)),
                     emailEvents: fresh
                         .filter(isEmail)
                         .map((event) => ({ type: event.type, template: event.details.template }))
                         .sort(byJson),
+                    auth0,
                     emails: this.emailer.send.mock.calls
                         .slice(emailCount)
                         .map(([email]) => summarise(email))

@@ -7,6 +7,7 @@ import {
     isValidDescription,
     isValidName,
     isValidUrlList,
+    NUL,
     normaliseUrl,
     normaliseUrlList,
 } from "@shared/console-domain/field-rules";
@@ -91,3 +92,18 @@ export const IsDappDescription = (): PropertyDecorator => stringRule("isDappDesc
  * @returns The property decorator.
  */
 export const IsContactEmail = (): PropertyDecorator => stringRule("isContactEmail", isContactEmail);
+
+/**
+ * Accepts only a string without a NUL character, which Postgres text cannot store.
+ * @returns The property decorator.
+ */
+export const HasNoNul = (): PropertyDecorator => stringRule("hasNoNul", (value) => !value.includes(NUL));
+
+/**
+ * Accepts only a string whose length is within the bounds, counted in UTF-16 code units.
+ * @param min The shortest length allowed.
+ * @param max The longest length allowed.
+ * @returns The property decorator.
+ */
+export const HasLength = (min: number, max: number): PropertyDecorator =>
+    stringRule("hasLength", (value) => value.length >= min && value.length <= max);
