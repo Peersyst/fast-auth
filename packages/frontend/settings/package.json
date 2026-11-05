@@ -1,0 +1,63 @@
+{
+    "name": "@frontend/settings",
+    "author": "Peersyst",
+    "version": "0.0.0",
+    "license": "UNLICENSED",
+    "scripts": {
+        "dev": "tsup --watch",
+        "build": "tsup",
+        "test": "jest --maxWorkers=30% --passWithNoTests",
+        "test:coverage": "test --coverage --passWithNoTests",
+        "test:watch": "test --watch --passWithNoTests",
+        "test:debug": "jest --no-cache --runInBand --passWithNoTests",
+        "clean": "rimraf .turbo dist node_modules",
+        "lint": "eslint .",
+        "check-types": "npx tsc --noEmit",
+        "bundle": "genesys bundle"
+    },
+    "exports": {
+        ".": "./src/common/index.ts",
+        "./data-access/services/browser": "./src/data-access/services/browser/index.ts",
+        "./data-access/repositories": "./src/data-access/repositories/index.ts",
+        "./domain/controllers": "./src/domain/controllers/index.ts",
+        "./domain/state": "./src/domain/settings.state.ts",
+        "./domain/interfaces": "./src/domain/interfaces/index.ts",
+        "./ui/state": "./src/ui/state/index.ts",
+        "./ui/interfaces": "./src/ui/interfaces/index.ts",
+        "./ui/query": "./src/ui/query/index.ts",
+        "./mocks/common": "./test/mocks/common/index.ts",
+        "./mocks/data-access/service": "./test/mocks/data-access/service/index.ts",
+        "./mocks/data-access/repositories": "./test/mocks/data-access/repositories/index.ts",
+        "./mocks/domain/controllers": "./test/mocks/domain/controllers/index.ts",
+        "./mocks/domain/state": "./test/mocks/domain/settings.state.mock.ts"
+    },
+    "peerDependencies": {
+        "@frontend/core": "workspace:*",
+        "@frontend/locale": "workspace:*",
+        "@frontend/query": "workspace:*",
+        "@tanstack/react-query": "5.105.0",
+        "react": "18.3.1",
+        "zustand": "5.0.16"
+    },
+    "devDependencies": {
+        "@frontend/core": "workspace:*",
+        "@frontend/locale": "workspace:*",
+        "@frontend/query": "workspace:*",
+        "@shared/eslint": "workspace:*",
+        "@shared/jest-config": "workspace:*",
+        "@shared/test": "workspace:*",
+        "@shared/tsconfig": "workspace:*",
+        "@shared/tsup": "workspace:*",
+        "@tanstack/react-query": "5.105.0",
+        "@types/jest": "29.5.14",
+        "@types/react": "18.3.12",
+        "eslint": "8.57.0",
+        "i18next": "26.5.11",
+        "jest": "29.7.0",
+        "react": "18.3.1",
+        "react-i18next": "17.1.9",
+        "ts-jest": "29.4.9",
+        "typescript": "5.9.3",
+        "zustand": "5.0.16"
+    }
+}
