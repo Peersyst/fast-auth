@@ -1,0 +1,33 @@
+{
+    "name": "@shared/console",
+    "author": "Peersyst",
+    "version": "0.0.0",
+    "license": "UNLICENSED",
+    "scripts": {
+        "dev": "tsup --watch",
+        "build": "tsup",
+        "clean": "rimraf .turbo dist node_modules",
+        "lint": "eslint .",
+        "check-types": "npx tsc --noEmit",
+        "bundle": "genesys bundle",
+        "generate": "openapi -i ../../../apps/console/openapi-spec.json -o src --exportSchemas=true --exportModels=true --useUnionTypes --postfixServices=Api"
+    },
+    "exports": {
+        ".": "./src/index.ts",
+        "./test/mocks/common": "./test/mocks/common/index.ts",
+        "./test/mocks/auth": "./test/mocks/auth/index.ts",
+        "./test/mocks/dapp": "./test/mocks/dapp/index.ts",
+        "./test/mocks/admin": "./test/mocks/admin/index.ts"
+    },
+    "devDependencies": {
+        "@shared/eslint": "workspace:*",
+        "@shared/test": "workspace:*",
+        "@shared/tsconfig": "workspace:*",
+        "@shared/tsup": "workspace:*",
+        "@types/jest": "29.5.14",
+        "@types/node": "25.6.0",
+        "eslint": "8.57.0",
+        "openapi-typescript-codegen": "0.29.0",
+        "typescript": "5.9.3"
+    }
+}
