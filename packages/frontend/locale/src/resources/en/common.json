@@ -1,0 +1,498 @@
+{
+    "appName": "NEAR Auth Console",
+    "loading": "Loading…",
+    "tryAgain": "Try again",
+    "support": "Need help? <contact>Contact the NEAR Auth team</contact>.",
+    "header": {
+        "home": "NEAR Auth console home",
+        "admin": "Admin",
+        "console": "Console",
+        "mainNav": "Main",
+        "dapps": "dApps",
+        "myDapp": "My dApp",
+        "docs": "Docs",
+        "signOut": "Sign out"
+    },
+    "theme": {
+        "label": "Theme",
+        "system": "System",
+        "light": "Light",
+        "dark": "Dark"
+    },
+    "signIn": {
+        "title": "Sign in to manage your dApp",
+        "description": "Use your NEAR Auth account. Your dApp is registered to the email address you sign in with.",
+        "failed": "Sign-in did not finish",
+        "failedDescription": "Please try again.",
+        "action": "Sign in with NEAR Auth"
+    },
+    "signingIn": {
+        "title": "Signing you in",
+        "inProgress": "Complete sign-in in the NEAR Auth window.",
+        "popupBlocked": "Your browser blocked the sign-in window",
+        "popupBlockedDescription": "Continue in this tab instead; you will come back here once you have signed in.",
+        "continueInTab": "Continue in this tab",
+        "retryPopup": "Try the window again"
+    },
+    "sessionExpired": {
+        "title": "Your session has expired",
+        "description": "Sign in again to continue.",
+        "action": "Sign in again"
+    },
+    "missingEmail": {
+        "title": "Your account has no email address",
+        "description": "The console registers each dApp to its owner's email, and the way you signed in did not share one. Sign out and sign in with a method that does, such as Google or email and password."
+    },
+    "verifyEmail": {
+        "title": "Verify your email",
+        "description": "Open the verification email NEAR Auth sent to <strong>{{email}}</strong> and follow its link, then come back here.",
+        "refreshFailed": "We could not refresh your session",
+        "refreshFailedDescription": "Try again, or sign out and sign in again.",
+        "notVerified": "Your email is not verified yet",
+        "notVerifiedDescription": "Follow the link in the verification email, then check again. It can take a minute to arrive.",
+        "action": "I've verified my email",
+        "support": "No email? <contact>Contact the NEAR Auth team</contact>."
+    },
+    "loadError": {
+        "start": "The console could not start",
+        "session": "Your session could not be checked"
+    },
+    "refreshError": "Could not refresh, so this may be out of date",
+    "notFound": {
+        "title": "Page not found",
+        "home": "Go to the console"
+    },
+    "myDapp": {
+        "loadError": "Your dApp could not be loaded",
+        "access": "{{network}} access",
+        "noDapp": {
+            "title": "You haven't registered a dApp yet",
+            "description": "Register your dApp to get a dedicated Auth0 <code>clientId</code> and access to the {{network}} NEAR Auth contract. Each email address can have one dApp at a time, and yours is <strong>{{email}}</strong>.",
+            "register": "Register your dApp",
+            "howApproval": "How approval works",
+            "legacy": "Already approved through the earlier application form? That client keeps working but isn't managed here. <contact>Contact the NEAR Auth team</contact> to change it."
+        },
+        "register": {
+            "title": "Register your dApp",
+            "description": "Tell us about your app. Once approved you get a dedicated Auth0 <code>clientId</code> and access to the {{network}} NEAR Auth contract.",
+            "info": "The name, description, logo and URLs become your Auth0 application's settings. You can change any field later. See <apply>how the approval process works</apply>.",
+            "submit": "Submit for review",
+            "submitHint": "You'll get an email when it's reviewed."
+        },
+        "pending": {
+            "submitted": "Submitted",
+            "review": "Review",
+            "reviewDescription": "The NEAR Auth team is reviewing your application.",
+            "approval": "Approval",
+            "approvalDescription": "Your <code>clientId</code> appears here and is emailed to you.",
+            "email": "We'll email <strong>{{email}}</strong> as soon as it's reviewed. You can keep editing the details below while you wait."
+        },
+        "rejected": {
+            "title": "Your application was not approved",
+            "description": "The reason was also emailed to the dApp's owner when it was rejected.",
+            "resubmit": "Update the details below and resubmit. Your dApp goes straight back into the review queue."
+        },
+        "changeUnderReview": {
+            "title": "Change under review",
+            "requested": "Requested {{date}}",
+            "description": "Your live settings stay as they are until the NEAR Auth team approves it. To withdraw it, edit the fields back to their live values or use Withdraw change."
+        },
+        "credentials": {
+            "title": "{{network}} credentials",
+            "note": "Your client ID is public because it ships in your app's code. Only your registered callback URLs and web origins can use it.",
+            "clientId": "Client ID",
+            "network": "Network",
+            "signingAudience": "Signing audience",
+            "defaultFor": "· default for {{network}}",
+            "contracts": "Contracts",
+            "mpc": "· MPC",
+            "goLive": "Go live",
+            "goLiveDescription": "Point your provider at {{network}} with your client ID. The rest of your integration stays the same.",
+            "tip": "Use the {{network}} account ids when you construct the client. See <resources>{{name}} resources</resources>."
+        },
+        "settings": "Application settings",
+        "approvalRule": "Changes to the contact email and monthly active users apply at once. Changes to the name, description, logo or URLs go live once the NEAR Auth team approves them.",
+        "edit": {
+            "action": "Edit",
+            "back": "Back to My dApp",
+            "kicker": "Edit details",
+            "save": "Save changes",
+            "pendingNote": "Your dApp is still in review. Saved edits keep it in the queue, so you don't need to resubmit.",
+            "rejectedNote": "Fix what the review flagged, then resubmit.",
+            "resubmit": "Resubmit for review",
+            "resubmitHint": "Resubmitting puts the dApp back in the review queue.",
+            "approvedNote": "Your dApp is live. {{rule}}"
+        },
+        "changed": {
+            "title": "Nothing was done",
+            "description": "Your dApp changed since you opened that dialog. Check its latest version below, then try again."
+        },
+        "withdraw": {
+            "title": "Withdraw the change?",
+            "confirm": "Withdraw change",
+            "description": "The NEAR Auth team will not review it, and your live settings stay as they are.",
+            "failed": "Not withdrawn"
+        },
+        "remove": {
+            "title": "Remove {{name}}?",
+            "live": "This deletes the dApp and its Auth0 application. Logins through client ID <code>{{clientId}}</code> stop working immediately.",
+            "pending": "This deletes the dApp and takes it out of the review queue.",
+            "other": "This deletes the dApp.",
+            "final": "It can't be undone. A new dApp can be submitted afterwards with the same email.",
+            "failed": "Not removed"
+        }
+    },
+    "admin": {
+        "dapps": {
+            "title": "dApps",
+            "description": "Applications registered for NEAR Auth. Approving one creates its Auth0 application and emails the client ID to its owner.",
+            "views": {
+                "review": "Needs review",
+                "all": "All"
+            },
+            "filter": "Filter by status",
+            "sortBy": "Sort by",
+            "order": "Order",
+            "waitingSince": "Waiting since",
+            "orderBy": {
+                "submittedAt": "Submitted",
+                "updatedAt": "Last updated",
+                "name": "Name",
+                "status": "Status"
+            },
+            "orders": {
+                "date": {
+                    "asc": "Oldest first",
+                    "desc": "Newest first"
+                },
+                "text": {
+                    "asc": "Ascending",
+                    "desc": "Descending"
+                }
+            },
+            "search": "Search dApps",
+            "searchPlaceholder": "Search by name, email or client ID",
+            "loadError": "The dApps could not be loaded",
+            "columns": {
+                "dapp": "dApp",
+                "status": "Status",
+                "actions": "Actions"
+            },
+            "view": "View",
+            "nothingToReview": "Nothing needs review.",
+            "noMatch": "No dApps match.",
+            "showing_one": "Showing {{shown}} of {{count}} dApp · page {{page}} of {{pages}}",
+            "showing_other": "Showing {{shown}} of {{count}} dApps · page {{page}} of {{pages}}",
+            "pages": "Pages",
+            "previous": "Previous",
+            "next": "Next"
+        },
+        "dapp": {
+            "notFound": "dApp not found",
+            "back": "Back to the dApps",
+            "loadError": "The dApp could not be loaded",
+            "breadcrumb": "Breadcrumb",
+            "submitted": "Submitted {{date}} · owned by",
+            "by": "by",
+            "approve": "Approve",
+            "reject": "Reject",
+            "edit": "Edit",
+            "editBlocked": "Approve or reject the pending change before editing.",
+            "changed": {
+                "title": "Nothing was done",
+                "description": "This dApp changed since you opened that dialog. Review its latest version below, then decide again."
+            },
+            "auth0Error": {
+                "title": "The last Auth0 call failed",
+                "nothingSaved": "The console saved nothing, though Auth0 may hold part of the failed write. Retrying the same action is safe; this clears after the next successful Auth0 write.",
+                "rejected": "If this came from the rejection, the rejection went through and the console left this Auth0 client in place because it is not tagged as this dApp's. Check in the Auth0 dashboard what uses it before you delete it there by hand. If it came from a removal, the console saved nothing and retrying it is safe.",
+                "removed": "The removal went through, but the console left this Auth0 client in place because it is not tagged as this dApp's. Check in the Auth0 dashboard what uses it before you delete it there by hand."
+            },
+            "rejectedTitle": "Rejected",
+            "removedTitle": "Removed",
+            "dangerZone": {
+                "title": "Danger zone",
+                "description": "Deletes its Auth0 application, if any; the record and its activity log are kept. You'll be asked to confirm and give a reason, which is emailed to the owner. The owner can submit again with the same email.",
+                "action": "Remove dApp…"
+            },
+            "liveSave": {
+                "title": "Apply changes to the live app?",
+                "description": "{{name}} is approved and live. Saving updates its Auth0 application immediately. A wrong callback URL or origin breaks login for its users until it is fixed. The owner gets an email about the change.",
+                "confirm": "Save and apply",
+                "cancel": "Keep editing"
+            },
+            "approveDialog": {
+                "title": "Approve {{name}}?",
+                "description": "This creates its Auth0 application and emails the client ID to <strong>{{email}}</strong>. The dApp can authenticate real users immediately.",
+                "confirm": "Approve and provision",
+                "application": "Auth0 application",
+                "note": "Later owner changes to the name, description, logo or URLs come back for review; contact email and MAU changes apply at once. You can remove the dApp at any time."
+            },
+            "rejectDialog": {
+                "title": "Reject {{name}}?",
+                "description": "The reason is shown on their dashboard and emailed to <strong>{{email}}</strong>. They can fix the issues and resubmit.",
+                "confirm": "Reject and notify"
+            },
+            "reason": {
+                "label": "Reason",
+                "reviewPlaceholder": "What needs to change before this can be approved?",
+                "reviewHint": "Be specific. This is the only feedback they get.",
+                "removePlaceholder": "Why is this dApp being removed?"
+            },
+            "approveChangeDialog": {
+                "title": "Approve the change?",
+                "description": "This updates the Auth0 application with the proposed values and emails <strong>{{email}}</strong>.",
+                "confirm": "Approve change"
+            },
+            "rejectChangeDialog": {
+                "title": "Reject the change?",
+                "description": "The live values stay as they are. The reason is emailed to <strong>{{email}}</strong>.",
+                "confirm": "Reject change"
+            },
+            "removeDialog": {
+                "title": "Remove {{name}}?",
+                "live": "This deletes its Auth0 application. Logins through client ID <code>{{clientId}}</code> stop working immediately.",
+                "noClient": "It has no Auth0 application yet, so no logins are affected.",
+                "note": "The reason is emailed to <strong>{{email}}</strong>. The record and its activity log are kept."
+            },
+            "changeOwnerDialog": {
+                "title": "Change the owner",
+                "description": "The new owner manages {{name}} from their own sign-in and receives its emails, and <strong>{{email}}</strong> loses access. The Auth0 application stays the same.",
+                "confirm": "Change owner",
+                "email": "New owner's email"
+            },
+            "notDone": "Not done",
+            "changeReview": {
+                "approve": "Approve change",
+                "reject": "Reject change",
+                "proposedLogoAlt": "Proposed logo of {{name}}",
+                "proposedLogo": "Proposed logo"
+            },
+            "facts": {
+                "application": "Application",
+                "urls": "Whitelisted URLs",
+                "contact": "Contact",
+                "changeOwner": "Change owner",
+                "logoAlt": "Logo of {{name}}",
+                "primaryContact": "Primary contact",
+                "contactNote": "· to reach the team; the console emails the owner",
+                "owner": "Owner",
+                "ownerNote": "· owns this dApp and receives its emails"
+            },
+            "record": {
+                "provisioning": "Provisioning",
+                "noClient": "No Auth0 application yet. Approving creates one from these details and emails the client ID to {{email}}.",
+                "formerClientId": "Former client ID",
+                "deletedFromAuth0": "Deleted from Auth0",
+                "clientId": "Client ID",
+                "synced": "Synced to Auth0",
+                "never": "Never",
+                "title": "Record",
+                "reviewed": "Reviewed",
+                "autoApproval": "auto-approval",
+                "notYet": "Not yet",
+                "created": "Created",
+                "updated": "Updated",
+                "id": "ID"
+            },
+            "activity": {
+                "title": "Activity",
+                "count_one": "{{count}} event · newest first",
+                "count_other": "{{count}} events · newest first",
+                "loading": "Loading the activity…",
+                "loadError": "The activity could not be loaded",
+                "empty": "No activity yet.",
+                "events": {
+                    "submitted": "Submitted for review",
+                    "edited": "Edited",
+                    "resubmitted": "Resubmitted for review",
+                    "approved": "Approved",
+                    "auto_approved": "Auto-approved",
+                    "rejected": "Rejected",
+                    "change_requested": "Change requested",
+                    "change_withdrawn": "Change withdrawn",
+                    "change_approved": "Change approved",
+                    "change_rejected": "Change rejected",
+                    "owner_changed": "Owner changed",
+                    "removed": "Removed",
+                    "auth0_created": "Auth0 client created",
+                    "auth0_updated": "Auth0 client updated",
+                    "auth0_deleted": "Auth0 client deleted",
+                    "auth0_failed": "Auth0 call failed",
+                    "email_sent": "Email sent",
+                    "email_failed": "Email failed"
+                },
+                "emails": {
+                    "dapp_approved": "approval, to the owner",
+                    "dapp_rejected": "rejection, to the owner",
+                    "change_approved": "change approved, to the owner",
+                    "change_rejected": "change rejected, to the owner",
+                    "changed_by_admin": "changed by an admin, to the owner",
+                    "removed_by_admin": "removed by an admin, to the owner",
+                    "admin_alert": "alert, to the admins"
+                },
+                "chosenForAutoApproval": "Chosen for auto-approval.",
+                "queued": "Queued for manual review.",
+                "contactChanged": "The contact email changed.",
+                "email": "Email: {{template}}.",
+                "errorLabel": "Error:",
+                "clientIdLabel": "Client ID:",
+                "operation": "Auth0 operation: {{op}}.",
+                "values": "Values sent to Auth0",
+                "bySystem": "by the system",
+                "unknown": "unknown",
+                "roles": {
+                    "admin": "admin",
+                    "owner": "owner"
+                }
+            }
+        },
+        "erased": "Erased",
+        "erasedAddress": "an erased address",
+        "autoApproval": {
+            "label": "Auto-approve new submissions",
+            "hint": "When on, a new dApp from a first-time owner is approved at once. dApps already pending are not affected.",
+            "hintWithCap": "When on, a new dApp from a first-time owner is approved at once, up to {{cap}} every 24 hours. dApps already pending are not affected.",
+            "on": "On",
+            "off": "Off",
+            "loadError": "The setting could not be loaded",
+            "notChanged": "Not changed",
+            "confirmTitle": "Turn on auto-approval?",
+            "confirmDescription": "New submissions are approved and provisioned the moment they arrive, up to {{cap}} every 24 hours: an Auth0 application is created and the client ID emailed to the owner with nobody reviewing it.",
+            "confirm": "Turn on auto-approval",
+            "points": {
+                "alerts": "Each auto-approval emails the admins. Past that cap, new submissions wait for review.",
+                "pending": "The dApps already pending stay in the queue for manual review.",
+                "changes": "Resubmissions and changes to approved dApps still wait for review.",
+                "returning": "A new dApp from an owner whose email has an earlier dApp, whatever its status, always goes to an admin."
+            }
+        }
+    },
+    "copy": {
+        "copy": "Copy",
+        "copied": "Copied",
+        "failed": "Copy failed",
+        "clientId": "Copy client ID"
+    },
+    "confirmDialog": {
+        "cancel": "Cancel",
+        "typeToConfirm": "Type <strong>{{text}}</strong> to confirm",
+        "reasonLength": "Between {{min}} and {{max}} characters.",
+        "reasonLimit": "Between {{min}} and {{max}} characters. You've reached the limit."
+    },
+    "dapp": {
+        "status": {
+            "pending": "Pending",
+            "approved": "Approved",
+            "rejected": "Rejected",
+            "removed": "Removed",
+            "changeUnderReview": "Change under review"
+        },
+        "fields": {
+            "name": "Name",
+            "description": "Description",
+            "logoUrl": "Logo",
+            "mauBracket": "Expected MAU",
+            "callbackUrls": "Callback URLs",
+            "logoutUrls": "Logout URLs",
+            "webOrigins": "Web origins",
+            "contactEmail": "Contact"
+        },
+        "mau": {
+            "lt1k": "Less than 1,000",
+            "1k_10k": "1,000 – 10,000",
+            "10k_25k": "10,000 – 25,000",
+            "gt25k": "More than 25,000"
+        },
+        "networks": {
+            "testnet": "Testnet",
+            "mainnet": "Mainnet"
+        },
+        "none": "None",
+        "diff": {
+            "field": "Field",
+            "live": "Live",
+            "proposed": "Proposed",
+            "new": "New",
+            "before": "Before",
+            "after": "After"
+        }
+    },
+    "dappForm": {
+        "required": "required",
+        "optional": "optional",
+        "liveTitle": "This dApp is live",
+        "liveDescription": "Changes to the name, description, logo or URLs update its Auth0 client at once. The owner is emailed about any change.",
+        "waitsForReview": "Changes wait for review. ",
+        "application": {
+            "title": "Application",
+            "hint": "Shown to your users on the NEAR Auth login and transaction-approval screens."
+        },
+        "capacity": {
+            "title": "Capacity",
+            "hint": "Lets us provision capacity and set rate limits for your app."
+        },
+        "urls": {
+            "title": "Whitelisted URLs",
+            "hint": "Register production and staging together. Add one entry per environment.",
+            "https": "<strong>HTTPS is required</strong> for every URL. Plain <code>http://</code> URLs are rejected."
+        },
+        "contact": {
+            "title": "Contact",
+            "hint": "How the NEAR Auth team can reach your team about your app."
+        },
+        "name": {
+            "label": "Application name",
+            "hint": "The public-facing name people recognize, such as <em>Acme Wallet</em>. Up to {{max}} characters (most emoji count as two or more).",
+            "placeholder": "Acme Wallet"
+        },
+        "description": {
+            "label": "Application description",
+            "hint": "One or two sentences, written for end users, up to {{max}} characters (most emoji count as two or more). Appears next to your name during login.",
+            "placeholder": "A non-custodial wallet for buying and sending NEAR."
+        },
+        "logoUrl": {
+            "label": "Application logo",
+            "hint": "A square PNG or SVG (recommended 256×256 px) served over HTTPS.",
+            "placeholder": "https://app.example.com/logo.png"
+        },
+        "mauBracket": {
+            "label": "Expected monthly active users",
+            "choose": "Choose a bracket"
+        },
+        "callbackUrls": {
+            "label": "Callback URLs",
+            "item": "Callback URL {{number}}",
+            "remove": "Remove callback URL {{number}}",
+            "add": "Add callback URL",
+            "placeholder": "https://app.example.com/callback",
+            "hint": "Where NEAR Auth may redirect after login and after a signature request. Must match the <code>redirectUri</code> you configure in the SDK."
+        },
+        "logoutUrls": {
+            "label": "Logout URLs",
+            "item": "Logout URL {{number}}",
+            "remove": "Remove logout URL {{number}}",
+            "add": "Add logout URL",
+            "placeholder": "https://app.example.com",
+            "hint": "Only needed if you pass a return URL when calling <code>logout</code>."
+        },
+        "webOrigins": {
+            "label": "Web origins",
+            "item": "Web origin {{number}}",
+            "remove": "Remove web origin {{number}}",
+            "add": "Add web origin",
+            "placeholder": "https://app.example.com",
+            "hint": "Scheme + domain, no path. Only these origins can start the auth flow (CORS)."
+        },
+        "contactEmail": {
+            "label": "Primary contact email",
+            "hint": "A monitored alias like <em>dev@example.com</em> works best.",
+            "ownerHint": " The console's own emails, such as your approval, go to the address you signed in with.",
+            "placeholder": "dev@example.com"
+        },
+        "notSaved": "Not saved",
+        "reload": "Reload",
+        "cancel": "Cancel",
+        "remove": "Remove dApp"
+    }
+}

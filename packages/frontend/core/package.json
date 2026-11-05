@@ -1,0 +1,57 @@
+{
+    "name": "@frontend/core",
+    "author": "Peersyst",
+    "version": "0.0.0",
+    "license": "UNLICENSED",
+    "scripts": {
+        "dev": "tsup --watch",
+        "build": "tsup",
+        "clean": "rimraf .turbo dist node_modules",
+        "lint": "eslint .",
+        "check-types": "npx tsc --noEmit",
+        "bundle": "genesys bundle"
+    },
+    "exports": {
+        "./common/utils/singleton": "./src/common/utils/singleton/index.ts",
+        "./common/utils/factories": "./src/common/utils/factories/index.ts",
+        "./data-access/api/factory": "./src/data-access/api/factory/index.ts",
+        "./data-access/api/error": "./src/data-access/api/error/index.ts",
+        "./data-access/repository": "./src/data-access/repository/index.ts",
+        "./data-access/repository/error": "./src/data-access/repository/error/index.ts",
+        "./data-access/repository/factory": "./src/data-access/repository/factory/index.ts",
+        "./data-access/repository/browser": "./src/data-access/repository/browser/index.ts",
+        "./data-access/service": "./src/data-access/service/index.ts",
+        "./data-access/service/error": "./src/data-access/service/error/index.ts",
+        "./data-access/service/factory": "./src/data-access/service/factory/index.ts",
+        "./domain/controller": "./src/domain/controller/index.ts",
+        "./domain/decorator": "./src/domain/decorator/index.ts",
+        "./domain/controller/factory": "./src/domain/controller/factory/index.ts",
+        "./domain/error": "./src/domain/error/index.ts",
+        "./domain/error/decorators": "./src/domain/error/decorators/index.ts",
+        "./domain/state": "./src/domain/state/index.ts",
+        "./domain/state/manager": "./src/domain/state/state.manager/index.ts",
+        "./ui": "./src/domain/state/index.ts",
+        "./ui/error": "./src/ui/error/index.ts",
+        "./ui/error/browser": "./src/ui/error/browser/index.ts",
+        "./mocks/data-access/repository": "./test/mocks/data-access/repository/index.ts"
+    },
+    "peerDependencies": {
+        "@shared/utils": "workspace:*",
+        "zustand": "5.0.16"
+    },
+    "devDependencies": {
+        "@shared/eslint": "workspace:*",
+        "@shared/test": "workspace:*",
+        "@shared/tsconfig": "workspace:*",
+        "@shared/tsup": "workspace:*",
+        "@shared/utils": "workspace:*",
+        "@swisstype/essential": "0.1.2",
+        "@types/jest": "29.5.14",
+        "@types/node": "25.6.0",
+        "eslint": "8.57.0",
+        "jest": "29.7.0",
+        "ts-jest": "29.4.9",
+        "typescript": "5.9.3",
+        "zustand": "5.0.16"
+    }
+}

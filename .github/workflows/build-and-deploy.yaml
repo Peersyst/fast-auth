@@ -73,6 +73,15 @@ jobs:
           target: release
           base_image: ${{ github.sha }}
 
+    build-console-web:
+        needs: [build-base]
+        uses: ./.github/workflows/build-console-web.yaml
+        secrets: inherit
+        with:
+          push: true
+          target: release
+          base_image: ${{ github.sha }}
+
     deploy:
         needs: [build-relayer, build-attester, build-custom-issuer, build-custom-issuer-go, build-landing]
         uses: ./.github/workflows/deploy.yaml

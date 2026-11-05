@@ -1,0 +1,38 @@
+{
+    "name": "@frontend/query",
+    "author": "Peersyst",
+    "version": "0.0.0",
+    "license": "UNLICENSED",
+    "scripts": {
+        "dev": "tsup --watch",
+        "build": "tsup",
+        "clean": "rimraf .turbo dist node_modules",
+        "lint": "eslint .",
+        "check-types": "npx tsc --noEmit",
+        "bundle": "genesys bundle"
+    },
+    "exports": {
+        ".": "./src/index.ts",
+        "./react": "./src/react/index.ts",
+        "./mocks": "./test/mocks/index.ts"
+    },
+    "peerDependencies": {
+        "@tanstack/react-query": "5.105.0",
+        "react": "18.3.1"
+    },
+    "devDependencies": {
+        "@shared/eslint": "workspace:*",
+        "@shared/test": "workspace:*",
+        "@shared/tsconfig": "workspace:*",
+        "@shared/tsup": "workspace:*",
+        "@swisstype/essential": "0.1.2",
+        "@tanstack/react-query": "5.105.0",
+        "@types/jest": "29.5.14",
+        "@types/react": "18.3.12",
+        "eslint": "8.57.0",
+        "jest": "29.7.0",
+        "react": "18.3.1",
+        "ts-jest": "29.4.9",
+        "typescript": "5.9.3"
+    }
+}

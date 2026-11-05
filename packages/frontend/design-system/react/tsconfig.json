@@ -1,0 +1,9 @@
+{
+    "extends": "@shared/tsconfig/react-package",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "types": ["jest", "@testing-library/jest-dom"]
+    },
+    "include": ["*/**/*.ts", "*/**/*.tsx"],
+    "exclude": ["dist", "node_modules"]
+}
