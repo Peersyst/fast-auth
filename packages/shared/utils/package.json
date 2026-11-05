@@ -23,6 +23,7 @@
         "@shared/eslint": "workspace:*",
         "@shared/tsconfig": "workspace:*",
         "@shared/tsup": "workspace:*",
+        "@swisstype/essential": "^0.1.2",
         "@types/jest": "^29.5.13",
         "@types/node": "latest",
         "@types/validator": "^13.12.1",

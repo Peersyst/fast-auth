@@ -6,6 +6,7 @@ packages:
     - "packages/auth"
     - "packages/auth0"
     - "packages/backend/*"
+    - "packages/database/*"
     - "packages/sdks/*"
     - "packages/providers/*"
     - "packages/shared/*"

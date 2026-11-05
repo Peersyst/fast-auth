@@ -1,0 +1,47 @@
+{
+    "name": "@database/console",
+    "author": "Peersyst",
+    "version": "0.0.0",
+    "license": "UNLICENSED",
+    "scripts": {
+        "dev": "tsup --watch",
+        "build": "tsup",
+        "clean": "rimraf .turbo dist node_modules",
+        "lint": "eslint .",
+        "check-types": "npx tsc --noEmit",
+        "bundle": "genesys bundle",
+        "typeorm": "node ./scripts/typeorm.js",
+        "db:migration:create": "pnpm run typeorm migration:create",
+        "db:migration:generate": "pnpm run typeorm migration:generate",
+        "db:migration:run": "pnpm run typeorm migration:run",
+        "db:migration:revert": "pnpm run typeorm migration:revert",
+        "db:schema:drop": "pnpm run typeorm schema:drop"
+    },
+    "exports": {
+        "./config": "./src/config.ts",
+        "./data-source": "./src/data-source.ts",
+        "./entities": "./src/entities/index.ts",
+        "./migrations": "./src/migrations/index.ts",
+        "./test/factories": "./test/factories/index.ts"
+    },
+    "peerDependencies": {
+        "@backend/config": "workspace:*",
+        "@shared/modules": "workspace:*",
+        "typeorm": "0.3.31"
+    },
+    "devDependencies": {
+        "@aws-sdk/client-secrets-manager": "3.1161.0",
+        "@backend/config": "workspace:*",
+        "@shared/eslint": "workspace:*",
+        "@shared/modules": "workspace:*",
+        "@shared/tsconfig": "workspace:*",
+        "@shared/tsup": "workspace:*",
+        "@types/node": "25.6.0",
+        "eslint": "8.57.0",
+        "pg": "8.20.0",
+        "rimraf": "6.0.1",
+        "ts-node": "10.9.2",
+        "typeorm": "0.3.31",
+        "typescript": "5.9.3"
+    }
+}

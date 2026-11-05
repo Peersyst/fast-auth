@@ -61,3 +61,12 @@ jobs:
             target: integration
             push: false
             base_image: ${{ github.sha }}
+
+    build-console:
+        needs: [build-base]
+        uses: ./.github/workflows/build-console.yaml
+        secrets: inherit
+        with:
+            target: integration
+            push: false
+            base_image: ${{ github.sha }}
