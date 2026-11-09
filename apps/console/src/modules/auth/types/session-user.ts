@@ -6,7 +6,6 @@ export enum Role {
 }
 
 export type SessionUser = {
-    sub: string;
     email: string;
     emailVerified: boolean;
     role: Role;

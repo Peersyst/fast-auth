@@ -11,7 +11,6 @@ import { DappEvent } from "../../src/entities/dapp-event";
 export async function createDappEvent(em: EntityManager, overrides: Partial<DappEvent> & Pick<DappEvent, "dappId">): Promise<DappEvent> {
     const entity = em.create(DappEvent, {
         type: DappEventType.SUBMITTED,
-        actorEmail: null,
         actorRole: ActorRole.SYSTEM,
         details: { chosenForAutoApproval: false },
         ...overrides,

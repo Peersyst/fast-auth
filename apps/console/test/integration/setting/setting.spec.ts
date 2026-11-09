@@ -1,27 +1,25 @@
 import { closeTestApp, createTestApp, TestApp, truncateAll } from "@backend/test";
 import { ConfigModule } from "@nestjs/config";
-import { ScheduleModule } from "@nestjs/schedule";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { DataSource } from "typeorm";
-import { Dapp, SettingEvent } from "@database/console/entities";
-import { createAutoApprovalSetting, createDapp, createDappEvent } from "@database/console/test/factories";
-import { ActorRole, DappEventType, DappStatus, EmailTemplate } from "@shared/modules/dapp";
+import { Dapp } from "@database/console/entities";
+import { createDapp } from "@database/console/test/factories";
+import { DappStatus } from "@shared/modules/dapp";
 import { DappModule } from "../../../src/modules/dapp/dapp.module";
 import { SettingModule } from "../../../src/modules/setting/setting.module";
+import { SettingService } from "../../../src/modules/setting/setting.service";
 import { JWT_KEY_SET } from "../../../src/modules/auth/jwt-key-set";
-import { EMAILER, SLACK_NOTIFIER } from "../../../src/modules/notification/notification.tokens";
+import { SLACK_NOTIFIER } from "../../../src/modules/notification/notification.tokens";
 import { AUTH0_PROVISIONER } from "../../../src/modules/provisioning/provisioning.tokens";
-import { adminBearer, bearer, rotateBearerSubjects, testKeySet } from "../../mocks/auth/token.mock";
-import { ADMIN_EMAIL, testConfig } from "../../mocks/config/config.mock";
+import { adminBearer, bearer, testKeySet } from "../../mocks/auth/token.mock";
+import { testConfig } from "../../mocks/config/config.mock";
 import { dappForm, eventTypes, findDapp } from "../../mocks/dapp/dapp.mock";
-import { EmailerMock } from "../../mocks/notification/emailer.mock";
 import { SlackNotifierMock } from "../../mocks/notification/slack-notifier.mock";
 import { FakeProvisionerMock } from "../../mocks/provisioning/fake-provisioner.mock";
 import { BUSINESS_EXCEPTION_FILTER } from "../../../src/modules/common/exception/business-exception.filter";
 
 describe("SettingModule (integration)", () => {
     const provisioner = new FakeProvisionerMock();
-    const emailer = new EmailerMock();
     const slack = new SlackNotifierMock();
     let testApp: TestApp;
     let dataSource: DataSource;
@@ -33,13 +31,11 @@ describe("SettingModule (integration)", () => {
             imports: [
                 ConfigModule.forRoot({ load: [testConfig], isGlobal: true }),
                 TypeOrmModule.forRoot(testConfig().database),
-                ScheduleModule.forRoot(),
                 DappModule,
                 SettingModule,
             ],
             overrides: [
                 { provide: JWT_KEY_SET, useValue: await testKeySet() },
-                { provide: EMAILER, useValue: emailer },
                 { provide: SLACK_NOTIFIER, useValue: slack },
                 { provide: AUTH0_PROVISIONER, useValue: provisioner },
             ],
@@ -53,20 +49,19 @@ describe("SettingModule (integration)", () => {
 
     beforeEach(async () => {
         await truncateAll(dataSource);
-        await createAutoApprovalSetting(dataSource.manager);
-        rotateBearerSubjects();
+        setAutoApproval(false);
         provisioner.reset();
-        emailer.clearMocks();
         slack.clearMocks();
         admin = await adminBearer();
     });
 
     /**
-     * Turns auto-approval on or off in storage.
+     * Turns auto-approval on or off.
      * @param enabled Whether it is on.
-     * @returns The stored setting.
      */
-    const setAutoApproval = (enabled: boolean): Promise<unknown> => createAutoApprovalSetting(dataSource.manager, enabled);
+    const setAutoApproval = (enabled: boolean): void => {
+        testApp.module.get(SettingService).update({ autoApproval: { enabled } });
+    };
 
     /**
      * Submits the form as a new owner, expecting 201.
@@ -81,10 +76,10 @@ describe("SettingModule (integration)", () => {
             .expect(201);
 
     describe("GET /admin/settings", () => {
-        it("should answer auto-approval off by default with the configured daily cap", async () => {
+        it("should answer auto-approval off by default", async () => {
             const { body } = await testApp.request.get("/admin/settings").set("Authorization", admin).expect(200);
 
-            expect(body).toEqual({ autoApproval: { enabled: false, dailyCap: 10 } });
+            expect(body).toEqual({ autoApproval: { enabled: false } });
         });
 
         it("should refuse a user with 403 FORBIDDEN_ROLE", async () => {
@@ -98,32 +93,16 @@ describe("SettingModule (integration)", () => {
     });
 
     describe("PUT /admin/settings", () => {
-        it("should store the switch and record the change with the old value, the new value and the admin", async () => {
+        it("should store the switch", async () => {
             const { body } = await testApp.request
                 .put("/admin/settings")
                 .set("Authorization", admin)
                 .send({ autoApproval: { enabled: true } })
                 .expect(200);
 
-            expect(body).toEqual({ autoApproval: { enabled: true, dailyCap: 10 } });
-            expect(await dataSource.manager.find(SettingEvent)).toEqual([
-                expect.objectContaining({
-                    key: "auto_approval",
-                    oldValue: { enabled: false },
-                    newValue: { enabled: true },
-                    actorEmail: ADMIN_EMAIL,
-                }),
-            ]);
-        });
-
-        it("should record nothing for a PUT that changes nothing", async () => {
-            await testApp.request
-                .put("/admin/settings")
-                .set("Authorization", admin)
-                .send({ autoApproval: { enabled: false } })
-                .expect(200);
-
-            expect(await dataSource.manager.count(SettingEvent)).toBe(0);
+            expect(body).toEqual({ autoApproval: { enabled: true } });
+            const { body: stored } = await testApp.request.get("/admin/settings").set("Authorization", admin).expect(200);
+            expect(stored).toEqual({ autoApproval: { enabled: true } });
         });
 
         it("should refuse a malformed body with 400 VALIDATION_FAILED naming the field", async () => {
@@ -139,24 +118,13 @@ describe("SettingModule (integration)", () => {
 
     describe("auto-approval on submit", () => {
         it("should approve a new owner's submission as the system: client created, owner and admins emailed, Slack alerted", async () => {
-            await setAutoApproval(true);
+            setAutoApproval(true);
 
             const { body } = await submit();
 
             expect(body).toMatchObject({ status: "approved", auth0ClientId: expect.stringMatching(/^fake_/) });
-            expect(await findDapp(dataSource.manager, body.id)).toMatchObject({ reviewedBy: null, reviewedAt: expect.any(Date) });
-            expect(await eventTypes(dataSource.manager, body.id)).toEqual([
-                "submitted",
-                "auto_approved",
-                "auth0_created",
-                "email_sent",
-                "email_sent",
-            ]);
-            expect(emailer.send.mock.calls.map(([email]) => [email.template, email.to])).toEqual([
-                [EmailTemplate.DAPP_APPROVED, "new@owners.test"],
-                [EmailTemplate.ADMIN_ALERT, [ADMIN_EMAIL]],
-            ]);
-            expect(emailer.send).toHaveBeenCalledWith(expect.objectContaining({ kind: "auto_approved" }));
+            expect(await findDapp(dataSource.manager, body.id)).toMatchObject({ reviewedAt: expect.any(Date) });
+            expect(await eventTypes(dataSource.manager, body.id)).toEqual(["submitted", "auto_approved", "auth0_created"]);
             expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "auto_approved" }));
         });
 
@@ -171,7 +139,7 @@ describe("SettingModule (integration)", () => {
         });
 
         it("should send a submission to review when its owner had an earlier dApp, whatever its status", async () => {
-            await setAutoApproval(true);
+            setAutoApproval(true);
             await createDapp(dataSource.manager, { ownerEmail: "again@owners.test", status: DappStatus.REMOVED });
 
             const { body } = await submit("Again@Owners.test");
@@ -179,64 +147,15 @@ describe("SettingModule (integration)", () => {
             expect(body.status).toBe("pending");
         });
 
-        it("should send a submission to review when its owner acted as the user on a dApp moved to someone else", async () => {
-            await setAutoApproval(true);
-            const handedOver = await createDapp(dataSource.manager, { ownerEmail: "other@owners.test" });
-            await createDappEvent(dataSource.manager, {
-                dappId: handedOver.id,
-                actorEmail: "former@owners.test",
-                actorRole: ActorRole.USER,
-            });
-
-            const { body } = await submit("former@owners.test");
-
-            expect(body.status).toBe("pending");
-        });
-
-        it("should send a submission to review once the rolling daily cap is reached", async () => {
-            await setAutoApproval(true);
-            const earlier = await createDapp(dataSource.manager, { ownerEmail: "earlier@owners.test" });
-            for (let n = 0; n < 10; n += 1) {
-                await createDappEvent(dataSource.manager, {
-                    dappId: earlier.id,
-                    type: DappEventType.SUBMITTED,
-                    actorEmail: `earlier-${n}@owners.test`,
-                    actorRole: ActorRole.SYSTEM,
-                    details: { chosenForAutoApproval: true },
-                });
-            }
-
-            const { body } = await submit();
-
-            expect(body.status).toBe("pending");
-        });
-
-        it("should not count choices older than 24 hours against the cap", async () => {
-            await setAutoApproval(true);
-            const earlier = await createDapp(dataSource.manager, { ownerEmail: "earlier@owners.test" });
-            for (let n = 0; n < 10; n += 1) {
-                await createDappEvent(dataSource.manager, {
-                    dappId: earlier.id,
-                    actorRole: ActorRole.SYSTEM,
-                    details: { chosenForAutoApproval: true },
-                    createdAt: new Date(Date.now() - 25 * 60 * 60 * 1000),
-                });
-            }
-
-            const { body } = await submit();
-
-            expect(body.status).toBe("approved");
-        });
-
-        it("should keep a chosen submission pending when Auth0 fails, answer 201, alert the admins as usual, and count the choice", async () => {
-            await setAutoApproval(true);
+        it("should keep a chosen submission pending when Auth0 fails, answer 201, and alert the admins as usual", async () => {
+            setAutoApproval(true);
             provisioner.script("createClient", "failed");
 
             const { body } = await submit();
 
             expect(body).toMatchObject({ status: "pending", auth0ClientId: null });
-            expect(await eventTypes(dataSource.manager, body.id)).toEqual(["submitted", "auth0_failed", "email_sent"]);
-            expect(emailer.send).toHaveBeenCalledWith(expect.objectContaining({ template: EmailTemplate.ADMIN_ALERT, kind: "submitted" }));
+            expect(await eventTypes(dataSource.manager, body.id)).toEqual(["submitted", "auth0_failed"]);
+            expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "submitted" }));
             const [submitted] = await dataSource.query(`SELECT details FROM dapp_event WHERE dapp_id = $1 AND type = 'submitted'`, [
                 body.id,
             ]);

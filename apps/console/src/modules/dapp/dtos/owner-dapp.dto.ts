@@ -53,9 +53,6 @@ export class OwnerDappDto {
     @ApiProperty({ enum: DappStatus, enumName: "DappStatus" })
     status: DappStatus;
 
-    @ApiProperty({ type: String, nullable: true })
-    rejectionReason: string | null;
-
     @ApiProperty({ type: SyncedFieldsDto, nullable: true })
     pendingChange: SyncedFieldsDto | null;
 
@@ -88,7 +85,6 @@ export class OwnerDappDto {
             webOrigins: dapp.webOrigins,
             contactEmail: dapp.contactEmail,
             status: dapp.status,
-            rejectionReason: dapp.rejectionReason,
             pendingChange: dapp.pendingChange,
             pendingChangeAt: dapp.pendingChangeAt?.toISOString() ?? null,
             auth0ClientId: dapp.auth0ClientId,

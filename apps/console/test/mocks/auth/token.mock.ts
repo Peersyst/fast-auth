@@ -46,15 +46,6 @@ export async function signToken(options: TokenOptions): Promise<string> {
     return jwt.sign(options.key ?? (await keyPair).privateKey);
 }
 
-let subjectGeneration = 0;
-
-/**
- * Gives every bearer built after this call a new subject, so throttle counts, kept per subject, start fresh.
- */
-export function rotateBearerSubjects(): void {
-    subjectGeneration += 1;
-}
-
 /**
  * Builds the Authorization header of a user, an admin for ADMIN_EMAIL.
  * @param email The user's email.
@@ -62,7 +53,7 @@ export function rotateBearerSubjects(): void {
  * @returns The header value.
  */
 export async function bearer(email: string, emailVerified = true): Promise<string> {
-    return `Bearer ${await signToken({ sub: `auth0|${subjectGeneration}|${email.toLowerCase()}`, email, emailVerified })}`;
+    return `Bearer ${await signToken({ sub: `auth0|${email.toLowerCase()}`, email, emailVerified })}`;
 }
 
 /**

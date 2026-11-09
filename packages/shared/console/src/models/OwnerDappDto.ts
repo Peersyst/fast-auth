@@ -16,7 +16,6 @@ export type OwnerDappDto = {
     webOrigins: Array<string>;
     contactEmail: string;
     status: DappStatus;
-    rejectionReason: string | null;
     pendingChange: SyncedFieldsDto | null;
     pendingChangeAt: string | null;
     /**

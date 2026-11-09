@@ -1,8 +1,7 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
+import { Injectable, Logger } from "@nestjs/common";
 import { InjectDataSource } from "@nestjs/typeorm";
 import { DataSource, EntityManager } from "typeorm";
-import { Dapp, DappEvent } from "@database/console/entities";
+import { Dapp } from "@database/console/entities";
 import {
     ActorRole,
     classifyEdit,
@@ -18,14 +17,13 @@ import {
 } from "@shared/modules/dapp";
 import { SessionUser } from "../auth/types/session-user";
 import { BusinessException } from "../common/exception/business.exception";
-import { AdminAlertKind } from "../notification/interfaces/i-emailer.service";
+import { AdminAlertKind } from "../notification/interfaces/i-slack-notifier.service";
 import { SettingService } from "../setting/setting.service";
-import { DappLifecycleService, describeError, Effects, refusedOrFailed } from "./dapp-lifecycle.service";
+import { DappWriteService, describeError, Effects, refusedOrFailed } from "./dapp-write.service";
 import { DappNotifier } from "./dapp.notifier";
 import { DappErrorCode } from "./error/dapp.error-codes";
 import { toDappFields, UpdateDappRequest, UpsertDappRequest } from "./requests/upsert-dapp.request";
 import { MyDappDto, OwnerDappDto } from "./dtos/owner-dapp.dto";
-import { Actor, ownerActor } from "./types/actor";
 
 type EditOutcome = { dapp: Dapp; alert: AdminAlertKind | null; before: Dapp };
 
@@ -58,10 +56,9 @@ export class DappService {
 
     constructor(
         @InjectDataSource() private readonly dataSource: DataSource,
-        private readonly lifecycle: DappLifecycleService,
+        private readonly writes: DappWriteService,
         private readonly settingService: SettingService,
         private readonly notifier: DappNotifier,
-        @Inject(ConfigService) private readonly configService: ConfigService,
     ) {}
 
     /**
@@ -70,11 +67,11 @@ export class DappService {
      * @returns The dApp, or null when the caller has none.
      */
     async getOwn(user: SessionUser): Promise<MyDappDto> {
-        return MyDappDto.fromEntity(await this.lifecycle.findLiveByOwner(this.dataSource.manager, user.email));
+        return MyDappDto.fromEntity(await this.writes.findLiveByOwner(this.dataSource.manager, user.email));
     }
 
     /**
-     * Registers a pending dApp for the caller, auto-approving it if it qualifies, then alerts the admins by email and Slack and, once approved, emails the owner. A failed alert does not fail the submission.
+     * Registers a pending dApp for the caller, auto-approving it if it qualifies, then alerts the admins on Slack. A failed alert does not fail the submission.
      * @param user The owner.
      * @param request The submitted fields.
      * @returns The approved dApp, or the pending one when it was not auto-approved.
@@ -92,17 +89,17 @@ export class DappService {
      */
     async editOwn(user: SessionUser, id: string, request: UpdateDappRequest): Promise<OwnerDappDto> {
         const fields = toDappFields(request);
-        const dapp = await this.lifecycle.counted(DappAction.EDIT, async () => {
-            const owner = ownerActor(user);
-            const { dapp, alert, before } = await this.lifecycle.mutate(
+        const dapp = await this.writes.counted(DappAction.EDIT, async () => {
+            const owner = ActorRole.USER;
+            const { dapp, alert, before } = await this.writes.mutate(
                 DappAction.EDIT,
                 owner,
                 { id, ownerEmail: user.email },
                 request.expectedVersion,
-                async (manager, live, next): Promise<EditOutcome> => ({
+                async (manager, live): Promise<EditOutcome> => ({
                     ...(await (live.status === DappStatus.APPROVED
                         ? this.editApproved(manager, live, fields, owner)
-                        : this.editInPlace(manager, live, next, fields, owner))),
+                        : this.editInPlace(manager, live, fields, owner))),
                     before: live,
                 }),
             );
@@ -120,10 +117,10 @@ export class DappService {
      * @param expectedVersion The version the caller last read.
      */
     async removeOwn(user: SessionUser, id: string, expectedVersion: number): Promise<void> {
-        await this.lifecycle.counted(DappAction.REMOVE, () => {
-            const owner = ownerActor(user);
-            return this.lifecycle.mutate(DappAction.REMOVE, owner, { id, ownerEmail: user.email }, expectedVersion, (manager, live, next) =>
-                this.lifecycle.removeIn(manager, live, next, owner),
+        await this.writes.counted(DappAction.REMOVE, () => {
+            const owner = ActorRole.USER;
+            return this.writes.mutate(DappAction.REMOVE, owner, { id, ownerEmail: user.email }, expectedVersion, (manager, live) =>
+                this.writes.removeIn(manager, live, owner),
             );
         });
     }
@@ -135,16 +132,11 @@ export class DappService {
      * @returns The approved dApp, or the pending one.
      */
     private submitDapp(user: SessionUser, fields: DappFields): Promise<Dapp> {
-        return this.lifecycle.counted("submit", async () => {
-            const submission = this.lifecycle.transaction(async (manager) => {
-                // Lock the owner's dApp before the settings row. An admin action can hold that dApp through its Auth0 calls,
-                // and waiting for it while holding the settings row would stall every submission and settings change.
-                if ((await this.lifecycle.findLiveByOwner(manager, user.email, true)) !== null)
+        return this.writes.counted("submit", async () => {
+            const submission = this.writes.transaction(async (manager) => {
+                if ((await this.writes.findLiveByOwner(manager, user.email, true)) !== null)
                     throw new BusinessException(DappErrorCode.DAPP_ALREADY_EXISTS);
-                const chosen =
-                    (await this.settingService.isAutoApprovalEnabled(manager, true)) &&
-                    !(await this.hasHadDapp(manager, user.email)) &&
-                    (await this.countChosenForAutoApprovalInLastDay(manager)) < this.configService.get<number>("autoApproval.dailyCap")!;
+                const chosen = this.settingService.isAutoApprovalEnabled() && !(await this.hasHadDapp(manager, user.email));
                 const { identifiers } = await manager.insert(Dapp, {
                     ...fields,
                     ownerEmail: user.email,
@@ -152,7 +144,7 @@ export class DappService {
                     submittedAt: new Date(),
                 });
                 const dapp = await manager.findOneByOrFail(Dapp, { id: identifiers[0].id });
-                await this.lifecycle.appendEvents(manager, dapp.id, ownerActor(user), [
+                await this.writes.appendEvents(manager, dapp.id, ActorRole.USER, [
                     { type: DappEventType.SUBMITTED, details: { chosenForAutoApproval: chosen } },
                 ]);
                 return { dapp, chosen };
@@ -163,7 +155,7 @@ export class DappService {
             });
             this.logger.log(`submit dApp ${dapp.id} by user: -> pending${chosen ? ", chosen for auto-approval" : ""}`);
 
-            const approved = chosen ? await this.lifecycle.autoApprove(dapp) : null;
+            const approved = chosen ? await this.writes.autoApprove(dapp) : null;
             if (approved === null) {
                 await this.notifier.submitted(dapp);
                 return dapp;
@@ -174,38 +166,19 @@ export class DappService {
     }
 
     /**
-     * Tells whether the email owns or ever owned a dApp. It also checks the events an owner acted on, because an admin can move a dApp to another owner and ownership alone loses that history.
+     * Tells whether the email owns or ever owned a dApp, removed ones included.
      * @param manager The transaction's entity manager.
      * @param ownerEmail The owner's email.
      * @returns Whether the email has had a dApp.
      */
-    private async hasHadDapp(manager: EntityManager, ownerEmail: string): Promise<boolean> {
-        const [owned, acted] = await Promise.all([
-            manager.existsBy(Dapp, { ownerEmail }),
-            manager.existsBy(DappEvent, { actorRole: ActorRole.USER, actorEmail: ownerEmail }),
-        ]);
-        return owned || acted;
-    }
-
-    /**
-     * Counts the submissions chosen for auto-approval in the rolling last 24 hours, whether or not their approval succeeded.
-     * @param manager The transaction's entity manager.
-     * @returns The count.
-     */
-    private countChosenForAutoApprovalInLastDay(manager: EntityManager): Promise<number> {
-        return manager
-            .createQueryBuilder(DappEvent, "e")
-            .where("e.type = :submitted", { submitted: DappEventType.SUBMITTED })
-            .andWhere("e.details @> CAST(:chosen AS jsonb)", { chosen: JSON.stringify({ chosenForAutoApproval: true }) })
-            .andWhere("e.createdAt > now() - interval '24 hours'")
-            .getCount();
+    private hasHadDapp(manager: EntityManager, ownerEmail: string): Promise<boolean> {
+        return manager.existsBy(Dapp, { ownerEmail });
     }
 
     /**
      * Applies an edit to a pending or rejected dApp's fields, turning a rejected dApp's edit into a resubmission.
      * @param manager The transaction's entity manager.
      * @param live The locked dApp.
-     * @param next The status the lifecycle allows.
      * @param fields The new fields.
      * @param owner The owner.
      * @returns The updated dApp and the admin alert to send, if any.
@@ -213,20 +186,19 @@ export class DappService {
     private async editInPlace(
         manager: EntityManager,
         live: Dapp,
-        next: DappStatus,
         fields: DappFields,
-        owner: Actor,
+        owner: ActorRole,
     ): Promise<Omit<EditOutcome, "before">> {
         const changes = diffFields(DAPP_FIELDS, live, fields);
         const resubmitted = live.status === DappStatus.REJECTED;
-        const dapp = await this.lifecycle.update(manager, live.id, {
+        const dapp = await this.writes.update(manager, live.id, {
             ...fields,
-            status: next,
-            ...(resubmitted && { rejectionReason: null, reviewedAt: null, reviewedBy: null, auth0Error: null, submittedAt: new Date() }),
+            status: DappStatus.PENDING,
+            ...(resubmitted && { reviewedAt: null, auth0Error: null, submittedAt: new Date() }),
         });
         const events: DappEventDetails[] = changes.length > 0 ? [{ type: DappEventType.EDITED, details: { changes } }] : [];
         if (resubmitted) events.push({ type: DappEventType.RESUBMITTED, details: {} });
-        await this.lifecycle.appendEvents(manager, live.id, owner, events);
+        await this.writes.appendEvents(manager, live.id, owner, events);
         return { dapp, alert: resubmitted ? DappEventType.RESUBMITTED : null };
     }
 
@@ -238,13 +210,18 @@ export class DappService {
      * @param owner The owner.
      * @returns The updated dApp and the admin alert to send, if any.
      */
-    private async editApproved(manager: EntityManager, live: Dapp, fields: DappFields, owner: Actor): Promise<Omit<EditOutcome, "before">> {
+    private async editApproved(
+        manager: EntityManager,
+        live: Dapp,
+        fields: DappFields,
+        owner: ActorRole,
+    ): Promise<Omit<EditOutcome, "before">> {
         const { directChanges, pendingChange } = classifyEdit(live, live.pendingChange, fields);
         const effects = pendingChangeEffects(pendingChange, new Date());
-        const dapp = await this.lifecycle.update(manager, live.id, { ...effects.columns, ...directFieldsOf(fields) });
+        const dapp = await this.writes.update(manager, live.id, { ...effects.columns, ...directFieldsOf(fields) });
         const events = [...effects.events];
         if (directChanges.length > 0) events.push({ type: DappEventType.EDITED, details: { changes: directChanges } });
-        await this.lifecycle.appendEvents(manager, live.id, owner, events);
+        await this.writes.appendEvents(manager, live.id, owner, events);
         return { dapp, alert: pendingChange.kind === "replaced" ? DappEventType.CHANGE_REQUESTED : null };
     }
 }

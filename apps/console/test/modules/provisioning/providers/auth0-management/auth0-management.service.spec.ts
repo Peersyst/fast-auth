@@ -1,4 +1,3 @@
-import { ScheduleModule } from "@nestjs/schedule";
 import { Test } from "@nestjs/testing";
 import { AuthApiError, Client, ManagementApiError, ManagementClient } from "auth0";
 import { register } from "prom-client";
@@ -104,7 +103,7 @@ describe("Auth0ManagementService", () => {
             },
         });
         const module = await Test.createTestingModule({
-            imports: [configStubModule(configService), ScheduleModule.forRoot(), ProvisioningModule],
+            imports: [configStubModule(configService), ProvisioningModule],
         }).compile();
         provisioner = module.get(AUTH0_PROVISIONER);
         enabledConnections({ "template-client": ["con_email", "con_google"] });
@@ -267,7 +266,7 @@ describe("Auth0ManagementService", () => {
         it("should retry a 429 once and map a second 429 to failed, as it is transient", async () => {
             clients.get.mockRejectedValue(apiError(429, { "retry-after": "60" }));
 
-            await expect(provisioner.checkHealth()).rejects.toMatchObject({
+            await expect(provisioner.deleteClient(DAPP_ID, CLIENT_ID)).rejects.toMatchObject({
                 kind: "failed",
                 message: "Auth0 get answered 429: status 429",
             });
@@ -282,7 +281,7 @@ describe("Auth0ManagementService", () => {
         ])("should not retry %s and map it to $2", async (_case, error, kind) => {
             clients.get.mockRejectedValueOnce(error);
 
-            await expect(provisioner.checkHealth()).rejects.toMatchObject({ kind });
+            await expect(provisioner.deleteClient(DAPP_ID, CLIENT_ID)).rejects.toMatchObject({ kind });
             expect(clients.get).toHaveBeenCalledTimes(1);
         });
 
@@ -291,7 +290,7 @@ describe("Auth0ManagementService", () => {
                 new TypeError("fetch failed", { cause: new Error("getaddrinfo ENOTFOUND tenant.eu.auth0.com") }),
             );
 
-            await expect(provisioner.checkHealth()).rejects.toMatchObject({
+            await expect(provisioner.deleteClient(DAPP_ID, CLIENT_ID)).rejects.toMatchObject({
                 kind: "failed",
                 message: "Auth0 get failed: fetch failed: getaddrinfo ENOTFOUND tenant.eu.auth0.com",
             });

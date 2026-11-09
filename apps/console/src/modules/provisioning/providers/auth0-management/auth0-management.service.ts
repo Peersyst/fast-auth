@@ -96,16 +96,6 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
     }
 
     /**
-     * Throws unless the template client and its connections can be read.
-     */
-    async checkHealth(): Promise<void> {
-        await this.send("get", () =>
-            this.client.clients.get({ client_id: this.management.templateClientId, fields: "client_id", include_fields: true }),
-        );
-        await this.templateConnections();
-    }
-
-    /**
      * Pages through every client and keeps those tagged with this environment.
      * @returns The managed clients.
      */

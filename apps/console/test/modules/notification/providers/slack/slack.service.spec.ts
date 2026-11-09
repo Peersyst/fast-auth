@@ -39,26 +39,26 @@ describe("SlackService", () => {
             expect(text).toContain("*Description:* Fine *Contact:* &lt;!channel&gt;\n");
         });
 
-        it("should give a resubmission's rejection reason and mark each changed field with its old value", () => {
+        it("should mark each field a resubmission changed with its old value", () => {
             const rejected = { ...dapp, name: "Old Acme", mauBracket: MauBracket.GT_25K };
 
-            const { text } = slackMessage(
-                { kind: DappEventType.RESUBMITTED, dapp, rejected, rejectionReason: "Logo is broken." },
-                PUBLIC_URL,
-            );
+            const { text } = slackMessage({ kind: DappEventType.RESUBMITTED, dapp, rejected }, PUBLIC_URL);
 
-            expect(text).toContain("*Rejected because:* Logo is broken.\n*Name (changed):* Acme &amp; Co (was: Old Acme)\n");
+            expect(text).toContain("*Name (changed):* Acme &amp; Co (was: Old Acme)\n");
             expect(text).toContain("*Expected MAU (changed):* Less than 1,000 (was: More than 25,000)");
         });
 
         it("should say when a resubmission changed nothing", () => {
-            const { text } = slackMessage(
-                { kind: DappEventType.RESUBMITTED, dapp, rejected: { ...dapp }, rejectionReason: "Broken." },
-                PUBLIC_URL,
-            );
+            const { text } = slackMessage({ kind: DappEventType.RESUBMITTED, dapp, rejected: { ...dapp } }, PUBLIC_URL);
 
-            expect(text).toContain("*Rejected because:* Broken.\nNothing was changed since the rejection.\n");
+            expect(text).toContain("Nothing was changed since the rejection.\n");
         });
+    });
+
+    it("should alert on a change request", () => {
+        const { text } = slackMessage({ kind: DappEventType.CHANGE_REQUESTED, dapp }, PUBLIC_URL);
+
+        expect(text).toContain("*A dApp change request to review*\nAcme &amp; Co has a change request that is waiting for review.");
     });
 
     describe("notify", () => {

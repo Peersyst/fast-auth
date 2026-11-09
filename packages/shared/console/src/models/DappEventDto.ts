@@ -7,10 +7,6 @@ import type { DappEventType } from './DappEventType';
 export type DappEventDto = {
     id: string;
     type: DappEventType;
-    /**
-     * Null for the system.
-     */
-    actorEmail: string | null;
     actorRole: ActorRole;
     /**
      * The details the event's type records.

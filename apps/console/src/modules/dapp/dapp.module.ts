@@ -6,7 +6,7 @@ import { createMetricsProvider } from "../common/metric/metric";
 import { NotificationModule } from "../notification/notification.module";
 import { ProvisioningModule } from "../provisioning/provisioning.module";
 import { SettingModule } from "../setting/setting.module";
-import { DappLifecycleService } from "./dapp-lifecycle.service";
+import { DappWriteService } from "./dapp-write.service";
 import { DappController } from "./dapp.controller";
 import { DappMetrics, DappMetricsProvider } from "./dapp.metrics";
 import { DappNotifier } from "./dapp.notifier";
@@ -15,7 +15,7 @@ import { DappService } from "./dapp.service";
 @Module({
     imports: [TypeOrmModule.forFeature([Dapp, DappEvent]), AuthModule, ProvisioningModule, NotificationModule, SettingModule],
     controllers: [DappController],
-    providers: [DappService, DappLifecycleService, DappNotifier, ...createMetricsProvider(DappMetricsProvider, DappMetrics)],
-    exports: [DappService, DappLifecycleService, DappNotifier],
+    providers: [DappService, DappWriteService, DappNotifier, ...createMetricsProvider(DappMetricsProvider, DappMetrics)],
+    exports: [DappService, DappWriteService, DappNotifier],
 })
 export class DappModule {}

@@ -40,7 +40,7 @@ export class AnonymiseCommand {
                     `Anonymised dApp ${dappId}:`,
                     `  dApp columns erased: ${columnList(result.erasedColumns)}`,
                     `  dApp columns with an email address erased from their text: ${columnList(result.scrubbedColumns)}`,
-                    `  events: ${result.events}; actor_email erased on ${result.erasedActors}; details changed on ${result.scrubbedDetails}`,
+                    `  events: ${result.events}; details changed on ${result.scrubbedDetails}`,
                     "",
                 ].join("\n"),
             );

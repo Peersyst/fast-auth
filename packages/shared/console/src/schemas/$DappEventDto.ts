@@ -16,12 +16,6 @@ export const $DappEventDto = {
             }],
             isRequired: true,
         },
-        actorEmail: {
-            type: 'string',
-            description: `Null for the system.`,
-            isRequired: true,
-            isNullable: true,
-        },
         actorRole: {
             type: 'all-of',
             contains: [{

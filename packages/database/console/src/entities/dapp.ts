@@ -40,9 +40,6 @@ export class Dapp implements DappFields {
     @Column({ type: "enum", enum: DappStatus })
     status: DappStatus;
 
-    @Column("text", { name: "rejection_reason", nullable: true })
-    rejectionReason: string | null;
-
     @Column("jsonb", { name: "pending_change", nullable: true })
     pendingChange: SyncedFields | null;
 
@@ -51,9 +48,6 @@ export class Dapp implements DappFields {
 
     @Column("text", { name: "auth0_client_id", nullable: true })
     auth0ClientId: string | null;
-
-    @Column("timestamp with time zone", { name: "auth0_synced_at", nullable: true })
-    auth0SyncedAt: Date | null;
 
     @Column("text", { name: "auth0_error", nullable: true })
     auth0Error: string | null;
@@ -64,17 +58,8 @@ export class Dapp implements DappFields {
     @Column("timestamp with time zone", { name: "reviewed_at", nullable: true })
     reviewedAt: Date | null;
 
-    @Column("citext", { name: "reviewed_by", nullable: true })
-    reviewedBy: string | null;
-
     @Column("timestamp with time zone", { name: "removed_at", nullable: true })
     removedAt: Date | null;
-
-    @Column("citext", { name: "removed_by", nullable: true })
-    removedBy: string | null;
-
-    @Column("text", { name: "removal_reason", nullable: true })
-    removalReason: string | null;
 
     @VersionColumn()
     version: number;

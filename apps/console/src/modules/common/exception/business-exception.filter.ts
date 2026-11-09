@@ -20,7 +20,6 @@ const STATUS_CODES: Partial<Record<number, ErrorCodeType>> = {
     [HttpStatus.METHOD_NOT_ALLOWED]: ErrorCode.METHOD_NOT_ALLOWED,
     [HttpStatus.PAYLOAD_TOO_LARGE]: ErrorCode.PAYLOAD_TOO_LARGE,
     [HttpStatus.UNSUPPORTED_MEDIA_TYPE]: ErrorCode.UNSUPPORTED_MEDIA_TYPE,
-    [HttpStatus.TOO_MANY_REQUESTS]: ErrorCode.RATE_LIMITED,
 };
 
 type ErrorLike = { status?: unknown; statusCode?: unknown; headers?: unknown; errors?: unknown };

@@ -1,19 +1,18 @@
 import { closeTestApp, createTestApp, TestApp, truncateAll } from "@backend/test";
 import { ConfigModule } from "@nestjs/config";
-import { ScheduleModule } from "@nestjs/schedule";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { DataSource } from "typeorm";
-import { Dapp } from "@database/console/entities";
-import { createAutoApprovalSetting, createDapp } from "@database/console/test/factories";
-import { DappStatus, EmailTemplate, MauBracket, syncedFieldsOf } from "@shared/modules/dapp";
+import { Dapp, DappEvent } from "@database/console/entities";
+import { createDapp } from "@database/console/test/factories";
+import { DappEventType, DappStatus, MauBracket, syncedFieldsOf } from "@shared/modules/dapp";
 import { DappModule } from "../../../src/modules/dapp/dapp.module";
+import { DappWriteService } from "../../../src/modules/dapp/dapp-write.service";
 import { JWT_KEY_SET } from "../../../src/modules/auth/jwt-key-set";
-import { EMAILER, SLACK_NOTIFIER } from "../../../src/modules/notification/notification.tokens";
+import { SLACK_NOTIFIER } from "../../../src/modules/notification/notification.tokens";
 import { AUTH0_PROVISIONER } from "../../../src/modules/provisioning/provisioning.tokens";
-import { bearer, rotateBearerSubjects, testKeySet } from "../../mocks/auth/token.mock";
-import { ADMIN_EMAIL, testConfig } from "../../mocks/config/config.mock";
-import { dappForm, eventTypes, findDapp, REASON } from "../../mocks/dapp/dapp.mock";
-import { EmailerMock } from "../../mocks/notification/emailer.mock";
+import { bearer, testKeySet } from "../../mocks/auth/token.mock";
+import { testConfig } from "../../mocks/config/config.mock";
+import { dappForm, eventTypes, findDapp } from "../../mocks/dapp/dapp.mock";
 import { SlackNotifierMock } from "../../mocks/notification/slack-notifier.mock";
 import { FakeProvisionerMock } from "../../mocks/provisioning/fake-provisioner.mock";
 import { BUSINESS_EXCEPTION_FILTER } from "../../../src/modules/common/exception/business-exception.filter";
@@ -22,7 +21,6 @@ const OWNER = "bob@owners.test";
 
 describe("DappModule (integration)", () => {
     const provisioner = new FakeProvisionerMock();
-    const emailer = new EmailerMock();
     const slack = new SlackNotifierMock();
     let testApp: TestApp;
     let dataSource: DataSource;
@@ -34,12 +32,10 @@ describe("DappModule (integration)", () => {
             imports: [
                 ConfigModule.forRoot({ load: [testConfig], isGlobal: true }),
                 TypeOrmModule.forRoot(testConfig().database),
-                ScheduleModule.forRoot(),
                 DappModule,
             ],
             overrides: [
                 { provide: JWT_KEY_SET, useValue: await testKeySet() },
-                { provide: EMAILER, useValue: emailer },
                 { provide: SLACK_NOTIFIER, useValue: slack },
                 { provide: AUTH0_PROVISIONER, useValue: provisioner },
             ],
@@ -53,10 +49,7 @@ describe("DappModule (integration)", () => {
 
     beforeEach(async () => {
         await truncateAll(dataSource);
-        await createAutoApprovalSetting(dataSource.manager);
-        rotateBearerSubjects();
         provisioner.reset();
-        emailer.clearMocks();
         slack.clearMocks();
         owner = await bearer(OWNER);
     });
@@ -74,7 +67,6 @@ describe("DappModule (integration)", () => {
             status: DappStatus.APPROVED,
             auth0ClientId: "client_live",
             reviewedAt: new Date(),
-            reviewedBy: ADMIN_EMAIL,
             ...overrides,
         });
         provisioner.clients.set("client_live", { dappId: dapp.id, input: { ...form } });
@@ -101,14 +93,13 @@ describe("DappModule (integration)", () => {
     });
 
     describe("POST /dapp", () => {
-        it("should store a pending dApp, log `submitted`, and alert the admins by email and Slack", async () => {
+        it("should store a pending dApp, log `submitted`, and alert the admins on Slack", async () => {
             const { body } = await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(201);
 
             expect(body).toEqual({
                 id: expect.any(String),
                 ...dappForm(),
                 status: "pending",
-                rejectionReason: null,
                 pendingChange: null,
                 pendingChangeAt: null,
                 auth0ClientId: null,
@@ -116,10 +107,7 @@ describe("DappModule (integration)", () => {
                 submittedAt: expect.any(String),
             });
             expect(await findDapp(dataSource.manager, body.id)).toMatchObject({ ownerEmail: OWNER, status: "pending" });
-            expect(await eventTypes(dataSource.manager, body.id)).toEqual(["submitted", "email_sent"]);
-            expect(emailer.send).toHaveBeenCalledWith(
-                expect.objectContaining({ template: EmailTemplate.ADMIN_ALERT, to: [ADMIN_EMAIL], kind: "submitted" }),
-            );
+            expect(await eventTypes(dataSource.manager, body.id)).toEqual(["submitted"]);
             expect(slack.notify).toHaveBeenCalledWith(
                 expect.objectContaining({ kind: "submitted", dapp: expect.objectContaining({ id: body.id }) }),
             );
@@ -144,13 +132,25 @@ describe("DappModule (integration)", () => {
             });
         });
 
-        it("should still answer 201 when the admin alert fails, and log `email_failed`", async () => {
-            emailer.send.mockRejectedValueOnce(new Error("SES is down"));
+        it("should leave no dApp behind when recording the submission fails", async () => {
+            const appendEvents = jest.spyOn(DappWriteService.prototype, "appendEvents").mockRejectedValueOnce(new Error("insert failed"));
+
+            await testApp.request
+                .post("/dapp")
+                .set("Authorization", await bearer("new@owners.test"))
+                .send(dappForm())
+                .expect(500);
+            appendEvents.mockRestore();
+
+            expect(await dataSource.manager.count(Dapp)).toBe(0);
+        });
+
+        it("should still answer 201 when the Slack alert fails", async () => {
             slack.notify.mockRejectedValueOnce(new Error("Slack is down"));
 
             const { body } = await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(201);
 
-            expect(await eventTypes(dataSource.manager, body.id)).toEqual(["submitted", "email_failed"]);
+            expect(await eventTypes(dataSource.manager, body.id)).toEqual(["submitted"]);
         });
 
         it("should answer 409 DAPP_ALREADY_EXISTS for a second live dApp of one email, in any case", async () => {
@@ -220,17 +220,15 @@ describe("DappModule (integration)", () => {
                     { field: "mauBracket", before: "lt1k", after: "gt25k" },
                 ],
             });
-            expect(emailer.send).not.toHaveBeenCalled();
+            expect(slack.notify).not.toHaveBeenCalled();
         });
 
-        it("should resubmit a rejected dApp: pending again, review cleared, the admins alerted with the rejection reason", async () => {
+        it("should resubmit a rejected dApp: pending again, review cleared, the admins alerted with what changed since the rejection", async () => {
             const dapp = await createDapp(dataSource.manager, {
                 ...dappForm(),
                 ownerEmail: OWNER,
                 status: DappStatus.REJECTED,
-                rejectionReason: REASON,
                 reviewedAt: new Date(),
-                reviewedBy: ADMIN_EMAIL,
                 submittedAt: new Date("2026-01-01T00:00:00Z"),
             });
 
@@ -240,11 +238,11 @@ describe("DappModule (integration)", () => {
                 .send({ ...dappForm({ logoUrl: "https://acme.xyz/logo.png" }), expectedVersion: 1 })
                 .expect(200);
 
-            expect(body).toMatchObject({ status: "pending", rejectionReason: null });
+            expect(body).toMatchObject({ status: "pending" });
             expect(new Date(body.submittedAt).getTime()).toBeGreaterThan(new Date("2026-01-01T00:00:00Z").getTime());
-            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ reviewedAt: null, reviewedBy: null });
-            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["edited", "resubmitted", "email_sent"]);
-            expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "resubmitted", rejectionReason: REASON }));
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ reviewedAt: null });
+            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["edited", "resubmitted"]);
+            expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "resubmitted" }));
         });
 
         it("should apply an approved dApp's direct fields at once without Auth0 or email", async () => {
@@ -259,7 +257,7 @@ describe("DappModule (integration)", () => {
             expect(body).toMatchObject({ contactEmail: "ops@acme.xyz", status: "approved", pendingChange: null });
             expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["edited"]);
             expect(provisioner.calls).toEqual([]);
-            expect(emailer.send).not.toHaveBeenCalled();
+            expect(slack.notify).not.toHaveBeenCalled();
         });
 
         it("should queue an approved dApp's synced changes for review, keep the live values and alert the admins", async () => {
@@ -273,10 +271,8 @@ describe("DappModule (integration)", () => {
 
             expect(body).toMatchObject({ name: "Acme Wallet", pendingChange: syncedFieldsOf(dappForm({ name: "Acme Pay" })) });
             expect(body.pendingChangeAt).toEqual(expect.any(String));
-            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["change_requested", "email_sent"]);
-            expect(emailer.send).toHaveBeenCalledWith(
-                expect.objectContaining({ template: EmailTemplate.ADMIN_ALERT, kind: "change_requested" }),
-            );
+            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["change_requested"]);
+            expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "change_requested" }));
             expect(provisioner.calls).toEqual([]);
         });
 
@@ -349,10 +345,14 @@ describe("DappModule (integration)", () => {
 
             await testApp.request.delete(`/dapp/${dapp.id}?expectedVersion=1`).set("Authorization", owner).expect(204);
 
-            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "removed", removedBy: OWNER, removalReason: null });
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "removed" });
+            expect(await dataSource.manager.findOneByOrFail(DappEvent, { dappId: dapp.id, type: DappEventType.REMOVED })).toMatchObject({
+                actorRole: "user",
+                details: {},
+            });
             expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["removed"]);
             expect(provisioner.calls).toEqual([{ op: "findClient", dappId: dapp.id }]);
-            expect(emailer.send).not.toHaveBeenCalled();
+            expect(slack.notify).not.toHaveBeenCalled();
         });
 
         it("should delete an approved dApp's client and clear its pending change", async () => {

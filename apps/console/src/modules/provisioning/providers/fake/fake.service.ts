@@ -46,11 +46,6 @@ export class FakeProvisionerService implements IAuth0ProvisionerService {
     }
 
     /**
-     * Always passes, since there is nothing to reach.
-     */
-    async checkHealth(): Promise<void> {}
-
-    /**
      * Lists the stored clients.
      * @returns The stored clients.
      */

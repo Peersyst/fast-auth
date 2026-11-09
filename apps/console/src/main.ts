@@ -17,14 +17,13 @@ import { requestId } from "./modules/common/middleware/request-id.middleware";
 async function bootstrap(): Promise<void> {
     const app = await NestFactory.create(AppModule);
     const configService = app.get(ConfigService);
-    const logFile = configService.get<string>("logger.logFile");
     const format = winston.format.combine(winston.format.timestamp(), nestWinstonModuleUtilities.format.nestLike());
 
     const logger = WinstonModule.createLogger({
         level: configService.get<string>("logger.logLevel"),
         transports: [
             new winston.transports.Console({ format }),
-            ...(logFile ? [new winston.transports.File({ format, filename: logFile })] : []),
+            new winston.transports.File({ format, filename: configService.get<string>("logger.logFile") }),
         ],
     });
 

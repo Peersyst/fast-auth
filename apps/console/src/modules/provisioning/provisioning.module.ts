@@ -7,7 +7,6 @@ import { Auth0ManagementService } from "./providers/auth0-management/auth0-manag
 import { FakeProvisionerService } from "./providers/fake/fake.service";
 import { ProvisioningMetrics, ProvisioningMetricsProvider } from "./provisioning.metrics";
 import { createMetricsProvider } from "../common/metric/metric";
-import { ProvisioningScheduler } from "./provisioning.scheduler";
 import { AUTH0_PROVISIONER } from "./provisioning.tokens";
 
 /**
@@ -25,7 +24,6 @@ function createProvisioner(configService: ConfigService, metrics: ProvisioningMe
     providers: [
         ...createMetricsProvider(ProvisioningMetricsProvider, ProvisioningMetrics),
         { provide: AUTH0_PROVISIONER, inject: [ConfigService, ProvisioningMetricsProvider], useFactory: createProvisioner },
-        ProvisioningScheduler,
     ],
     exports: [AUTH0_PROVISIONER],
 })

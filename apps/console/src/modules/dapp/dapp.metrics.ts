@@ -2,14 +2,14 @@ import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { InjectMetric } from "@willsoto/nestjs-prometheus";
 import { Counter, Gauge } from "prom-client";
 import { DataSource } from "typeorm";
-import { DappAction, DappStatus, EmailTemplate } from "@shared/modules/dapp";
+import { Dapp } from "@database/console/entities";
+import { DappAction, DappStatus } from "@shared/modules/dapp";
 import { ModuleMetrics } from "../common/metric/metric";
 
 export type TransitionAction = DappAction | "submit" | "autoApprove";
 
 export enum DappMetric {
     TRANSITIONS = "console_transitions_total",
-    EMAILS = "console_emails_total",
     DAPPS = "console_dapps",
 }
 
@@ -18,11 +18,6 @@ export const DappMetrics: ModuleMetrics = {
         type: "counter",
         help: "dApp use cases run, by action and result (success, the error code, or error for an unexpected failure)",
         labelNames: ["action", "result"],
-    },
-    [DappMetric.EMAILS]: {
-        type: "counter",
-        help: "Emails sent after a dApp change, by template and result (sent or failed)",
-        labelNames: ["template", "result"],
     },
     [DappMetric.DAPPS]: {
         type: "gauge",
@@ -37,7 +32,6 @@ export class DappMetricsProvider implements OnModuleInit {
 
     constructor(
         @InjectMetric(DappMetric.TRANSITIONS) private readonly transitionsMetric: Counter<string>,
-        @InjectMetric(DappMetric.EMAILS) private readonly emailsMetric: Counter<string>,
         @InjectMetric(DappMetric.DAPPS) private readonly dappsMetric: Gauge<string>,
         private readonly dataSource: DataSource,
     ) {}
@@ -51,12 +45,9 @@ export class DappMetricsProvider implements OnModuleInit {
         Object.assign(this.dappsMetric, {
             async collect(this: Gauge<string>): Promise<void> {
                 try {
-                    const rows: { status: DappStatus; count: number }[] = await dataSource.query(
-                        "SELECT status, count(*)::int AS count FROM dapp GROUP BY status",
-                    );
-                    for (const status of Object.values(DappStatus)) {
-                        this.set({ status }, rows.find((row) => row.status === status)?.count ?? 0);
-                    }
+                    const statuses = Object.values(DappStatus);
+                    const counts = await Promise.all(statuses.map((status) => dataSource.manager.countBy(Dapp, { status })));
+                    statuses.forEach((status, index) => this.set({ status }, counts[index]));
                 } catch (error) {
                     this.reset();
                     logger.warn(`Could not count dApps: ${error instanceof Error ? error.message : String(error)}`);
@@ -72,14 +63,5 @@ export class DappMetricsProvider implements OnModuleInit {
      */
     countTransition(action: TransitionAction, result: string): void {
         this.transitionsMetric.inc({ action, result });
-    }
-
-    /**
-     * Counts one email send attempt.
-     * @param template The email template.
-     * @param result Whether the email was sent.
-     */
-    countEmail(template: EmailTemplate, result: "sent" | "failed"): void {
-        this.emailsMetric.inc({ template, result });
     }
 }

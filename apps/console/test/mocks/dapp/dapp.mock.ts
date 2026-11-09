@@ -16,24 +16,17 @@ export const DappMock = mockify<Dapp>({
     webOrigins: ["https://acme.example"],
     contactEmail: "dev@acme.example",
     status: DappStatus.PENDING,
-    rejectionReason: null,
     pendingChange: null,
     pendingChangeAt: null,
     auth0ClientId: null,
-    auth0SyncedAt: null,
     auth0Error: null,
     submittedAt: new Date("2026-01-01T00:00:00.000Z"),
     reviewedAt: null,
-    reviewedBy: null,
     removedAt: null,
-    removedBy: null,
-    removalReason: null,
     version: 1,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
 });
-
-export const REASON = "The logo does not load from that host.";
 
 /**
  * Builds a valid submission form.

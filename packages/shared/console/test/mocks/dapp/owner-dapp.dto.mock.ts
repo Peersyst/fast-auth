@@ -14,7 +14,6 @@ export const OwnerDappMock = mockify<OwnerDappDto>({
     webOrigins: ["https://app.acme.xyz"],
     contactEmail: "dev@acme.xyz",
     status: "pending",
-    rejectionReason: null,
     pendingChange: null,
     pendingChangeAt: null,
     auth0ClientId: null,

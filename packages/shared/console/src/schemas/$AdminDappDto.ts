@@ -60,11 +60,6 @@ export const $AdminDappDto = {
             }],
             isRequired: true,
         },
-        rejectionReason: {
-            type: 'string',
-            isRequired: true,
-            isNullable: true,
-        },
         pendingChange: {
             type: 'all-of',
             contains: [{
@@ -105,39 +100,17 @@ export const $AdminDappDto = {
             isNullable: true,
             format: 'date-time',
         },
-        reviewedBy: {
-            type: 'string',
-            description: `Null until an admin reviews it. Stays null after auto-approval.`,
-            isRequired: true,
-            isNullable: true,
-        },
         auth0Error: {
             type: 'string',
             description: `The last Auth0 error, cleared by the next successful Auth0 write.`,
             isRequired: true,
             isNullable: true,
         },
-        auth0SyncedAt: {
-            type: 'string',
-            isRequired: true,
-            isNullable: true,
-            format: 'date-time',
-        },
         removedAt: {
             type: 'string',
             isRequired: true,
             isNullable: true,
             format: 'date-time',
-        },
-        removedBy: {
-            type: 'string',
-            isRequired: true,
-            isNullable: true,
-        },
-        removalReason: {
-            type: 'string',
-            isRequired: true,
-            isNullable: true,
         },
         createdAt: {
             type: 'string',

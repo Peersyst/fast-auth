@@ -3,14 +3,12 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { AdminDappDto } from '../models/AdminDappDto';
-import type { ChangeOwnerRequest } from '../models/ChangeOwnerRequest';
 import type { DappEventDto } from '../models/DappEventDto';
 import type { DappOrderBy } from '../models/DappOrderBy';
 import type { DappStatus } from '../models/DappStatus';
 import type { ExpectedVersionRequest } from '../models/ExpectedVersionRequest';
 import type { OrderType } from '../models/OrderType';
 import type { PaginatedDappsDto } from '../models/PaginatedDappsDto';
-import type { ReasonRequest } from '../models/ReasonRequest';
 import type { UpdateDappRequest } from '../models/UpdateDappRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -23,7 +21,7 @@ export class AdminApi {
      * @param orderBy
      * @param needsReview Only pending dApps and approved dApps with a pending change. Unless `orderBy` is given, they are sorted by how long they have waited for review, oldest first with `order=asc`.
      * @param status
-     * @param q Case-insensitive substring of the name, owner email, contact email or Auth0 client id.
+     * @param search Case-insensitive substring of the name, owner email, contact email or Auth0 client id.
      * @returns PaginatedDappsDto
      * @throws ApiError
      */
@@ -34,7 +32,7 @@ export class AdminApi {
         orderBy?: DappOrderBy,
         needsReview: boolean = false,
         status?: DappStatus,
-        q?: string,
+        search?: string,
     ): CancelablePromise<PaginatedDappsDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -46,7 +44,7 @@ export class AdminApi {
                 'orderBy': orderBy,
                 'needsReview': needsReview,
                 'status': status,
-                'q': q,
+                'search': search,
             },
         });
     }
@@ -114,7 +112,7 @@ export class AdminApi {
      */
     public static reject(
         id: string,
-        requestBody: ReasonRequest,
+        requestBody: ExpectedVersionRequest,
     ): CancelablePromise<AdminDappDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -154,7 +152,7 @@ export class AdminApi {
      */
     public static rejectChange(
         id: string,
-        requestBody: ReasonRequest,
+        requestBody: ExpectedVersionRequest,
     ): CancelablePromise<AdminDappDto> {
         return __request(OpenAPI, {
             method: 'POST',
@@ -172,29 +170,9 @@ export class AdminApi {
      * @returns AdminDappDto
      * @throws ApiError
      */
-    public static changeOwner(
-        id: string,
-        requestBody: ChangeOwnerRequest,
-    ): CancelablePromise<AdminDappDto> {
-        return __request(OpenAPI, {
-            method: 'POST',
-            url: '/api/console/admin/dapps/{id}/owner',
-            path: {
-                'id': id,
-            },
-            body: requestBody,
-            mediaType: 'application/json',
-        });
-    }
-    /**
-     * @param id
-     * @param requestBody
-     * @returns AdminDappDto
-     * @throws ApiError
-     */
     public static remove(
         id: string,
-        requestBody: ReasonRequest,
+        requestBody: ExpectedVersionRequest,
     ): CancelablePromise<AdminDappDto> {
         return __request(OpenAPI, {
             method: 'POST',

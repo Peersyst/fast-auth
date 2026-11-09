@@ -8,10 +8,5 @@ export const $AutoApprovalSettingsDto = {
             type: 'boolean',
             isRequired: true,
         },
-        dailyCap: {
-            type: 'number',
-            description: `The most new submissions auto-approval chooses in any 24 hours.`,
-            isRequired: true,
-        },
     },
 } as const;

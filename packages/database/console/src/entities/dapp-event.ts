@@ -4,8 +4,6 @@ import { Dapp } from "./dapp";
 
 @Entity("dapp_event")
 @Index("dapp_event_dapp_id_seq", ["dappId", "seq"])
-@Index("dapp_event_actor_email_user", ["actorEmail"], { where: `"actor_role" = '${ActorRole.USER}'` })
-@Index("dapp_event_created_at_submitted", ["createdAt"], { where: `"type" = '${DappEventType.SUBMITTED}'` })
 export class DappEvent {
     @PrimaryGeneratedColumn("uuid")
     id: string;
@@ -23,9 +21,6 @@ export class DappEvent {
 
     @Column({ type: "enum", enum: DappEventType })
     type: DappEventType;
-
-    @Column("citext", { name: "actor_email", nullable: true })
-    actorEmail: string | null;
 
     @Column({ type: "enum", enum: ActorRole, name: "actor_role" })
     actorRole: ActorRole;

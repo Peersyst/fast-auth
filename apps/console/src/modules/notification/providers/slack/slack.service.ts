@@ -1,6 +1,5 @@
 import { DAPP_FIELDS, DappEventType, DappField, DappFields, diffFields, FIELD_LABELS, MAU_LABELS } from "@shared/modules/dapp";
-import { ADMIN_ALERTS, adminDappUrl } from "../../templates/templates";
-import { ISlackNotifierService, SlackAlert } from "../../interfaces/i-slack-notifier.service";
+import { AdminAlertKind, ISlackNotifierService, SlackAlert } from "../../interfaces/i-slack-notifier.service";
 import { SlackWebhookPayload } from "./slack.types";
 
 /**
@@ -26,6 +25,19 @@ function urlList(urls: readonly string[]): string {
     return urls.length === 0 ? "—" : urls.map(escapeMrkdwn).join(", ");
 }
 
+const ADMIN_ALERTS: Record<AdminAlertKind, { subject: string; body: string }> = {
+    [DappEventType.SUBMITTED]: { subject: "New dApp submission to review", body: "was submitted and is waiting for review." },
+    [DappEventType.AUTO_APPROVED]: { subject: "A dApp was auto-approved", body: "was approved automatically and got an Auth0 client." },
+    [DappEventType.RESUBMITTED]: {
+        subject: "A dApp was resubmitted for review",
+        body: "was resubmitted after a rejection and is waiting for review again.",
+    },
+    [DappEventType.CHANGE_REQUESTED]: {
+        subject: "A dApp change request to review",
+        body: "has a change request that is waiting for review.",
+    },
+};
+
 const FIELD_LINES: Record<DappField, (fields: DappFields) => string> = {
     name: (fields) => escapeMrkdwn(fields.name),
     description: (fields) => (fields.description === "" ? "—" : escapeMrkdwn(fields.description)),
@@ -46,16 +58,10 @@ const FIELD_LINES: Record<DappField, (fields: DappFields) => string> = {
 export function slackMessage(alert: SlackAlert, publicUrl: string): SlackWebhookPayload {
     const { dapp } = alert;
     const copy = ADMIN_ALERTS[alert.kind];
-    const url = adminDappUrl(publicUrl, dapp.id);
+    const url = `${publicUrl}/admin/dapps/${encodeURIComponent(dapp.id)}`;
     const rejected = alert.kind === DappEventType.RESUBMITTED ? alert.rejected : null;
     const changed = new Set<string>(rejected === null ? [] : diffFields(DAPP_FIELDS, rejected, dapp).map((change) => change.field));
-    const resubmission =
-        alert.kind === DappEventType.RESUBMITTED
-            ? [
-                  `*Rejected because:* ${escapeMrkdwn(alert.rejectionReason)}`,
-                  ...(changed.size === 0 ? ["Nothing was changed since the rejection."] : []),
-              ]
-            : [];
+    const resubmission = rejected !== null && changed.size === 0 ? ["Nothing was changed since the rejection."] : [];
     const fields = Object.entries(FIELD_LINES).map(([field, format]) => {
         const label = FIELD_LABELS[field as DappField];
         return rejected !== null && changed.has(field)

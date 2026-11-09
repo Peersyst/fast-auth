@@ -5,36 +5,26 @@ const DAPP: AnonymisableDapp = {
     description: "A wallet.",
     ownerEmail: "Alice@Example.com",
     contactEmail: "team@acme.xyz",
-    reviewedBy: "admin@console.test",
-    removedBy: "alice@example.com",
-    rejectionReason: null,
-    removalReason: "Requested by ALICE@example.com by email.",
-    auth0Error: null,
+    auth0Error: "Address not verified: ALICE@example.com.",
 };
 
 const EVENTS: AnonymisableEvent[] = [
-    { id: "e1", actorEmail: "alice@example.com", details: { chosenForAutoApproval: false } },
-    { id: "e2", actorEmail: null, details: { template: "changed_by_admin", error: "Address not verified: bob@example.org" } },
-    { id: "e3", actorEmail: null, details: { changes: [{ field: "name", before: "Acme", after: "Acme Wallet" }] } },
+    { id: "e1", details: { chosenForAutoApproval: false } },
+    { id: "e2", details: { template: "changed_by_admin", error: "Address not verified: bob@example.org" } },
+    { id: "e3", details: { changes: [{ field: "name", before: "Acme", after: "Acme Wallet" }] } },
 ];
 
 describe("anonymise", () => {
-    it("should erase every identity column and actor email, and every email address in reasons and event details", () => {
+    it("should erase every identity column, and every email address in text columns and event details", () => {
         expect(anonymise(DAPP, EVENTS)).toEqual({
             dapp: {
                 ownerEmail: "erased",
                 contactEmail: "erased",
-                reviewedBy: "erased",
-                removedBy: "erased",
-                removalReason: "Requested by erased by email.",
+                auth0Error: "Address not verified: erased.",
             },
-            events: [
-                { id: "e1", changes: { actorEmail: "erased" } },
-                { id: "e2", changes: { details: { template: "changed_by_admin", error: "Address not verified: erased" } } },
-            ],
-            erasedColumns: ["ownerEmail", "contactEmail", "reviewedBy", "removedBy"],
-            scrubbedColumns: ["removalReason"],
-            erasedActors: 1,
+            events: [{ id: "e2", changes: { details: { template: "changed_by_admin", error: "Address not verified: erased" } } }],
+            erasedColumns: ["ownerEmail", "contactEmail"],
+            scrubbedColumns: ["auth0Error"],
             scrubbedDetails: 1,
         });
     });
@@ -48,7 +38,6 @@ describe("anonymise", () => {
             events: [],
             erasedColumns: [],
             scrubbedColumns: [],
-            erasedActors: 0,
             scrubbedDetails: 0,
         });
     });
@@ -64,13 +53,13 @@ describe("anonymise", () => {
         ],
         ["Callback https://medium.com/@acme/callback", "Callback https://medium.com/@acme/callback"],
     ])("should replace every email address in %j and nothing else", (reason, scrubbed) => {
-        expect(anonymise({ ...DAPP, rejectionReason: reason }, []).dapp.rejectionReason ?? reason).toBe(scrubbed);
+        expect(anonymise({ ...DAPP, auth0Error: reason }, []).dapp.auth0Error ?? reason).toBe(scrubbed);
     });
 
     it("should erase an email address typed into the name or description", () => {
         const result = anonymise({ ...DAPP, name: "Acme by bob@example.org", description: "Write to bob@example.org for access." }, []);
 
         expect(result.dapp).toMatchObject({ name: "Acme by erased", description: "Write to erased for access." });
-        expect(result.scrubbedColumns).toEqual(["name", "description", "removalReason"]);
+        expect(result.scrubbedColumns).toEqual(["name", "description", "auth0Error"]);
     });
 });

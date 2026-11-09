@@ -9,7 +9,6 @@ export type FakeProvisionerCall =
     | { op: "createClient"; dappId: string; input: SyncedFields }
     | { op: "updateClient"; dappId: string; clientId: string; input: SyncedFields }
     | { op: "deleteClient"; dappId: string; clientId: string }
-    | { op: "checkHealth" }
     | { op: "listClients" };
 
 type FakeProvisionerOp = FakeProvisionerCall["op"];
@@ -92,17 +91,6 @@ export class FakeProvisionerMock extends FakeProvisionerService {
         failBefore("deleteClient", outcome);
         await super.deleteClient(dappId, clientId);
         failAfter("deleteClient", outcome);
-    }
-
-    /**
-     * Records the call and throws only when a scripted outcome fails it.
-     */
-    async checkHealth(): Promise<void> {
-        this.calls.push({ op: "checkHealth" });
-        const outcome = this.next("checkHealth");
-        failBefore("checkHealth", outcome);
-        await super.checkHealth();
-        failAfter("checkHealth", outcome);
     }
 
     /**

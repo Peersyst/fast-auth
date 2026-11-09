@@ -15,7 +15,6 @@ export interface IAuth0ProvisionerService {
     updateClient(dappId: string, clientId: string, input: SyncedFields): Promise<void>;
     /** Resolves when Auth0 answers that the client does not exist. */
     deleteClient(dappId: string, clientId: string): Promise<void>;
-    checkHealth(): Promise<void>;
     /** Every client tagged with this environment, whichever dApp it names. */
     listClients(): Promise<ManagedClient[]>;
 }

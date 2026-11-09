@@ -60,11 +60,6 @@ export const $OwnerDappDto = {
             }],
             isRequired: true,
         },
-        rejectionReason: {
-            type: 'string',
-            isRequired: true,
-            isNullable: true,
-        },
         pendingChange: {
             type: 'all-of',
             contains: [{

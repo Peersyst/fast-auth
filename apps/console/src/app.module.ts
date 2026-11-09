@@ -1,6 +1,5 @@
 import { MiddlewareConsumer, Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { ScheduleModule } from "@nestjs/schedule";
 import { TypeOrmModule, TypeOrmModuleOptions } from "@nestjs/typeorm";
 import * as OpenApiValidator from "express-openapi-validator";
 import { join } from "path";
@@ -9,7 +8,6 @@ import { getConfigEnv } from "@backend/config";
 import { PrometheusModule } from "@willsoto/nestjs-prometheus";
 import configuration from "./config";
 import { HealthModule } from "./modules/health/health.module";
-import { ClientConfigModule } from "./modules/client-config/client-config.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { DappModule } from "./modules/dapp/dapp.module";
@@ -59,10 +57,8 @@ import { BUSINESS_EXCEPTION_FILTER } from "./modules/common/exception/business-e
                 };
             },
         }),
-        ScheduleModule.forRoot(),
         AuthModule,
         HealthModule,
-        ClientConfigModule,
         DappModule,
         AdminModule,
         SettingModule,

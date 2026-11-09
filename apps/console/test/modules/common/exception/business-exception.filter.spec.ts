@@ -1,5 +1,4 @@
 import { ArgumentsHost, BadRequestException, HttpException, HttpStatus, NotFoundException } from "@nestjs/common";
-import { ThrottlerException } from "@nestjs/throttler";
 import { error as openApiError } from "express-openapi-validator";
 import { BusinessException } from "../../../../src/modules/common/exception/business.exception";
 import { BusinessExceptionFilter } from "../../../../src/modules/common/exception/business-exception.filter";
@@ -95,7 +94,6 @@ describe("BusinessExceptionFilter", () => {
             415,
             "UNSUPPORTED_MEDIA_TYPE",
         ],
-        ["the throttler's own refusal", new ThrottlerException(), 429, "RATE_LIMITED"],
     ])("should answer %s with its status and code", (_name, exception, status, code) => {
         expect(answer(exception)).toEqual({ status, headers: {}, body: { statusCode: status, message: code } });
     });

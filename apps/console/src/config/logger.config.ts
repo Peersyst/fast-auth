@@ -1,11 +1,8 @@
-import { buildConfig, validOneOf } from "@backend/config";
+import { buildConfig } from "@backend/config";
 
-const LOG_LEVELS = ["error", "warn", "info", "http", "verbose", "debug", "silly"];
-
-export interface LoggerConfig {
-    logLevel: string;
-    /** Also writes the logs to this file when set. */
-    logFile: string | undefined;
+interface LoggerConfig {
+    logLevel: "error" | "info" | "verbose" | "debug";
+    logFile: string;
 }
 
 /**
@@ -13,11 +10,11 @@ export interface LoggerConfig {
  * @returns The logger configuration.
  */
 export default (): LoggerConfig => {
-    return buildConfig<LoggerConfig>(
-        {
-            logLevel: process.env.LOG_LEVEL || { default: "info", test: "warn" },
-            logFile: process.env.LOG_FILE || undefined,
+    return buildConfig<LoggerConfig>({
+        logLevel: {
+            default: "info",
+            development: "debug",
         },
-        { logLevel: validOneOf(LOG_LEVELS) },
-    );
+        logFile: "app.log",
+    });
 };

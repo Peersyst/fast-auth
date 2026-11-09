@@ -9,9 +9,6 @@ export class DappEventDto {
     @ApiProperty({ enum: DappEventType, enumName: "DappEventType" })
     type: DappEventType;
 
-    @ApiProperty({ type: String, nullable: true, description: "Null for the system." })
-    actorEmail: string | null;
-
     @ApiProperty({ enum: ActorRole, enumName: "ActorRole" })
     actorRole: ActorRole;
 
@@ -27,7 +24,7 @@ export class DappEventDto {
      * @returns The response.
      */
     static fromEntity(event: DappEvent): DappEventDto {
-        const { id, type, details, actorEmail, actorRole, createdAt } = event;
-        return { id, type, details, actorEmail, actorRole, createdAt: createdAt.toISOString() };
+        const { id, type, details, actorRole, createdAt } = event;
+        return { id, type, details, actorRole, createdAt: createdAt.toISOString() };
     }
 }

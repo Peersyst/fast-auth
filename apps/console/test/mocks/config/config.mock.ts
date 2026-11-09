@@ -2,8 +2,7 @@ import { getTestDataSourceOptions } from "@backend/test";
 import * as entities from "@database/console/entities";
 import { DynamicModule, Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { Auth0Config, Auth0ProvisionerName, NearNetwork } from "../../../src/config/auth0.config";
-import { EmailProviderName } from "../../../src/config/email.config";
+import { Auth0Config, Auth0ProvisionerName } from "../../../src/config/auth0.config";
 import { ConfigServiceMock } from "./config.service.mock";
 
 export const ADMIN_EMAIL = "admin@console.test";
@@ -22,22 +21,15 @@ export function testConfig() {
             shutdownDelayMs: 0,
             enableSwagger: false,
         },
-        logger: { logLevel: "warn", logFile: undefined },
+        logger: { logLevel: "info", logFile: "app.log" },
         database: { ...getTestDataSourceOptions(Object.values(entities)), autoLoadEntities: true },
         auth0: <Auth0Config>{
             loginDomain: "login.console.test",
             consoleClientId: "test-console-client-id",
-            nearNetwork: NearNetwork.TESTNET,
-            jwksTimeoutMs: 6000,
-            jwksRefetchCooldownMs: 30000,
-            healthCheckIntervalMs: 600000,
             provisioner: Auth0ProvisionerName.FAKE,
             management: null,
         },
-        email: { provider: EmailProviderName.FAKE, ses: null, guideUrl: "https://docs.auth.near.org/home/guides/authenticate-users" },
-        admin: { emails: [ADMIN_EMAIL] },
-        throttle: { submitDappPerMinute: 5, editDappPerMinute: 10, adminMutationPerMinute: 60 },
-        autoApproval: { dailyCap: 10 },
+        admin: { emails: [ADMIN_EMAIL], autoApprovalEnabled: false },
         slack: { webhookUrl: null, timeoutMs: 5000 },
     };
 }

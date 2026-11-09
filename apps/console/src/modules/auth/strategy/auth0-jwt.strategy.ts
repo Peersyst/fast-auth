@@ -22,29 +22,20 @@ export class Auth0JwtStrategy extends PassportStrategy(Strategy, "auth0") {
             issuer: `https://${loginDomain}/`,
             audience: consoleClientId,
             algorithms: ["RS256"],
-            jsonWebTokenOptions: { clockTolerance: 60 },
         });
     }
 
     /**
-     * Turns the claims of a verified ID token into the session user. jsonwebtoken checks `exp` only when present, so a token
-     * must carry it here. The authorized party, when named, must be the console, and a token for several audiences must name
-     * one (OIDC Core 3.1.3.7). A verified email in ADMIN_EMAILS makes an admin.
+     * Turns the claims of a verified ID token into the session user. A verified email in ADMIN_EMAILS makes an admin.
      * @param payload The verified claims.
      * @returns The session user.
      */
     validate(payload: JWTPayload): SessionUser {
-        const { sub, exp, azp, aud, email } = payload;
-        if (typeof sub !== "string" || sub === "") throw new BusinessException(AuthErrorCode.UNAUTHENTICATED);
-        if (typeof exp !== "number") throw new BusinessException(AuthErrorCode.UNAUTHENTICATED);
-        const consoleClientId = this.configService.get<string>("auth0.consoleClientId");
-        if (azp === undefined ? Array.isArray(aud) && aud.length > 1 : azp !== consoleClientId) {
-            throw new BusinessException(AuthErrorCode.UNAUTHENTICATED);
-        }
+        const { email } = payload;
         if (typeof email !== "string" || email === "") throw new BusinessException(AuthErrorCode.EMAIL_REQUIRED);
         const emailVerified = payload.email_verified === true;
         const adminEmails = this.configService.get<string[]>("admin.emails")!;
         const role = emailVerified && adminEmails.includes(email.toLowerCase()) ? Role.ADMIN : Role.USER;
-        return { sub, email, emailVerified, role };
+        return { email, emailVerified, role };
     }
 }

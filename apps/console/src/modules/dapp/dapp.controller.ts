@@ -2,7 +2,6 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPi
 import { ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { Authenticated } from "../auth/decorator/authenticated.decorator";
 import { CurrentUser } from "../auth/decorator/current-user.decorator";
-import { Throttled } from "../auth/decorator/throttled.decorator";
 import type { SessionUser } from "../auth/types/session-user";
 import { ApiErrorDecorators } from "../common/exception/error-response.decorator";
 import { DappService } from "./dapp.service";
@@ -24,7 +23,6 @@ export class DappController {
     }
 
     @Post()
-    @Throttled("submitDappPerMinute")
     @ApiCreatedResponse({
         type: OwnerDappDto,
         description:
@@ -35,7 +33,6 @@ export class DappController {
     }
 
     @Put(":id")
-    @Throttled("editDappPerMinute")
     @ApiOkResponse({ type: OwnerDappDto })
     edit(
         @CurrentUser() user: SessionUser,
@@ -47,7 +44,6 @@ export class DappController {
 
     @Delete(":id")
     @HttpCode(HttpStatus.NO_CONTENT)
-    @Throttled("editDappPerMinute")
     @ApiNoContentResponse()
     remove(
         @CurrentUser() user: SessionUser,

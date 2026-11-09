@@ -9,7 +9,7 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class SettingApi {
     /**
-     * @returns SettingsDto `autoApproval.enabled` says whether new submissions can be approved without an admin, and `autoApproval.dailyCap` the most new submissions it chooses in any 24 hours.
+     * @returns SettingsDto `autoApproval.enabled` says whether new submissions can be approved without an admin.
      * @throws ApiError
      */
     public static get(): CancelablePromise<SettingsDto> {

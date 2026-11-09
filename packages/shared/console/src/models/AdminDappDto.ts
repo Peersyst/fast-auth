@@ -16,7 +16,6 @@ export type AdminDappDto = {
     webOrigins: Array<string>;
     contactEmail: string;
     status: DappStatus;
-    rejectionReason: string | null;
     pendingChange: SyncedFieldsDto | null;
     pendingChangeAt: string | null;
     /**
@@ -31,17 +30,10 @@ export type AdminDappDto = {
     ownerEmail: string;
     reviewedAt: string | null;
     /**
-     * Null until an admin reviews it. Stays null after auto-approval.
-     */
-    reviewedBy: string | null;
-    /**
      * The last Auth0 error, cleared by the next successful Auth0 write.
      */
     auth0Error: string | null;
-    auth0SyncedAt: string | null;
     removedAt: string | null;
-    removedBy: string | null;
-    removalReason: string | null;
     createdAt: string;
     updatedAt: string;
 };

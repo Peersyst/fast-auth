@@ -3,7 +3,7 @@ import { buildConfig, validPort, validPositiveInt, validPublicUrl } from "@backe
 export interface ServerConfig {
     name: string;
     port: number;
-    /** The web app's public URL, which links in emails and Slack alerts point to. */
+    /** The web app's public URL, which links in Slack alerts point to. */
     publicUrl: string;
     readyzTimeoutMs: number;
     /** How long /readyz answers 503 on shutdown before the server closes, so the load balancer stops routing first. */
@@ -25,7 +25,7 @@ export default (): ServerConfig => {
                       default: 3000,
                       development: 3001,
                   },
-            publicUrl: (process.env.PUBLIC_URL ?? "").replace(/\/+$/, ""),
+            publicUrl: process.env.PUBLIC_URL || "",
             readyzTimeoutMs: process.env.READYZ_TIMEOUT_MS ? parseInt(process.env.READYZ_TIMEOUT_MS) : 2000,
             shutdownDelayMs: process.env.SHUTDOWN_DELAY_MS ? parseInt(process.env.SHUTDOWN_DELAY_MS) : 0,
             enableSwagger: {

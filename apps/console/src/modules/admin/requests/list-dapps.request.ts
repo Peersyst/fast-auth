@@ -33,7 +33,7 @@ export class ListDappsRequest extends PaginatedRequest {
     @IsOptional()
     @MaxLength(SEARCH_MAX_LENGTH)
     @HasNoNul()
-    q?: string;
+    search?: string;
 
     @ApiPropertyOptional({ type: "integer", minimum: 1, maximum: MAX_PAGE, default: 1 })
     @IsOptional()

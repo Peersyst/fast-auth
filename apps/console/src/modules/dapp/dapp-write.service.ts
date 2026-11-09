@@ -3,6 +3,7 @@ import { InjectDataSource } from "@nestjs/typeorm";
 import { DataSource, EntityManager, Not, QueryFailedError } from "typeorm";
 import { Dapp, DappEvent, OWNER_EMAIL_LIVE_INDEX } from "@database/console/entities";
 import {
+    ActorRole,
     Auth0Op,
     DappAction,
     DappEventDetails,
@@ -10,7 +11,6 @@ import {
     DappStatus,
     SyncedFields,
     syncedFieldsOf,
-    transition,
 } from "@shared/modules/dapp";
 import { BusinessException } from "../common/exception/business.exception";
 import { AUTH0_PROVISIONER } from "../provisioning/provisioning.tokens";
@@ -19,14 +19,13 @@ import type { IAuth0ProvisionerService } from "../provisioning/interfaces/i-auth
 import { SettingService } from "../setting/setting.service";
 import { DappMetricsProvider, TransitionAction } from "./dapp.metrics";
 import { DappErrorCode } from "./error/dapp.error-codes";
-import { Actor, SYSTEM } from "./types/actor";
 
 export type DappChanges = Partial<Omit<Dapp, "id" | "version" | "createdAt" | "updatedAt">>;
 
 /** The dApp id the caller named, plus the owner's email when only the owner's live dApp may be locked. */
 export type Lookup = { id: string; ownerEmail: string } | { id: string };
 
-export type Apply<T> = (manager: EntityManager, dapp: Dapp, next: DappStatus) => Promise<T>;
+export type Apply<T> = (manager: EntityManager, dapp: Dapp) => Promise<T>;
 
 export type Effects = { columns: DappChanges; events: DappEventDetails[] };
 
@@ -107,12 +106,12 @@ export function describeError(error: unknown): string {
 }
 
 /**
- * Runs the dApp lifecycle shared by the owner and admin use cases: the locked, versioned transaction, the transition check,
- * the Auth0 calls and the event log.
+ * Runs the dApp writes shared by the owner and admin use cases: the locked, versioned transaction, the Auth0 calls and the
+ * event log.
  */
 @Injectable()
-export class DappLifecycleService {
-    private readonly logger = new Logger(DappLifecycleService.name);
+export class DappWriteService {
+    private readonly logger = new Logger(DappWriteService.name);
 
     constructor(
         @InjectDataSource() private readonly dataSource: DataSource,
@@ -154,14 +153,13 @@ export class DappLifecycleService {
      * @param actor Who acted.
      * @param events The events to append.
      */
-    async appendEvents(manager: EntityManager, dappId: string, actor: Actor, events: DappEventDetails[]): Promise<void> {
+    async appendEvents(manager: EntityManager, dappId: string, actor: ActorRole, events: DappEventDetails[]): Promise<void> {
         for (const event of events) {
             await manager.insert(DappEvent, {
                 dappId,
                 type: event.type,
                 details: event.details,
-                actorEmail: actor.email,
-                actorRole: actor.role,
+                actorRole: actor,
             });
         }
     }
@@ -197,15 +195,15 @@ export class DappLifecycleService {
     }
 
     /**
-     * Runs a lifecycle action on a dApp under a row lock, refusing it when the id or version is stale or the lifecycle forbids it, and logs the outcome. A failed Auth0 call rolls back the action's writes but keeps the recorded failure.
-     * @param action The lifecycle action.
+     * Runs an action on a dApp under a row lock, refusing it when the id or version is stale, and logs the outcome. Each action checks the status it allows in apply, after the lock. A failed Auth0 call rolls back the action's writes but keeps the recorded failure.
+     * @param action The action.
      * @param actor Who acts, for the log.
      * @param lookup The dApp the caller named.
      * @param expectedVersion The version the caller last read.
      * @param apply Writes the change inside the transaction.
      * @returns What apply returns.
      */
-    async mutate<T>(action: DappAction, actor: Actor, lookup: Lookup, expectedVersion: number, apply: Apply<T>): Promise<T> {
+    async mutate<T>(action: DappAction, actor: ActorRole, lookup: Lookup, expectedVersion: number, apply: Apply<T>): Promise<T> {
         let dappId = "ownerEmail" in lookup ? null : lookup.id;
         try {
             const outcome = await this.transaction(
@@ -217,16 +215,14 @@ export class DappLifecycleService {
                     if (dapp === null) throw new BusinessException(DappErrorCode.DAPP_NOT_FOUND);
                     dappId = dapp.id;
                     if (dapp.id !== lookup.id || dapp.version !== expectedVersion) throw new BusinessException(DappErrorCode.DAPP_CHANGED);
-                    const result = transition({ status: dapp.status, hasPendingChange: dapp.pendingChange !== null }, action);
-                    if (!result.ok) throw new BusinessException(DappErrorCode[result.code]);
                     try {
                         // A nested transaction is a savepoint.
-                        const value = await manager.transaction((savepoint) => apply(savepoint, dapp, result.next));
-                        this.logger.log(`${action} dApp ${dapp.id} by ${actor.role}: ${dapp.status} -> ${result.next}`);
+                        const value = await manager.transaction((savepoint) => apply(savepoint, dapp));
+                        this.logger.log(`${action} dApp ${dapp.id} by ${actor} from ${dapp.status}`);
                         return { ok: true, value };
                     } catch (error) {
                         if (!(error instanceof Auth0CallFailed)) throw error;
-                        await this.recordAuth0Failure(manager, dapp.id, error, actor);
+                        await this.recordAuth0Failure(manager, dapp, error, actor);
                         return { ok: false, failure: error };
                     }
                 },
@@ -237,7 +233,7 @@ export class DappLifecycleService {
                 );
             return outcome.value;
         } catch (error) {
-            this.logger.log(`${action} dApp ${dappId ?? "(none)"} by ${actor.role} ${refusedOrFailed(error)}: ${describeError(error)}`);
+            this.logger.log(`${action} dApp ${dappId ?? "(none)"} by ${actor} ${refusedOrFailed(error)}: ${describeError(error)}`);
             throw error;
         }
     }
@@ -246,7 +242,6 @@ export class DappLifecycleService {
      * Provisions the dApp's Auth0 client and records the approval.
      * @param manager The transaction's entity manager.
      * @param live The locked dApp.
-     * @param next The status the lifecycle allows.
      * @param actor Who approves.
      * @param event The approval event to record, approved for an admin and auto_approved for the system.
      * @returns The approved dApp.
@@ -254,18 +249,16 @@ export class DappLifecycleService {
     async approveIn(
         manager: EntityManager,
         live: Dapp,
-        next: DappStatus,
-        actor: Actor,
+        actor: ActorRole,
         event: typeof DappEventType.APPROVED | typeof DappEventType.AUTO_APPROVED,
     ): Promise<Dapp> {
+        if (live.status !== DappStatus.PENDING) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
         const auth0 = await this.provisionClient(live);
         const now = new Date();
         const dapp = await this.update(manager, live.id, {
-            status: next,
+            status: DappStatus.APPROVED,
             reviewedAt: now,
-            reviewedBy: actor.email,
             auth0ClientId: auth0.details.clientId,
-            auth0SyncedAt: now,
             auth0Error: null,
         });
         await this.appendEvents(manager, live.id, actor, [{ type: event, details: {} }, auth0]);
@@ -276,28 +269,22 @@ export class DappLifecycleService {
      * Deletes the dApp's Auth0 client, clears its pending change and records the removal.
      * @param manager The transaction's entity manager.
      * @param live The locked dApp.
-     * @param next The status the lifecycle allows.
      * @param actor Who removes it.
-     * @param reason Why an admin removed it. An owner gives none.
      * @returns The removed dApp.
      */
-    async removeIn(manager: EntityManager, live: Dapp, next: DappStatus, actor: Actor, reason?: string): Promise<Dapp> {
+    async removeIn(manager: EntityManager, live: Dapp, actor: ActorRole): Promise<Dapp> {
+        if (live.status === DappStatus.REMOVED) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
         const now = new Date();
-        const deletion = await this.deleteClient(live, now);
+        const deletion = await this.deleteClient(live);
         const dapp = await this.update(manager, live.id, {
-            ...(reason !== undefined && { removalReason: reason }),
             pendingChange: null,
             pendingChangeAt: null,
             auth0Error: null,
             ...deletion.columns,
-            status: next,
+            status: DappStatus.REMOVED,
             removedAt: now,
-            removedBy: actor.email,
         });
-        await this.appendEvents(manager, live.id, actor, [
-            { type: DappEventType.REMOVED, details: reason === undefined ? {} : { reason } },
-            ...deletion.events,
-        ]);
+        await this.appendEvents(manager, live.id, actor, [{ type: DappEventType.REMOVED, details: {} }, ...deletion.events]);
         return dapp;
     }
 
@@ -309,11 +296,10 @@ export class DappLifecycleService {
     async autoApprove(dapp: Dapp): Promise<Dapp | null> {
         try {
             return await this.counted("autoApprove", () =>
-                this.mutate(DappAction.APPROVE, SYSTEM, { id: dapp.id }, dapp.version, async (manager, live, next) => {
-                    // Read before the Auth0 calls, so a turned-off switch creates no client. No FOR UPDATE, since this transaction
-                    // holds the dApp row through the Auth0 calls, and holding the settings row too would stall submissions.
-                    if (!(await this.settingService.isAutoApprovalEnabled(manager))) throw new AutoApprovalTurnedOff();
-                    return this.approveIn(manager, live, next, SYSTEM, DappEventType.AUTO_APPROVED);
+                this.mutate(DappAction.APPROVE, ActorRole.SYSTEM, { id: dapp.id }, dapp.version, async (manager, live) => {
+                    // Read before the Auth0 calls, so a turned-off switch creates no client.
+                    if (!this.settingService.isAutoApprovalEnabled()) throw new AutoApprovalTurnedOff();
+                    return this.approveIn(manager, live, ActorRole.SYSTEM, DappEventType.AUTO_APPROVED);
                 }),
             );
         } catch (error) {
@@ -334,7 +320,7 @@ export class DappLifecycleService {
         const clientId = clientIdOf(dapp);
         await callAuth0(Auth0Op.UPDATE, clientId, () => this.provisioner.updateClient(dapp.id, clientId, payload));
         return {
-            columns: { auth0SyncedAt: new Date(), auth0Error: null },
+            columns: { auth0Error: null },
             events: [{ type: DappEventType.AUTH0_UPDATED, details: { clientId, payload } }],
         };
     }
@@ -342,16 +328,15 @@ export class DappLifecycleService {
     /**
      * Deletes the dApp's Auth0 client, found by its tag when the dApp has no client id. A client tagged for another dApp is kept and recorded as an Auth0 error instead of failing.
      * @param dapp The dApp.
-     * @param now The time to record as the sync time.
      * @returns The columns and events that record the deletion.
      */
-    async deleteClient(dapp: Dapp, now: Date): Promise<Effects> {
+    async deleteClient(dapp: Dapp): Promise<Effects> {
         const clientId = dapp.auth0ClientId ?? (await callAuth0(Auth0Op.FIND, null, () => this.provisioner.findClient(dapp.id)));
         if (clientId === null) return { columns: {}, events: [] };
         try {
             await callAuth0(Auth0Op.DELETE, clientId, () => this.provisioner.deleteClient(dapp.id, clientId));
             return {
-                columns: { auth0SyncedAt: now, auth0Error: null },
+                columns: { auth0Error: null },
                 events: [{ type: DappEventType.AUTH0_DELETED, details: { clientId } }],
             };
         } catch (error) {
@@ -383,15 +368,15 @@ export class DappLifecycleService {
     /**
      * Records a failed Auth0 call on the dApp without bumping its version, so the caller's retry with the same version still applies.
      * @param manager The transaction's entity manager.
-     * @param dappId The dApp id.
+     * @param dapp The locked dApp.
      * @param failure The failed call.
      * @param actor Who acted.
      */
-    private async recordAuth0Failure(manager: EntityManager, dappId: string, failure: Auth0CallFailed, actor: Actor): Promise<void> {
-        this.logger.warn(`Auth0 ${failure.op} failed for dApp ${dappId} (${failure.kind}): ${failure.message}`);
-        // Raw SQL, so neither the version nor updated_at changes.
-        await manager.query(`UPDATE "dapp" SET "auth0_error" = $1 WHERE "id" = $2`, [failure.message, dappId]);
-        await this.appendEvents(manager, dappId, actor, [
+    private async recordAuth0Failure(manager: EntityManager, dapp: Dapp, failure: Auth0CallFailed, actor: ActorRole): Promise<void> {
+        this.logger.warn(`Auth0 ${failure.op} failed for dApp ${dapp.id} (${failure.kind}): ${failure.message}`);
+        // Setting them stops TypeORM from bumping the version and updated_at.
+        await manager.update(Dapp, { id: dapp.id }, { auth0Error: failure.message, version: dapp.version, updatedAt: dapp.updatedAt });
+        await this.appendEvents(manager, dapp.id, actor, [
             {
                 type: DappEventType.AUTH0_FAILED,
                 details: { op: failure.op, error: failure.message, ...(failure.clientId !== null && { clientId: failure.clientId }) },
