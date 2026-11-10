@@ -4,7 +4,6 @@ import isURL from "validator/lib/isURL";
 import { DESCRIPTION_MAX_LENGTH, LOGO_URL_MAX_LENGTH, NAME_MAX_LENGTH } from "./constants";
 
 const URL_MAX_LENGTH = 2048;
-const EMAIL_MAX_LENGTH = 254;
 
 const HOST_OPTIONS = { allow_underscores: true, allow_trailing_dot: true };
 
@@ -35,21 +34,11 @@ export function normaliseUrlList(values: readonly string[]): string[] {
  * @returns Whether the URL is valid.
  */
 function isPublicHttpsUrl(value: string, allowFragment: boolean): boolean {
-    return (
-        value.length <= URL_MAX_LENGTH &&
-        !CONTROL_CHARACTER.test(value) &&
-        !value.includes("\\") &&
-        isURL(value, {
-            protocols: ["https"],
-            require_protocol: true,
-            disallow_auth: true,
-            allow_fragments: allowFragment,
-            ...HOST_OPTIONS,
-        }) &&
-        URL.canParse(value) &&
-        isFQDN(new URL(value).hostname, HOST_OPTIONS) &&
-        value.startsWith(`https://${new URL(value).host}`)
-    );
+    if (value.length > URL_MAX_LENGTH || CONTROL_CHARACTER.test(value) || value.includes("\\")) return false;
+    if (!isURL(value, { protocols: ["https"], require_protocol: true, allow_fragments: allowFragment, ...HOST_OPTIONS })) return false;
+    if (!URL.canParse(value)) return false;
+    const { hostname, host } = new URL(value);
+    return isFQDN(hostname, HOST_OPTIONS) && value.startsWith(`https://${host}`);
 }
 
 /**
@@ -103,12 +92,12 @@ export function isValidDescription(description: string): boolean {
 }
 
 /**
- * Accepts an email address within the length limit.
+ * Accepts an email address of at most 254 characters, the limit `isEmail` enforces.
  * @param email The email address.
  * @returns Whether the address is valid.
  */
-export function isContactEmail(email: string): boolean {
-    return email.length <= EMAIL_MAX_LENGTH && isEmail(email);
+export function isValidEmail(email: string): boolean {
+    return isEmail(email);
 }
 
 export const URL_LIST_RULES = {

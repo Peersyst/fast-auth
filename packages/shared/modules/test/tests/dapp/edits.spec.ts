@@ -5,6 +5,7 @@ import {
     diffFields,
     diffSyncedFields,
     DIRECT_FIELDS,
+    directFieldsOf,
     MauBracket,
     SyncedFields,
 } from "../../../src/dapp";
@@ -63,6 +64,12 @@ describe("dapp edits", () => {
             const after: DappFields = { ...LIVE, name: "Acme Wallet", mauBracket: MauBracket.GT_25K };
 
             expect(diffFields(DIRECT_FIELDS, LIVE, after)).toEqual([{ field: "mauBracket", before: "lt1k", after: "gt25k" }]);
+        });
+    });
+
+    describe("directFieldsOf", () => {
+        it("should copy only the contact email and MAU bracket", () => {
+            expect(directFieldsOf(LIVE)).toEqual({ contactEmail: "dev@acme.xyz", mauBracket: "lt1k" });
         });
     });
 

@@ -1,7 +1,7 @@
 import { Transform } from "class-transformer";
 import { registerDecorator } from "class-validator";
 import {
-    isContactEmail,
+    isValidEmail,
     isLogoUrl,
     isValidDescription,
     isValidName,
@@ -96,7 +96,7 @@ export const IsDappDescription = (): PropertyDecorator =>
  * Accepts only a string that passes the contact email rule.
  * @returns The property decorator.
  */
-export const IsContactEmail = (): PropertyDecorator => stringRule("isContactEmail", "$property must be an email address", isContactEmail);
+export const IsValidEmail = (): PropertyDecorator => stringRule("isValidEmail", "$property must be an email address", isValidEmail);
 
 /**
  * Accepts only a string without a NUL character, which Postgres text cannot store.

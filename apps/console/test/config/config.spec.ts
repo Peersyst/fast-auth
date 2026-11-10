@@ -96,6 +96,7 @@ describe("configuration", () => {
         ["a PUBLIC_URL with credentials", { PUBLIC_URL: "https://user@console.example.com" }, "publicUrl"],
         ["an ftp PUBLIC_URL", { PUBLIC_URL: "ftp://console.example.com" }, "publicUrl"],
         ["a login domain with a scheme", { AUTH0_LOGIN_DOMAIN: "https://login.example.com" }, "loginDomain"],
+        ["a login domain that is an IP address", { AUTH0_LOGIN_DOMAIN: "10.0.0.1" }, "loginDomain"],
         ["no admin email", { ADMIN_EMAILS: " , " }, "emails"],
         ["an invalid admin email", { ADMIN_EMAILS: "admin@example.com,not-an-email" }, "emails"],
         ["a non-numeric timeout", { READYZ_TIMEOUT_MS: "soon" }, "readyzTimeoutMs"],

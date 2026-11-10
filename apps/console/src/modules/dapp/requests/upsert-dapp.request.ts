@@ -10,7 +10,7 @@ import {
     UrlListField,
 } from "@shared/modules/dapp";
 import {
-    IsContactEmail,
+    IsValidEmail,
     IsDappDescription,
     IsDappName,
     IsLogoUrl,
@@ -67,7 +67,7 @@ export class UpsertDappRequest {
 
     @ApiProperty()
     @Trim()
-    @IsContactEmail()
+    @IsValidEmail()
     contactEmail: string;
 }
 

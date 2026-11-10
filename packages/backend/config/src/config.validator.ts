@@ -1,6 +1,4 @@
-import { isEmail } from "class-validator";
-
-const HOST_NAME = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/i;
+import { isEmail, isFQDN } from "class-validator";
 
 /**
  * Validates a port.
@@ -41,7 +39,7 @@ export const validRequired = (value: string | undefined): boolean => typeof valu
  * @param value The value to validate.
  * @returns True if the value is a host name.
  */
-export const validHostName = (value: string | undefined): boolean => typeof value === "string" && HOST_NAME.test(value);
+export const validHostName = (value: string | undefined): boolean => typeof value === "string" && isFQDN(value);
 
 /**
  * Validates an email address.
@@ -70,11 +68,3 @@ export const validPublicUrl = (value: string | undefined): boolean => {
     const url = new URL(value);
     return ["http:", "https:"].includes(url.protocol) && url.pathname === "/";
 };
-
-/**
- * Validates an https URL.
- * @param value The value to validate.
- * @returns True if the value is an https URL.
- */
-export const validHttpsUrl = (value: string | undefined): boolean =>
-    typeof value === "string" && URL.canParse(value) && new URL(value).protocol === "https:";
