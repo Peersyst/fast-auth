@@ -1,11 +1,12 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { And, Equal, FindOptionsWhere, ILike, IsNull, Not, Repository } from "typeorm";
+import { And, EntityManager, Equal, FindOptionsWhere, ILike, IsNull, Not, Repository } from "typeorm";
 import { Dapp, DappEvent } from "@database/console/entities";
 import {
     ActorRole,
     DAPP_FIELDS,
     DappAction,
+    DappFields,
     DappEventDetails,
     DappEventType,
     DappStatus,
@@ -21,19 +22,7 @@ import { DEFAULT_PAGE_SIZE, ListDappsRequest } from "./requests/list-dapps.reque
 import { AdminDappDto } from "./dtos/admin-dapp.dto";
 import { DappEventDto } from "./dtos/dapp-event.dto";
 import { PaginatedDappsDto } from "./dtos/paginated-dapps.dto";
-import { DappOrderBy } from "./types/dapp-order";
 import { OrderType } from "@shared/utils";
-
-const ORDER_BY_COLUMN: Record<DappOrderBy, string> = {
-    [DappOrderBy.SUBMITTED_AT]: "d.submittedAt",
-    [DappOrderBy.UPDATED_AT]: "d.updatedAt",
-    [DappOrderBy.NAME]: "d.name",
-    [DappOrderBy.STATUS]: "d.status",
-};
-
-const REVIEW_SINCE = "COALESCE(d.pendingChangeAt, d.submittedAt)";
-
-const SEARCH_COLUMNS = ["name", "ownerEmail", "contactEmail", "auth0ClientId"] as const;
 
 /**
  * Escapes LIKE wildcards so the value matches literally.
@@ -68,7 +57,9 @@ function listFilters({ needsReview, status, search }: ListDappsRequest): FindOpt
         : [status === undefined ? {} : { status }];
     if (search === undefined) return scopes;
     const pattern = ILike(`%${escapeLike(search)}%`);
-    return scopes.flatMap((scope) => SEARCH_COLUMNS.map((column) => ({ ...scope, [column]: pattern })));
+    return scopes.flatMap((scope) =>
+        (["name", "ownerEmail", "contactEmail", "auth0ClientId"] as const).map((column) => ({ ...scope, [column]: pattern })),
+    );
 }
 
 @Injectable()
@@ -89,9 +80,9 @@ export class AdminService {
         const pageSize = request.pageSize ?? DEFAULT_PAGE_SIZE;
         const query = this.dappRepository.createQueryBuilder("d").setFindOptions({ where: listFilters(request) });
         const direction = request.order ?? OrderType.ASC;
-        if (request.orderBy !== undefined) query.orderBy(ORDER_BY_COLUMN[request.orderBy], direction);
-        else if (request.needsReview) query.orderBy(REVIEW_SINCE, direction);
-        else query.orderBy(ORDER_BY_COLUMN[DappOrderBy.SUBMITTED_AT], direction);
+        if (request.orderBy !== undefined) query.orderBy(`d.${request.orderBy}`, direction);
+        else if (request.needsReview) query.orderBy("COALESCE(d.pendingChangeAt, d.submittedAt)", direction);
+        else query.orderBy("d.submittedAt", direction);
         query.addOrderBy("d.id", direction);
         const [items, total] = await query
             .skip((page - 1) * pageSize)
@@ -127,12 +118,11 @@ export class AdminService {
      * @returns The approved dApp.
      */
     async approve(id: string, expectedVersion: number): Promise<AdminDappDto> {
-        const dapp = await this.writes.counted(DappAction.APPROVE, () => {
-            const actor = ActorRole.ADMIN;
-            return this.writes.mutate(DappAction.APPROVE, actor, { id }, expectedVersion, (manager, live) =>
-                this.writes.approveIn(manager, live, actor, DappEventType.APPROVED),
-            );
-        });
+        const dapp = await this.writes.counted(DappAction.APPROVE, () =>
+            this.writes.mutate(DappAction.APPROVE, ActorRole.ADMIN, { id }, expectedVersion, (manager, live) =>
+                this.writes.approveIn(manager, live, ActorRole.ADMIN, DappEventType.APPROVED),
+            ),
+        );
         return AdminDappDto.fromEntity(dapp);
     }
 
@@ -143,26 +133,35 @@ export class AdminService {
      * @returns The rejected dApp.
      */
     async reject(id: string, expectedVersion: number): Promise<AdminDappDto> {
-        const dapp = await this.writes.counted(DappAction.REJECT, () => {
-            const actor = ActorRole.ADMIN;
-            return this.writes.mutate(DappAction.REJECT, actor, { id }, expectedVersion, async (manager, live) => {
-                if (live.status !== DappStatus.PENDING) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
-                const now = new Date();
-                const deletion = await this.writes.deleteClient(live);
-                const updated = await this.writes.update(manager, live.id, {
-                    auth0Error: null,
-                    ...deletion.columns,
-                    status: DappStatus.REJECTED,
-                    reviewedAt: now,
-                });
-                await this.writes.appendEvents(manager, live.id, actor, [
-                    { type: DappEventType.REJECTED, details: {} },
-                    ...deletion.events,
-                ]);
-                return updated;
-            });
-        });
+        const dapp = await this.writes.counted(DappAction.REJECT, () =>
+            this.writes.mutate(DappAction.REJECT, ActorRole.ADMIN, { id }, expectedVersion, (manager, live) =>
+                this.rejectIn(manager, live),
+            ),
+        );
         return AdminDappDto.fromEntity(dapp);
+    }
+
+    /**
+     * Rejects the locked dApp, which must be pending, and deletes any Auth0 client tagged with its id.
+     * @param manager The transaction's entity manager.
+     * @param live The locked dApp.
+     * @returns The rejected dApp.
+     */
+    private async rejectIn(manager: EntityManager, live: Dapp): Promise<Dapp> {
+        if (live.status !== DappStatus.PENDING) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
+        const now = new Date();
+        const deletion = await this.writes.deleteClient(live);
+        const updated = await this.writes.update(manager, live.id, {
+            auth0Error: null,
+            ...deletion.columns,
+            status: DappStatus.REJECTED,
+            reviewedAt: now,
+        });
+        await this.writes.appendEvents(manager, live.id, ActorRole.ADMIN, [
+            { type: DappEventType.REJECTED, details: {} },
+            ...deletion.events,
+        ]);
+        return updated;
     }
 
     /**
@@ -172,25 +171,34 @@ export class AdminService {
      * @returns The updated dApp.
      */
     async approveChange(id: string, expectedVersion: number): Promise<AdminDappDto> {
-        const dapp = await this.writes.counted(DappAction.APPROVE_CHANGE, () => {
-            const actor = ActorRole.ADMIN;
-            return this.writes.mutate(DappAction.APPROVE_CHANGE, actor, { id }, expectedVersion, async (manager, live) => {
-                const change = pendingChangeOf(live);
-                const sync = await this.writes.syncClient(live, change);
-                const updated = await this.writes.update(manager, live.id, {
-                    ...change,
-                    pendingChange: null,
-                    pendingChangeAt: null,
-                    ...sync.columns,
-                });
-                await this.writes.appendEvents(manager, live.id, actor, [
-                    { type: DappEventType.CHANGE_APPROVED, details: { changes: diffSyncedFields(live, change) } },
-                    ...sync.events,
-                ]);
-                return updated;
-            });
-        });
+        const dapp = await this.writes.counted(DappAction.APPROVE_CHANGE, () =>
+            this.writes.mutate(DappAction.APPROVE_CHANGE, ActorRole.ADMIN, { id }, expectedVersion, (manager, live) =>
+                this.approveChangeIn(manager, live),
+            ),
+        );
         return AdminDappDto.fromEntity(dapp);
+    }
+
+    /**
+     * Applies the locked dApp's pending change to its fields and Auth0 client.
+     * @param manager The transaction's entity manager.
+     * @param live The locked dApp.
+     * @returns The updated dApp.
+     */
+    private async approveChangeIn(manager: EntityManager, live: Dapp): Promise<Dapp> {
+        const change = pendingChangeOf(live);
+        const sync = await this.writes.syncClient(live, change);
+        const updated = await this.writes.update(manager, live.id, {
+            ...change,
+            pendingChange: null,
+            pendingChangeAt: null,
+            ...sync.columns,
+        });
+        await this.writes.appendEvents(manager, live.id, ActorRole.ADMIN, [
+            { type: DappEventType.CHANGE_APPROVED, details: { changes: diffSyncedFields(live, change) } },
+            ...sync.events,
+        ]);
+        return updated;
     }
 
     /**
@@ -200,25 +208,34 @@ export class AdminService {
      * @returns The updated dApp.
      */
     async rejectChange(id: string, expectedVersion: number): Promise<AdminDappDto> {
-        const dapp = await this.writes.counted(DappAction.REJECT_CHANGE, () => {
-            const actor = ActorRole.ADMIN;
-            return this.writes.mutate(DappAction.REJECT_CHANGE, actor, { id }, expectedVersion, async (manager, live) => {
-                pendingChangeOf(live);
-                // Always resync: an approveChange that rolled back after Auth0 accepted the change leaves no auth0Error behind.
-                const sync = await this.writes.syncClient(live, syncedFieldsOf(live));
-                const updated = await this.writes.update(manager, live.id, {
-                    pendingChange: null,
-                    pendingChangeAt: null,
-                    ...sync.columns,
-                });
-                await this.writes.appendEvents(manager, live.id, actor, [
-                    { type: DappEventType.CHANGE_REJECTED, details: {} },
-                    ...sync.events,
-                ]);
-                return updated;
-            });
-        });
+        const dapp = await this.writes.counted(DappAction.REJECT_CHANGE, () =>
+            this.writes.mutate(DappAction.REJECT_CHANGE, ActorRole.ADMIN, { id }, expectedVersion, (manager, live) =>
+                this.rejectChangeIn(manager, live),
+            ),
+        );
         return AdminDappDto.fromEntity(dapp);
+    }
+
+    /**
+     * Drops the locked dApp's pending change and resyncs its Auth0 client to the live fields.
+     * @param manager The transaction's entity manager.
+     * @param live The locked dApp.
+     * @returns The updated dApp.
+     */
+    private async rejectChangeIn(manager: EntityManager, live: Dapp): Promise<Dapp> {
+        pendingChangeOf(live);
+        // Always resync: an approveChange that rolled back after Auth0 accepted the change leaves no auth0Error behind.
+        const sync = await this.writes.syncClient(live, syncedFieldsOf(live));
+        const updated = await this.writes.update(manager, live.id, {
+            pendingChange: null,
+            pendingChangeAt: null,
+            ...sync.columns,
+        });
+        await this.writes.appendEvents(manager, live.id, ActorRole.ADMIN, [
+            { type: DappEventType.CHANGE_REJECTED, details: {} },
+            ...sync.events,
+        ]);
+        return updated;
     }
 
     /**
@@ -229,23 +246,33 @@ export class AdminService {
      */
     async edit(id: string, request: UpdateDappRequest): Promise<AdminDappDto> {
         const fields = toDappFields(request);
-        const dapp = await this.writes.counted(DappAction.ADMIN_EDIT, () => {
-            const actor = ActorRole.ADMIN;
-            return this.writes.mutate(DappAction.ADMIN_EDIT, actor, { id }, request.expectedVersion, async (manager, live) => {
-                if (live.status === DappStatus.REMOVED || (live.status === DappStatus.APPROVED && live.pendingChange !== null))
-                    throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
-                const changes = diffFields(DAPP_FIELDS, live, fields);
-                const events: DappEventDetails[] = changes.length > 0 ? [{ type: DappEventType.EDITED, details: { changes } }] : [];
-                const sync: Effects =
-                    live.status === DappStatus.APPROVED && (live.auth0Error !== null || diffSyncedFields(live, fields).length > 0)
-                        ? await this.writes.syncClient(live, syncedFieldsOf(fields))
-                        : { columns: {}, events: [] };
-                const updated = await this.writes.update(manager, live.id, { ...fields, ...sync.columns });
-                await this.writes.appendEvents(manager, live.id, actor, [...events, ...sync.events]);
-                return updated;
-            });
-        });
+        const dapp = await this.writes.counted(DappAction.ADMIN_EDIT, () =>
+            this.writes.mutate(DappAction.ADMIN_EDIT, ActorRole.ADMIN, { id }, request.expectedVersion, (manager, live) =>
+                this.editIn(manager, live, fields),
+            ),
+        );
         return AdminDappDto.fromEntity(dapp);
+    }
+
+    /**
+     * Applies an admin's edit to the locked dApp, syncing an approved dApp's Auth0 client when a synced field changed or the last sync failed.
+     * @param manager The transaction's entity manager.
+     * @param live The locked dApp.
+     * @param fields The new fields.
+     * @returns The updated dApp.
+     */
+    private async editIn(manager: EntityManager, live: Dapp, fields: DappFields): Promise<Dapp> {
+        if (live.status === DappStatus.REMOVED || (live.status === DappStatus.APPROVED && live.pendingChange !== null))
+            throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
+        const changes = diffFields(DAPP_FIELDS, live, fields);
+        const events: DappEventDetails[] = changes.length > 0 ? [{ type: DappEventType.EDITED, details: { changes } }] : [];
+        const sync: Effects =
+            live.status === DappStatus.APPROVED && (live.auth0Error !== null || diffSyncedFields(live, fields).length > 0)
+                ? await this.writes.syncClient(live, syncedFieldsOf(fields))
+                : { columns: {}, events: [] };
+        const updated = await this.writes.update(manager, live.id, { ...fields, ...sync.columns });
+        await this.writes.appendEvents(manager, live.id, ActorRole.ADMIN, [...events, ...sync.events]);
+        return updated;
     }
 
     /**
@@ -255,12 +282,11 @@ export class AdminService {
      * @returns The removed dApp.
      */
     async remove(id: string, expectedVersion: number): Promise<AdminDappDto> {
-        const dapp = await this.writes.counted(DappAction.REMOVE, () => {
-            const actor = ActorRole.ADMIN;
-            return this.writes.mutate(DappAction.REMOVE, actor, { id }, expectedVersion, (manager, live) =>
-                this.writes.removeIn(manager, live, actor),
-            );
-        });
+        const dapp = await this.writes.counted(DappAction.REMOVE, () =>
+            this.writes.mutate(DappAction.REMOVE, ActorRole.ADMIN, { id }, expectedVersion, (manager, live) =>
+                this.writes.removeIn(manager, live, ActorRole.ADMIN),
+            ),
+        );
         return AdminDappDto.fromEntity(dapp);
     }
 
