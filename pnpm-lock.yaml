@@ -211,9 +211,6 @@ importers:
       winston:
         specifier: 3.19.0
         version: 3.19.0
-      yargs:
-        specifier: 17.7.2
-        version: 17.7.2
     devDependencies:
       '@backend/test':
         specifier: workspace:*

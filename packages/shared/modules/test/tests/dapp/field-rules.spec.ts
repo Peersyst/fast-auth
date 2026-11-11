@@ -1,6 +1,5 @@
 import {
     isCallbackUrl,
-    isValidEmail,
     isLogoUrl,
     isValidDescription,
     isValidName,
@@ -10,7 +9,7 @@ import {
     UrlListField,
 } from "../../../src/dapp";
 
-type SingleValueRule = "callbackUrl" | "webOrigin" | "logoUrl" | "name" | "description" | "email";
+type SingleValueRule = "callbackUrl" | "webOrigin" | "logoUrl" | "name" | "description";
 
 type Vectors<T> = { valid: T[]; invalid: T[] };
 
@@ -28,13 +27,6 @@ const urls = (count: number, url: (i: number) => string): string[] => Array.from
  * @returns The URL.
  */
 const urlOfLength = (length: number): string => `https://acme.xyz/${"a".repeat(length - "https://acme.xyz/".length)}`;
-
-/**
- * Builds an email address of an exact length.
- * @param lastLabel The length of the domain's third label, which sets the total.
- * @returns The address.
- */
-const emailWithLabel = (lastLabel: number): string => `${"a".repeat(64)}@${"b".repeat(63)}.${"b".repeat(63)}.${"b".repeat(lastLabel)}.com`;
 
 const SINGLE_VALUE_VECTORS: Record<SingleValueRule, Vectors<string>> = {
     callbackUrl: {
@@ -85,10 +77,6 @@ const SINGLE_VALUE_VECTORS: Record<SingleValueRule, Vectors<string>> = {
         valid: ["", "Line one\r\nLine two\twith a tab", "a".repeat(140)],
         invalid: ["a".repeat(141), "Acme\u0001"],
     },
-    email: {
-        valid: ["dev@acme.xyz", emailWithLabel(57)],
-        invalid: ["acme.xyz", "dev@acme", "dev@[127.0.0.1]", emailWithLabel(58)],
-    },
 };
 
 const LIST_VECTORS: Record<UrlListField, Vectors<string[]>> = {
@@ -122,7 +110,6 @@ describe("field rules", () => {
         ["logoUrl", isLogoUrl],
         ["name", isValidName],
         ["description", isValidDescription],
-        ["email", isValidEmail],
     ])("%s", (rule, isValid) => {
         it.each(SINGLE_VALUE_VECTORS[rule].valid)("should accept %j", (value) => {
             expect(isValid(value)).toBe(true);

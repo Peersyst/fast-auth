@@ -49,8 +49,7 @@
         "rxjs": "7.8.2",
         "swagger-ui-express": "5.0.1",
         "typeorm": "0.3.31",
-        "winston": "3.19.0",
-        "yargs": "17.7.2"
+        "winston": "3.19.0"
     },
     "devDependencies": {
         "@backend/test": "workspace:*",

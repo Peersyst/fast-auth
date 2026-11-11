@@ -1,4 +1,3 @@
-import isEmail from "validator/lib/isEmail";
 import isFQDN from "validator/lib/isFQDN";
 import isURL from "validator/lib/isURL";
 import { DESCRIPTION_MAX_LENGTH, LOGO_URL_MAX_LENGTH, NAME_MAX_LENGTH } from "./constants";
@@ -15,7 +14,13 @@ const CONTROL_CHARACTER = /\p{Cc}/u;
  * @returns The normalised URL.
  */
 export function normaliseUrl(value: string): string {
-    return value.trim().replace(/^[^/?#]*\/\/[^/?#]*/, (schemeAndAuthority) => schemeAndAuthority.toLowerCase());
+    const url = value.trim();
+    const schemeEnd = url.search(/[/?#]/);
+    if (schemeEnd === -1 || !url.startsWith("//", schemeEnd)) return url;
+    const authorityStart = schemeEnd + 2;
+    const authorityLength = url.slice(authorityStart).search(/[/?#]/);
+    const authorityEnd = authorityLength === -1 ? url.length : authorityStart + authorityLength;
+    return url.slice(0, authorityEnd).toLowerCase() + url.slice(authorityEnd);
 }
 
 /**
@@ -89,15 +94,6 @@ export function isValidName(name: string): boolean {
  */
 export function isValidDescription(description: string): boolean {
     return description.length <= DESCRIPTION_MAX_LENGTH && !CONTROL_CHARACTER.test(description.replace(/[\t\n\r]/g, ""));
-}
-
-/**
- * Accepts an email address of at most 254 characters, the limit `isEmail` enforces.
- * @param email The email address.
- * @returns Whether the address is valid.
- */
-export function isValidEmail(email: string): boolean {
-    return isEmail(email);
 }
 
 export const URL_LIST_RULES = {
