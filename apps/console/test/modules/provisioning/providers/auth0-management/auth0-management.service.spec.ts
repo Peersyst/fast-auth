@@ -9,42 +9,9 @@ import { ProvisioningModule } from "../../../../../src/modules/provisioning/prov
 import { AUTH0_PROVISIONER } from "../../../../../src/modules/provisioning/provisioning.tokens";
 import { ClientsMock } from "../../../../mocks/auth0/clients.mock";
 import { ConnectionsMock } from "../../../../mocks/auth0/connections.mock";
-import { configStubModule, createConfigServiceMock } from "../../../../mocks/config/config.mock";
-import { testConfig } from "../../../../mocks/config/config.mock";
+import { configStubModule, createConfigServiceMock, testConfig } from "../../../../mocks/config/config.mock";
 
 jest.mock("auth0", () => ({ ...jest.requireActual("auth0"), ManagementClient: jest.fn() }));
-
-const DAPP_ID = "6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b";
-const CLIENT_ID = "client_abc";
-
-const INPUT: SyncedFields = {
-    name: "Acme",
-    description: "Acme wallet",
-    logoUrl: "https://acme.example/logo.png",
-    callbackUrls: ["https://acme.example/callback"],
-    logoutUrls: ["https://acme.example"],
-    webOrigins: ["https://acme.example", "https://staging.acme.example"],
-};
-
-const TEMPLATE = {
-    client_id: "template-client",
-    name: "Template",
-    client_secret: "template-secret",
-    grant_types: ["authorization_code", "refresh_token"],
-    oidc_conformant: true,
-    jwt_configuration: { alg: "RS256", lifetime_in_seconds: 36000, secret_encoded: false },
-    refresh_token: { rotation_type: "rotating", expiration_type: "expiring" },
-    cross_origin_authentication: true,
-    callbacks: ["https://template.example/callback"],
-    is_first_party: true,
-} as unknown as Client;
-
-/**
- * Wraps data in a 200 SDK response.
- * @param data The response data.
- * @returns The SDK response.
- */
-const ok = <T>(data: T) => ({ data, headers: new Headers(), status: 200, statusText: "OK" });
 
 /**
  * Builds the Management API's JSON error for a status.
@@ -55,18 +22,43 @@ const ok = <T>(data: T) => ({ data, headers: new Headers(), status: 200, statusT
 const apiError = (status: number, headers: Record<string, string> = {}) =>
     new ManagementApiError("code", "Error", status, "{}", new Headers(headers), `status ${status}`);
 
-/**
- * Builds a client whose metadata carries the console's tags.
- * @param dappId The dApp it names.
- * @param managedBy The environment tag.
- * @returns The client.
- */
-const tagged = (dappId: string, managedBy = "console-test") => ({
-    client_id: CLIENT_ID,
-    client_metadata: { console_dapp_id: dappId, managed_by: managedBy },
-});
-
 describe("Auth0ManagementService", () => {
+    const dappId = "6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b";
+    const clientId = "client_abc";
+
+    const input: SyncedFields = {
+        name: "Acme",
+        description: "Acme wallet",
+        logoUrl: "https://acme.example/logo.png",
+        callbackUrls: ["https://acme.example/callback"],
+        logoutUrls: ["https://acme.example"],
+        webOrigins: ["https://acme.example", "https://staging.acme.example"],
+    };
+
+    const template = {
+        client_id: "template-client",
+        name: "Template",
+        client_secret: "template-secret",
+        grant_types: ["authorization_code", "refresh_token"],
+        oidc_conformant: true,
+        jwt_configuration: { alg: "RS256", lifetime_in_seconds: 36000, secret_encoded: false },
+        refresh_token: { rotation_type: "rotating", expiration_type: "expiring" },
+        cross_origin_authentication: true,
+        callbacks: ["https://template.example/callback"],
+        is_first_party: true,
+    } as unknown as Client;
+
+    /**
+     * Builds a client whose metadata carries the console's tags.
+     * @param forDapp The dApp it names.
+     * @param managedBy The environment tag.
+     * @returns The client.
+     */
+    const tagged = (forDapp: string, managedBy = "console-test") => ({
+        client_id: clientId,
+        client_metadata: { console_dapp_id: forDapp, managed_by: managedBy },
+    });
+
     const clients = new ClientsMock();
     const connections = new ConnectionsMock();
     let provisioner: Auth0ManagementService;
@@ -77,7 +69,7 @@ describe("Auth0ManagementService", () => {
      */
     const enabledConnections = (byClient: Record<string, string[]>): void => {
         clients.getEnabledConnections.mockImplementation(({ client_id }: { client_id: string }) =>
-            Promise.resolve(ok({ connections: (byClient[client_id] ?? []).map((id) => ({ id })) })),
+            Promise.resolve({ data: { connections: (byClient[client_id] ?? []).map((id) => ({ id })) } }),
         );
     };
 
@@ -107,17 +99,17 @@ describe("Auth0ManagementService", () => {
         }).compile();
         provisioner = module.get(AUTH0_PROVISIONER);
         enabledConnections({ "template-client": ["con_email", "con_google"] });
-        clients.update.mockResolvedValue(ok(undefined));
-        clients.delete.mockResolvedValue(ok(undefined));
-        connections.updateEnabledClients.mockResolvedValue(ok(undefined));
+        clients.update.mockResolvedValue({});
+        clients.delete.mockResolvedValue({});
+        connections.updateEnabledClients.mockResolvedValue({});
     });
 
     describe("createClient", () => {
         it("should create a SPA client from the template's settings, the dApp's fields and the console's tags", async () => {
-            clients.get.mockResolvedValueOnce(ok(TEMPLATE));
-            clients.create.mockResolvedValueOnce(ok({ client_id: CLIENT_ID }));
+            clients.get.mockResolvedValueOnce({ data: template });
+            clients.create.mockResolvedValueOnce({ data: { client_id: clientId } });
 
-            await expect(provisioner.createClient(DAPP_ID, INPUT)).resolves.toBe(CLIENT_ID);
+            await expect(provisioner.createClient(dappId, input)).resolves.toBe(clientId);
 
             expect(clients.create).toHaveBeenCalledWith({
                 app_type: "spa",
@@ -135,38 +127,38 @@ describe("Auth0ManagementService", () => {
                 allowed_logout_urls: ["https://acme.example"],
                 web_origins: ["https://acme.example", "https://staging.acme.example"],
                 allowed_origins: ["https://acme.example", "https://staging.acme.example"],
-                client_metadata: { console_dapp_id: DAPP_ID, managed_by: "console-test", logo_uri: "https://acme.example/logo.png" },
+                client_metadata: { console_dapp_id: dappId, managed_by: "console-test", logo_uri: "https://acme.example/logo.png" },
             });
         });
 
         it("should leave the new client with exactly the template's connections", async () => {
-            clients.get.mockResolvedValueOnce(ok(TEMPLATE));
-            clients.create.mockResolvedValueOnce(ok({ client_id: CLIENT_ID }));
-            enabledConnections({ "template-client": ["con_email", "con_google"], [CLIENT_ID]: ["con_email", "con_github"] });
+            clients.get.mockResolvedValueOnce({ data: template });
+            clients.create.mockResolvedValueOnce({ data: { client_id: clientId } });
+            enabledConnections({ "template-client": ["con_email", "con_google"], [clientId]: ["con_email", "con_github"] });
 
-            await provisioner.createClient(DAPP_ID, INPUT);
+            await provisioner.createClient(dappId, input);
 
             expect(connections.updateEnabledClients.mock.calls).toEqual([
-                [{ id: "con_google" }, [{ client_id: CLIENT_ID, status: true }]],
-                [{ id: "con_github" }, [{ client_id: CLIENT_ID, status: false }]],
+                [{ id: "con_google" }, [{ client_id: clientId, status: true }]],
+                [{ id: "con_github" }, [{ client_id: clientId, status: false }]],
             ]);
         });
 
         it("should create nothing from a template without enabled connections, which would switch off every login", async () => {
-            clients.get.mockResolvedValueOnce(ok(TEMPLATE));
+            clients.get.mockResolvedValueOnce({ data: template });
             enabledConnections({});
 
-            await expect(provisioner.createClient(DAPP_ID, INPUT)).rejects.toEqual(
+            await expect(provisioner.createClient(dappId, input)).rejects.toEqual(
                 new ProvisioningError("failed", "The template client template-client has no enabled connections"),
             );
             expect(clients.create).not.toHaveBeenCalled();
         });
 
         it("should not retry a create that answered 5xx, since it may have created the client", async () => {
-            clients.get.mockResolvedValueOnce(ok(TEMPLATE));
+            clients.get.mockResolvedValueOnce({ data: template });
             clients.create.mockRejectedValueOnce(apiError(503));
 
-            await expect(provisioner.createClient(DAPP_ID, INPUT)).rejects.toMatchObject({
+            await expect(provisioner.createClient(dappId, input)).rejects.toMatchObject({
                 kind: "failed",
                 message: "Auth0 create answered 503: status 503",
             });
@@ -177,87 +169,89 @@ describe("Auth0ManagementService", () => {
     describe("findClient and listClients", () => {
         it("should page through every client and keep the ones tagged for this environment", async () => {
             clients.getAll
-                .mockResolvedValueOnce(
-                    ok({
+                .mockResolvedValueOnce({
+                    data: {
                         clients: [
                             { ...tagged("other-dapp", "console-production"), client_id: "prod" },
                             { client_id: "untagged", name: "Raw" },
                         ],
                         next: "p2",
-                    }),
-                )
-                .mockResolvedValueOnce(ok({ clients: [{ ...tagged(DAPP_ID), name: "Acme", callbacks: ["https://acme.example/cb"] }] }));
+                    },
+                })
+                .mockResolvedValueOnce({
+                    data: { clients: [{ ...tagged(dappId), name: "Acme", callbacks: ["https://acme.example/cb"] }] },
+                });
 
             await expect(provisioner.listClients()).resolves.toEqual([
-                { clientId: CLIENT_ID, dappId: DAPP_ID, name: "Acme", callbacks: ["https://acme.example/cb"] },
+                { clientId, dappId, name: "Acme", callbacks: ["https://acme.example/cb"] },
             ]);
             expect(clients.getAll).toHaveBeenLastCalledWith(expect.objectContaining({ from: "p2", take: 100 }));
         });
 
         it("should find the client tagged with the dApp, or null", async () => {
-            clients.getAll.mockResolvedValue(ok({ clients: [{ ...tagged(DAPP_ID), name: "Acme" }] }));
+            clients.getAll.mockResolvedValue({ data: { clients: [{ ...tagged(dappId), name: "Acme" }] } });
 
-            await expect(provisioner.findClient(DAPP_ID)).resolves.toBe(CLIENT_ID);
+            await expect(provisioner.findClient(dappId)).resolves.toBe(clientId);
             await expect(provisioner.findClient("another-dapp")).resolves.toBeNull();
         });
     });
 
     describe("updateClient", () => {
         it("should check the tags, then send the dApp's fields and resync the connections", async () => {
-            clients.get.mockResolvedValueOnce(ok(tagged(DAPP_ID)));
+            clients.get.mockResolvedValueOnce({ data: tagged(dappId) });
 
-            await provisioner.updateClient(DAPP_ID, CLIENT_ID, INPUT);
+            await provisioner.updateClient(dappId, clientId, input);
 
             expect(clients.update).toHaveBeenCalledWith(
-                { client_id: CLIENT_ID },
-                expect.objectContaining({ name: "Acme", web_origins: INPUT.webOrigins }),
+                { client_id: clientId },
+                expect.objectContaining({ name: "Acme", web_origins: input.webOrigins }),
             );
             expect(connections.updateEnabledClients.mock.calls).toEqual([
-                [{ id: "con_email" }, [{ client_id: CLIENT_ID, status: true }]],
-                [{ id: "con_google" }, [{ client_id: CLIENT_ID, status: true }]],
+                [{ id: "con_email" }, [{ client_id: clientId, status: true }]],
+                [{ id: "con_google" }, [{ client_id: clientId, status: true }]],
             ]);
         });
 
         it.each([
             ["another dApp", tagged("another-dapp")],
-            ["another environment", tagged(DAPP_ID, "console-production")],
-            ["no tags", { client_id: CLIENT_ID }],
+            ["another environment", tagged(dappId, "console-production")],
+            ["no tags", { client_id: clientId }],
         ])("should refuse a client tagged for %s with tag_mismatch and change nothing", async (_case, client) => {
-            clients.get.mockResolvedValueOnce(ok(client));
+            clients.get.mockResolvedValueOnce({ data: client });
 
-            await expect(provisioner.updateClient(DAPP_ID, CLIENT_ID, INPUT)).rejects.toMatchObject({ kind: "tag_mismatch" });
+            await expect(provisioner.updateClient(dappId, clientId, input)).rejects.toMatchObject({ kind: "tag_mismatch" });
             expect(clients.update).not.toHaveBeenCalled();
         });
 
         it("should map a missing client to rejected", async () => {
             clients.get.mockRejectedValueOnce(apiError(404));
 
-            await expect(provisioner.updateClient(DAPP_ID, CLIENT_ID, INPUT)).rejects.toMatchObject({ kind: "rejected" });
+            await expect(provisioner.updateClient(dappId, clientId, input)).rejects.toMatchObject({ kind: "rejected" });
         });
     });
 
     describe("deleteClient", () => {
         it("should delete a tagged client", async () => {
-            clients.get.mockResolvedValueOnce(ok(tagged(DAPP_ID)));
+            clients.get.mockResolvedValueOnce({ data: tagged(dappId) });
 
-            await provisioner.deleteClient(DAPP_ID, CLIENT_ID);
+            await provisioner.deleteClient(dappId, clientId);
 
-            expect(clients.delete).toHaveBeenCalledWith({ client_id: CLIENT_ID });
+            expect(clients.delete).toHaveBeenCalledWith({ client_id: clientId });
         });
 
         it("should resolve when the client is already gone", async () => {
             clients.get.mockRejectedValueOnce(apiError(404));
 
-            await expect(provisioner.deleteClient(DAPP_ID, CLIENT_ID)).resolves.toBeUndefined();
+            await expect(provisioner.deleteClient(dappId, clientId)).resolves.toBeUndefined();
             expect(clients.delete).not.toHaveBeenCalled();
         });
     });
 
     describe("retries and failures", () => {
         it("should retry a 5xx once and succeed", async () => {
-            clients.get.mockRejectedValueOnce(apiError(502)).mockResolvedValueOnce(ok(tagged(DAPP_ID)));
+            clients.get.mockRejectedValueOnce(apiError(502)).mockResolvedValueOnce({ data: tagged(dappId) });
 
-            await provisioner.deleteClient(DAPP_ID, CLIENT_ID);
+            await provisioner.deleteClient(dappId, clientId);
 
             expect(clients.get).toHaveBeenCalledTimes(2);
             expect(clients.delete).toHaveBeenCalledTimes(1);
@@ -266,7 +260,7 @@ describe("Auth0ManagementService", () => {
         it("should retry a 429 once and map a second 429 to failed, as it is transient", async () => {
             clients.get.mockRejectedValue(apiError(429, { "retry-after": "60" }));
 
-            await expect(provisioner.deleteClient(DAPP_ID, CLIENT_ID)).rejects.toMatchObject({
+            await expect(provisioner.deleteClient(dappId, clientId)).rejects.toMatchObject({
                 kind: "failed",
                 message: "Auth0 get answered 429: status 429",
             });
@@ -274,14 +268,14 @@ describe("Auth0ManagementService", () => {
         });
 
         it.each([
-            ["a 400", apiError(400), "rejected"],
-            ["a 401", apiError(401), "failed"],
-            ["a 403", apiError(403), "failed"],
-            ["a token endpoint 4xx", new AuthApiError("access_denied", "Unauthorized", 401, "{}", new Headers()), "failed"],
-        ])("should not retry %s and map it to $2", async (_case, error, kind) => {
+            ["a 400", "rejected", apiError(400)],
+            ["a 401", "failed", apiError(401)],
+            ["a 403", "failed", apiError(403)],
+            ["a token endpoint 4xx", "failed", new AuthApiError("access_denied", "Unauthorized", 401, "{}", new Headers())],
+        ])("should not retry %s and map it to %s", async (_case, kind, error) => {
             clients.get.mockRejectedValueOnce(error);
 
-            await expect(provisioner.deleteClient(DAPP_ID, CLIENT_ID)).rejects.toMatchObject({ kind });
+            await expect(provisioner.deleteClient(dappId, clientId)).rejects.toMatchObject({ kind });
             expect(clients.get).toHaveBeenCalledTimes(1);
         });
 
@@ -290,7 +284,7 @@ describe("Auth0ManagementService", () => {
                 new TypeError("fetch failed", { cause: new Error("getaddrinfo ENOTFOUND tenant.eu.auth0.com") }),
             );
 
-            await expect(provisioner.deleteClient(DAPP_ID, CLIENT_ID)).rejects.toMatchObject({
+            await expect(provisioner.deleteClient(dappId, clientId)).rejects.toMatchObject({
                 kind: "failed",
                 message: "Auth0 get failed: fetch failed: getaddrinfo ENOTFOUND tenant.eu.auth0.com",
             });
@@ -298,7 +292,7 @@ describe("Auth0ManagementService", () => {
 
         it("should observe every call by operation and outcome", async () => {
             clients.get.mockRejectedValueOnce(apiError(404));
-            await provisioner.deleteClient(DAPP_ID, CLIENT_ID);
+            await provisioner.deleteClient(dappId, clientId);
 
             const metric = await register.getSingleMetric("console_auth0_request_duration_seconds")!.get();
             const counts = metric.values

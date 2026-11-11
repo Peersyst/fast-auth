@@ -4,9 +4,8 @@
     "rootDir": ".",
     "testRegex": "integration/.*\\.spec\\.ts$",
     "transform": {
-        "^.+\\.(ts|js)$": "ts-jest"
+        "^.+\\.ts$": "ts-jest"
     },
-    "transformIgnorePatterns": ["/node_modules/(?!(.+/)?(near-api-js|@noble/curves|@noble/hashes|@noble/ciphers|@scure/base))"],
     "globalSetup": "./integration/setup.ts",
     "globalTeardown": "./integration/teardown.ts"
 }

@@ -58,16 +58,15 @@ describe("DappModule (integration)", () => {
      * @returns The dApp.
      */
     const approvedDapp = async (overrides: Partial<Dapp> = {}): Promise<Dapp> => {
-        const form = dappForm();
         const dapp = await createDapp(dataSource.manager, {
-            ...form,
+            ...dappForm(),
             ownerEmail: OWNER,
             status: DappStatus.APPROVED,
             auth0ClientId: "client_live",
             reviewedAt: new Date(),
             ...overrides,
         });
-        provisioner.clients.set("client_live", { dappId: dapp.id, input: { ...form } });
+        provisioner.clients.set("client_live", { dappId: dapp.id, input: syncedFieldsOf(dapp) });
         return dapp;
     };
 
@@ -209,7 +208,7 @@ describe("DappModule (integration)", () => {
                 .expect(200);
 
             expect(body).toMatchObject({ name: "Acme Pay", contactEmail: "ops@acme.xyz", status: "pending", version: 2 });
-            const [edited] = await dataSource.query(`SELECT details FROM dapp_event WHERE dapp_id = $1 AND type = 'edited'`, [dapp.id]);
+            const edited = await dataSource.manager.findOneByOrFail(DappEvent, { dappId: dapp.id, type: DappEventType.EDITED });
             expect(edited.details).toEqual({
                 changes: [
                     { field: "name", before: "Acme Wallet", after: "Acme Pay" },
@@ -220,7 +219,7 @@ describe("DappModule (integration)", () => {
             expect(slack.notify).not.toHaveBeenCalled();
         });
 
-        it("should resubmit a rejected dApp: pending again, review cleared, the admins alerted with what changed since the rejection", async () => {
+        it("should resubmit a rejected dApp: pending again, review cleared, the admins alerted", async () => {
             const dapp = await createDapp(dataSource.manager, {
                 ...dappForm(),
                 ownerEmail: OWNER,
@@ -242,7 +241,7 @@ describe("DappModule (integration)", () => {
             expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "resubmitted" }));
         });
 
-        it("should apply an approved dApp's direct fields at once without Auth0 or email", async () => {
+        it("should apply an approved dApp's direct fields at once without Auth0 or an alert", async () => {
             const dapp = await approvedDapp();
 
             const { body } = await testApp.request
@@ -335,7 +334,7 @@ describe("DappModule (integration)", () => {
     });
 
     describe("DELETE /dapp/:id", () => {
-        it("should remove a pending dApp with 204, log `removed` without a reason, and email nobody", async () => {
+        it("should remove a pending dApp with 204, log `removed` without a reason, and notify nobody", async () => {
             const dapp = await createDapp(dataSource.manager, { ownerEmail: OWNER });
 
             await testApp.request.delete(`/dapp/${dapp.id}?expectedVersion=1`).set("Authorization", owner).expect(204);

@@ -6,7 +6,7 @@ import { AuthModule } from "../../../src/modules/auth/auth.module";
 import { AdminAuthenticated, Authenticated } from "../../../src/modules/auth/decorator/authenticated.decorator";
 import { JWT_KEY_SET } from "../../../src/modules/auth/jwt-key-set";
 import { ADMIN_EMAIL, testConfig } from "../../mocks/config/config.mock";
-import { signToken, testKeySet, TokenOptions } from "../../mocks/auth/token.mock";
+import { bearer, signToken, testKeySet, TokenOptions } from "../../mocks/auth/token.mock";
 
 @Authenticated()
 @Controller("owner-only")
@@ -40,21 +40,12 @@ class GuardedRoutesModule {}
 describe("AuthModule (integration)", () => {
     let testApp: TestApp;
 
-    /**
-     * Builds the Authorization header of a signed-in user.
-     * @param email The user's email.
-     * @param emailVerified Whether the email is verified.
-     * @returns The header value.
-     */
-    const bearer = async (email: string, emailVerified = true): Promise<string> =>
-        `Bearer ${await signToken({ sub: `auth0|${email}`, email, emailVerified })}`;
-
     let otherKey: KeyLike;
 
     beforeAll(async () => {
         otherKey = (await generateKeyPair("RS256")).privateKey;
         testApp = await createTestApp({
-            imports: [ConfigModule.forRoot({ load: [testConfig], isGlobal: true }), AuthModule, GuardedRoutesModule],
+            imports: [ConfigModule.forRoot({ load: [testConfig], isGlobal: true }), GuardedRoutesModule],
             overrides: [{ provide: JWT_KEY_SET, useValue: await testKeySet() }],
         });
     });
@@ -111,12 +102,10 @@ describe("AuthModule (integration)", () => {
             expect(body).toEqual({ statusCode: 401, message: "UNAUTHENTICATED" });
         });
 
-        it.each<[string, () => Promise<string>]>([
-            ["a Bearer scheme followed by two spaces", async () => `Bearer  ${await signToken(alice)}`],
-        ])("should accept %s", async (_case, authorization) => {
+        it("should accept a Bearer scheme followed by two spaces", async () => {
             const { body } = await testApp.request
                 .get("/me")
-                .set("Authorization", await authorization())
+                .set("Authorization", `Bearer  ${await signToken(alice)}`)
                 .expect(200);
 
             expect(body).toEqual({ email: "alice@owners.test", role: "user", emailVerified: true });

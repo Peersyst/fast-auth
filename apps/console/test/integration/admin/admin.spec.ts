@@ -215,6 +215,19 @@ describe("AdminModule (integration)", () => {
             expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["auth0_failed", "approved", "auth0_created"]);
         });
 
+        it("should adopt on retry the client a timed-out create made instead of creating another", async () => {
+            const dapp = await pendingDapp();
+            provisioner.script("createClient", "timeout_after_success");
+
+            expect((await post(`${dapp.id}/approve`, { expectedVersion: 1 }).expect(502)).body.message).toBe("PROVISIONING_FAILED");
+            const [orphan] = [...provisioner.clients.keys()];
+            const { body } = await post(`${dapp.id}/approve`, { expectedVersion: 1 }).expect(200);
+
+            expect(body).toMatchObject({ status: "approved", auth0ClientId: orphan });
+            expect(provisioner.clients.size).toBe(1);
+            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["auth0_failed", "approved", "auth0_updated"]);
+        });
+
         it("should answer 422 PROVISIONING_REJECTED when Auth0 refuses the client", async () => {
             const dapp = await pendingDapp();
             provisioner.script("createClient", "rejected");
@@ -224,12 +237,10 @@ describe("AdminModule (integration)", () => {
             expect(body.message).toBe("PROVISIONING_REJECTED");
         });
 
-        it("should answer 409 INVALID_TRANSITION for an approved dApp and 409 DAPP_CHANGED for a stale version", async () => {
-            const approved = await approvedDapp();
-            const pending = await pendingDapp({ ownerEmail: "other@owners.test", version: 3 });
+        it("should answer 409 DAPP_CHANGED for a stale version and call Auth0 for nothing", async () => {
+            const dapp = await pendingDapp({ version: 3 });
 
-            expect((await post(`${approved.id}/approve`, { expectedVersion: 1 }).expect(409)).body.message).toBe("INVALID_TRANSITION");
-            expect((await post(`${pending.id}/approve`, { expectedVersion: 2 }).expect(409)).body.message).toBe("DAPP_CHANGED");
+            expect((await post(`${dapp.id}/approve`, { expectedVersion: 2 }).expect(409)).body.message).toBe("DAPP_CHANGED");
             expect(provisioner.calls).toEqual([]);
         });
 
@@ -262,9 +273,7 @@ describe("AdminModule (integration)", () => {
 
             expect(body).toMatchObject({ name: "Acme Pay", webOrigins: ["https://pay.acme.xyz"], pendingChange: null, status: "approved" });
             expect(provisioner.clients.get("client_live")?.input).toEqual(change);
-            const [approved] = await dataSource.query(`SELECT details FROM dapp_event WHERE dapp_id = $1 AND type = 'change_approved'`, [
-                dapp.id,
-            ]);
+            const approved = await dataSource.manager.findOneByOrFail(DappEvent, { dappId: dapp.id, type: DappEventType.CHANGE_APPROVED });
             expect(approved.details).toEqual({
                 changes: [
                     { field: "name", before: "Acme Wallet", after: "Acme Pay" },
@@ -368,23 +377,23 @@ describe("AdminModule (integration)", () => {
 
     describe("actions a dApp's status refuses", () => {
         it.each([
-            [DappStatus.APPROVED, "approve", {}],
-            [DappStatus.REJECTED, "approve", {}],
-            [DappStatus.REMOVED, "approve", {}],
-            [DappStatus.APPROVED, "reject", {}],
-            [DappStatus.REJECTED, "reject", {}],
-            [DappStatus.REMOVED, "reject", {}],
-            [DappStatus.PENDING, "change/approve", {}],
-            [DappStatus.REJECTED, "change/approve", {}],
-            [DappStatus.REMOVED, "change/approve", {}],
-            [DappStatus.PENDING, "change/reject", {}],
-            [DappStatus.REJECTED, "change/reject", {}],
-            [DappStatus.REMOVED, "change/reject", {}],
-            [DappStatus.REMOVED, "remove", {}],
-        ])("should answer 409 INVALID_TRANSITION when the dApp is %s and the action is %s", async (status, action, body) => {
+            [DappStatus.APPROVED, "approve"],
+            [DappStatus.REJECTED, "approve"],
+            [DappStatus.REMOVED, "approve"],
+            [DappStatus.APPROVED, "reject"],
+            [DappStatus.REJECTED, "reject"],
+            [DappStatus.REMOVED, "reject"],
+            [DappStatus.PENDING, "change/approve"],
+            [DappStatus.REJECTED, "change/approve"],
+            [DappStatus.REMOVED, "change/approve"],
+            [DappStatus.PENDING, "change/reject"],
+            [DappStatus.REJECTED, "change/reject"],
+            [DappStatus.REMOVED, "change/reject"],
+            [DappStatus.REMOVED, "remove"],
+        ])("should answer 409 INVALID_TRANSITION when the dApp is %s and the action is %s", async (status, action) => {
             const dapp = await createDapp(dataSource.manager, { ownerEmail: OWNER, status });
 
-            const response = await post(`${dapp.id}/${action}`, { expectedVersion: 1, ...body }).expect(409);
+            const response = await post(`${dapp.id}/${action}`, { expectedVersion: 1 }).expect(409);
 
             expect(response.body.message).toBe("INVALID_TRANSITION");
             expect(provisioner.calls).toEqual([]);
@@ -414,13 +423,10 @@ describe("AdminModule (integration)", () => {
             appendEvents.mockRestore();
         });
 
-        it.each([
-            ["reject", {}],
-            ["remove", {}],
-        ])("should leave nothing of %s behind", async (action, body) => {
+        it.each(["reject", "remove"])("should leave nothing of %s behind", async (action) => {
             const dapp = await pendingDapp();
 
-            await post(`${dapp.id}/${action}`, { expectedVersion: 1, ...body }).expect(500);
+            await post(`${dapp.id}/${action}`, { expectedVersion: 1 }).expect(500);
 
             expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
                 status: "pending",
@@ -447,7 +453,7 @@ describe("AdminModule (integration)", () => {
     });
 
     describe("GET /admin/dapps/:id/events", () => {
-        it("should list the events newest first with their actor and details", async () => {
+        it("should list the dApp's events with their actor and details", async () => {
             const dapp = await pendingDapp();
             await post(`${dapp.id}/reject`, { expectedVersion: 1 }).expect(200);
 

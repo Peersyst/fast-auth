@@ -2,9 +2,9 @@ import { closeTestApp, createTestApp, TestApp, truncateAll } from "@backend/test
 import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { DataSource } from "typeorm";
-import { Dapp } from "@database/console/entities";
+import { DappEvent } from "@database/console/entities";
 import { createDapp } from "@database/console/test/factories";
-import { DappStatus } from "@shared/modules/dapp";
+import { DappEventType, DappStatus } from "@shared/modules/dapp";
 import { DappModule } from "../../../src/modules/dapp/dapp.module";
 import { SettingModule } from "../../../src/modules/setting/setting.module";
 import { SettingService } from "../../../src/modules/setting/setting.service";
@@ -113,7 +113,7 @@ describe("SettingModule (integration)", () => {
     });
 
     describe("auto-approval on submit", () => {
-        it("should approve a new owner's submission as the system: client created, owner and admins emailed, Slack alerted", async () => {
+        it("should approve a new owner's submission as the system: client created and Slack alerted", async () => {
             setAutoApproval(true);
 
             const { body } = await submit();
@@ -128,9 +128,7 @@ describe("SettingModule (integration)", () => {
             const { body } = await submit();
 
             expect(body.status).toBe("pending");
-            const [submitted] = await dataSource.query(`SELECT details FROM dapp_event WHERE dapp_id = $1 AND type = 'submitted'`, [
-                body.id,
-            ]);
+            const submitted = await dataSource.manager.findOneByOrFail(DappEvent, { dappId: body.id, type: DappEventType.SUBMITTED });
             expect(submitted.details).toEqual({ chosenForAutoApproval: false });
         });
 
@@ -152,9 +150,7 @@ describe("SettingModule (integration)", () => {
             expect(body).toMatchObject({ status: "pending", auth0ClientId: null });
             expect(await eventTypes(dataSource.manager, body.id)).toEqual(["submitted", "auth0_failed"]);
             expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "submitted" }));
-            const [submitted] = await dataSource.query(`SELECT details FROM dapp_event WHERE dapp_id = $1 AND type = 'submitted'`, [
-                body.id,
-            ]);
+            const submitted = await dataSource.manager.findOneByOrFail(DappEvent, { dappId: body.id, type: DappEventType.SUBMITTED });
             expect(submitted.details).toEqual({ chosenForAutoApproval: true });
         });
 
@@ -167,7 +163,7 @@ describe("SettingModule (integration)", () => {
                 .send({ autoApproval: { enabled: true } })
                 .expect(200);
 
-            expect(await dataSource.manager.findOneByOrFail(Dapp, { id: pending.body.id })).toMatchObject({ status: "pending" });
+            expect(await findDapp(dataSource.manager, pending.body.id)).toMatchObject({ status: "pending" });
         });
     });
 });

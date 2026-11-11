@@ -1,15 +1,14 @@
 import { SyncedFields } from "@shared/modules/dapp";
-import { ManagedClient, ProvisioningError } from "../../../src/modules/provisioning/interfaces/i-auth0-provisioner.service";
+import { ProvisioningError } from "../../../src/modules/provisioning/interfaces/i-auth0-provisioner.service";
 import { FakeProvisionerService } from "../../../src/modules/provisioning/providers/fake/fake.service";
 
 type FakeOutcome = "rejected" | "failed" | "timeout_after_success" | "tag_mismatch";
 
-export type FakeProvisionerCall =
+type FakeProvisionerCall =
     | { op: "findClient"; dappId: string }
     | { op: "createClient"; dappId: string; input: SyncedFields }
     | { op: "updateClient"; dappId: string; clientId: string; input: SyncedFields }
-    | { op: "deleteClient"; dappId: string; clientId: string }
-    | { op: "listClients" };
+    | { op: "deleteClient"; dappId: string; clientId: string };
 
 type FakeProvisionerOp = FakeProvisionerCall["op"];
 
@@ -91,19 +90,6 @@ export class FakeProvisionerMock extends FakeProvisionerService {
         failBefore("deleteClient", outcome);
         await super.deleteClient(dappId, clientId);
         failAfter("deleteClient", outcome);
-    }
-
-    /**
-     * Records the call, then lists the stored clients, unless a scripted outcome fails it.
-     * @returns The stored clients.
-     */
-    async listClients(): Promise<ManagedClient[]> {
-        this.calls.push({ op: "listClients" });
-        const outcome = this.next("listClients");
-        failBefore("listClients", outcome);
-        const clients = await super.listClients();
-        failAfter("listClients", outcome);
-        return clients;
     }
 
     /**

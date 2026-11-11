@@ -1,18 +1,13 @@
 import { ConfigService } from "@nestjs/config";
 import { Test } from "@nestjs/testing";
 import { createLocalJWKSet, JWTPayload } from "jose";
-import { BusinessException } from "../../../../src/modules/common/exception/business.exception";
 import { JWT_KEY_SET } from "../../../../src/modules/auth/jwt-key-set";
 import { Auth0JwtStrategy } from "../../../../src/modules/auth/strategy/auth0-jwt.strategy";
-import { createConfigServiceMock } from "../../../mocks/config/config.mock";
-import { ADMIN_EMAIL } from "../../../mocks/config/config.mock";
+import { ADMIN_EMAIL, createConfigServiceMock } from "../../../mocks/config/config.mock";
 
 describe("Auth0JwtStrategy", () => {
     let strategy: Auth0JwtStrategy;
-    const exp = Math.floor(Date.now() / 1000) + 3600;
     const claims = (changes: JWTPayload = {}): JWTPayload => ({
-        sub: "auth0|alice",
-        exp,
         email: "Alice@Example.com",
         email_verified: true,
         ...changes,
@@ -28,21 +23,6 @@ describe("Auth0JwtStrategy", () => {
         }).compile();
         strategy = module.get(Auth0JwtStrategy);
     });
-
-    /**
-     * Runs validate on claims expected to be refused.
-     * @param payload The claims.
-     * @returns The status and message of the business error thrown.
-     */
-    const refusal = (payload: JWTPayload): { status: number; message: string } => {
-        try {
-            strategy.validate(payload);
-        } catch (error) {
-            if (error instanceof BusinessException) return { status: error.getStatus(), message: error.message };
-            throw error;
-        }
-        throw new Error("expected a refusal");
-    };
 
     describe("validate", () => {
         it("should turn verified claims into a user", () => {
@@ -77,7 +57,7 @@ describe("Auth0JwtStrategy", () => {
             ["no email", { email: undefined }],
             ["an empty email", { email: "" }],
         ])("should refuse %s with 403 EMAIL_REQUIRED", (_case, changes) => {
-            expect(refusal(claims(changes))).toEqual({ status: 403, message: "EMAIL_REQUIRED" });
+            expect(() => strategy.validate(claims(changes))).toThrow(expect.objectContaining({ status: 403, message: "EMAIL_REQUIRED" }));
         });
     });
 });
