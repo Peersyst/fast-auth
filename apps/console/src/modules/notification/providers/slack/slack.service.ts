@@ -11,9 +11,9 @@ import { SlackWebhookPayload } from "./slack.types";
 function escapeMrkdwn(value: string): string {
     return value
         .replace(/[\s\p{Cc}]+/gu, " ")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
 }
 
 const ADMIN_ALERTS: Record<AdminAlertKind, { subject: string; body: string }> = {

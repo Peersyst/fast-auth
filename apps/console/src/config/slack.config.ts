@@ -16,6 +16,9 @@ export default (): SlackConfig => {
             webhookUrl: process.env.SLACK_WEBHOOK_URL || null,
             timeoutMs: process.env.SLACK_TIMEOUT_MS ? parseInt(process.env.SLACK_TIMEOUT_MS) : 5000,
         },
-        { timeoutMs: validPositiveInt },
+        {
+            webhookUrl: (url: string | null) => url === null || (URL.canParse(url) && new URL(url).protocol === "https:"),
+            timeoutMs: validPositiveInt,
+        },
     );
 };

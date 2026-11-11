@@ -30,7 +30,7 @@ import { OrderType } from "@shared/utils";
  * @returns The escaped text.
  */
 function escapeLike(value: string): string {
-    return value.replace(/[\\%_]/g, (character) => `\\${character}`);
+    return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
 }
 
 /**

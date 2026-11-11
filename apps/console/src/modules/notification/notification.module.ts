@@ -5,8 +5,6 @@ import { SlackService } from "./providers/slack/slack.service";
 import { ISlackNotifierService } from "./interfaces/i-slack-notifier.service";
 import { SLACK_NOTIFIER } from "./notification.tokens";
 
-const SLACK_OFF: ISlackNotifierService = { notify: async () => undefined };
-
 /**
  * Builds the Slack notifier, which drops every alert when no webhook URL is set.
  * @param configService The config service.
@@ -14,7 +12,9 @@ const SLACK_OFF: ISlackNotifierService = { notify: async () => undefined };
  */
 function createSlackNotifier(configService: ConfigService): ISlackNotifierService {
     const { webhookUrl, timeoutMs } = configService.get<SlackConfig>("slack")!;
-    return webhookUrl === null ? SLACK_OFF : new SlackService(webhookUrl, configService.get<string>("server.publicUrl")!, timeoutMs);
+    return webhookUrl === null
+        ? { notify: async () => undefined }
+        : new SlackService(webhookUrl, configService.get<string>("server.publicUrl")!, timeoutMs);
 }
 
 @Module({

@@ -91,9 +91,11 @@ describe("configuration", () => {
 
     it.each<[string, Record<string, string | undefined>, string]>([
         ["an APP_PORT out of range", { APP_PORT: "70000" }, "port"],
+        ["a PUBLIC_URL with a trailing slash", { PUBLIC_URL: "https://console.example.com/" }, "publicUrl"],
         ["a PUBLIC_URL with a path", { PUBLIC_URL: "https://console.example.com/app" }, "publicUrl"],
         ["a PUBLIC_URL with credentials", { PUBLIC_URL: "https://user@console.example.com" }, "publicUrl"],
         ["an ftp PUBLIC_URL", { PUBLIC_URL: "ftp://console.example.com" }, "publicUrl"],
+        ["an http SLACK_WEBHOOK_URL", { SLACK_WEBHOOK_URL: "http://hooks.slack.com/services/x" }, "webhookUrl"],
         ["a login domain with a scheme", { AUTH0_LOGIN_DOMAIN: "https://login.example.com" }, "loginDomain"],
         ["a login domain that is an IP address", { AUTH0_LOGIN_DOMAIN: "10.0.0.1" }, "loginDomain"],
         ["no admin email", { ADMIN_EMAILS: " , " }, "emails"],

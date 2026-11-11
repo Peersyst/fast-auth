@@ -1,12 +1,9 @@
 import { ApiResponse, Client, ClientCreate, ClientUpdate, GetClients200ResponseOneOf1, ManagementClient } from "auth0";
 import { SyncedFields } from "@shared/modules/dapp";
 import { Auth0ManagementConfig } from "../../../../config/auth0.config";
-import { IAuth0ProvisionerService, ManagedClient, ProvisioningError } from "../../interfaces/i-auth0-provisioner.service";
+import { IAuth0ProvisionerService, ProvisioningError } from "../../interfaces/i-auth0-provisioner.service";
 import { Auth0Call, ProvisioningMetricsProvider } from "../../provisioning.metrics";
 import { Auth0CallError, classify } from "./auth0-management.error";
-
-const PAGE_SIZE = 100;
-const CONNECTION_PAGE_SIZE = 50;
 
 export class Auth0ManagementService implements IAuth0ProvisionerService {
     private readonly client: ManagementClient;
@@ -30,12 +27,32 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
     }
 
     /**
-     * Finds the dApp's client by listing every client this environment manages.
+     * Pages through every client until one is tagged with the dApp and this environment.
      * @param dappId The dApp.
      * @returns The client id, or null when no managed client names the dApp.
      */
     async findClient(dappId: string): Promise<string | null> {
-        return (await this.listClients()).find((client) => client.dappId === dappId)?.clientId ?? null;
+        let from: string | undefined;
+        do {
+            // With `from` and `take` Auth0 pages by checkpoint and answers `{ clients, next }`, which no `getAll` overload returns.
+            const page = await this.send(
+                "list",
+                () =>
+                    this.client.clients.getAll({
+                        fields: "client_id,client_metadata",
+                        include_fields: true,
+                        take: 100,
+                        ...(from && { from }),
+                    }) as unknown as Promise<ApiResponse<GetClients200ResponseOneOf1>>,
+            );
+            const match = page.clients.find((client) => {
+                const tags = this.tagsOf(client);
+                return tags.managed && tags.dappId === dappId;
+            });
+            if (match) return match.client_id;
+            from = page.next;
+        } while (from);
+        return null;
     }
 
     /**
@@ -79,40 +96,6 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
         } catch (error) {
             if (!(error instanceof Auth0CallError && error.outcome === "not_found")) throw error;
         }
-    }
-
-    /**
-     * Pages through every client and keeps those tagged with this environment.
-     * @returns The managed clients.
-     */
-    async listClients(): Promise<ManagedClient[]> {
-        const managed: ManagedClient[] = [];
-        let from: string | undefined;
-        do {
-            // With `from` and `take` Auth0 pages by checkpoint and answers `{ clients, next }`, which no `getAll` overload returns.
-            const page = await this.send(
-                "list",
-                () =>
-                    this.client.clients.getAll({
-                        fields: "client_id,name,callbacks,client_metadata",
-                        include_fields: true,
-                        take: PAGE_SIZE,
-                        ...(from && { from }),
-                    }) as unknown as Promise<ApiResponse<GetClients200ResponseOneOf1>>,
-            );
-            for (const client of page.clients) {
-                const { dappId, managed: isManaged } = this.tagsOf(client);
-                if (!isManaged) continue;
-                managed.push({
-                    clientId: client.client_id,
-                    dappId,
-                    name: client.name,
-                    callbacks: client.callbacks ?? [],
-                });
-            }
-            from = page.next;
-        } while (from);
-        return managed;
     }
 
     /**
@@ -188,7 +171,7 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
                     client_id: clientId,
                     fields: "id",
                     include_fields: true,
-                    take: CONNECTION_PAGE_SIZE,
+                    take: 50,
                     ...(from && { from }),
                 }),
             );

@@ -166,30 +166,23 @@ describe("Auth0ManagementService", () => {
         });
     });
 
-    describe("findClient and listClients", () => {
-        it("should page through every client and keep the ones tagged for this environment", async () => {
+    describe("findClient", () => {
+        it("should page past clients tagged for another environment or not tagged", async () => {
             clients.getAll
                 .mockResolvedValueOnce({
                     data: {
-                        clients: [
-                            { ...tagged("other-dapp", "console-production"), client_id: "prod" },
-                            { client_id: "untagged", name: "Raw" },
-                        ],
+                        clients: [{ ...tagged(dappId, "console-production"), client_id: "prod" }, { client_id: "untagged" }],
                         next: "p2",
                     },
                 })
-                .mockResolvedValueOnce({
-                    data: { clients: [{ ...tagged(dappId), name: "Acme", callbacks: ["https://acme.example/cb"] }] },
-                });
+                .mockResolvedValueOnce({ data: { clients: [tagged(dappId)] } });
 
-            await expect(provisioner.listClients()).resolves.toEqual([
-                { clientId, dappId, name: "Acme", callbacks: ["https://acme.example/cb"] },
-            ]);
+            await expect(provisioner.findClient(dappId)).resolves.toBe(clientId);
             expect(clients.getAll).toHaveBeenLastCalledWith(expect.objectContaining({ from: "p2", take: 100 }));
         });
 
         it("should find the client tagged with the dApp, or null", async () => {
-            clients.getAll.mockResolvedValue({ data: { clients: [{ ...tagged(dappId), name: "Acme" }] } });
+            clients.getAll.mockResolvedValue({ data: { clients: [tagged(dappId)] } });
 
             await expect(provisioner.findClient(dappId)).resolves.toBe(clientId);
             await expect(provisioner.findClient("another-dapp")).resolves.toBeNull();

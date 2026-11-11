@@ -59,12 +59,12 @@ export const validOneOf =
         values.includes(value);
 
 /**
- * Validates an http or https origin with no path, query, fragment or credentials.
- * @param value The value to validate, without trailing slashes.
+ * Validates an http or https origin exactly as a browser sends it, so no trailing slash, path, query, fragment or credentials.
+ * @param value The value to validate.
  * @returns True if the value is such an origin.
  */
 export const validPublicUrl = (value: string | undefined): boolean => {
-    if (!value || /[?#@]/.test(value) || !URL.canParse(value)) return false;
+    if (!value || !URL.canParse(value)) return false;
     const url = new URL(value);
-    return ["http:", "https:"].includes(url.protocol) && url.pathname === "/";
+    return ["http:", "https:"].includes(url.protocol) && url.origin === value;
 };

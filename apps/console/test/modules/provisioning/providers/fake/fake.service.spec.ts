@@ -18,27 +18,23 @@ describe("FakeProvisionerService", () => {
         provisioner = new FakeProvisionerService();
     });
 
-    it("should store a created client and find and list it by its dApp", async () => {
+    it("should store a created client and find it by its dApp", async () => {
         const clientId = await provisioner.createClient("dapp-1", INPUT);
 
         expect(clientId).toMatch(/^fake_/);
         await expect(provisioner.findClient("dapp-1")).resolves.toBe(clientId);
-        await expect(provisioner.listClients()).resolves.toEqual([
-            { clientId, dappId: "dapp-1", name: "Acme", callbacks: INPUT.callbackUrls },
-        ]);
+        expect(provisioner.clients.get(clientId)).toEqual({ dappId: "dapp-1", input: INPUT });
     });
 
     it("should overwrite an updated client and forget a deleted one", async () => {
         const clientId = await provisioner.createClient("dapp-1", INPUT);
 
-        await provisioner.updateClient("dapp-1", clientId, { ...INPUT, name: "Acme 2", callbackUrls: ["https://acme.example/new"] });
-        await expect(provisioner.listClients()).resolves.toEqual([
-            { clientId, dappId: "dapp-1", name: "Acme 2", callbacks: ["https://acme.example/new"] },
-        ]);
+        await provisioner.updateClient("dapp-1", clientId, { ...INPUT, name: "Acme 2" });
+        expect(provisioner.clients.get(clientId)).toEqual({ dappId: "dapp-1", input: { ...INPUT, name: "Acme 2" } });
 
         await provisioner.deleteClient("dapp-1", clientId);
         await expect(provisioner.findClient("dapp-1")).resolves.toBeNull();
-        await expect(provisioner.listClients()).resolves.toEqual([]);
+        expect(provisioner.clients.size).toBe(0);
     });
 });
 

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { SyncedFields } from "@shared/modules/dapp";
-import { IAuth0ProvisionerService, ManagedClient } from "../../interfaces/i-auth0-provisioner.service";
+import { IAuth0ProvisionerService } from "../../interfaces/i-auth0-provisioner.service";
 
 export class FakeProvisionerService implements IAuth0ProvisionerService {
     readonly clients = new Map<string, { dappId: string; input: SyncedFields }>();
@@ -43,18 +43,5 @@ export class FakeProvisionerService implements IAuth0ProvisionerService {
      */
     async deleteClient(_dappId: string, clientId: string): Promise<void> {
         this.clients.delete(clientId);
-    }
-
-    /**
-     * Lists the stored clients.
-     * @returns The stored clients.
-     */
-    async listClients(): Promise<ManagedClient[]> {
-        return [...this.clients].map(([clientId, { dappId, input }]) => ({
-            clientId,
-            dappId,
-            name: input.name,
-            callbacks: [...input.callbackUrls],
-        }));
     }
 }

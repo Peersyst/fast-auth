@@ -2,8 +2,6 @@ import isFQDN from "validator/lib/isFQDN";
 import isURL from "validator/lib/isURL";
 import { DESCRIPTION_MAX_LENGTH, LOGO_URL_MAX_LENGTH, NAME_MAX_LENGTH } from "./constants";
 
-const URL_MAX_LENGTH = 2048;
-
 const HOST_OPTIONS = { allow_underscores: true, allow_trailing_dot: true };
 
 const CONTROL_CHARACTER = /\p{Cc}/u;
@@ -39,7 +37,7 @@ export function normaliseUrlList(values: readonly string[]): string[] {
  * @returns Whether the URL is valid.
  */
 function isPublicHttpsUrl(value: string, allowFragment: boolean): boolean {
-    if (value.length > URL_MAX_LENGTH || CONTROL_CHARACTER.test(value) || value.includes("\\")) return false;
+    if (value.length > 2048 || CONTROL_CHARACTER.test(value) || value.includes("\\")) return false;
     if (!isURL(value, { protocols: ["https"], require_protocol: true, allow_fragments: allowFragment, ...HOST_OPTIONS })) return false;
     if (!URL.canParse(value)) return false;
     const { hostname, host } = new URL(value);
@@ -84,7 +82,9 @@ export const NUL = "\u0000";
  * @returns Whether the name is valid.
  */
 export function isValidName(name: string): boolean {
-    return name.length <= NAME_MAX_LENGTH && name.trim() !== "" && !/[<>]/.test(name) && !CONTROL_CHARACTER.test(name);
+    return (
+        name.length <= NAME_MAX_LENGTH && name.trim() !== "" && !name.includes("<") && !name.includes(">") && !CONTROL_CHARACTER.test(name)
+    );
 }
 
 /**
