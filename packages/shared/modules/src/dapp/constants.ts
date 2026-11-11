@@ -1,8 +1,5 @@
 import { DappField, DirectFields, MauBracket, SyncedFields } from "./types";
 
-/** What the anonymiser writes over every personal field of an erased dApp. */
-export const ERASED = "erased";
-
 export const MAU_LABELS: Record<MauBracket, string> = {
     [MauBracket.LT_1K]: "Less than 1,000",
     [MauBracket.FROM_1K_TO_10K]: "1,000 – 10,000",

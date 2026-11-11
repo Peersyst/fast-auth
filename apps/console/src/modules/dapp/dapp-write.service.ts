@@ -70,6 +70,7 @@ async function callAuth0<T>(op: Auth0Op, clientId: string | null, call: () => Pr
 function fromPostgresError(error: unknown): unknown {
     if (!(error instanceof QueryFailedError)) return error;
     const { code, constraint } = error.driverError as { code?: string; constraint?: string };
+    // 23505 is unique_violation, 55P03 is lock_not_available.
     if (code === "23505" && constraint === OWNER_EMAIL_LIVE_INDEX) return new BusinessException(DappErrorCode.DAPP_ALREADY_EXISTS);
     if (code === "55P03") return new BusinessException(DappErrorCode.DAPP_CHANGED);
     return error;
@@ -144,14 +145,10 @@ export class DappWriteService {
      * @param events The events to append.
      */
     async appendEvents(manager: EntityManager, dappId: string, actor: ActorRole, events: DappEventDetails[]): Promise<void> {
-        for (const event of events) {
-            await manager.insert(DappEvent, {
-                dappId,
-                type: event.type,
-                details: event.details,
-                actorRole: actor,
-            });
-        }
+        await manager.insert(
+            DappEvent,
+            events.map((event) => ({ dappId, type: event.type, details: event.details, actorRole: actor })),
+        );
     }
 
     /**

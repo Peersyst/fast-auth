@@ -50,25 +50,20 @@ function retryAfterMs(headers: Headers, management: Auth0ManagementConfig): numb
  * @returns The outcome, the wait before a retry or null for none, and the message.
  */
 export function classify(op: Auth0Call, error: unknown, management: Auth0ManagementConfig): Failure {
-    if (error instanceof ManagementApiError || error instanceof ResponseError || error instanceof AuthApiError) {
-        const status = error.statusCode;
-        const message = `Auth0 ${op} answered ${status}: ${error.message}`;
-        if (status === 429) return { outcome: "rate_limited", retryAfterMs: retryAfterMs(error.headers, management), message };
-        // A 401 or 403, or a 4xx the token endpoint answers in JSON, means the console's own credentials or scopes are wrong,
-        // not the dApp's data, and a retry cannot fix it.
-        if (status === 401 || status === 403 || (error instanceof AuthApiError && status < 500)) {
-            return { outcome: "failed", retryAfterMs: null, message };
-        }
-        // Only the Management API's JSON 404 says the client does not exist. A 404 without that body comes from a proxy, a wrong
-        // domain or a token endpoint that answered in HTML.
-        if (status === 404) {
-            return error instanceof ManagementApiError
-                ? { outcome: "not_found", retryAfterMs: null, message }
-                : { outcome: "failed", retryAfterMs: null, message };
-        }
-        if (status >= 400 && status < 500) return { outcome: "rejected", retryAfterMs: null, message };
-        // A create that answered 5xx may still have made the client, so only the caller's find-then-create may repeat it.
-        return { outcome: "failed", retryAfterMs: op === "create" ? null : management.retryAfterMs, message };
+    if (!(error instanceof ManagementApiError || error instanceof ResponseError || error instanceof AuthApiError)) {
+        return { outcome: "failed", retryAfterMs: null, message: `Auth0 ${op} failed: ${causeChain(error)}` };
     }
-    return { outcome: "failed", retryAfterMs: null, message: `Auth0 ${op} failed: ${causeChain(error)}` };
+    const status = error.statusCode;
+    const message = `Auth0 ${op} answered ${status}: ${error.message}`;
+    if (status === 429) return { outcome: "rate_limited", retryAfterMs: retryAfterMs(error.headers, management), message };
+    // Only the Management API's JSON 404 says the client does not exist.
+    if (status === 404 && error instanceof ManagementApiError) return { outcome: "not_found", retryAfterMs: null, message };
+    // A 401 or 403, or a 4xx the token endpoint answers in JSON, means the console's own credentials or scopes are wrong, and
+    // any other 404 comes from a proxy, a wrong domain or a token endpoint that answered in HTML. A retry fixes neither.
+    if (status === 401 || status === 403 || status === 404 || (error instanceof AuthApiError && status < 500)) {
+        return { outcome: "failed", retryAfterMs: null, message };
+    }
+    if (status >= 400 && status < 500) return { outcome: "rejected", retryAfterMs: null, message };
+    // A create that answered 5xx may still have made the client, so only the caller's find-then-create may repeat it.
+    return { outcome: "failed", retryAfterMs: op === "create" ? null : management.retryAfterMs, message };
 }

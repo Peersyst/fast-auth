@@ -8,20 +8,6 @@ import { Auth0CallError, classify } from "./auth0-management.error";
 const PAGE_SIZE = 100;
 const CONNECTION_PAGE_SIZE = 50;
 
-/**
- * Builds the `managed_by` tag that marks the clients this environment owns.
- * @param env The environment.
- * @returns The tag value.
- */
-export const managedByTag = (env: string): string => `console-${env}`;
-
-/**
- * Resolves after the given delay.
- * @param ms The delay in milliseconds.
- * @returns A promise that resolves after the delay.
- */
-const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
-
 export class Auth0ManagementService implements IAuth0ProvisionerService {
     private readonly client: ManagementClient;
     private readonly managedBy: string;
@@ -40,7 +26,7 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
             // later call, so this deadline covers each request through its body, the token refresh included.
             fetch: (url, init) => fetch(url, { ...init, signal: AbortSignal.timeout(management.timeoutMs) }),
         });
-        this.managedBy = managedByTag(env);
+        this.managedBy = `console-${env}`;
     }
 
     /**
@@ -271,14 +257,14 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
                 done("success");
                 return response.data;
             } catch (error) {
-                const failure = classify(op, error, this.management);
-                done(failure.outcome);
-                if (attempt === 1 && failure.retryAfterMs !== null) {
-                    await sleep(failure.retryAfterMs);
+                const { outcome, retryAfterMs, message } = classify(op, error, this.management);
+                done(outcome);
+                if (attempt === 1 && retryAfterMs !== null) {
+                    await new Promise((resolve) => setTimeout(resolve, retryAfterMs));
                     continue;
                 }
-                const transient = failure.outcome === "failed" || failure.outcome === "rate_limited";
-                throw new Auth0CallError(transient ? "failed" : "rejected", failure.message, failure.outcome);
+                const transient = outcome === "failed" || outcome === "rate_limited";
+                throw new Auth0CallError(transient ? "failed" : "rejected", message, outcome);
             }
         }
     }

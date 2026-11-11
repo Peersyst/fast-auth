@@ -205,29 +205,9 @@ A Slack message carries the subject, the review link and every field on one esca
 
 ## Code layout
 
-- `src/modules/<module>/` holds one Nest module, named in the singular (`dapp`, `setting`, `notification`, `script`). Requests are in `requests/`, responses in `dtos/*.dto.ts` with static `from…` factories, and error codes in `error/`.
+- `src/modules/<module>/` holds one Nest module, named in the singular (`dapp`, `setting`, `notification`, `provisioning`). Requests are in `requests/`, responses in `dtos/*.dto.ts` with static `from…` factories, and error codes in `error/`.
 - An adapter lives in `src/modules/<module>/providers/<name>/`, its interface in `interfaces/`, and its injection token in `<module>.tokens.ts`.
 - Unit tests are in `test/modules/`, mirroring `src/modules/`. Integration tests are in `test/integration/<module>/` and build their apps with `createTestApp` from `@backend/test`. Test data is in `test/mocks/`, and entity factories come from `@database/console/test/factories`.
-
-## Commands
-
-The ops commands run with the deployment's environment through `src/cli.ts`, inside the image or after `pnpm bundle` and `pnpm build`. They live in `src/modules/script`, on `nestjs-command`. A failure while the app context boots, such as an unreachable database, exits 1.
-
-```bash
-node dist/src/cli.js reconcile             # orphan and missing Auth0 clients; exits 0 clean, 1 when it lists something, 2 when listing fails
-node dist/src/cli.js anonymise <dappId>    # erases the personal data of one removed dApp
-```
-
-`reconcile` lists the clients tagged `console-<CONFIG_ENV>` that no approved dApp uses, with the state of the dApp they are tagged for, and the approved dApps whose client is missing. It changes nothing. Approving a pending dApp adopts its listed client, and rejecting or removing the dApp deletes it; delete any other listed client in Auth0 by hand.
-
-`anonymise` refuses a dApp in any status but removed, and a bad argument exits 1. In one transaction under a row lock, it writes `erased` over the owner and contact emails, and over every email address in the name, description, Auth0 error and event details. It keeps every row and the dApp's business data, and prints what it erased. A rerun changes nothing unless an address reached the rows since. To find every dApp a person appears in:
-
-```sql
-SELECT DISTINCT d.id, d.status
-FROM dapp d LEFT JOIN dapp_event e ON e.dapp_id = d.id
-WHERE concat_ws(' ', d.name, d.description, d.owner_email, d.contact_email,
-                d.auth0_error, e.details) ILIKE '%alice@example.com%';
-```
 
 ## Running the Image
 

@@ -4,7 +4,6 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule, TypeOrmModuleOptions } from "@nestjs/typeorm";
 import * as OpenApiValidator from "express-openapi-validator";
 import { join } from "path";
-import { CommandModule } from "nestjs-command/dist/command.module.js";
 import { getConfigEnv } from "@backend/config";
 import { ErrorFilter } from "@backend/core/exceptions";
 import { PrometheusModule } from "@willsoto/nestjs-prometheus";
@@ -13,7 +12,6 @@ import { HealthModule } from "./modules/health/health.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { DappModule } from "./modules/dapp/dapp.module";
-import { ScriptModule } from "./modules/script/script.module";
 import { SettingModule } from "./modules/setting/setting.module";
 
 @Module({
@@ -63,8 +61,6 @@ import { SettingModule } from "./modules/setting/setting.module";
         DappModule,
         AdminModule,
         SettingModule,
-        CommandModule,
-        ScriptModule,
     ],
     providers: [{ provide: APP_FILTER, useClass: ErrorFilter }],
 })
