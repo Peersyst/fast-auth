@@ -43,7 +43,6 @@ describe("configuration", () => {
             port: 3000,
             publicUrl: "https://console.example.com",
             readyzTimeoutMs: 2000,
-            shutdownDelayMs: 0,
             enableSwagger: true,
         });
         expect(config.slack).toEqual({ webhookUrl: null, timeoutMs: 5000 });

@@ -77,7 +77,42 @@ export class DappService {
      * @returns The approved dApp, or the pending one when it was not auto-approved.
      */
     async submit(user: SessionUser, request: UpsertDappRequest): Promise<OwnerDappDto> {
-        return OwnerDappDto.fromEntity(await this.submitDapp(user, toDappFields(request)));
+        const fields = toDappFields(request);
+        const dapp = await this.writes.counted("submit", async () => {
+            const { dapp, chosen } = await this.writes
+                .transaction(async (manager) => {
+                    if ((await this.writes.findLiveByOwner(manager, user.email, true)) !== null)
+                        throw new BusinessException(DappErrorCode.DAPP_ALREADY_EXISTS);
+                    // Auto-approval is a first-dApp pass: an email that ever had a dApp, removed ones included, goes to review.
+                    const chosen =
+                        this.settingService.isAutoApprovalEnabled() && !(await manager.existsBy(Dapp, { ownerEmail: user.email }));
+                    const { identifiers } = await manager.insert(Dapp, {
+                        ...fields,
+                        ownerEmail: user.email,
+                        status: DappStatus.PENDING,
+                        submittedAt: new Date(),
+                    });
+                    const dapp = await manager.findOneByOrFail(Dapp, { id: identifiers[0].id });
+                    await this.writes.appendEvents(manager, dapp.id, ActorRole.USER, [
+                        { type: DappEventType.SUBMITTED, details: { chosenForAutoApproval: chosen } },
+                    ]);
+                    return { dapp, chosen };
+                })
+                .catch((error: unknown) => {
+                    this.logger.log(`submit by user ${refusedOrFailed(error)}: ${describeError(error)}`);
+                    throw error;
+                });
+            this.logger.log(`submit dApp ${dapp.id} by user: -> pending${chosen ? ", chosen for auto-approval" : ""}`);
+
+            const approved = chosen ? await this.writes.autoApprove(dapp) : null;
+            if (approved !== null) {
+                await this.notifier.autoApproved(approved);
+                return approved;
+            }
+            await this.notifier.submitted(dapp);
+            return dapp;
+        });
+        return OwnerDappDto.fromEntity(dapp);
     }
 
     /**
@@ -123,56 +158,6 @@ export class DappService {
                 this.writes.removeIn(manager, live, owner),
             );
         });
-    }
-
-    /**
-     * Inserts the pending dApp and its submitted event, choosing it for auto-approval when it qualifies, then approves and notifies.
-     * @param user The owner.
-     * @param fields The submitted fields.
-     * @returns The approved dApp, or the pending one.
-     */
-    private submitDapp(user: SessionUser, fields: DappFields): Promise<Dapp> {
-        return this.writes.counted("submit", async () => {
-            const submission = this.writes.transaction(async (manager) => {
-                if ((await this.writes.findLiveByOwner(manager, user.email, true)) !== null)
-                    throw new BusinessException(DappErrorCode.DAPP_ALREADY_EXISTS);
-                const chosen = this.settingService.isAutoApprovalEnabled() && !(await this.hasHadDapp(manager, user.email));
-                const { identifiers } = await manager.insert(Dapp, {
-                    ...fields,
-                    ownerEmail: user.email,
-                    status: DappStatus.PENDING,
-                    submittedAt: new Date(),
-                });
-                const dapp = await manager.findOneByOrFail(Dapp, { id: identifiers[0].id });
-                await this.writes.appendEvents(manager, dapp.id, ActorRole.USER, [
-                    { type: DappEventType.SUBMITTED, details: { chosenForAutoApproval: chosen } },
-                ]);
-                return { dapp, chosen };
-            });
-            const { dapp, chosen } = await submission.catch((error: unknown) => {
-                this.logger.log(`submit by user ${refusedOrFailed(error)}: ${describeError(error)}`);
-                throw error;
-            });
-            this.logger.log(`submit dApp ${dapp.id} by user: -> pending${chosen ? ", chosen for auto-approval" : ""}`);
-
-            const approved = chosen ? await this.writes.autoApprove(dapp) : null;
-            if (approved === null) {
-                await this.notifier.submitted(dapp);
-                return dapp;
-            }
-            await this.notifier.autoApproved(approved);
-            return approved;
-        });
-    }
-
-    /**
-     * Tells whether the email owns or ever owned a dApp, removed ones included.
-     * @param manager The transaction's entity manager.
-     * @param ownerEmail The owner's email.
-     * @returns Whether the email has had a dApp.
-     */
-    private hasHadDapp(manager: EntityManager, ownerEmail: string): Promise<boolean> {
-        return manager.existsBy(Dapp, { ownerEmail });
     }
 
     /**

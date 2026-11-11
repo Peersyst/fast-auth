@@ -12,7 +12,7 @@ import { Role, SessionUser } from "../types/session-user";
 @Injectable()
 export class Auth0JwtStrategy extends PassportStrategy(Strategy, "auth0") {
     constructor(
-        @Inject(ConfigService) private readonly configService: ConfigService,
+        private readonly configService: ConfigService,
         @Inject(JWT_KEY_SET) keySet: JWTVerifyGetKey,
     ) {
         const { loginDomain, consoleClientId } = configService.get<Auth0Config>("auth0")!;

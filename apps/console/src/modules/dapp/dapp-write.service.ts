@@ -63,16 +63,6 @@ async function callAuth0<T>(op: Auth0Op, clientId: string | null, call: () => Pr
 }
 
 /**
- * Reads an approved dApp's Auth0 client id, throwing when it has none.
- * @param dapp The approved dApp.
- * @returns The client id.
- */
-export function clientIdOf(dapp: Dapp): string {
-    if (dapp.auth0ClientId === null) throw new Error(`Approved dApp ${dapp.id} has no Auth0 client`);
-    return dapp.auth0ClientId;
-}
-
-/**
  * Maps the database errors a dApp write can expect, a second live dApp for one email or a row lock timeout, to their business error.
  * @param error The thrown value.
  * @returns The business error, or the thrown value for any other error.
@@ -254,10 +244,9 @@ export class DappWriteService {
     ): Promise<Dapp> {
         if (live.status !== DappStatus.PENDING) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
         const auth0 = await this.provisionClient(live);
-        const now = new Date();
         const dapp = await this.update(manager, live.id, {
             status: DappStatus.APPROVED,
-            reviewedAt: now,
+            reviewedAt: new Date(),
             auth0ClientId: auth0.details.clientId,
             auth0Error: null,
         });
@@ -274,7 +263,6 @@ export class DappWriteService {
      */
     async removeIn(manager: EntityManager, live: Dapp, actor: ActorRole): Promise<Dapp> {
         if (live.status === DappStatus.REMOVED) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
-        const now = new Date();
         const deletion = await this.deleteClient(live);
         const dapp = await this.update(manager, live.id, {
             pendingChange: null,
@@ -282,7 +270,7 @@ export class DappWriteService {
             auth0Error: null,
             ...deletion.columns,
             status: DappStatus.REMOVED,
-            removedAt: now,
+            removedAt: new Date(),
         });
         await this.appendEvents(manager, live.id, actor, [{ type: DappEventType.REMOVED, details: {} }, ...deletion.events]);
         return dapp;
@@ -317,7 +305,8 @@ export class DappWriteService {
      * @returns The columns and events that record the sync.
      */
     async syncClient(dapp: Dapp, payload: SyncedFields): Promise<Effects> {
-        const clientId = clientIdOf(dapp);
+        const clientId = dapp.auth0ClientId;
+        if (clientId === null) throw new Error(`Approved dApp ${dapp.id} has no Auth0 client`);
         await callAuth0(Auth0Op.UPDATE, clientId, () => this.provisioner.updateClient(dapp.id, clientId, payload));
         return {
             columns: { auth0Error: null },

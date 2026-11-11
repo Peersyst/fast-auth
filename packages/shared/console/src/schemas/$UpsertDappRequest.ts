@@ -6,21 +6,22 @@ export const $UpsertDappRequest = {
     properties: {
         name: {
             type: 'string',
-            description: `1–64 UTF-16 code units once trimmed (most emoji count as two or more), no \`<\` or \`>\`.`,
+            description: `The dApp's name.`,
             isRequired: true,
         },
         description: {
             type: 'string',
-            description: `At most 140 UTF-16 code units once trimmed; may be empty.`,
+            description: `A short description of the dApp.`,
             isRequired: true,
         },
         logoUrl: {
             type: 'string',
-            description: `An \`https:\` URL of at most 255 characters.`,
+            description: `The URL of the dApp's logo.`,
             isRequired: true,
         },
         mauBracket: {
             type: 'all-of',
+            description: `The expected monthly active users.`,
             contains: [{
                 type: 'MauBracket',
             }],
@@ -49,6 +50,7 @@ export const $UpsertDappRequest = {
         },
         contactEmail: {
             type: 'string',
+            description: `The email address to contact the dApp's team.`,
             isRequired: true,
         },
     },

@@ -18,7 +18,6 @@ export function testConfig() {
             port: 3000,
             publicUrl: "https://console.example.test",
             readyzTimeoutMs: 2000,
-            shutdownDelayMs: 0,
             enableSwagger: false,
         },
         logger: { logLevel: "info", logFile: "app.log" },

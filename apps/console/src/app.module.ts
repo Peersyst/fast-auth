@@ -1,10 +1,12 @@
 import { MiddlewareConsumer, Module } from "@nestjs/common";
+import { APP_FILTER } from "@nestjs/core";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule, TypeOrmModuleOptions } from "@nestjs/typeorm";
 import * as OpenApiValidator from "express-openapi-validator";
 import { join } from "path";
 import { CommandModule } from "nestjs-command/dist/command.module.js";
 import { getConfigEnv } from "@backend/config";
+import { ErrorFilter } from "@backend/core/exceptions";
 import { PrometheusModule } from "@willsoto/nestjs-prometheus";
 import configuration from "./config";
 import { HealthModule } from "./modules/health/health.module";
@@ -13,7 +15,6 @@ import { AdminModule } from "./modules/admin/admin.module";
 import { DappModule } from "./modules/dapp/dapp.module";
 import { ScriptModule } from "./modules/script/script.module";
 import { SettingModule } from "./modules/setting/setting.module";
-import { BUSINESS_EXCEPTION_FILTER } from "./modules/common/exception/business-exception.filter";
 
 @Module({
     imports: [
@@ -65,7 +66,7 @@ import { BUSINESS_EXCEPTION_FILTER } from "./modules/common/exception/business-e
         CommandModule,
         ScriptModule,
     ],
-    providers: [BUSINESS_EXCEPTION_FILTER],
+    providers: [{ provide: APP_FILTER, useClass: ErrorFilter }],
 })
 export class AppModule {
     /**

@@ -1,34 +1,17 @@
-import { BeforeApplicationShutdown, Inject, Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { TypeOrmHealthIndicator } from "@nestjs/terminus";
 import { ReadyzResponseDto } from "./dtos/readyz.dto";
 import { HealthDependencyCheckerResult } from "./types/health-check";
 
 @Injectable()
-export class HealthService implements BeforeApplicationShutdown {
+export class HealthService {
     private readonly logger = new Logger(HealthService.name);
-    private shuttingDown = false;
 
     constructor(
         private readonly typeOrmHealthIndicator: TypeOrmHealthIndicator,
         @Inject(ConfigService) private readonly configService: ConfigService,
     ) {}
-
-    /**
-     * Starts failing the readiness check, then holds the shutdown for the configured delay so the load balancer stops routing here first.
-     */
-    async beforeApplicationShutdown(): Promise<void> {
-        this.shuttingDown = true;
-        await new Promise((resolve) => setTimeout(resolve, this.configService.get<number>("server.shutdownDelayMs")));
-    }
-
-    /**
-     * Fails once the app starts shutting down, so the load balancer drains it.
-     * @returns The result of the shutdown check.
-     */
-    private checkShutdown(): HealthDependencyCheckerResult {
-        return this.shuttingDown ? { status: "error", message: "Shutting down" } : { status: "ok" };
-    }
 
     /**
      * Checks the health of the database using Terminus TypeORM health indicator, within the readyz timeout.
@@ -49,12 +32,11 @@ export class HealthService implements BeforeApplicationShutdown {
     }
 
     /**
-     * Performs the shutdown and database health checks.
+     * Performs the database health check.
      * @returns The result of the health checks.
      */
     async checkHealth(): Promise<ReadyzResponseDto> {
         return ReadyzResponseDto.fromDependencyCheckers({
-            shutdown: this.checkShutdown(),
             database: await this.checkDatabase(),
         });
     }

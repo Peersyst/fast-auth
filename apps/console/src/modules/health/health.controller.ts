@@ -19,7 +19,7 @@ export class HealthController {
 
     /**
      * Readiness probe endpoint.
-     * Checks that the app is not shutting down and that the database answers before returning success.
+     * Checks that the database answers before returning success.
      * @param res The response object.
      * @returns The response with status 200 OK or 503 SERVICE_UNAVAILABLE.
      */

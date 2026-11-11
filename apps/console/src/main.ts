@@ -9,7 +9,6 @@ import { utilities as nestWinstonModuleUtilities, WinstonModule } from "nest-win
 import * as winston from "winston";
 import { AppModule } from "./app.module";
 import * as packageJson from "../package.json";
-import { requestId } from "./modules/common/middleware/request-id.middleware";
 
 /**
  * Bootstraps the application.
@@ -28,7 +27,6 @@ async function bootstrap(): Promise<void> {
     });
 
     app.useLogger(logger);
-    app.use(requestId);
     app.use(helmet());
     app.use(morgan("tiny"));
     app.enableCors({ origin: configService.get<string>("server.publicUrl") });

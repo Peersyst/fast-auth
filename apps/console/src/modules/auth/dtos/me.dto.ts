@@ -12,7 +12,7 @@ export class MeDto {
     emailVerified: boolean;
 
     /**
-     * Exposes the session user without its Auth0 subject.
+     * Builds the response from the session user.
      * @param user The session user.
      * @returns The response.
      */

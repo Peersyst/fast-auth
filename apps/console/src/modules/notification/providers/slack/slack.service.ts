@@ -16,15 +16,6 @@ function escapeMrkdwn(value: string): string {
         .replace(/>/g, "&gt;");
 }
 
-/**
- * Formats a URL list on one line, with a dash for an empty list.
- * @param urls The URLs.
- * @returns The escaped, comma-separated list.
- */
-function urlList(urls: readonly string[]): string {
-    return urls.length === 0 ? "—" : urls.map(escapeMrkdwn).join(", ");
-}
-
 const ADMIN_ALERTS: Record<AdminAlertKind, { subject: string; body: string }> = {
     [DappEventType.SUBMITTED]: { subject: "New dApp submission to review", body: "was submitted and is waiting for review." },
     [DappEventType.AUTO_APPROVED]: { subject: "A dApp was auto-approved", body: "was approved automatically and got an Auth0 client." },
@@ -43,9 +34,9 @@ const FIELD_LINES: Record<DappField, (fields: DappFields) => string> = {
     description: (fields) => (fields.description === "" ? "—" : escapeMrkdwn(fields.description)),
     logoUrl: (fields) => escapeMrkdwn(fields.logoUrl),
     mauBracket: (fields) => MAU_LABELS[fields.mauBracket],
-    callbackUrls: (fields) => urlList(fields.callbackUrls),
-    logoutUrls: (fields) => urlList(fields.logoutUrls),
-    webOrigins: (fields) => urlList(fields.webOrigins),
+    callbackUrls: (fields) => (fields.callbackUrls.length === 0 ? "—" : fields.callbackUrls.map(escapeMrkdwn).join(", ")),
+    logoutUrls: (fields) => (fields.logoutUrls.length === 0 ? "—" : fields.logoutUrls.map(escapeMrkdwn).join(", ")),
+    webOrigins: (fields) => (fields.webOrigins.length === 0 ? "—" : fields.webOrigins.map(escapeMrkdwn).join(", ")),
     contactEmail: (fields) => escapeMrkdwn(fields.contactEmail),
 };
 
@@ -59,14 +50,13 @@ export function slackMessage(alert: SlackAlert, publicUrl: string): SlackWebhook
     const { dapp } = alert;
     const copy = ADMIN_ALERTS[alert.kind];
     const url = `${publicUrl}/admin/dapps/${encodeURIComponent(dapp.id)}`;
-    const rejected = alert.kind === DappEventType.RESUBMITTED ? alert.rejected : null;
-    const changed = new Set<string>(rejected === null ? [] : diffFields(DAPP_FIELDS, rejected, dapp).map((change) => change.field));
-    const resubmission = rejected !== null && changed.size === 0 ? ["Nothing was changed since the rejection."] : [];
+    const resubmitted = alert.kind === DappEventType.RESUBMITTED;
+    const before = resubmitted ? alert.rejected : dapp;
+    const changed: string[] = diffFields(DAPP_FIELDS, before, dapp).map((change) => change.field);
+    const resubmission = resubmitted && changed.length === 0 ? ["Nothing was changed since the rejection."] : [];
     const fields = Object.entries(FIELD_LINES).map(([field, format]) => {
         const label = FIELD_LABELS[field as DappField];
-        return rejected !== null && changed.has(field)
-            ? `*${label} (changed):* ${format(dapp)} (was: ${format(rejected)})`
-            : `*${label}:* ${format(dapp)}`;
+        return changed.includes(field) ? `*${label} (changed):* ${format(dapp)} (was: ${format(before)})` : `*${label}:* ${format(dapp)}`;
     });
     return {
         text: [

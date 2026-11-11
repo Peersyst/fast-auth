@@ -1,6 +1,4 @@
 import { Module } from "@nestjs/common";
-import { TypeOrmModule } from "@nestjs/typeorm";
-import { Dapp, DappEvent } from "@database/console/entities";
 import { AuthModule } from "../auth/auth.module";
 import { createMetricsProvider } from "../common/metric/metric";
 import { NotificationModule } from "../notification/notification.module";
@@ -13,9 +11,9 @@ import { DappNotifier } from "./dapp.notifier";
 import { DappService } from "./dapp.service";
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Dapp, DappEvent]), AuthModule, ProvisioningModule, NotificationModule, SettingModule],
+    imports: [AuthModule, ProvisioningModule, NotificationModule, SettingModule],
     controllers: [DappController],
     providers: [DappService, DappWriteService, DappNotifier, ...createMetricsProvider(DappMetricsProvider, DappMetrics)],
-    exports: [DappService, DappWriteService, DappNotifier],
+    exports: [DappWriteService],
 })
 export class DappModule {}

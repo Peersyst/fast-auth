@@ -1,7 +1,6 @@
 import { Transform } from "class-transformer";
-import { registerDecorator } from "class-validator";
+import { ValidateBy } from "class-validator";
 import {
-    isValidEmail,
     isLogoUrl,
     isValidDescription,
     isValidName,
@@ -36,84 +35,58 @@ export const NormaliseUrlList = (): PropertyDecorator =>
     );
 
 /**
- * Registers a validator that accepts only a string that passes the rule.
- * @param name The constraint name reported on failure.
- * @param message The validation message, where $property stands for the field.
- * @param rule The check.
- * @returns The property decorator.
- */
-function stringRule(name: string, message: string, rule: (value: string) => boolean): PropertyDecorator {
-    return (target, propertyName) =>
-        registerDecorator({
-            name,
-            target: target.constructor,
-            propertyName: String(propertyName),
-            options: { message },
-            validator: { validate: (value: unknown) => typeof value === "string" && rule(value) },
-        });
-}
-
-/**
  * Accepts only a list of strings within the count and URL rules of the named field.
  * @param field The URL list field whose rules apply.
  * @returns The property decorator.
  */
-export const IsUrlList =
-    (field: UrlListField): PropertyDecorator =>
-    (target, propertyName) =>
-        registerDecorator({
+export const IsUrlList = (field: UrlListField): PropertyDecorator =>
+    ValidateBy(
+        {
             name: "isUrlList",
-            target: target.constructor,
-            propertyName: String(propertyName),
-            options: { message: "$property must be a list of public https URLs within the allowed count" },
             validator: {
                 validate: (value: unknown) =>
                     Array.isArray(value) && value.every((element) => typeof element === "string") && isValidUrlList(field, value),
             },
-        });
+        },
+        { message: "$property must be a list of public https URLs within the allowed count" },
+    );
 
 /**
  * Accepts only a string that passes the logo URL rule.
  * @returns The property decorator.
  */
 export const IsLogoUrl = (): PropertyDecorator =>
-    stringRule("isLogoUrl", "$property must be a public https URL of at most 255 characters", isLogoUrl);
+    ValidateBy(
+        { name: "isLogoUrl", validator: { validate: (value: unknown) => typeof value === "string" && isLogoUrl(value) } },
+        { message: "$property must be a public https URL of at most 255 characters" },
+    );
 
 /**
  * Accepts only a string that passes the dApp name rule.
  * @returns The property decorator.
  */
-export const IsDappName = (): PropertyDecorator => stringRule("isDappName", "$property must be a valid dApp name", isValidName);
+export const IsDappName = (): PropertyDecorator =>
+    ValidateBy(
+        { name: "isDappName", validator: { validate: (value: unknown) => typeof value === "string" && isValidName(value) } },
+        { message: "$property must be a valid dApp name" },
+    );
 
 /**
  * Accepts only a string that passes the dApp description rule.
  * @returns The property decorator.
  */
 export const IsDappDescription = (): PropertyDecorator =>
-    stringRule("isDappDescription", "$property must be a valid dApp description", isValidDescription);
-
-/**
- * Accepts only a string that passes the contact email rule.
- * @returns The property decorator.
- */
-export const IsValidEmail = (): PropertyDecorator => stringRule("isValidEmail", "$property must be an email address", isValidEmail);
+    ValidateBy(
+        { name: "isDappDescription", validator: { validate: (value: unknown) => typeof value === "string" && isValidDescription(value) } },
+        { message: "$property must be a valid dApp description" },
+    );
 
 /**
  * Accepts only a string without a NUL character, which Postgres text cannot store.
  * @returns The property decorator.
  */
 export const HasNoNul = (): PropertyDecorator =>
-    stringRule("hasNoNul", "$property must not contain a NUL character", (value) => !value.includes(NUL));
-
-/**
- * Accepts only a string whose length is within the bounds, counted in UTF-16 code units.
- * @param min The shortest length allowed.
- * @param max The longest length allowed.
- * @returns The property decorator.
- */
-export const HasLength = (min: number, max: number): PropertyDecorator =>
-    stringRule(
-        "hasLength",
-        `$property must be ${min} to ${max} UTF-16 code units long`,
-        (value) => value.length >= min && value.length <= max,
+    ValidateBy(
+        { name: "hasNoNul", validator: { validate: (value: unknown) => typeof value === "string" && !value.includes(NUL) } },
+        { message: "$property must not contain a NUL character" },
     );

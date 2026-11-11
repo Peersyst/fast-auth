@@ -6,11 +6,16 @@ import { Auth0JwtGuard } from "../guard/auth0-jwt.guard";
 import { VerifiedEmailGuard } from "../guard/verified-email.guard";
 
 /**
- * Requires a valid Auth0 ID token, whether or not its email is verified.
+ * Requires a valid Auth0 ID token with an email, whether or not it is verified.
  * @returns The decorator.
  */
 export function SignedIn(): ClassDecorator & MethodDecorator {
-    return applyDecorators(UseGuards(Auth0JwtGuard), ApiBearerAuth(), ApiUnauthorizedResponse({ type: ApiException }));
+    return applyDecorators(
+        UseGuards(Auth0JwtGuard),
+        ApiBearerAuth(),
+        ApiUnauthorizedResponse({ type: ApiException }),
+        ApiForbiddenResponse({ type: ApiException }),
+    );
 }
 
 /**

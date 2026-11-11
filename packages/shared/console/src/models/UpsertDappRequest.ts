@@ -5,30 +5,36 @@
 import type { MauBracket } from './MauBracket';
 export type UpsertDappRequest = {
     /**
-     * 1–64 UTF-16 code units once trimmed (most emoji count as two or more), no `<` or `>`.
+     * The dApp's name.
      */
     name: string;
     /**
-     * At most 140 UTF-16 code units once trimmed; may be empty.
+     * A short description of the dApp.
      */
     description: string;
     /**
-     * An `https:` URL of at most 255 characters.
+     * The URL of the dApp's logo.
      */
     logoUrl: string;
+    /**
+     * The expected monthly active users.
+     */
     mauBracket: MauBracket;
     /**
-     * 1–10 absolute `https:` URLs once de-duplicated.
+     * The URLs Auth0 may redirect to after login.
      */
     callbackUrls: Array<string>;
     /**
-     * 0–10 absolute `https:` URLs once de-duplicated.
+     * The URLs Auth0 may redirect to after logout.
      */
     logoutUrls: Array<string>;
     /**
-     * 1–10 `https://host[:port]` origins once de-duplicated.
+     * The origins allowed to sign in from the browser.
      */
     webOrigins: Array<string>;
+    /**
+     * The email address to contact the dApp's team.
+     */
     contactEmail: string;
 };
 

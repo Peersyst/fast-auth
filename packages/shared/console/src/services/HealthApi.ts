@@ -20,7 +20,7 @@ export class HealthApi {
     }
     /**
      * Readiness probe endpoint.
-     * Checks that the app is not shutting down and that the database answers before returning success.
+     * Checks that the database answers before returning success.
      * @returns any
      * @throws ApiError
      */

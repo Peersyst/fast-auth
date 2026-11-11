@@ -13,7 +13,7 @@ import type { SessionUser } from "./types/session-user";
 export class MeController {
     @Get()
     @ApiOkResponse({ type: MeDto })
-    async me(@CurrentUser() user: SessionUser): Promise<MeDto> {
+    me(@CurrentUser() user: SessionUser): MeDto {
         return MeDto.fromUser(user);
     }
 }

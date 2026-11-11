@@ -1,16 +1,7 @@
 import { ApiProperty, IntersectionType } from "@nestjs/swagger";
-import { IsIn } from "class-validator";
+import { IsEmail, IsIn } from "class-validator";
+import { DappFields, MauBracket } from "@shared/modules/dapp";
 import {
-    DappFields,
-    DESCRIPTION_MAX_LENGTH,
-    LOGO_URL_MAX_LENGTH,
-    MauBracket,
-    NAME_MAX_LENGTH,
-    URL_LIST_RULES,
-    UrlListField,
-} from "@shared/modules/dapp";
-import {
-    IsValidEmail,
     IsDappDescription,
     IsDappName,
     IsLogoUrl,
@@ -21,53 +12,44 @@ import {
 } from "../decorator/dapp-field.decorator";
 import { ExpectedVersionRequest } from "./expected-version.request";
 
-/**
- * Formats the allowed count of a URL list field as a range for the API docs.
- * @param field The URL list field.
- * @returns The range, such as 1–10.
- */
-const urlCount = (field: UrlListField): string => `${URL_LIST_RULES[field].min}–${URL_LIST_RULES[field].max}`;
-
 export class UpsertDappRequest {
-    @ApiProperty({
-        description: `1–${NAME_MAX_LENGTH} UTF-16 code units once trimmed (most emoji count as two or more), no \`<\` or \`>\`.`,
-    })
+    @ApiProperty({ description: "The dApp's name." })
     @Trim()
     @IsDappName()
     name: string;
 
-    @ApiProperty({ description: `At most ${DESCRIPTION_MAX_LENGTH} UTF-16 code units once trimmed; may be empty.` })
+    @ApiProperty({ description: "A short description of the dApp." })
     @Trim()
     @IsDappDescription()
     description: string;
 
-    @ApiProperty({ description: `An \`https:\` URL of at most ${LOGO_URL_MAX_LENGTH} characters.` })
+    @ApiProperty({ description: "The URL of the dApp's logo." })
     @NormaliseUrl()
     @IsLogoUrl()
     logoUrl: string;
 
-    @ApiProperty({ enum: MauBracket, enumName: "MauBracket" })
+    @ApiProperty({ enum: MauBracket, enumName: "MauBracket", description: "The expected monthly active users." })
     @IsIn(Object.values(MauBracket))
     mauBracket: MauBracket;
 
-    @ApiProperty({ type: [String], description: `${urlCount("callbackUrls")} absolute \`https:\` URLs once de-duplicated.` })
+    @ApiProperty({ type: [String], description: "The URLs Auth0 may redirect to after login." })
     @NormaliseUrlList()
     @IsUrlList("callbackUrls")
     callbackUrls: string[];
 
-    @ApiProperty({ type: [String], description: `${urlCount("logoutUrls")} absolute \`https:\` URLs once de-duplicated.` })
+    @ApiProperty({ type: [String], description: "The URLs Auth0 may redirect to after logout." })
     @NormaliseUrlList()
     @IsUrlList("logoutUrls")
     logoutUrls: string[];
 
-    @ApiProperty({ type: [String], description: `${urlCount("webOrigins")} \`https://host[:port]\` origins once de-duplicated.` })
+    @ApiProperty({ type: [String], description: "The origins allowed to sign in from the browser." })
     @NormaliseUrlList()
     @IsUrlList("webOrigins")
     webOrigins: string[];
 
-    @ApiProperty()
+    @ApiProperty({ description: "The email address to contact the dApp's team." })
     @Trim()
-    @IsValidEmail()
+    @IsEmail()
     contactEmail: string;
 }
 

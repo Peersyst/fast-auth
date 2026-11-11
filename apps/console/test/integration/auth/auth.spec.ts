@@ -7,7 +7,6 @@ import { AdminAuthenticated, Authenticated } from "../../../src/modules/auth/dec
 import { JWT_KEY_SET } from "../../../src/modules/auth/jwt-key-set";
 import { ADMIN_EMAIL, testConfig } from "../../mocks/config/config.mock";
 import { signToken, testKeySet, TokenOptions } from "../../mocks/auth/token.mock";
-import { BUSINESS_EXCEPTION_FILTER } from "../../../src/modules/common/exception/business-exception.filter";
 
 @Authenticated()
 @Controller("owner-only")
@@ -55,7 +54,6 @@ describe("AuthModule (integration)", () => {
     beforeAll(async () => {
         otherKey = (await generateKeyPair("RS256")).privateKey;
         testApp = await createTestApp({
-            providers: [BUSINESS_EXCEPTION_FILTER],
             imports: [ConfigModule.forRoot({ load: [testConfig], isGlobal: true }), AuthModule, GuardedRoutesModule],
             overrides: [{ provide: JWT_KEY_SET, useValue: await testKeySet() }],
         });
