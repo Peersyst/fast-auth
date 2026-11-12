@@ -1,15 +1,10 @@
-import { DIRECT_FIELDS, SYNCED_FIELDS } from "./constants";
-import { DappField, DappFields, DirectFields, FieldChange, FieldValue, FieldValueChange, SyncedFields } from "./types";
+import { DAPP_FIELDS, SYNCED_FIELDS } from "./constants";
+import { DappField, DappFields, FieldChange, FieldValue, FieldValueChange, SyncedFields } from "./types";
 
 export type PendingChangeOutcome =
     | { kind: "unchanged" }
     | { kind: "withdrawn" }
-    | { kind: "replaced"; change: SyncedFields; changes: FieldValueChange[] };
-
-type EditOutcome = {
-    directChanges: FieldChange[];
-    pendingChange: PendingChangeOutcome;
-};
+    | { kind: "replaced"; change: DappFields; changes: FieldChange[] };
 
 /**
  * Copies only the fields that sync to Auth0, dropping any others the object carries.
@@ -19,16 +14,6 @@ type EditOutcome = {
 export function syncedFieldsOf(fields: SyncedFields): SyncedFields {
     const { name, description, logoUrl, callbackUrls, logoutUrls, webOrigins } = fields;
     return { name, description, logoUrl, callbackUrls, logoutUrls, webOrigins };
-}
-
-/**
- * Copies only the fields an owner may change without review, dropping any others the object carries.
- * @param fields An object that holds the direct fields.
- * @returns A new object with only the direct fields.
- */
-export function directFieldsOf(fields: DirectFields): DirectFields {
-    const { contactEmail, mauBracket } = fields;
-    return { contactEmail, mauBracket };
 }
 
 /**
@@ -79,26 +64,15 @@ export function diffSyncedFields(live: SyncedFields, change: SyncedFields): Fiel
 }
 
 /**
- * Decides whether an edit keeps, withdraws or replaces the pending change, by comparing its synced fields with the pending and live ones.
+ * Decides whether an approved dApp's edit keeps, withdraws or replaces its pending change, by comparing every field with the pending and live ones.
  * @param live The dApp's live fields.
  * @param pending The pending change, if any.
  * @param proposed The fields the edit proposes.
  * @returns The pending change's outcome.
  */
-function classifyPendingChange(live: DappFields, pending: SyncedFields | null, proposed: DappFields): PendingChangeOutcome {
-    if (pending !== null && diffSyncedFields(pending, proposed).length === 0) return { kind: "unchanged" };
-    const changes = diffSyncedFields(live, proposed);
-    if (changes.length > 0) return { kind: "replaced", change: syncedFieldsOf(proposed), changes };
+export function classifyEdit(live: DappFields, pending: DappFields | null, proposed: DappFields): PendingChangeOutcome {
+    if (pending !== null && diffFields(DAPP_FIELDS, pending, proposed).length === 0) return { kind: "unchanged" };
+    const changes = diffFields(DAPP_FIELDS, live, proposed);
+    if (changes.length > 0) return { kind: "replaced", change: proposed, changes };
     return pending === null ? { kind: "unchanged" } : { kind: "withdrawn" };
-}
-
-/**
- * Splits an edit into direct-field changes, which apply at once, and what happens to the pending change of synced fields.
- * @param live The dApp's live fields.
- * @param pending The pending change, if any.
- * @param proposed The fields the edit proposes.
- * @returns The direct changes and the pending change's outcome.
- */
-export function classifyEdit(live: DappFields, pending: SyncedFields | null, proposed: DappFields): EditOutcome {
-    return { directChanges: diffFields(DIRECT_FIELDS, live, proposed), pendingChange: classifyPendingChange(live, pending, proposed) };
 }

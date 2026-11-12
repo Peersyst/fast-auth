@@ -2,9 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { DappFieldsDto } from './DappFieldsDto';
 import type { DappStatus } from './DappStatus';
 import type { MauBracket } from './MauBracket';
-import type { SyncedFieldsDto } from './SyncedFieldsDto';
 export type AdminDappDto = {
     id: string;
     name: string;
@@ -16,7 +16,7 @@ export type AdminDappDto = {
     webOrigins: Array<string>;
     contactEmail: string;
     status: DappStatus;
-    pendingChange: SyncedFieldsDto | null;
+    pendingChange: DappFieldsDto | null;
     pendingChangeAt: string | null;
     /**
      * Null until the dApp is provisioned.

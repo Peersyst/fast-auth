@@ -1,4 +1,4 @@
-import { DappField, DirectFields, MauBracket, SyncedFields } from "./types";
+import { DappField, MauBracket, SyncedFields } from "./types";
 
 export const MAU_LABELS: Record<MauBracket, string> = {
     [MauBracket.LT_1K]: "Less than 1,000",
@@ -27,9 +27,7 @@ export const SYNCED_FIELDS: readonly (keyof SyncedFields)[] = [
     "webOrigins",
 ];
 
-export const DIRECT_FIELDS: readonly (keyof DirectFields)[] = ["contactEmail", "mauBracket"];
-
-export const DAPP_FIELDS: readonly DappField[] = [...SYNCED_FIELDS, ...DIRECT_FIELDS];
+export const DAPP_FIELDS: readonly DappField[] = [...SYNCED_FIELDS, "contactEmail", "mauBracket"];
 
 export const NAME_MAX_LENGTH = 64;
 /** Auth0's limit for a client description. */

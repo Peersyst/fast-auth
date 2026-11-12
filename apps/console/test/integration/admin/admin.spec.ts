@@ -4,7 +4,7 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { DataSource } from "typeorm";
 import { Dapp, DappEvent } from "@database/console/entities";
 import { createDapp } from "@database/console/test/factories";
-import { DappEventType, DappStatus, syncedFieldsOf } from "@shared/modules/dapp";
+import { DappEventType, DappStatus, MauBracket, syncedFieldsOf } from "@shared/modules/dapp";
 import { AdminModule } from "../../../src/modules/admin/admin.module";
 import { DappWriteService } from "../../../src/modules/dapp/dapp-write.service";
 import { JWT_KEY_SET } from "../../../src/modules/auth/jwt-key-set";
@@ -97,7 +97,7 @@ describe("AdminModule (integration)", () => {
             const changeRequested = await approvedDapp({
                 ownerEmail: "a@owners.test",
                 submittedAt: new Date("2025-01-01T00:00:00Z"),
-                pendingChange: syncedFieldsOf(dappForm({ name: "Acme Pay" })),
+                pendingChange: dappForm({ name: "Acme Pay" }),
                 pendingChangeAt: new Date("2026-01-03T00:00:00Z"),
             });
             const pending = await pendingDapp({ ownerEmail: "b@owners.test", submittedAt: new Date("2026-01-02T00:00:00Z") });
@@ -264,23 +264,64 @@ describe("AdminModule (integration)", () => {
     });
 
     describe("POST /admin/dapps/:id/change/approve and change/reject", () => {
-        const change = syncedFieldsOf(dappForm({ name: "Acme Pay", webOrigins: ["https://pay.acme.xyz"] }));
+        const change = dappForm({
+            name: "Acme Pay",
+            webOrigins: ["https://pay.acme.xyz"],
+            contactEmail: "ops@acme.xyz",
+            mauBracket: MauBracket.GT_25K,
+        });
 
-        it("should apply the pending change to the fields and the client, log the changes, and notify nobody", async () => {
+        it("should apply every pending field, sync only the synced ones to the client, log the changes, and notify nobody", async () => {
             const dapp = await approvedDapp({ pendingChange: change, pendingChangeAt: new Date() });
 
             const { body } = await post(`${dapp.id}/change/approve`, { expectedVersion: 1 }).expect(200);
 
-            expect(body).toMatchObject({ name: "Acme Pay", webOrigins: ["https://pay.acme.xyz"], pendingChange: null, status: "approved" });
-            expect(provisioner.clients.get("client_live")?.input).toEqual(change);
+            expect(body).toMatchObject({
+                name: "Acme Pay",
+                webOrigins: ["https://pay.acme.xyz"],
+                contactEmail: "ops@acme.xyz",
+                mauBracket: "gt25k",
+                pendingChange: null,
+                status: "approved",
+            });
+            expect(provisioner.calls).toEqual([
+                {
+                    op: "updateClient",
+                    dappId: dapp.id,
+                    clientId: "client_live",
+                    input: {
+                        name: "Acme Pay",
+                        description: "A wallet for NEAR.",
+                        logoUrl: "https://cdn.acme.xyz/logo.png",
+                        callbackUrls: ["https://acme.xyz/callback"],
+                        logoutUrls: [],
+                        webOrigins: ["https://pay.acme.xyz"],
+                    },
+                },
+            ]);
             const approved = await dataSource.manager.findOneByOrFail(DappEvent, { dappId: dapp.id, type: DappEventType.CHANGE_APPROVED });
             expect(approved.details).toEqual({
                 changes: [
                     { field: "name", before: "Acme Wallet", after: "Acme Pay" },
                     { field: "webOrigins", before: ["https://acme.xyz"], after: ["https://pay.acme.xyz"] },
+                    { field: "contactEmail" },
+                    { field: "mauBracket", before: "lt1k", after: "gt25k" },
                 ],
             });
             expect(slack.notify).not.toHaveBeenCalled();
+        });
+
+        it("should apply a contact email and MAU change without calling Auth0", async () => {
+            const dapp = await approvedDapp({
+                pendingChange: dappForm({ contactEmail: "ops@acme.xyz", mauBracket: MauBracket.GT_25K }),
+                pendingChangeAt: new Date(),
+            });
+
+            const { body } = await post(`${dapp.id}/change/approve`, { expectedVersion: 1 }).expect(200);
+
+            expect(body).toMatchObject({ name: "Acme Wallet", contactEmail: "ops@acme.xyz", mauBracket: "gt25k", pendingChange: null });
+            expect(provisioner.calls).toEqual([]);
+            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["change_approved"]);
         });
 
         it("should drop the pending change, resync the client to the live fields, and notify nobody", async () => {
@@ -346,7 +387,7 @@ describe("AdminModule (integration)", () => {
         });
 
         it("should refuse to edit an approved dApp with a pending change with 409 INVALID_TRANSITION", async () => {
-            const dapp = await approvedDapp({ pendingChange: syncedFieldsOf(dappForm({ name: "Acme Pay" })), pendingChangeAt: new Date() });
+            const dapp = await approvedDapp({ pendingChange: dappForm({ name: "Acme Pay" }), pendingChangeAt: new Date() });
 
             const { body } = await testApp.request
                 .put(`/admin/dapps/${dapp.id}`)

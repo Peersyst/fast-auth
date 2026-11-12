@@ -2,7 +2,7 @@ import { ApiProperty } from "@nestjs/swagger";
 import { Dapp } from "@database/console/entities";
 import { DappStatus, MauBracket } from "@shared/modules/dapp";
 
-export class SyncedFieldsDto {
+export class DappFieldsDto {
     @ApiProperty()
     name: string;
 
@@ -20,6 +20,12 @@ export class SyncedFieldsDto {
 
     @ApiProperty({ type: [String] })
     webOrigins: string[];
+
+    @ApiProperty()
+    contactEmail: string;
+
+    @ApiProperty({ enum: MauBracket, enumName: "MauBracket" })
+    mauBracket: MauBracket;
 }
 
 export class OwnerDappDto {
@@ -53,8 +59,8 @@ export class OwnerDappDto {
     @ApiProperty({ enum: DappStatus, enumName: "DappStatus" })
     status: DappStatus;
 
-    @ApiProperty({ type: SyncedFieldsDto, nullable: true })
-    pendingChange: SyncedFieldsDto | null;
+    @ApiProperty({ type: DappFieldsDto, nullable: true })
+    pendingChange: DappFieldsDto | null;
 
     @ApiProperty({ type: String, format: "date-time", nullable: true })
     pendingChangeAt: string | null;

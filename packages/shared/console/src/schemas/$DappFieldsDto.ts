@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $SyncedFieldsDto = {
+export const $DappFieldsDto = {
     properties: {
         name: {
             type: 'string',
@@ -35,6 +35,17 @@ export const $SyncedFieldsDto = {
             contains: {
                 type: 'string',
             },
+            isRequired: true,
+        },
+        contactEmail: {
+            type: 'string',
+            isRequired: true,
+        },
+        mauBracket: {
+            type: 'all-of',
+            contains: [{
+                type: 'MauBracket',
+            }],
             isRequired: true,
         },
     },

@@ -13,7 +13,6 @@ import {
     DappFields,
     DappStatus,
     diffFields,
-    directFieldsOf,
     PendingChangeOutcome,
 } from "@shared/modules/dapp";
 import { SessionUser } from "../auth/types/session-user";
@@ -117,7 +116,7 @@ export class DappService {
     }
 
     /**
-     * Edits the caller's live dApp at the expected version. A pending one changes in place, a rejected one is resubmitted, and an approved one applies direct fields at once and requests a change for synced fields. Resubmissions and change requests alert the admins.
+     * Edits the caller's live dApp at the expected version. A pending one changes in place, a rejected one is resubmitted, and an approved one keeps its live fields and requests a change for review. Resubmissions and change requests alert the admins.
      * @param user The owner.
      * @param id The dApp id the caller named.
      * @param request The new fields and the version the caller last read.
@@ -189,7 +188,7 @@ export class DappService {
     }
 
     /**
-     * Applies an approved dApp's direct fields at once and turns its synced fields into a pending change for review.
+     * Turns an approved dApp's edit into a pending change for review, or withdraws the pending change when the edit matches the live fields.
      * @param manager The transaction's entity manager.
      * @param live The locked dApp.
      * @param fields The new fields.
@@ -202,12 +201,10 @@ export class DappService {
         fields: DappFields,
         owner: ActorRole,
     ): Promise<Omit<EditOutcome, "before">> {
-        const { directChanges, pendingChange } = classifyEdit(live, live.pendingChange, fields);
+        const pendingChange = classifyEdit(live, live.pendingChange, fields);
         const effects = pendingChangeEffects(pendingChange, new Date());
-        const dapp = await this.writes.update(manager, live.id, { ...effects.columns, ...directFieldsOf(fields) });
-        const events = [...effects.events];
-        if (directChanges.length > 0) events.push({ type: DappEventType.EDITED, details: { changes: directChanges } });
-        await this.writes.appendEvents(manager, live.id, owner, events);
+        const dapp = await this.writes.update(manager, live.id, effects.columns);
+        await this.writes.appendEvents(manager, live.id, owner, effects.events);
         return { dapp, alert: pendingChange.kind === "replaced" ? DappEventType.CHANGE_REQUESTED : null };
     }
 }

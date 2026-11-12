@@ -63,7 +63,7 @@ export const $AdminDappDto = {
         pendingChange: {
             type: 'all-of',
             contains: [{
-                type: 'SyncedFieldsDto',
+                type: 'DappFieldsDto',
             }],
             isRequired: true,
             isNullable: true,

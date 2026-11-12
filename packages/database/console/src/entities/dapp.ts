@@ -1,5 +1,5 @@
 import { Check, Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn, VersionColumn } from "typeorm";
-import { DappFields, DappStatus, MauBracket, SyncedFields } from "@shared/modules/dapp";
+import { DappFields, DappStatus, MauBracket } from "@shared/modules/dapp";
 
 export const OWNER_EMAIL_LIVE_INDEX = "dapp_owner_email_live";
 
@@ -41,7 +41,7 @@ export class Dapp implements DappFields {
     status: DappStatus;
 
     @Column("jsonb", { name: "pending_change", nullable: true })
-    pendingChange: SyncedFields | null;
+    pendingChange: DappFields | null;
 
     @Column("timestamp with time zone", { name: "pending_change_at", nullable: true })
     pendingChangeAt: Date | null;

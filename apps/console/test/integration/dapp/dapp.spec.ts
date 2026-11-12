@@ -241,19 +241,32 @@ describe("DappModule (integration)", () => {
             expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "resubmitted" }));
         });
 
-        it("should apply an approved dApp's direct fields at once without Auth0 or an alert", async () => {
+        it("should queue an approved dApp's contact email and MAU change for review, keep the live values and alert the admins", async () => {
             const dapp = await approvedDapp();
 
             const { body } = await testApp.request
                 .put(`/dapp/${dapp.id}`)
                 .set("Authorization", owner)
-                .send({ ...dappForm({ contactEmail: "ops@acme.xyz" }), expectedVersion: 1 })
+                .send({ ...dappForm({ contactEmail: "ops@acme.xyz", mauBracket: MauBracket.GT_25K }), expectedVersion: 1 })
                 .expect(200);
 
-            expect(body).toMatchObject({ contactEmail: "ops@acme.xyz", status: "approved", pendingChange: null });
-            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["edited"]);
+            expect(body).toMatchObject({
+                contactEmail: "dev@acme.xyz",
+                mauBracket: "lt1k",
+                status: "approved",
+                pendingChange: dappForm({ contactEmail: "ops@acme.xyz", mauBracket: MauBracket.GT_25K }),
+            });
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ contactEmail: "dev@acme.xyz", mauBracket: "lt1k" });
+            const requested = await dataSource.manager.findOneByOrFail(DappEvent, {
+                dappId: dapp.id,
+                type: DappEventType.CHANGE_REQUESTED,
+            });
+            expect(requested.details).toEqual({
+                changes: [{ field: "contactEmail" }, { field: "mauBracket", before: "lt1k", after: "gt25k" }],
+            });
+            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["change_requested"]);
+            expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "change_requested" }));
             expect(provisioner.calls).toEqual([]);
-            expect(slack.notify).not.toHaveBeenCalled();
         });
 
         it("should queue an approved dApp's synced changes for review, keep the live values and alert the admins", async () => {
@@ -265,15 +278,15 @@ describe("DappModule (integration)", () => {
                 .send({ ...dappForm({ name: "Acme Pay" }), expectedVersion: 1 })
                 .expect(200);
 
-            expect(body).toMatchObject({ name: "Acme Wallet", pendingChange: syncedFieldsOf(dappForm({ name: "Acme Pay" })) });
+            expect(body).toMatchObject({ name: "Acme Wallet", pendingChange: dappForm({ name: "Acme Pay" }) });
             expect(body.pendingChangeAt).toEqual(expect.any(String));
             expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["change_requested"]);
             expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "change_requested" }));
             expect(provisioner.calls).toEqual([]);
         });
 
-        it("should withdraw the pending change when the synced fields are back to live", async () => {
-            const dapp = await approvedDapp({ pendingChange: syncedFieldsOf(dappForm({ name: "Acme Pay" })), pendingChangeAt: new Date() });
+        it("should withdraw the pending change when the fields are back to live", async () => {
+            const dapp = await approvedDapp({ pendingChange: dappForm({ name: "Acme Pay" }), pendingChangeAt: new Date() });
 
             const { body } = await testApp.request
                 .put(`/dapp/${dapp.id}`)
@@ -350,7 +363,7 @@ describe("DappModule (integration)", () => {
         });
 
         it("should delete an approved dApp's client and clear its pending change", async () => {
-            const dapp = await approvedDapp({ pendingChange: syncedFieldsOf(dappForm({ name: "Acme Pay" })), pendingChangeAt: new Date() });
+            const dapp = await approvedDapp({ pendingChange: dappForm({ name: "Acme Pay" }), pendingChangeAt: new Date() });
 
             await testApp.request.delete(`/dapp/${dapp.id}?expectedVersion=1`).set("Authorization", owner).expect(204);
 

@@ -1,14 +1,4 @@
-import {
-    classifyEdit,
-    DAPP_FIELDS,
-    DappFields,
-    diffFields,
-    diffSyncedFields,
-    DIRECT_FIELDS,
-    directFieldsOf,
-    MauBracket,
-    SyncedFields,
-} from "../../../src/dapp";
+import { classifyEdit, DAPP_FIELDS, DappFields, diffFields, diffSyncedFields, MauBracket, SYNCED_FIELDS } from "../../../src/dapp";
 
 const LIVE: DappFields = {
     name: "Acme",
@@ -21,13 +11,15 @@ const LIVE: DappFields = {
     mauBracket: MauBracket.LT_1K,
 };
 
-const PENDING: SyncedFields = {
+const PENDING: DappFields = {
     name: "Acme Wallet",
     description: "A wallet",
     logoUrl: "https://cdn.acme.xyz/logo.png",
     callbackUrls: ["https://acme.xyz/callback", "https://app.acme.xyz/callback"],
     logoutUrls: [],
     webOrigins: ["https://acme.xyz", "https://app.acme.xyz"],
+    contactEmail: "dev@acme.xyz",
+    mauBracket: MauBracket.GT_25K,
 };
 
 describe("dapp edits", () => {
@@ -63,13 +55,7 @@ describe("dapp edits", () => {
         it("should compare only the fields it is given", () => {
             const after: DappFields = { ...LIVE, name: "Acme Wallet", mauBracket: MauBracket.GT_25K };
 
-            expect(diffFields(DIRECT_FIELDS, LIVE, after)).toEqual([{ field: "mauBracket", before: "lt1k", after: "gt25k" }]);
-        });
-    });
-
-    describe("directFieldsOf", () => {
-        it("should copy only the contact email and MAU bracket", () => {
-            expect(directFieldsOf(LIVE)).toEqual({ contactEmail: "dev@acme.xyz", mauBracket: "lt1k" });
+            expect(diffFields(SYNCED_FIELDS, LIVE, after)).toEqual([{ field: "name", before: "Acme", after: "Acme Wallet" }]);
         });
     });
 
@@ -84,60 +70,50 @@ describe("dapp edits", () => {
 
     describe("classifyEdit", () => {
         it("should change nothing when nothing changed", () => {
-            expect(classifyEdit(LIVE, null, { ...LIVE })).toEqual({ directChanges: [], pendingChange: { kind: "unchanged" } });
+            expect(classifyEdit(LIVE, null, { ...LIVE })).toEqual({ kind: "unchanged" });
         });
 
-        it("should apply direct fields at once without a pending change", () => {
+        it("should request a change for a contact email or MAU change, recording the email by name only", () => {
             expect(classifyEdit(LIVE, null, { ...LIVE, mauBracket: MauBracket.FROM_1K_TO_10K, contactEmail: "ops@acme.xyz" })).toEqual({
-                directChanges: [{ field: "contactEmail" }, { field: "mauBracket", before: "lt1k", after: "1k_10k" }],
-                pendingChange: { kind: "unchanged" },
-            });
-        });
-
-        it("should request a change holding only the synced fields, each from its live value", () => {
-            expect(classifyEdit(LIVE, null, { ...LIVE, ...PENDING, mauBracket: MauBracket.GT_25K })).toEqual({
-                directChanges: [{ field: "mauBracket", before: "lt1k", after: "gt25k" }],
-                pendingChange: {
-                    kind: "replaced",
-                    change: PENDING,
-                    changes: [
-                        { field: "name", before: "Acme", after: "Acme Wallet" },
-                        { field: "callbackUrls", before: LIVE.callbackUrls, after: PENDING.callbackUrls },
-                        { field: "webOrigins", before: LIVE.webOrigins, after: PENDING.webOrigins },
-                    ],
-                },
-            });
-        });
-
-        it("should keep the pending change when the synced fields equal it as sets", () => {
-            const proposed: DappFields = {
-                ...LIVE,
-                ...PENDING,
-                webOrigins: [...PENDING.webOrigins].reverse(),
-                contactEmail: "ops@acme.xyz",
-            };
-
-            expect(classifyEdit(LIVE, PENDING, proposed)).toEqual({
-                directChanges: [{ field: "contactEmail" }],
-                pendingChange: { kind: "unchanged" },
-            });
-        });
-
-        it("should withdraw the pending change when the synced fields are back to live", () => {
-            expect(classifyEdit(LIVE, PENDING, { ...LIVE, mauBracket: MauBracket.FROM_10K_TO_25K })).toEqual({
-                directChanges: [{ field: "mauBracket", before: "lt1k", after: "10k_25k" }],
-                pendingChange: { kind: "withdrawn" },
-            });
-        });
-
-        it("should replace the pending change with any other synced values", () => {
-            expect(classifyEdit(LIVE, PENDING, { ...LIVE, ...PENDING, name: "Acme Pay" }).pendingChange).toEqual({
                 kind: "replaced",
-                change: { ...PENDING, name: "Acme Pay" },
+                change: { ...LIVE, mauBracket: "1k_10k", contactEmail: "ops@acme.xyz" },
+                changes: [{ field: "contactEmail" }, { field: "mauBracket", before: "lt1k", after: "1k_10k" }],
+            });
+        });
+
+        it("should request a change holding every proposed field, each change from its live value", () => {
+            expect(classifyEdit(LIVE, null, PENDING)).toEqual({
+                kind: "replaced",
+                change: PENDING,
                 changes: [
-                    { field: "name", before: "Acme", after: "Acme Pay" },
+                    { field: "name", before: "Acme", after: "Acme Wallet" },
                     { field: "callbackUrls", before: LIVE.callbackUrls, after: PENDING.callbackUrls },
                     { field: "webOrigins", before: LIVE.webOrigins, after: PENDING.webOrigins },
+                    { field: "mauBracket", before: "lt1k", after: "gt25k" },
+                ],
+            });
+        });
+
+        it("should keep the pending change when the proposal equals it as sets", () => {
+            expect(classifyEdit(LIVE, PENDING, { ...PENDING, webOrigins: [...PENDING.webOrigins].reverse() })).toEqual({
+                kind: "unchanged",
+            });
+        });
+
+        it("should withdraw the pending change when the proposal is back to live", () => {
+            expect(classifyEdit(LIVE, PENDING, { ...LIVE })).toEqual({ kind: "withdrawn" });
+        });
+
+        it("should replace the pending change when only the contact email differs from it", () => {
+            expect(classifyEdit(LIVE, PENDING, { ...PENDING, contactEmail: "ops@acme.xyz" })).toEqual({
+                kind: "replaced",
+                change: { ...PENDING, contactEmail: "ops@acme.xyz" },
+                changes: [
+                    { field: "name", before: "Acme", after: "Acme Wallet" },
+                    { field: "callbackUrls", before: LIVE.callbackUrls, after: PENDING.callbackUrls },
+                    { field: "webOrigins", before: LIVE.webOrigins, after: PENDING.webOrigins },
+                    { field: "contactEmail" },
+                    { field: "mauBracket", before: "lt1k", after: "gt25k" },
                 ],
             });
         });

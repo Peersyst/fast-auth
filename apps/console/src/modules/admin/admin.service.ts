@@ -165,7 +165,7 @@ export class AdminService {
     }
 
     /**
-     * Applies an approved dApp's pending change to its fields and Auth0 client at the expected version.
+     * Applies an approved dApp's pending change to its fields at the expected version, syncing its Auth0 client when a synced field changes.
      * @param id The dApp id.
      * @param expectedVersion The version the admin last read.
      * @returns The updated dApp.
@@ -180,14 +180,17 @@ export class AdminService {
     }
 
     /**
-     * Applies the locked dApp's pending change to its fields and Auth0 client.
+     * Applies the locked dApp's pending change to its fields, syncing its Auth0 client when a synced field changes.
      * @param manager The transaction's entity manager.
      * @param live The locked dApp.
      * @returns The updated dApp.
      */
     private async approveChangeIn(manager: EntityManager, live: Dapp): Promise<Dapp> {
         const change = pendingChangeOf(live);
-        const sync = await this.writes.syncClient(live, change);
+        const sync: Effects =
+            diffSyncedFields(live, change).length > 0
+                ? await this.writes.syncClient(live, syncedFieldsOf(change))
+                : { columns: {}, events: [] };
         const updated = await this.writes.update(manager, live.id, {
             ...change,
             pendingChange: null,
@@ -195,7 +198,7 @@ export class AdminService {
             ...sync.columns,
         });
         await this.writes.appendEvents(manager, live.id, ActorRole.ADMIN, [
-            { type: DappEventType.CHANGE_APPROVED, details: { changes: diffSyncedFields(live, change) } },
+            { type: DappEventType.CHANGE_APPROVED, details: { changes: diffFields(DAPP_FIELDS, live, change) } },
             ...sync.events,
         ]);
         return updated;

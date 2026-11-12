@@ -65,7 +65,7 @@ export const Auth0Op = {
 
 export type Auth0Op = (typeof Auth0Op)[keyof typeof Auth0Op];
 
-/** The fields an approved dApp's owner can change only through a reviewed change, because they sync to Auth0. */
+/** The fields that sync to the dApp's Auth0 client. */
 export interface SyncedFields {
     name: string;
     description: string;
@@ -75,13 +75,11 @@ export interface SyncedFields {
     webOrigins: string[];
 }
 
-/** The fields an owner may change without review. */
-export interface DirectFields {
+/** The fields an owner submits. An approved dApp's owner changes them only through a reviewed change. */
+export interface DappFields extends SyncedFields {
     contactEmail: string;
     mauBracket: MauBracket;
 }
-
-export type DappFields = SyncedFields & DirectFields;
 
 export type DappField = keyof DappFields;
 
