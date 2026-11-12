@@ -16,7 +16,6 @@ import { BusinessException } from "../common/exception/business.exception";
 import { AUTH0_PROVISIONER } from "../provisioning/provisioning.tokens";
 import { ProvisioningError, ProvisioningErrorKind } from "../provisioning/interfaces/i-auth0-provisioner.service";
 import type { IAuth0ProvisionerService } from "../provisioning/interfaces/i-auth0-provisioner.service";
-import { SettingService } from "../setting/setting.service";
 import { DappMetricsProvider, TransitionAction } from "./dapp.metrics";
 import { DappErrorCode } from "./error/dapp.error-codes";
 
@@ -30,10 +29,6 @@ export type Apply<T> = (manager: EntityManager, dapp: Dapp) => Promise<T>;
 export type Effects = { columns: DappChanges; events: DappEventDetails[] };
 
 type Auth0WriteEvent = Extract<DappEventDetails, { type: typeof DappEventType.AUTH0_CREATED | typeof DappEventType.AUTH0_UPDATED }>;
-
-class AutoApprovalTurnedOff extends Error {
-    override readonly name = "AutoApprovalTurnedOff";
-}
 
 class Auth0CallFailed extends Error {
     constructor(
@@ -106,7 +101,6 @@ export class DappWriteService {
 
     constructor(
         @InjectDataSource() private readonly dataSource: DataSource,
-        private readonly settingService: SettingService,
         private readonly metrics: DappMetricsProvider,
         @Inject(AUTH0_PROVISIONER) private readonly provisioner: IAuth0ProvisionerService,
     ) {}
@@ -274,22 +268,20 @@ export class DappWriteService {
     }
 
     /**
-     * Approves a newly chosen dApp as the system unless auto-approval was turned off first. Any failure is logged, not thrown, and leaves the dApp pending.
+     * Approves a newly chosen dApp as the system. Any failure is logged, not thrown, and leaves the dApp pending.
      * @param dapp The new pending dApp.
      * @returns The approved dApp, or null when it stays pending.
      */
     async autoApprove(dapp: Dapp): Promise<Dapp | null> {
         try {
             return await this.counted("autoApprove", () =>
-                this.mutate(DappAction.APPROVE, ActorRole.SYSTEM, { id: dapp.id }, dapp.version, async (manager, live) => {
-                    // Read before the Auth0 calls, so a turned-off switch creates no client.
-                    if (!this.settingService.isAutoApprovalEnabled()) throw new AutoApprovalTurnedOff();
-                    return this.approveIn(manager, live, ActorRole.SYSTEM, DappEventType.AUTO_APPROVED);
-                }),
+                this.mutate(DappAction.APPROVE, ActorRole.SYSTEM, { id: dapp.id }, dapp.version, (manager, live) =>
+                    this.approveIn(manager, live, ActorRole.SYSTEM, DappEventType.AUTO_APPROVED),
+                ),
             );
         } catch (error) {
             const message = `Auto-approval of dApp ${dapp.id} failed, leaving it pending: ${describeError(error)}`;
-            if (error instanceof BusinessException || error instanceof AutoApprovalTurnedOff) this.logger.warn(message);
+            if (error instanceof BusinessException) this.logger.warn(message);
             else this.logger.error(message, error instanceof Error ? error.stack : String(error));
             return null;
         }

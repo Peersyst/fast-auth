@@ -3,7 +3,7 @@ import { buildConfig, validEmail } from "@backend/config";
 export interface AdminConfig {
     /** Lowercased. An admin also needs a verified email. */
     emails: string[];
-    /** The auto-approval switch at startup. Admins change it at runtime. */
+    /** Whether new owners' first dApps are approved without an admin. Read at startup, so a change needs a restart. */
     autoApprovalEnabled: boolean;
 }
 

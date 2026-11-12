@@ -12,7 +12,6 @@ import { HealthModule } from "./modules/health/health.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { DappModule } from "./modules/dapp/dapp.module";
-import { SettingModule } from "./modules/setting/setting.module";
 
 @Module({
     imports: [
@@ -60,7 +59,6 @@ import { SettingModule } from "./modules/setting/setting.module";
         HealthModule,
         DappModule,
         AdminModule,
-        SettingModule,
     ],
     providers: [{ provide: APP_FILTER, useClass: ErrorFilter }],
 })

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { InjectDataSource } from "@nestjs/typeorm";
 import { DataSource, EntityManager } from "typeorm";
 import { Dapp } from "@database/console/entities";
@@ -18,7 +19,6 @@ import {
 import { SessionUser } from "../auth/types/session-user";
 import { BusinessException } from "../common/exception/business.exception";
 import { AdminAlertKind } from "../notification/interfaces/i-slack-notifier.service";
-import { SettingService } from "../setting/setting.service";
 import { DappWriteService, describeError, Effects, refusedOrFailed } from "./dapp-write.service";
 import { DappNotifier } from "./dapp.notifier";
 import { DappErrorCode } from "./error/dapp.error-codes";
@@ -57,7 +57,7 @@ export class DappService {
     constructor(
         @InjectDataSource() private readonly dataSource: DataSource,
         private readonly writes: DappWriteService,
-        private readonly settingService: SettingService,
+        private readonly configService: ConfigService,
         private readonly notifier: DappNotifier,
     ) {}
 
@@ -85,7 +85,8 @@ export class DappService {
                         throw new BusinessException(DappErrorCode.DAPP_ALREADY_EXISTS);
                     // Auto-approval is a first-dApp pass: an email that ever had a dApp, removed ones included, goes to review.
                     const chosen =
-                        this.settingService.isAutoApprovalEnabled() && !(await manager.existsBy(Dapp, { ownerEmail: user.email }));
+                        this.configService.get<boolean>("admin.autoApprovalEnabled", false) &&
+                        !(await manager.existsBy(Dapp, { ownerEmail: user.email }));
                     const { identifiers } = await manager.insert(Dapp, {
                         ...fields,
                         ownerEmail: user.email,
