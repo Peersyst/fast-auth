@@ -84,12 +84,12 @@ A business error answers `{ statusCode, message }`, where `message` is one of th
 
 ### Authentication
 
-A request signs in with `Authorization: Bearer <Auth0 ID token>`; extra whitespace after `Bearer` is accepted. The Passport strategy `auth0` (`src/modules/auth/strategy/auth0-jwt.strategy.ts`) verifies the token with passport-jwt:
+A request signs in with `Authorization: Bearer <Auth0 ID token>`; extra whitespace after `Bearer` is accepted. `Auth0JwtGuard` (`src/modules/auth/guard/auth0-jwt.guard.ts`) verifies the token with jose's `jwtVerify`:
 
 - RS256, issuer `https://<AUTH0_LOGIN_DOMAIN>/`, and audience `AUTH0_CONSOLE_CLIENT_ID`.
 - An email claim is required. The caller is an admin when `email_verified` is true and the lowercased email is in `ADMIN_EMAILS`, and a user otherwise.
 
-The key comes from `src/modules/auth/jwt-key-set.ts`, a jose remote key set for `https://<AUTH0_LOGIN_DOMAIN>/.well-known/jwks.json` behind the `JWT_KEY_SET` token, adapted to passport-jwt by `keyProvider`. A token the key set cannot resolve, a JWKS outage included, answers 401.
+The key comes from `src/modules/auth/jwt-key-set.ts`, a jose remote key set for `https://<AUTH0_LOGIN_DOMAIN>/.well-known/jwks.json` behind the `JWT_KEY_SET` token. A token the key set cannot resolve, a JWKS outage included, answers 401.
 
 Routes are guarded per controller with one of three decorators from `src/modules/auth/decorator/authenticated.decorator.ts`:
 
