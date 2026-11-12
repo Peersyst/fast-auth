@@ -1,7 +1,7 @@
 /**
  * Builds an error shaped like the generated client's `ApiError` for a console error body.
  * @param statusCode The HTTP status.
- * @param message The body's message: the error code for a business error, the refused properties' messages for a validation error.
+ * @param message The body's error code, or the refusals of a request Nest's ValidationPipe rejected.
  * @returns The error.
  */
 export function createApiErrorMock(statusCode: number, message: string | string[]): Error {

@@ -9,6 +9,7 @@ on:
                 options:
                     - attester
                     - console
+                    - console-web
                     - custom-issuer
                     - custom-issuer-go
                     - relayer
@@ -47,6 +48,16 @@ jobs:
             target: release
             base_image: ${{ github.event.inputs.tag }}
 
+    build-console-web:
+        if: ${{ github.event.inputs.package == 'console-web' }}
+        needs: [build-base]
+        uses: ./.github/workflows/build-console-web.yaml
+        secrets: inherit
+        with:
+            push: false
+            target: release
+            base_image: ${{ github.event.inputs.tag }}
+
     build-custom-issuer:
         if: ${{ github.event.inputs.package == 'custom-issuer' }}
         needs: [build-base]
@@ -78,7 +89,7 @@ jobs:
             base_image: ${{ github.event.inputs.tag }}
 
     release:
-        needs: [build-attester, build-console, build-custom-issuer, build-custom-issuer-go, build-relayer]
+        needs: [build-attester, build-console, build-console-web, build-custom-issuer, build-custom-issuer-go, build-relayer]
         name: Github release
         runs-on: ubuntu-latest
         steps:

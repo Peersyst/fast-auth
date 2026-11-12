@@ -1,0 +1,62 @@
+{
+    "name": "@frontend/design-system-react",
+    "author": "Peersyst",
+    "version": "0.0.0",
+    "license": "UNLICENSED",
+    "scripts": {
+        "dev": "tsup --watch",
+        "build": "tsup",
+        "test": "jest --maxWorkers=30% --passWithNoTests",
+        "clean": "rimraf .turbo dist node_modules",
+        "lint": "eslint .",
+        "check-types": "npx tsc --noEmit",
+        "bundle": "genesys bundle"
+    },
+    "exports": {
+        "./core": "./src/core/index.ts",
+        "./styles": "./src/styles/global.css",
+        "./utils": "./src/utils/index.ts",
+        "./icons": "./src/components/icons/index.ts",
+        "./badge": "./src/components/display/badge/index.ts",
+        "./near-auth-logo": "./src/components/display/near-auth-logo/index.ts",
+        "./page-title": "./src/components/display/page-title/index.ts",
+        "./svg-icon": "./src/components/display/svg-icon/index.ts",
+        "./callout": "./src/components/feedback/callout/index.ts",
+        "./dialog": "./src/components/feedback/dialog/index.ts",
+        "./spinner": "./src/components/feedback/spinner/index.ts",
+        "./button": "./src/components/input/button/index.ts",
+        "./copy-button": "./src/components/input/copy-button/index.ts",
+        "./field": "./src/components/input/field/index.ts",
+        "./card": "./src/components/surface/card/index.ts"
+    },
+    "peerDependencies": {
+        "class-variance-authority": "0.7.1",
+        "clsx": "2.1.1",
+        "react": "18.3.1",
+        "tailwind-merge": "3.7.0",
+        "tailwindcss": "4.3.3"
+    },
+    "devDependencies": {
+        "@shared/eslint": "workspace:*",
+        "@shared/tsconfig": "workspace:*",
+        "@shared/tsup": "workspace:*",
+        "@testing-library/dom": "10.4.2",
+        "@testing-library/jest-dom": "7.0.1",
+        "@testing-library/react": "16.3.3",
+        "@testing-library/user-event": "14.6.8",
+        "@types/jest": "29.5.14",
+        "@types/react": "18.3.12",
+        "@types/react-dom": "18.3.7",
+        "class-variance-authority": "0.7.1",
+        "clsx": "2.1.1",
+        "eslint": "8.57.0",
+        "jest": "29.7.0",
+        "jest-environment-jsdom": "29.7.0",
+        "react": "18.3.1",
+        "react-dom": "18.3.1",
+        "tailwind-merge": "3.7.0",
+        "tailwindcss": "4.3.3",
+        "ts-jest": "29.4.9",
+        "typescript": "5.9.3"
+    }
+}

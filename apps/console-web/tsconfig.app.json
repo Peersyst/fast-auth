@@ -1,0 +1,11 @@
+{
+    "extends": "@shared/tsconfig/react",
+    "compilerOptions": {
+        "composite": true,
+        "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+        "useDefineForClassFields": true,
+        "types": ["node", "vite/client", "jest", "@testing-library/jest-dom"]
+    },
+    "include": ["src", "test"],
+    "exclude": ["dist"]
+}
