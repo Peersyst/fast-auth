@@ -5,7 +5,7 @@ import { Spinner } from "@frontend/design-system-react/spinner";
 import { useGetDappEvents } from "@frontend/console-admin/ui/queries";
 import { useTranslate } from "@frontend/locale/react";
 import { DappEventDto } from "@shared/console";
-import { DappEventDetails, FieldChange, FieldValue, FieldValueChange, MauBracket, SYNCED_FIELDS, SyncedFields } from "@shared/modules/dapp";
+import { DappEventDetails, FieldValueChange, SYNCED_FIELDS, SyncedFields } from "@shared/modules/dapp";
 import { RefreshError } from "../../../common/components/feedback/load-error/load-error";
 import { useErrorMessage } from "../../../common/hooks/use-error-message";
 import { formatDateTime } from "../../../common/utils/format";
@@ -47,17 +47,6 @@ const ACTOR_INITIALS = {
 
 type Translate = ReturnType<typeof useTranslate>;
 
-const MAU_BRACKETS: readonly string[] = Object.values(MauBracket);
-
-/**
- * Whether a recorded value is an expected-MAU bracket.
- * @param value The value.
- * @returns `true` for a bracket.
- */
-function isMauBracket(value: string): value is MauBracket {
-    return MAU_BRACKETS.includes(value);
-}
-
 /**
  * Reads an event's details as the type it records, as the console stores them per event type.
  * @param event The event.
@@ -65,22 +54,6 @@ function isMauBracket(value: string): value is MauBracket {
  */
 function detailsOf(event: DappEventDto): DappEventDetails {
     return { type: event.type, details: event.details } as DappEventDetails;
-}
-
-/**
- * Turns an event's field changes into diff rows: brackets as their labels, and the contact email, whose values are not kept, left out.
- * @param changes The changes.
- * @param translate The translate function.
- * @returns The rows.
- */
-function changeRows(changes: FieldChange[], translate: Translate): FieldValueChange[] {
-    return changes.flatMap((change): FieldValueChange[] => {
-        if (change.field === "contactEmail") return [];
-        const { field } = change;
-        const shown = (value: FieldValue): FieldValue =>
-            field === "mauBracket" && typeof value === "string" && isMauBracket(value) ? translate(`dapp.mau.${value}`) : value;
-        return [{ field, before: shown(change.before), after: shown(change.after) }];
-    });
 }
 
 /**
@@ -131,7 +104,8 @@ function EventDetails({ event }: EventDetailsProps): React.JSX.Element | null {
         case "change_requested":
         case "change_approved": {
             const { changes } = recorded.details;
-            const rows = changeRows(changes, translate);
+            // The contact email's values are not kept, so its change shows as a note instead of a row.
+            const rows = changes.filter((change): change is FieldValueChange => change.field !== "contactEmail");
             return (
                 <>
                     {rows.length > 0 && (

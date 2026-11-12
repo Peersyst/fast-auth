@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { useState } from "react";
 import { Trans } from "react-i18next";
 import { Button } from "@frontend/design-system-react/button";
 import { Callout } from "@frontend/design-system-react/callout";
@@ -42,12 +42,6 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
         const key = errors[field]?.message;
         return key && translateError(key as LocaleErrorResource, DAPP_FORM_ERROR_VALUES[field]);
     };
-    const synced = (hint?: ReactNode): ReactNode => (
-        <>
-            {reviewed && <span className="font-semibold text-warning-ink">{translate("dappForm.waitsForReview")}</span>}
-            {hint}
-        </>
-    );
     const tag = (kind: "required" | "optional"): { tag: "required" | "optional"; tagText: string } => ({
         tag: kind,
         tagText: translate(`dappForm.${kind}`),
@@ -78,7 +72,7 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
                 <Field
                     label={translate("dappForm.name.label")}
                     {...tag("required")}
-                    hint={synced(<Trans i18nKey="dappForm.name.hint" values={{ max: NAME_MAX_LENGTH }} components={{ em: <em /> }} />)}
+                    hint={<Trans i18nKey="dappForm.name.hint" values={{ max: NAME_MAX_LENGTH }} components={{ em: <em /> }} />}
                     error={fieldError("name")}
                 >
                     {(control) => (
@@ -88,7 +82,7 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
                 <Field
                     label={translate("dappForm.description.label")}
                     {...tag("optional")}
-                    hint={synced(translate("dappForm.description.hint", { max: DESCRIPTION_MAX_LENGTH }))}
+                    hint={translate("dappForm.description.hint", { max: DESCRIPTION_MAX_LENGTH })}
                     error={fieldError("description")}
                 >
                     {(control) => (
@@ -103,7 +97,7 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
                 <Field
                     label={translate("dappForm.logoUrl.label")}
                     {...tag("required")}
-                    hint={synced(translate("dappForm.logoUrl.hint"))}
+                    hint={translate("dappForm.logoUrl.hint")}
                     error={fieldError("logoUrl")}
                 >
                     {(control) => (
@@ -147,14 +141,14 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
                 <UrlListField
                     form={form}
                     name="callbackUrls"
-                    hint={synced(<Trans i18nKey="dappForm.callbackUrls.hint" components={{ code: <code className={CODE} /> }} />)}
+                    hint={<Trans i18nKey="dappForm.callbackUrls.hint" components={{ code: <code className={CODE} /> }} />}
                 />
                 <UrlListField
                     form={form}
                     name="logoutUrls"
-                    hint={synced(<Trans i18nKey="dappForm.logoutUrls.hint" components={{ code: <code className={CODE} /> }} />)}
+                    hint={<Trans i18nKey="dappForm.logoutUrls.hint" components={{ code: <code className={CODE} /> }} />}
                 />
-                <UrlListField form={form} name="webOrigins" hint={synced(translate("dappForm.webOrigins.hint"))} />
+                <UrlListField form={form} name="webOrigins" hint={translate("dappForm.webOrigins.hint")} />
             </fieldset>
 
             <fieldset className={SECTION}>

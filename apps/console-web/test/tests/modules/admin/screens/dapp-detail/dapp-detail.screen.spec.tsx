@@ -1,7 +1,8 @@
 import userEvent from "@testing-library/user-event";
 import { Link } from "react-router";
 import { ADMIN_DAPP_ID_MOCK as DAPP_ID, AdminDappMock } from "@shared/console/test/mocks/admin";
-import { AdminDappDto, DappEventDto } from "@shared/console";
+import { AdminDappDto, DappEventDto, DappFieldsDto } from "@shared/console";
+import { syncedFieldsOf } from "@shared/modules/dapp";
 import { formatDateTime } from "../../../../../../src/modules/common/utils/format";
 import { DappDetailScreen } from "../../../../../../src/modules/admin/screens/dapp-detail/dapp-detail.screen";
 import { DappsListScreen } from "../../../../../../src/modules/admin/screens/dapps-list/dapps-list.screen";
@@ -31,13 +32,15 @@ function renderApp(routes: Parameters<typeof renderRoutes>[0], path: string): Re
 const PATH = `/api/console/admin/dapps/${DAPP_ID}`;
 const AT = "2026-10-04T10:00:00.000Z";
 const MISMATCH = "Auth0 client c1 is not tagged with dApp 0d9f3b8e for console-test";
-const PENDING_CHANGE = {
+const PENDING_CHANGE: DappFieldsDto = {
     name: "Acme Pay",
     description: "A wallet for NEAR.",
     logoUrl: "https://cdn.acme.xyz/logo.png",
     callbackUrls: ["https://app.acme.xyz/callback"],
     logoutUrls: [],
     webOrigins: ["https://app.acme.xyz"],
+    contactEmail: "dev@acme.xyz",
+    mauBracket: "1k_10k",
 };
 
 const REMOVED = adminDapp({ status: "removed", auth0ClientId: "abcDEF123", removedAt: AT });
@@ -147,7 +150,12 @@ describe("DappDetailScreen", () => {
     });
 
     it("should review a pending change from its diff", async () => {
-        const pendingChange = { ...PENDING_CHANGE, logoUrl: "https://cdn.acme.xyz/pay.png" };
+        const pendingChange: DappFieldsDto = {
+            ...PENDING_CHANGE,
+            logoUrl: "https://cdn.acme.xyz/pay.png",
+            contactEmail: "ops@acme.xyz",
+            mauBracket: "gt25k",
+        };
         const dapp = adminDapp({ status: "approved", auth0ClientId: "client-abc", pendingChange, version: 7 });
         const api = renderDetail(dapp, {
             [`POST ${PATH}/change/approve`]: { body: { ...dapp, pendingChange: null, version: 8 } },
@@ -156,6 +164,8 @@ describe("DappDetailScreen", () => {
 
         const review = await screen.findByRole("region", { name: "Change under review" });
         expect(within(review).getByRole("row", { name: /Name/ })).toHaveTextContent("Acme WalletAcme Pay");
+        expect(within(review).getByRole("row", { name: /Contact/ })).toHaveTextContent("Contactdev@acme.xyzops@acme.xyz");
+        expect(within(review).getByRole("row", { name: /Expected MAU/ })).toHaveTextContent("Expected MAU1,000 – 10,000More than 25,000");
         expect(within(review).getByRole("img", { name: "Proposed logo of Acme Pay" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Edit" })).toBeDisabled();
 
@@ -430,7 +440,7 @@ describe("DappDetailScreen", () => {
             {
                 id: "12",
                 type: "auth0_updated",
-                details: { clientId: "cid-new", payload: { ...PENDING_CHANGE, name: "Acme Cash" } },
+                details: { clientId: "cid-new", payload: { ...syncedFieldsOf(PENDING_CHANGE), name: "Acme Cash" } },
                 ...system,
             },
             {
@@ -453,7 +463,7 @@ describe("DappDetailScreen", () => {
                 details: { changes: [{ field: "mauBracket", before: "lt1k", after: "1k_10k" }, { field: "contactEmail" }] },
                 ...admin,
             },
-            { id: "6", type: "auth0_created", details: { clientId: "cid-new", payload: PENDING_CHANGE }, ...system },
+            { id: "6", type: "auth0_created", details: { clientId: "cid-new", payload: syncedFieldsOf(PENDING_CHANGE) }, ...system },
             { id: "5", type: "auto_approved", details: {}, ...system },
             { id: "4", type: "approved", details: {}, ...admin },
             { id: "3", type: "resubmitted", details: {}, ...owner },
@@ -620,7 +630,6 @@ describe("DappDetailScreen", () => {
     it("should go back to the list it was opened from, with its view, search, page and sort", async () => {
         mockApi({
             "GET /api/console/admin/dapps": { body: { items: [adminDapp()], totalItems: 45, currentPage: 2, pages: 3 } },
-            "GET /api/console/admin/settings": { body: { autoApproval: { enabled: false } } },
             [`GET ${PATH}`]: { body: adminDapp() },
             [`GET ${PATH}/events`]: { body: [] },
         });

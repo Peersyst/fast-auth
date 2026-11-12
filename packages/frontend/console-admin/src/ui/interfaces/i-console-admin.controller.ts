@@ -1,13 +1,4 @@
-import {
-    AdminDappDto,
-    DappEventDto,
-    DappOrderBy,
-    DappStatus,
-    OrderType,
-    PaginatedDappsDto,
-    SettingsDto,
-    UpdateDappRequest,
-} from "@shared/console";
+import { AdminDappDto, DappEventDto, DappOrderBy, DappStatus, OrderType, PaginatedDappsDto, UpdateDappRequest } from "@shared/console";
 
 export type ListDappsParams = {
     page: number;
@@ -91,15 +82,4 @@ export interface IConsoleAdminController {
      * @returns The removed dApp.
      */
     removeDapp(params: DappActionParams): Promise<AdminDappDto>;
-    /**
-     * Gets the console's settings.
-     * @returns The settings.
-     */
-    getSettings(): Promise<SettingsDto>;
-    /**
-     * Turns auto-approval of new submissions on or off.
-     * @param enabled Whether auto-approval is on.
-     * @returns The settings after the change.
-     */
-    setAutoApproval(enabled: boolean): Promise<SettingsDto>;
 }

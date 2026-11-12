@@ -1,17 +1,20 @@
 import userEvent from "@testing-library/user-event";
 import { DomainError } from "@frontend/core/domain/error";
 import { ConsoleDappErrors } from "@frontend/console-dapp/domain/errors";
+import { DappFieldsDto } from "@shared/console";
 import { OwnerDappMock } from "@shared/console/test/mocks/dapp";
 import { DappForm } from "../../../../../../src/modules/dapp/containers/dapp-form/dapp-form";
 import { render, screen, within } from "../../../../../utils";
 
-const PROPOSED = {
+const PROPOSED: DappFieldsDto = {
     name: "Acme Wallet 2",
     description: "A better wallet.",
     logoUrl: "https://cdn.acme.xyz/logo-2.png",
     callbackUrls: ["https://app.acme.xyz/callback", "https://app.acme.xyz/silent"],
     logoutUrls: [],
     webOrigins: ["https://app.acme.xyz"],
+    contactEmail: "ops@acme.xyz",
+    mauBracket: "gt25k",
 };
 
 describe("DappForm", () => {
@@ -121,35 +124,21 @@ describe("DappForm", () => {
         });
     });
 
-    it("should show an approved dApp's pending change and mark the fields that wait for review", () => {
+    it("should start an approved dApp's owner from the pending change in every field", () => {
         const dapp = new OwnerDappMock({ status: "approved", auth0ClientId: "client-1", pendingChange: PROPOSED });
         render(<DappForm mode="owner" values={dapp} saveLabel="Save changes" onSave={jest.fn()} onCancel={jest.fn()} />);
 
         expect(screen.getByLabelText("Application name")).toHaveValue("Acme Wallet 2");
         expect(screen.getByLabelText("Callback URL 2")).toHaveValue("https://app.acme.xyz/silent");
-        for (const field of ["Application name", "Application description", "Application logo"]) {
-            expect(screen.getByLabelText(field)).toHaveAccessibleDescription(expect.stringMatching(/^Changes wait for review\./));
-        }
-        for (const list of ["Callback URLs", "Logout URLs", "Web origins"]) {
-            expect(screen.getByRole("group", { name: list })).toHaveAccessibleDescription(
-                expect.stringMatching(/^Changes wait for review\./),
-            );
-        }
-        expect(screen.getByLabelText("Primary contact email")).not.toHaveAccessibleDescription(expect.stringContaining("review"));
-        expect(screen.getByLabelText("Expected monthly active users")).not.toHaveAccessibleDescription(expect.stringContaining("review"));
+        expect(screen.getByLabelText("Primary contact email")).toHaveValue("ops@acme.xyz");
+        expect(screen.getByLabelText("Expected monthly active users")).toHaveValue("gt25k");
     });
 
-    it("should not mark fields for review on a pending dApp or for an admin", () => {
-        const { unmount } = render(
-            <DappForm mode="owner" values={new OwnerDappMock()} saveLabel="Save changes" onSave={jest.fn()} onCancel={jest.fn()} />,
-        );
-        expect(screen.getByLabelText("Application name")).not.toHaveAccessibleDescription(expect.stringContaining("review"));
-        unmount();
-
-        const approved = new OwnerDappMock({ status: "approved", auth0ClientId: "client-1" });
+    it("should show an admin an approved dApp's live values and warn that saving updates Auth0", () => {
+        const approved = new OwnerDappMock({ status: "approved", auth0ClientId: "client-1", pendingChange: PROPOSED });
         render(<DappForm mode="admin" values={approved} saveLabel="Save changes" onSave={jest.fn()} onCancel={jest.fn()} />);
+
         expect(screen.getByLabelText("Application name")).toHaveValue("Acme Wallet");
-        expect(screen.getByLabelText("Application name")).not.toHaveAccessibleDescription(expect.stringContaining("review"));
         expect(screen.getByText("Changes to the name, description, logo or URLs update its Auth0 client at once.")).toBeInTheDocument();
     });
 

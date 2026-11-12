@@ -1,18 +1,20 @@
 import userEvent from "@testing-library/user-event";
+import { DappFieldsDto } from "@shared/console";
 import { AdminDappMock } from "@shared/console/test/mocks/admin";
 import { formatDateTime } from "../../../../../../src/modules/common/utils/format";
 import { DappsListScreen } from "../../../../../../src/modules/admin/screens/dapps-list/dapps-list.screen";
 import { act, apiError, mockApi, MockRoutes, refocus, renderRoutes, screen, SentRequest, waitFor, within } from "../../../../../utils";
 
 const LIST = "GET /api/console/admin/dapps";
-const SETTINGS = { body: { autoApproval: { enabled: false } } };
-const pendingChange = {
+const pendingChange: DappFieldsDto = {
     name: "Acme Pay",
     description: "",
     logoUrl: "https://cdn.acme.xyz/pay.png",
     callbackUrls: ["https://app.acme.xyz/callback"],
     logoutUrls: [],
     webOrigins: ["https://app.acme.xyz"],
+    contactEmail: "dev@acme.xyz",
+    mauBracket: "1k_10k",
 };
 
 const ONE_DAPP = { body: { items: [new AdminDappMock()], totalItems: 1, currentPage: 1, pages: 1 } };
@@ -30,7 +32,6 @@ function renderList(routes: MockRoutes = {}): ReturnType<typeof mockApi> {
     ];
     const api = mockApi({
         [LIST]: { body: { items, totalItems: 45, currentPage: 1, pages: 3 } },
-        "GET /api/console/admin/settings": SETTINGS,
         ...routes,
     });
     renderRoutes([{ path: "/admin/dapps", element: <DappsListScreen /> }], "/admin/dapps");
@@ -168,7 +169,7 @@ describe("DappsListScreen", () => {
 
     it("should show the URL's search in the search box after Back", async () => {
         const user = userEvent.setup();
-        const api = mockApi({ [LIST]: ONE_DAPP, "GET /api/console/admin/settings": SETTINGS });
+        const api = mockApi({ [LIST]: ONE_DAPP });
         const router = renderRoutes([{ path: "/admin/dapps", element: <DappsListScreen /> }], "/admin/dapps?view=all&q=old");
         const box = await screen.findByRole("searchbox", { name: "Search dApps" });
         expect(box).toHaveValue("old");
@@ -279,7 +280,6 @@ describe("DappsListScreen", () => {
                 const page = Number(request.query.get("page"));
                 return { body: { items: page > 1 ? [] : [new AdminDappMock()], totalItems: 20, currentPage: page, pages: 1 } };
             },
-            "GET /api/console/admin/settings": SETTINGS,
         });
         renderRoutes([{ path: "/admin/dapps", element: <DappsListScreen /> }], "/admin/dapps?page=3");
 
@@ -292,7 +292,6 @@ describe("DappsListScreen", () => {
     it("should clamp a page past the API's maximum", async () => {
         const api = mockApi({
             [LIST]: { body: { items: [new AdminDappMock()], totalItems: 1, currentPage: 10000, pages: 10000 } },
-            "GET /api/console/admin/settings": SETTINGS,
         });
         renderRoutes([{ path: "/admin/dapps", element: <DappsListScreen /> }], "/admin/dapps?page=99999");
 

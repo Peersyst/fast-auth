@@ -12,6 +12,4 @@ export const ConsoleAdminControllerMock = createMock<IConsoleAdminController>({
     approveChange: new MethodMock("mockResolvedValue", new AdminDappMock({ status: "approved", version: 4 })),
     rejectChange: new MethodMock("mockResolvedValue", new AdminDappMock({ status: "approved", version: 4 })),
     removeDapp: new MethodMock("mockResolvedValue", new AdminDappMock({ status: "removed", version: 4 })),
-    getSettings: new MethodMock("mockResolvedValue", { autoApproval: { enabled: false } }),
-    setAutoApproval: new MethodMock("mockResolvedValue", { autoApproval: { enabled: true } }),
 });

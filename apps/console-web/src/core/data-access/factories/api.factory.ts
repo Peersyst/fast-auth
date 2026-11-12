@@ -3,16 +3,15 @@ import { getInstance } from "@frontend/core/common/utils/singleton";
 import { withSessionRenewal } from "@frontend/console-auth/data-access/api";
 import { ConsoleAuthController } from "@frontend/console-auth/domain/controllers";
 import { IConsoleAuthApi } from "@frontend/console-auth/domain/interfaces";
-import { IConsoleAdminApi, IConsoleSettingApi } from "@frontend/console-admin/domain/interfaces";
+import { IConsoleAdminApi } from "@frontend/console-admin/domain/interfaces";
 import { IConsoleDappApi } from "@frontend/console-dapp/domain/interfaces";
-import { AdminApi, AuthApi, DappApi, SettingApi } from "@shared/console";
+import { AdminApi, AuthApi, DappApi } from "@shared/console";
 
 declare module "@frontend/core/data-access/api/factory" {
     export interface IApiFactory {
         consoleAuthApi: IConsoleAuthApi;
         consoleDappApi: IConsoleDappApi;
         consoleAdminApi: IConsoleAdminApi;
-        consoleSettingApi: IConsoleSettingApi;
     }
 }
 
@@ -26,7 +25,6 @@ ApiFactory.create({
     consoleAuthApi: () => withSessionRenewal(AuthApi, renewSession),
     consoleDappApi: () => withSessionRenewal(DappApi, renewSession),
     consoleAdminApi: () => withSessionRenewal(AdminApi, renewSession),
-    consoleSettingApi: () => withSessionRenewal(SettingApi, renewSession),
 });
 
 export { ApiFactory } from "@frontend/core/data-access/api/factory";

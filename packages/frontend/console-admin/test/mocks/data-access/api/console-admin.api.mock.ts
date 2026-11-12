@@ -1,5 +1,5 @@
 import { createMock, MethodMock } from "@shared/test";
-import { IConsoleAdminApi, IConsoleSettingApi } from "../../../../src/domain/interfaces";
+import { IConsoleAdminApi } from "../../../../src/domain/interfaces";
 import { AdminDappMock } from "@shared/console/test/mocks/admin";
 
 export const ConsoleAdminApiMock = createMock<IConsoleAdminApi>({
@@ -12,9 +12,4 @@ export const ConsoleAdminApiMock = createMock<IConsoleAdminApi>({
     rejectChange: new MethodMock("mockResolvedValue", new AdminDappMock({ status: "approved", version: 4 })),
     remove: new MethodMock("mockResolvedValue", new AdminDappMock({ status: "removed", version: 4 })),
     listEvents: new MethodMock("mockResolvedValue", []),
-});
-
-export const ConsoleSettingApiMock = createMock<IConsoleSettingApi>({
-    get: new MethodMock("mockResolvedValue", { autoApproval: { enabled: false } }),
-    update: new MethodMock("mockResolvedValue", { autoApproval: { enabled: true } }),
 });

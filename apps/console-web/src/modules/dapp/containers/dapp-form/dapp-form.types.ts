@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { z } from "zod";
-import { DappStatus, SyncedFieldsDto, UpsertDappRequest } from "@shared/console";
+import { DappStatus, DappFieldsDto, UpsertDappRequest } from "@shared/console";
 import {
     DESCRIPTION_MAX_LENGTH,
     isLogoUrl,
@@ -93,7 +93,7 @@ export const DAPP_FORM_ERROR_VALUES: Partial<Record<DappFormField, { min?: numbe
     webOrigins: URL_LIST_RULES.webOrigins,
 };
 
-export type EditedDapp = UpsertDappRequest & { status: DappStatus; pendingChange: SyncedFieldsDto | null };
+export type EditedDapp = UpsertDappRequest & { status: DappStatus; pendingChange: DappFieldsDto | null };
 
 export type DappFormProps = {
     mode: "owner" | "admin";

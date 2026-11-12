@@ -8,5 +8,4 @@ export const consoleAdminQueryKeys = {
     list: (params: ListDappsParams) => [...consoleAdminQueryKeys.dapps(), "list", params] as const,
     detail: (id: string) => [...consoleAdminQueryKeys.dapps(), "detail", id] as const,
     events: (id: string) => [...consoleAdminQueryKeys.dapps(), "detail", id, "events"] as const,
-    settings: () => [...consoleAdminQueryKeys.all, "settings"] as const,
 };

@@ -2,14 +2,13 @@ import { Button } from "@frontend/design-system-react/button";
 import { Card, CardHeader } from "@frontend/design-system-react/card";
 import { ClockIcon } from "@frontend/design-system-react/icons";
 import { useTranslate } from "@frontend/locale/react";
-import { OwnerDappDto, SyncedFieldsDto } from "@shared/console";
-import { diffSyncedFields } from "@shared/modules/dapp";
+import { OwnerDappDto, DappFieldsDto } from "@shared/console";
 import { formatDateTime } from "../../../common/utils/format";
-import { ChangeDiff } from "../change-diff/change-diff";
+import { ChangeDiff, pendingChangeRows } from "../change-diff/change-diff";
 
 export type ChangeUnderReviewProps = {
     live: OwnerDappDto;
-    change: SyncedFieldsDto;
+    change: DappFieldsDto;
     onWithdraw: () => void;
 };
 
@@ -31,7 +30,7 @@ export function ChangeUnderReview({ live, change, onWithdraw }: ChangeUnderRevie
             <div className="flex flex-col gap-4 px-6 py-5 text-base">
                 <p>{translate("myDapp.changeUnderReview.description")}</p>
                 <ChangeDiff
-                    rows={diffSyncedFields(live, change)}
+                    rows={pendingChangeRows(live, change)}
                     beforeLabel={translate("dapp.diff.live")}
                     afterLabel={translate("dapp.diff.proposed")}
                 />

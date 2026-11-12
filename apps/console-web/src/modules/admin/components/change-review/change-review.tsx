@@ -2,14 +2,13 @@ import { Button } from "@frontend/design-system-react/button";
 import { Card, CardBody, CardHeader } from "@frontend/design-system-react/card";
 import { CheckIcon } from "@frontend/design-system-react/icons";
 import { useTranslate } from "@frontend/locale/react";
-import { AdminDappDto, SyncedFieldsDto } from "@shared/console";
-import { diffSyncedFields } from "@shared/modules/dapp";
+import { AdminDappDto, DappFieldsDto } from "@shared/console";
 import { formatDateTime } from "../../../common/utils/format";
-import { ChangeDiff } from "../../../dapp/components/change-diff/change-diff";
+import { ChangeDiff, pendingChangeRows } from "../../../dapp/components/change-diff/change-diff";
 
 export type ChangeReviewProps = {
     dapp: AdminDappDto;
-    change: SyncedFieldsDto;
+    change: DappFieldsDto;
     onApprove: () => void;
     onReject: () => void;
 };
@@ -28,7 +27,7 @@ export function ChangeReview({ dapp, change, onApprove, onReject }: ChangeReview
             </CardHeader>
             <CardBody>
                 <ChangeDiff
-                    rows={diffSyncedFields(dapp, change)}
+                    rows={pendingChangeRows(dapp, change)}
                     beforeLabel={translate("dapp.diff.live")}
                     afterLabel={translate("dapp.diff.proposed")}
                 />

@@ -110,7 +110,7 @@
             "tip": "Use the {{network}} account ids when you construct the client. See <resources>{{name}} resources</resources>."
         },
         "settings": "Application settings",
-        "approvalRule": "Changes to the contact email and monthly active users apply at once. Changes to the name, description, logo or URLs go live once the NEAR Auth team approves them.",
+        "approvalRule": "Changes go live once the NEAR Auth team approves them.",
         "edit": {
             "action": "Edit",
             "back": "Back to My dApp",
@@ -223,7 +223,7 @@
                 "description": "This creates its Auth0 application. The dApp can authenticate real users immediately.",
                 "confirm": "Approve and provision",
                 "application": "Auth0 application",
-                "note": "Later owner changes to the name, description, logo or URLs come back for review; contact email and MAU changes apply at once. You can remove the dApp at any time."
+                "note": "Later owner changes come back for review. You can remove the dApp at any time."
             },
             "rejectDialog": {
                 "title": "Reject {{name}}?",
@@ -232,7 +232,7 @@
             },
             "approveChangeDialog": {
                 "title": "Approve the change?",
-                "description": "This updates the Auth0 application with the proposed values.",
+                "description": "This applies the proposed values. The Auth0 application is updated when the name, description, logo or URLs change.",
                 "confirm": "Approve change"
             },
             "rejectChangeDialog": {
@@ -312,23 +312,6 @@
                     "user": "by the owner"
                 }
             }
-        },
-        "autoApproval": {
-            "label": "Auto-approve new submissions",
-            "hint": "When on, a new dApp from a first-time owner is approved at once. dApps already pending are not affected.",
-            "on": "On",
-            "off": "Off",
-            "loadError": "The setting could not be loaded",
-            "notChanged": "Not changed",
-            "confirmTitle": "Turn on auto-approval?",
-            "confirmDescription": "New submissions are approved and provisioned the moment they arrive: an Auth0 application is created with nobody reviewing it.",
-            "confirm": "Turn on auto-approval",
-            "points": {
-                "alerts": "Each auto-approval alerts the admins on Slack.",
-                "pending": "The dApps already pending stay in the queue for manual review.",
-                "changes": "Resubmissions and changes to approved dApps still wait for review.",
-                "returning": "A new dApp from an owner whose email has an earlier dApp, whatever its status, always goes to an admin."
-            }
         }
     },
     "copy": {
@@ -384,7 +367,6 @@
         "optional": "optional",
         "liveTitle": "This dApp is live",
         "liveDescription": "Changes to the name, description, logo or URLs update its Auth0 client at once.",
-        "waitsForReview": "Changes wait for review. ",
         "application": {
             "title": "Application",
             "hint": "Shown to your users on the NEAR Auth login and transaction-approval screens."

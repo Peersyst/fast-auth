@@ -1,7 +1,7 @@
 import { Controller } from "@frontend/core/domain/controller";
 import { ApiErrors, DefaultError } from "@frontend/core/domain/error/decorators";
 import { OwnerDappDto, UpsertDappRequest } from "@shared/console";
-import { directFieldsOf, syncedFieldsOf } from "@shared/modules/dapp";
+import { syncedFieldsOf } from "@shared/modules/dapp";
 import { EditDappParams, IConsoleDappController, RemoveDappParams, WithdrawChangeParams } from "../../ui/interfaces";
 import { CONSOLE_DAPP_API_ERRORS, ConsoleDappErrors } from "../console-dapp.errors";
 import { IConsoleDappApi } from "../interfaces";
@@ -42,7 +42,10 @@ export class ConsoleDappController implements IConsoleDappController {
      * @inheritdoc
      */
     withdrawChange({ dapp, expectedVersion }: WithdrawChangeParams): Promise<OwnerDappDto> {
-        return this.editDapp({ id: dapp.id, request: { ...syncedFieldsOf(dapp), ...directFieldsOf(dapp), expectedVersion } });
+        return this.editDapp({
+            id: dapp.id,
+            request: { ...syncedFieldsOf(dapp), contactEmail: dapp.contactEmail, mauBracket: dapp.mauBracket, expectedVersion },
+        });
     }
 
     /**

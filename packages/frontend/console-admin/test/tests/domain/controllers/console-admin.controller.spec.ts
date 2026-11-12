@@ -1,7 +1,7 @@
 import { DomainError } from "@frontend/core/domain/error";
 import { ConsoleAdminController } from "../../../../src/domain/controllers";
 import { ConsoleAdminErrors } from "../../../../src/domain/console-admin.errors";
-import { ConsoleAdminApiMock, ConsoleSettingApiMock } from "../../../mocks/data-access/api";
+import { ConsoleAdminApiMock } from "../../../mocks/data-access/api";
 import { ADMIN_DAPP_ID_MOCK, AdminDappMock } from "@shared/console/test/mocks/admin";
 import { createApiErrorMock } from "@shared/console/test/mocks/common";
 
@@ -9,13 +9,11 @@ const ID = ADMIN_DAPP_ID_MOCK;
 
 describe("ConsoleAdminController", () => {
     const consoleAdminApiMock = new ConsoleAdminApiMock();
-    const consoleSettingApiMock = new ConsoleSettingApiMock();
 
-    const controller = new ConsoleAdminController(consoleAdminApiMock, consoleSettingApiMock);
+    const controller = new ConsoleAdminController(consoleAdminApiMock);
 
     beforeEach(() => {
         consoleAdminApiMock.clearMocks();
-        consoleSettingApiMock.clearMocks();
     });
 
     describe("listDapps", () => {
@@ -161,17 +159,6 @@ describe("ConsoleAdminController", () => {
             await expect(controller.removeDapp({ id: ID, expectedVersion: 3 })).rejects.toEqual(
                 new DomainError(ConsoleAdminErrors.SERVER_ERROR),
             );
-        });
-    });
-
-    describe("settings", () => {
-        it("should return the settings", async () => {
-            await expect(controller.getSettings()).resolves.toEqual({ autoApproval: { enabled: false } });
-        });
-
-        it("should turn auto-approval on", async () => {
-            await expect(controller.setAutoApproval(true)).resolves.toEqual({ autoApproval: { enabled: true } });
-            expect(consoleSettingApiMock.update).toHaveBeenCalledWith({ autoApproval: { enabled: true } });
         });
     });
 });

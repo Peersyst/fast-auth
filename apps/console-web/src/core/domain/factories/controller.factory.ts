@@ -25,7 +25,7 @@ ControllerFactory.create({
     settingsController: () => new SettingsController(RepositoryFactory.settingsRepository, StateManager.states.settings),
     consoleAuthController: () => new ConsoleAuthController(ApiFactory.consoleAuthApi, ServiceFactory.auth0Service),
     consoleDappController: () => new ConsoleDappController(ApiFactory.consoleDappApi),
-    consoleAdminController: () => new ConsoleAdminController(ApiFactory.consoleAdminApi, ApiFactory.consoleSettingApi),
+    consoleAdminController: () => new ConsoleAdminController(ApiFactory.consoleAdminApi),
 });
 
 export { ControllerFactory } from "@frontend/core/domain/controller/factory";

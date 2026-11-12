@@ -10,7 +10,6 @@ import { MAX_PAGE, SEARCH_MAX_LENGTH } from "@shared/modules/dapp";
 import { LoadError, RefreshError } from "../../../common/components/feedback/load-error/load-error";
 import { LoadingScreen } from "../../../common/components/feedback/loading-screen/loading-screen";
 import { DappsTable, DappsTableDateColumn } from "../../components/dapps-table/dapps-table";
-import { AutoApprovalSwitch } from "../../containers/auto-approval-switch/auto-approval-switch";
 
 type View = "review" | DappStatus | "all";
 
@@ -115,7 +114,6 @@ export function DappsListScreen(): React.JSX.Element {
                     <PageTitle size="medium">{translate("admin.dapps.title")}</PageTitle>
                     <p className="text-base text-ink-subtle">{translate("admin.dapps.description")}</p>
                 </div>
-                <AutoApprovalSwitch />
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3">

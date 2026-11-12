@@ -1,4 +1,5 @@
 import userEvent, { UserEvent } from "@testing-library/user-event";
+import { DappFieldsDto } from "@shared/console";
 import { DAPP_ID_MOCK, OwnerDappMock } from "@shared/console/test/mocks/dapp";
 import { MyDappScreen } from "../../../../../../src/modules/dapp/screens/my-dapp/my-dapp.screen";
 import { apiError, mockApi, mockNearNetwork, MockRoutes, refocus, renderRoutes, screen, waitFor, within } from "../../../../../utils";
@@ -30,13 +31,15 @@ async function fillValidForm(user: UserEvent): Promise<void> {
 const PUT_DAPP = `PUT /api/console/dapp/${DAPP_ID_MOCK}`;
 const DELETE_DAPP = `DELETE /api/console/dapp/${DAPP_ID_MOCK}`;
 
-const CHANGE = {
+const CHANGE: DappFieldsDto = {
     name: "Acme Wallet",
     description: "A wallet for NEAR.",
     logoUrl: "https://cdn.acme.xyz/logo.png",
     callbackUrls: ["https://app.acme.xyz/callback", "https://app.acme.xyz/silent"],
     logoutUrls: [],
     webOrigins: ["https://app.acme.xyz"],
+    contactEmail: "ops@acme.xyz",
+    mauBracket: "gt25k",
 };
 
 /**
@@ -192,8 +195,11 @@ describe("MyDappScreen", () => {
         });
 
         expect(await screen.findByText(/Your live settings stay as they are until the NEAR Auth team approves it/)).toBeInTheDocument();
-        const proposed = within(screen.getByRole("table")).getByRole("row", { name: /Callback URLs/ });
-        expect(proposed).toHaveTextContent("https://app.acme.xyz/silent");
+        expect(screen.getByText("Changes go live once the NEAR Auth team approves them.")).toBeInTheDocument();
+        const diff = screen.getByRole("table");
+        expect(within(diff).getByRole("row", { name: /Callback URLs/ })).toHaveTextContent("https://app.acme.xyz/silent");
+        expect(within(diff).getByRole("row", { name: /Contact/ })).toHaveTextContent("Contactdev@acme.xyzops@acme.xyz");
+        expect(within(diff).getByRole("row", { name: /Expected MAU/ })).toHaveTextContent("Expected MAU1,000 – 10,000More than 25,000");
         await user.click(screen.getByRole("button", { name: "Withdraw change" }));
         expect(screen.getByRole("dialog")).toHaveAccessibleDescription(
             "The NEAR Auth team will not review it, and your live settings stay as they are.",

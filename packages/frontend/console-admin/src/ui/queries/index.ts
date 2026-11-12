@@ -2,8 +2,6 @@ export * from "./console-admin.queries";
 export * from "./use-get-dapps";
 export * from "./use-get-dapp";
 export * from "./use-get-dapp-events";
-export * from "./use-get-settings";
-export * from "./use-set-auto-approval";
 export * from "./use-admin-edit-dapp";
 export * from "./use-approve-dapp";
 export * from "./use-reject-dapp";

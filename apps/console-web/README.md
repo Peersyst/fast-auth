@@ -1,6 +1,6 @@
 # Console Web
 
-React web app of the NEAR Auth Console. A dApp team signs in with Auth0, registers its dApp, follows its review and copies its credentials. An admin reviews, edits, approves, rejects and removes dApps and switches auto-approval. It talks only to the console API under `/api/console`, at `BACKEND_URL`.
+React web app of the NEAR Auth Console. A dApp team signs in with Auth0, registers its dApp, follows its review and copies its credentials. An admin reviews, edits, approves, rejects and removes dApps. It talks only to the console API under `/api/console`, at `BACKEND_URL`.
 
 ## Getting Started
 

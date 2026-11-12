@@ -1,5 +1,5 @@
 import { DomainError } from "@frontend/core/domain/error";
-import { UpsertDappRequest } from "@shared/console";
+import { DappFieldsDto, UpsertDappRequest } from "@shared/console";
 import { ConsoleDappController } from "../../../../src/domain/controllers";
 import { ConsoleDappErrors } from "../../../../src/domain/console-dapp.errors";
 import { ConsoleDappApiMock } from "../../../mocks/data-access/api";
@@ -18,13 +18,15 @@ describe("ConsoleDappController", () => {
         contactEmail: "dev@acme.xyz",
     };
 
-    const change = {
+    const change: DappFieldsDto = {
         name: "Acme Pay",
         description: "A wallet for NEAR.",
         logoUrl: "https://cdn.acme.xyz/pay.png",
         callbackUrls: ["https://app.acme.xyz/callback", "https://app.acme.xyz/silent"],
         logoutUrls: [],
         webOrigins: ["https://app.acme.xyz"],
+        contactEmail: "ops@acme.xyz",
+        mauBracket: "gt25k",
     };
 
     const consoleDappApiMock = new ConsoleDappApiMock();

@@ -1,18 +1,15 @@
 import { Controller } from "@frontend/core/domain/controller";
 import { ApiErrors, DefaultError } from "@frontend/core/domain/error/decorators";
-import { AdminDappDto, DappEventDto, PaginatedDappsDto, SettingsDto } from "@shared/console";
+import { AdminDappDto, DappEventDto, PaginatedDappsDto } from "@shared/console";
 import { AdminEditDappParams, DappActionParams, IConsoleAdminController, ListDappsParams } from "../../ui/interfaces";
 import { CONSOLE_ADMIN_API_ERRORS, CONSOLE_ADMIN_GET_DAPP_ERRORS, ConsoleAdminErrors } from "../console-admin.errors";
-import { IConsoleAdminApi, IConsoleSettingApi } from "../interfaces";
+import { IConsoleAdminApi } from "../interfaces";
 
 const PAGE_SIZE = 20;
 
 @Controller()
 export class ConsoleAdminController implements IConsoleAdminController {
-    constructor(
-        private readonly consoleAdminApi: IConsoleAdminApi,
-        private readonly consoleSettingApi: IConsoleSettingApi,
-    ) {}
+    constructor(private readonly consoleAdminApi: IConsoleAdminApi) {}
 
     /**
      * @inheritdoc
@@ -93,23 +90,5 @@ export class ConsoleAdminController implements IConsoleAdminController {
     @ApiErrors(CONSOLE_ADMIN_API_ERRORS)
     async removeDapp({ id, expectedVersion }: DappActionParams): Promise<AdminDappDto> {
         return this.consoleAdminApi.remove(id, { expectedVersion });
-    }
-
-    /**
-     * @inheritdoc
-     */
-    @DefaultError(ConsoleAdminErrors.CONSOLE_UNREACHABLE)
-    @ApiErrors(CONSOLE_ADMIN_API_ERRORS)
-    async getSettings(): Promise<SettingsDto> {
-        return this.consoleSettingApi.get();
-    }
-
-    /**
-     * @inheritdoc
-     */
-    @DefaultError(ConsoleAdminErrors.CONSOLE_UNREACHABLE)
-    @ApiErrors(CONSOLE_ADMIN_API_ERRORS)
-    async setAutoApproval(enabled: boolean): Promise<SettingsDto> {
-        return this.consoleSettingApi.update({ autoApproval: { enabled } });
     }
 }
