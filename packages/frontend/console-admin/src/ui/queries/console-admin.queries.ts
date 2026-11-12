@@ -10,5 +10,3 @@ export const consoleAdminQueryKeys = {
     events: (id: string) => [...consoleAdminQueryKeys.dapps(), "detail", id, "events"] as const,
     settings: () => [...consoleAdminQueryKeys.all, "settings"] as const,
 };
-
-export type ConsoleAdminQueryKeys = typeof consoleAdminQueryKeys;

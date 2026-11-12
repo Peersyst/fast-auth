@@ -5,5 +5,3 @@ export const consoleAuthQueryKeys = {
     session: () => [...consoleAuthQueryKeys.all, "session"] as const,
     me: () => [...consoleAuthQueryKeys.all, "me"] as const,
 };
-
-export type ConsoleAuthQueryKeys = typeof consoleAuthQueryKeys;

@@ -22,8 +22,7 @@ declare module "@frontend/core/domain/controller/factory" {
 }
 
 ControllerFactory.create({
-    settingsController: () =>
-        new SettingsController(RepositoryFactory.settingsRepository, ServiceFactory.localizationService, StateManager.states.settings),
+    settingsController: () => new SettingsController(RepositoryFactory.settingsRepository, StateManager.states.settings),
     consoleAuthController: () => new ConsoleAuthController(ApiFactory.consoleAuthApi, ServiceFactory.auth0Service),
     consoleDappController: () => new ConsoleDappController(ApiFactory.consoleDappApi),
     consoleAdminController: () => new ConsoleAdminController(ApiFactory.consoleAdminApi, ApiFactory.consoleSettingApi),

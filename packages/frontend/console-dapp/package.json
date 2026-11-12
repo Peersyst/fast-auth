@@ -20,8 +20,7 @@
         "./domain/interfaces": "./src/domain/interfaces/index.ts",
         "./domain/errors": "./src/domain/console-dapp.errors.ts",
         "./ui/interfaces": "./src/ui/interfaces/index.ts",
-        "./ui/queries": "./src/ui/queries/index.ts",
-        "./mocks/domain/controllers": "./test/mocks/domain/controllers/index.ts"
+        "./ui/queries": "./src/ui/queries/index.ts"
     },
     "peerDependencies": {
         "@frontend/core": "workspace:*",

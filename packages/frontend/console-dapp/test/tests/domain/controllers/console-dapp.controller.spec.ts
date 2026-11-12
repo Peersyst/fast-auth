@@ -6,27 +6,27 @@ import { ConsoleDappApiMock } from "../../../mocks/data-access/api";
 import { createApiErrorMock } from "@shared/console/test/mocks/common";
 import { DAPP_ID_MOCK, OwnerDappMock } from "@shared/console/test/mocks/dapp";
 
-const FIELDS: UpsertDappRequest = {
-    name: "Acme Wallet",
-    description: "",
-    logoUrl: "https://cdn.acme.xyz/logo.png",
-    mauBracket: "1k_10k",
-    callbackUrls: ["https://app.acme.xyz/callback"],
-    logoutUrls: [],
-    webOrigins: ["https://app.acme.xyz"],
-    contactEmail: "dev@acme.xyz",
-};
-
-const CHANGE = {
-    name: "Acme Pay",
-    description: "A wallet for NEAR.",
-    logoUrl: "https://cdn.acme.xyz/pay.png",
-    callbackUrls: ["https://app.acme.xyz/callback", "https://app.acme.xyz/silent"],
-    logoutUrls: [],
-    webOrigins: ["https://app.acme.xyz"],
-};
-
 describe("ConsoleDappController", () => {
+    const fields: UpsertDappRequest = {
+        name: "Acme Wallet",
+        description: "",
+        logoUrl: "https://cdn.acme.xyz/logo.png",
+        mauBracket: "1k_10k",
+        callbackUrls: ["https://app.acme.xyz/callback"],
+        logoutUrls: [],
+        webOrigins: ["https://app.acme.xyz"],
+        contactEmail: "dev@acme.xyz",
+    };
+
+    const change = {
+        name: "Acme Pay",
+        description: "A wallet for NEAR.",
+        logoUrl: "https://cdn.acme.xyz/pay.png",
+        callbackUrls: ["https://app.acme.xyz/callback", "https://app.acme.xyz/silent"],
+        logoutUrls: [],
+        webOrigins: ["https://app.acme.xyz"],
+    };
+
     const consoleDappApiMock = new ConsoleDappApiMock();
 
     const controller = new ConsoleDappController(consoleDappApiMock);
@@ -71,14 +71,14 @@ describe("ConsoleDappController", () => {
 
     describe("submitDapp", () => {
         it("should submit the fields", async () => {
-            await expect(controller.submitDapp(FIELDS)).resolves.toEqual(new OwnerDappMock());
-            expect(consoleDappApiMock.submit).toHaveBeenCalledWith(FIELDS);
+            await expect(controller.submitDapp(fields)).resolves.toEqual(new OwnerDappMock());
+            expect(consoleDappApiMock.submit).toHaveBeenCalledWith(fields);
         });
 
         it("should say when the email already has a dApp", async () => {
             consoleDappApiMock.submit.mockRejectedValueOnce(createApiErrorMock(409, "DAPP_ALREADY_EXISTS"));
 
-            await expect(controller.submitDapp(FIELDS)).rejects.toEqual(new DomainError(ConsoleDappErrors.DAPP_ALREADY_EXISTS));
+            await expect(controller.submitDapp(fields)).rejects.toEqual(new DomainError(ConsoleDappErrors.DAPP_ALREADY_EXISTS));
         });
 
         it.each([
@@ -87,13 +87,13 @@ describe("ConsoleDappController", () => {
         ])("should report a value %s refused", async (_, message) => {
             consoleDappApiMock.submit.mockRejectedValueOnce(createApiErrorMock(400, message));
 
-            await expect(controller.submitDapp(FIELDS)).rejects.toEqual(new DomainError(ConsoleDappErrors.VALIDATION_FAILED));
+            await expect(controller.submitDapp(fields)).rejects.toEqual(new DomainError(ConsoleDappErrors.VALIDATION_FAILED));
         });
     });
 
     describe("editDapp", () => {
         it("should save the edit with the version it was made on", async () => {
-            const request = { ...FIELDS, expectedVersion: 3 };
+            const request = { ...fields, expectedVersion: 3 };
 
             await expect(controller.editDapp({ id: DAPP_ID_MOCK, request })).resolves.toEqual(new OwnerDappMock({ version: 4 }));
             expect(consoleDappApiMock.edit).toHaveBeenCalledWith(DAPP_ID_MOCK, request);
@@ -108,7 +108,7 @@ describe("ConsoleDappController", () => {
         ])("should report a %i %s as %s", async (status, code, error) => {
             consoleDappApiMock.edit.mockRejectedValueOnce(createApiErrorMock(status, code));
 
-            await expect(controller.editDapp({ id: DAPP_ID_MOCK, request: { ...FIELDS, expectedVersion: 3 } })).rejects.toEqual(
+            await expect(controller.editDapp({ id: DAPP_ID_MOCK, request: { ...fields, expectedVersion: 3 } })).rejects.toEqual(
                 new DomainError(error),
             );
         });
@@ -116,7 +116,7 @@ describe("ConsoleDappController", () => {
 
     describe("withdrawChange", () => {
         it("should save the live fields, not the change, with the version shown", async () => {
-            const dapp = new OwnerDappMock({ status: "approved", pendingChange: CHANGE, pendingChangeAt: "2026-10-03T10:00:00Z" });
+            const dapp = new OwnerDappMock({ status: "approved", pendingChange: change, pendingChangeAt: "2026-10-03T10:00:00Z" });
 
             await controller.withdrawChange({ dapp, expectedVersion: 3 });
 
