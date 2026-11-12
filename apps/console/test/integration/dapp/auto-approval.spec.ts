@@ -1,25 +1,25 @@
 import { closeTestApp, createTestApp, TestApp, truncateAll } from "@backend/test";
 import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { register } from "prom-client";
 import { DataSource } from "typeorm";
-import { DappEvent } from "@database/console/entities";
-import { createDapp } from "@database/console/test/factories";
-import { DappEventType, DappStatus } from "@shared/modules/dapp";
 import { DappModule } from "../../../src/modules/dapp/dapp.module";
 import { JWT_KEY_SET } from "../../../src/modules/auth/jwt-key-set";
 import { SLACK_NOTIFIER } from "../../../src/modules/notification/notification.tokens";
 import { AUTH0_PROVISIONER } from "../../../src/modules/provisioning/provisioning.tokens";
 import { bearer, testKeySet } from "../../mocks/auth/token.mock";
 import { testConfig } from "../../mocks/config/config.mock";
-import { dappForm, eventTypes, findDapp } from "../../mocks/dapp/dapp.mock";
+import { dappForm, findDapp, transitionCounts } from "../../mocks/dapp/dapp.mock";
 import { SlackNotifierMock } from "../../mocks/notification/slack-notifier.mock";
 import { FakeProvisionerMock } from "../../mocks/provisioning/fake-provisioner.mock";
 
 describe("Auto-approval (integration)", () => {
+    const ownerEmail = "new@owners.test";
     const provisioner = new FakeProvisionerMock();
     const slack = new SlackNotifierMock();
     let testApp: TestApp;
     let dataSource: DataSource;
+    let owner: string;
 
     beforeAll(async () => {
         const config = testConfig();
@@ -49,46 +49,59 @@ describe("Auto-approval (integration)", () => {
         await truncateAll(dataSource);
         provisioner.reset();
         slack.clearMocks();
+        register.resetMetrics();
+        owner = await bearer(ownerEmail);
     });
 
-    /**
-     * Submits the form as a new owner, expecting 201.
-     * @param email The owner's email.
-     * @returns The response.
-     */
-    const submit = async (email = "new@owners.test") =>
-        testApp.request
-            .post("/dapp")
-            .set("Authorization", await bearer(email))
-            .send(dappForm())
-            .expect(201);
+    describe("POST /dapp", () => {
+        it("should approve a new dApp with a new Auth0 client and alert the admins", async () => {
+            const { body } = await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(201);
 
-    it("should approve a new owner's submission as the system: client created and Slack alerted", async () => {
-        const { body } = await submit();
+            expect(body).toMatchObject({
+                status: "approved",
+                auth0ClientId: expect.stringMatching(/^fake_/),
+                reviewedAt: expect.any(String),
+            });
+            expect(provisioner.calls).toEqual([
+                {
+                    dappId: body.id,
+                    name: "Acme Wallet",
+                    description: "A wallet for NEAR.",
+                    logoUrl: "https://cdn.acme.xyz/logo.png",
+                    callbackUrls: ["https://acme.xyz/callback"],
+                    logoutUrls: [],
+                    webOrigins: ["https://acme.xyz"],
+                },
+            ]);
+            expect(await findDapp(dataSource.manager, body.id)).toMatchObject({
+                status: "approved",
+                auth0ClientId: body.auth0ClientId,
+                reviewedAt: new Date(body.reviewedAt),
+            });
+            expect(slack.notify).toHaveBeenCalledWith({
+                kind: "auto_approved",
+                dapp: expect.objectContaining({ id: body.id, status: "approved", auth0ClientId: body.auth0ClientId }),
+            });
+            expect(await transitionCounts()).toEqual({ "create success": 1, "autoApprove success": 1 });
+        });
 
-        expect(body).toMatchObject({ status: "approved", auth0ClientId: expect.stringMatching(/^fake_/) });
-        expect(await findDapp(dataSource.manager, body.id)).toMatchObject({ reviewedAt: expect.any(Date) });
-        expect(await eventTypes(dataSource.manager, body.id)).toEqual(["submitted", "auto_approved", "auth0_created"]);
-        expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "auto_approved" }));
-    });
+        it("should keep the dApp pending when Auth0 fails, answer 201, record the error and alert the admins", async () => {
+            provisioner.script("failed");
 
-    it("should send a submission to review when its owner had an earlier dApp, whatever its status", async () => {
-        await createDapp(dataSource.manager, { ownerEmail: "again@owners.test", status: DappStatus.REMOVED });
+            const { body } = await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(201);
 
-        const { body } = await submit("Again@Owners.test");
-
-        expect(body.status).toBe("pending");
-    });
-
-    it("should keep a chosen submission pending when Auth0 fails, answer 201, and alert the admins as usual", async () => {
-        provisioner.script("createClient", "failed");
-
-        const { body } = await submit();
-
-        expect(body).toMatchObject({ status: "pending", auth0ClientId: null });
-        expect(await eventTypes(dataSource.manager, body.id)).toEqual(["submitted", "auth0_failed"]);
-        expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "submitted" }));
-        const submitted = await dataSource.manager.findOneByOrFail(DappEvent, { dappId: body.id, type: DappEventType.SUBMITTED });
-        expect(submitted.details).toEqual({ chosenForAutoApproval: true });
+            expect(body).toMatchObject({ status: "pending", auth0ClientId: null, reviewedAt: null });
+            expect(await findDapp(dataSource.manager, body.id)).toMatchObject({
+                status: "pending",
+                auth0Error: "Fake create: scripted failed",
+                reviewedAt: null,
+            });
+            expect(slack.notify).toHaveBeenCalledWith({
+                kind: "auth0_failed",
+                dapp: expect.objectContaining({ id: body.id }),
+                error: "Fake create: scripted failed",
+            });
+            expect(await transitionCounts()).toEqual({ "create success": 1, "autoApprove error": 1 });
+        });
     });
 });

@@ -3,9 +3,9 @@ import { InjectMetric } from "@willsoto/nestjs-prometheus";
 import { Histogram } from "prom-client";
 import { ModuleMetrics } from "../common/metric/metric";
 
-export type Auth0Call = "list" | "get" | "create" | "update" | "delete" | "list_connections" | "update_connection";
+export type Auth0Call = "get" | "create" | "list_connections" | "update_connection";
 
-export type Auth0Outcome = "success" | "not_found" | "rate_limited" | "rejected" | "failed";
+export type Auth0Outcome = "success" | "rate_limited" | "rejected" | "failed";
 
 export enum ProvisioningMetric {
     AUTH0_REQUEST_DURATION_SECONDS = "console_auth0_request_duration_seconds",

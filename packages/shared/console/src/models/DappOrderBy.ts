@@ -2,4 +2,4 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type DappOrderBy = 'submittedAt' | 'updatedAt' | 'name' | 'status';
+export type DappOrderBy = 'createdAt' | 'updatedAt' | 'name' | 'status';

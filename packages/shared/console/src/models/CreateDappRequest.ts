@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { MauBracket } from './MauBracket';
-export type UpdateDappRequest = {
+export type CreateDappRequest = {
     /**
      * The dApp's name.
      */
@@ -36,6 +36,5 @@ export type UpdateDappRequest = {
      * The email address to contact the dApp's team.
      */
     contactEmail: string;
-    expectedVersion: number;
 };
 

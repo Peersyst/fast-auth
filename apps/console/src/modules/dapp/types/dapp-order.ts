@@ -1,5 +1,5 @@
 export enum DappOrderBy {
-    SUBMITTED_AT = "submittedAt",
+    CREATED_AT = "createdAt",
     UPDATED_AT = "updatedAt",
     NAME = "name",
     STATUS = "status",

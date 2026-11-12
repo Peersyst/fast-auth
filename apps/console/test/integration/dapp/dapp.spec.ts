@@ -1,29 +1,29 @@
 import { closeTestApp, createTestApp, TestApp, truncateAll } from "@backend/test";
 import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { register } from "prom-client";
 import { DataSource } from "typeorm";
-import { Dapp, DappEvent } from "@database/console/entities";
+import { Dapp } from "@database/console/entities";
 import { createDapp } from "@database/console/test/factories";
-import { DappEventType, DappStatus, MauBracket, syncedFieldsOf } from "@shared/modules/dapp";
+import { DappStatus } from "@shared/modules/dapp";
 import { DappModule } from "../../../src/modules/dapp/dapp.module";
-import { DappWriteService } from "../../../src/modules/dapp/dapp-write.service";
 import { JWT_KEY_SET } from "../../../src/modules/auth/jwt-key-set";
 import { SLACK_NOTIFIER } from "../../../src/modules/notification/notification.tokens";
 import { AUTH0_PROVISIONER } from "../../../src/modules/provisioning/provisioning.tokens";
-import { bearer, testKeySet } from "../../mocks/auth/token.mock";
-import { testConfig } from "../../mocks/config/config.mock";
-import { dappForm, eventTypes, findDapp } from "../../mocks/dapp/dapp.mock";
+import { adminBearer, bearer, testKeySet } from "../../mocks/auth/token.mock";
+import { ADMIN_EMAIL, testConfig } from "../../mocks/config/config.mock";
+import { dappForm, findDapp, transitionCounts } from "../../mocks/dapp/dapp.mock";
 import { SlackNotifierMock } from "../../mocks/notification/slack-notifier.mock";
 import { FakeProvisionerMock } from "../../mocks/provisioning/fake-provisioner.mock";
 
-const OWNER = "bob@owners.test";
-
 describe("DappModule (integration)", () => {
+    const ownerEmail = "bob@owners.test";
     const provisioner = new FakeProvisionerMock();
     const slack = new SlackNotifierMock();
     let testApp: TestApp;
     let dataSource: DataSource;
     let owner: string;
+    let admin: string;
 
     beforeAll(async () => {
         testApp = await createTestApp({
@@ -49,65 +49,51 @@ describe("DappModule (integration)", () => {
         await truncateAll(dataSource);
         provisioner.reset();
         slack.clearMocks();
-        owner = await bearer(OWNER);
+        register.resetMetrics();
+        owner = await bearer(ownerEmail);
+        admin = await adminBearer();
     });
 
     /**
-     * Stores an approved dApp for the owner whose Auth0 client exists in the fake provisioner.
+     * Stores a pending dApp.
      * @param overrides Fields to change.
      * @returns The dApp.
      */
-    const approvedDapp = async (overrides: Partial<Dapp> = {}): Promise<Dapp> => {
-        const dapp = await createDapp(dataSource.manager, {
-            ...dappForm(),
-            ownerEmail: OWNER,
-            status: DappStatus.APPROVED,
-            auth0ClientId: "client_live",
-            reviewedAt: new Date(),
-            ...overrides,
-        });
-        provisioner.clients.set("client_live", { dappId: dapp.id, input: syncedFieldsOf(dapp) });
-        return dapp;
+    const pendingDapp = (overrides: Partial<Dapp> = {}): Promise<Dapp> =>
+        createDapp(dataSource.manager, { ...dappForm(), ownerEmail, ...overrides });
+
+    /**
+     * Lists dApps as the admin and keeps one column of each item.
+     * @param query The query string.
+     * @param column The column to keep.
+     * @returns The column's values, in the order listed.
+     */
+    const adminList = async (query: string, column: keyof Dapp = "ownerEmail"): Promise<unknown[]> => {
+        const { body } = await testApp.request.get(`/dapp?${query}`).set("Authorization", admin).expect(200);
+        return body.items.map((item: Record<string, unknown>) => item[column]);
     };
 
-    describe("GET /dapp", () => {
-        it("should answer a null dApp when the caller has none", async () => {
-            const { body } = await testApp.request.get("/dapp").set("Authorization", owner).expect(200);
-
-            expect(body).toEqual({ dapp: null });
-        });
-
-        it("should find the caller's live dApp by email in any case", async () => {
-            const dapp = await createDapp(dataSource.manager, { ownerEmail: OWNER });
-
-            const { body } = await testApp.request
-                .get("/dapp")
-                .set("Authorization", await bearer("BOB@Owners.TEST"))
-                .expect(200);
-
-            expect(body.dapp).toMatchObject({ id: dapp.id, status: "pending", version: 1 });
-        });
-    });
-
     describe("POST /dapp", () => {
-        it("should store a pending dApp, log `submitted`, and alert the admins on Slack", async () => {
+        it("should store a pending dApp, alert the admins on Slack, and call no Auth0", async () => {
             const { body } = await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(201);
 
             expect(body).toEqual({
                 id: expect.any(String),
+                ownerEmail,
                 ...dappForm(),
                 status: "pending",
-                pendingChange: null,
-                pendingChangeAt: null,
                 auth0ClientId: null,
-                version: 1,
-                submittedAt: expect.any(String),
+                auth0Error: null,
+                reviewedAt: null,
+                createdAt: expect.any(String),
             });
-            expect(await findDapp(dataSource.manager, body.id)).toMatchObject({ ownerEmail: OWNER, status: "pending" });
-            expect(await eventTypes(dataSource.manager, body.id)).toEqual(["submitted"]);
-            expect(slack.notify).toHaveBeenCalledWith(
-                expect.objectContaining({ kind: "submitted", dapp: expect.objectContaining({ id: body.id }) }),
-            );
+            expect(await findDapp(dataSource.manager, body.id)).toMatchObject({
+                ownerEmail,
+                status: "pending",
+                auth0Error: null,
+                reviewedAt: null,
+            });
+            expect(slack.notify).toHaveBeenCalledWith({ kind: "dapp_submitted", dapp: expect.objectContaining({ id: body.id }) });
             expect(provisioner.calls).toEqual([]);
         });
 
@@ -129,25 +115,12 @@ describe("DappModule (integration)", () => {
             });
         });
 
-        it("should leave no dApp behind when recording the submission fails", async () => {
-            const appendEvents = jest.spyOn(DappWriteService.prototype, "appendEvents").mockRejectedValueOnce(new Error("insert failed"));
-
-            await testApp.request
-                .post("/dapp")
-                .set("Authorization", await bearer("new@owners.test"))
-                .send(dappForm())
-                .expect(500);
-            appendEvents.mockRestore();
-
-            expect(await dataSource.manager.count(Dapp)).toBe(0);
-        });
-
         it("should still answer 201 when the Slack alert fails", async () => {
             slack.notify.mockRejectedValueOnce(new Error("Slack is down"));
 
             const { body } = await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(201);
 
-            expect(await eventTypes(dataSource.manager, body.id)).toEqual(["submitted"]);
+            expect(await findDapp(dataSource.manager, body.id)).toMatchObject({ status: "pending" });
         });
 
         it("should answer 409 DAPP_ALREADY_EXISTS for a second live dApp of one email, in any case", async () => {
@@ -160,6 +133,13 @@ describe("DappModule (integration)", () => {
                 .expect(409);
 
             expect(body).toEqual({ statusCode: 409, message: "DAPP_ALREADY_EXISTS" });
+        });
+
+        it("should count each create under its result", async () => {
+            await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(201);
+            await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(409);
+
+            expect(await transitionCounts()).toEqual({ "create success": 1, "create DAPP_ALREADY_EXISTS": 1 });
         });
 
         it("should give one 201 and one 409 for two concurrent submissions of one email", async () => {
@@ -185,6 +165,7 @@ describe("DappModule (integration)", () => {
             ["an invalid contact email", { contactEmail: "not-an-email" }],
             ["an unknown MAU bracket", { mauBracket: "huge" }],
             ["an unknown field", { ownerEmail: "someone@else.test" }],
+            ["a missing field", { name: undefined }],
         ])("should refuse %s with 400 and store nothing", async (_case, overrides) => {
             await testApp.request
                 .post("/dapp")
@@ -196,221 +177,172 @@ describe("DappModule (integration)", () => {
         });
     });
 
-    describe("PUT /dapp/:id", () => {
-        it("should edit a pending dApp in place and log `edited`, the contact email by name only", async () => {
-            const dapp = await createDapp(dataSource.manager, { ...dappForm(), ownerEmail: OWNER });
-            const form = dappForm({ name: "Acme Pay", contactEmail: "ops@acme.xyz", mauBracket: MauBracket.GT_25K });
+    describe("GET /dapp", () => {
+        it("should page every dApp for an admin by creation time with the total", async () => {
+            const first = await pendingDapp({ ownerEmail: "a@owners.test", createdAt: new Date("2026-01-01T00:00:00Z") });
+            const second = await pendingDapp({ ownerEmail: "b@owners.test", createdAt: new Date("2026-01-02T00:00:00Z") });
+            await pendingDapp({ ownerEmail: "c@owners.test", createdAt: new Date("2026-01-03T00:00:00Z") });
+
+            const { body } = await testApp.request.get("/dapp?page=1&pageSize=2").set("Authorization", admin).expect(200);
+
+            expect(body).toMatchObject({ totalItems: 3, currentPage: 1, pages: 2 });
+            expect(body.items).toEqual([
+                expect.objectContaining({ id: first.id, ownerEmail: "a@owners.test", status: "pending" }),
+                expect.objectContaining({ id: second.id, ownerEmail: "b@owners.test" }),
+            ]);
+            expect(await adminList("page=2&pageSize=2")).toEqual(["c@owners.test"]);
+        });
+
+        it("should list only the pending dApps for review, oldest first", async () => {
+            await pendingDapp({ ownerEmail: "late@owners.test", createdAt: new Date("2026-01-02T00:00:00Z") });
+            await pendingDapp({ ownerEmail: "early@owners.test", createdAt: new Date("2026-01-01T00:00:00Z") });
+            await pendingDapp({ ownerEmail: "approved@owners.test", status: DappStatus.APPROVED, auth0ClientId: "client_live" });
+            await pendingDapp({ ownerEmail: "rejected@owners.test", status: DappStatus.REJECTED });
+
+            expect(await adminList("needsReview=true")).toEqual(["early@owners.test", "late@owners.test"]);
+        });
+
+        it("should narrow the review queue by status instead of replacing it", async () => {
+            await pendingDapp({ ownerEmail: "pending@owners.test" });
+            await pendingDapp({ ownerEmail: "rejected@owners.test", status: DappStatus.REJECTED });
+
+            expect(await adminList("needsReview=true&status=pending")).toEqual(["pending@owners.test"]);
+            expect(await adminList("needsReview=true&status=rejected")).toEqual([]);
+            expect(await adminList("status=rejected")).toEqual(["rejected@owners.test"]);
+        });
+
+        it("should search case-insensitively with LIKE wildcards taken literally", async () => {
+            await pendingDapp({ ownerEmail: "a@owners.test", name: "Acme 100% Wallet" });
+            await pendingDapp({ ownerEmail: "b@owners.test", name: "Acme 100 Wallet" });
+            await pendingDapp({ ownerEmail: "c@owners.test", name: "Acme_Pay" });
+            await pendingDapp({ ownerEmail: "d@owners.test", name: "AcmeXPay" });
+
+            expect(await adminList("search=100%25")).toEqual(["a@owners.test"]);
+            expect(await adminList("search=acme_pay")).toEqual(["c@owners.test"]);
+        });
+
+        it("should search the owner email, the contact email and the Auth0 client id, within the status filter", async () => {
+            await pendingDapp({ ownerEmail: "owner-match@owners.test" });
+            await pendingDapp({ ownerEmail: "b@owners.test", contactEmail: "ops@match.xyz" });
+            await pendingDapp({ ownerEmail: "c@owners.test", status: DappStatus.APPROVED, auth0ClientId: "client_MATCH" });
+            await pendingDapp({ ownerEmail: "d@owners.test", status: DappStatus.REJECTED, contactEmail: "dev@match.xyz" });
+            await pendingDapp({ ownerEmail: "e@owners.test" });
+
+            expect(await adminList("search=match&orderBy=name")).toHaveLength(4);
+            expect(await adminList("search=MATCH&status=approved")).toEqual(["c@owners.test"]);
+        });
+
+        it("should sort by the requested column and order", async () => {
+            await pendingDapp({ ownerEmail: "a@owners.test", name: "Alpha" });
+            await pendingDapp({ ownerEmail: "b@owners.test", name: "Zulu" });
+
+            expect(await adminList("orderBy=name&order=DESC", "name")).toEqual(["Zulu", "Alpha"]);
+            expect(await adminList("orderBy=name&order=ASC", "name")).toEqual(["Alpha", "Zulu"]);
+        });
+
+        it.each(["page=0", "pageSize=101", "status=gone", "orderBy=owner", "search=acme%00", "order=desc", "needsReview=yes"])(
+            "should refuse %s with 400",
+            async (query) => {
+                await testApp.request.get(`/dapp?${query}`).set("Authorization", admin).expect(400);
+            },
+        );
+
+        it("should answer a user only their own live dApp as a list of one, ignoring the filters", async () => {
+            const own = await pendingDapp();
+            await pendingDapp({ ownerEmail: "other@owners.test" });
 
             const { body } = await testApp.request
-                .put(`/dapp/${dapp.id}`)
-                .set("Authorization", owner)
-                .send({ ...form, expectedVersion: 1 })
+                .get("/dapp?status=rejected&needsReview=true&page=3&pageSize=1&search=other")
+                .set("Authorization", await bearer("BOB@owners.test"))
                 .expect(200);
 
-            expect(body).toMatchObject({ name: "Acme Pay", contactEmail: "ops@acme.xyz", status: "pending", version: 2 });
-            const edited = await dataSource.manager.findOneByOrFail(DappEvent, { dappId: dapp.id, type: DappEventType.EDITED });
-            expect(edited.details).toEqual({
-                changes: [
-                    { field: "name", before: "Acme Wallet", after: "Acme Pay" },
-                    { field: "contactEmail" },
-                    { field: "mauBracket", before: "lt1k", after: "gt25k" },
+            expect(body).toEqual({
+                items: [
+                    {
+                        id: own.id,
+                        ownerEmail,
+                        ...dappForm(),
+                        status: "pending",
+                        auth0ClientId: null,
+                        auth0Error: null,
+                        reviewedAt: null,
+                        createdAt: own.createdAt.toISOString(),
+                    },
                 ],
+                totalItems: 1,
+                currentPage: 1,
+                pages: 1,
             });
-            expect(slack.notify).not.toHaveBeenCalled();
         });
 
-        it("should resubmit a rejected dApp: pending again, review cleared, the admins alerted", async () => {
-            const dapp = await createDapp(dataSource.manager, {
-                ...dappForm(),
-                ownerEmail: OWNER,
-                status: DappStatus.REJECTED,
-                reviewedAt: new Date(),
-                submittedAt: new Date("2026-01-01T00:00:00Z"),
-            });
+        it("should answer a user without a dApp an empty list", async () => {
+            await pendingDapp({ ownerEmail: "other@owners.test" });
 
-            const { body } = await testApp.request
-                .put(`/dapp/${dapp.id}`)
-                .set("Authorization", owner)
-                .send({ ...dappForm({ logoUrl: "https://acme.xyz/logo.png" }), expectedVersion: 1 })
-                .expect(200);
+            const { body } = await testApp.request.get("/dapp").set("Authorization", owner).expect(200);
 
-            expect(body).toMatchObject({ status: "pending" });
-            expect(new Date(body.submittedAt).getTime()).toBeGreaterThan(new Date("2026-01-01T00:00:00Z").getTime());
-            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ reviewedAt: null });
-            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["edited", "resubmitted"]);
-            expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "resubmitted" }));
+            expect(body).toEqual({ items: [], totalItems: 0, currentPage: 1, pages: 0 });
         });
 
-        it("should queue an approved dApp's contact email and MAU change for review, keep the live values and alert the admins", async () => {
-            const dapp = await approvedDapp();
+        it("should answer 401 UNAUTHENTICATED without a token", async () => {
+            const { body } = await testApp.request.get("/dapp").expect(401);
 
-            const { body } = await testApp.request
-                .put(`/dapp/${dapp.id}`)
-                .set("Authorization", owner)
-                .send({ ...dappForm({ contactEmail: "ops@acme.xyz", mauBracket: MauBracket.GT_25K }), expectedVersion: 1 })
-                .expect(200);
-
-            expect(body).toMatchObject({
-                contactEmail: "dev@acme.xyz",
-                mauBracket: "lt1k",
-                status: "approved",
-                pendingChange: dappForm({ contactEmail: "ops@acme.xyz", mauBracket: MauBracket.GT_25K }),
-            });
-            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ contactEmail: "dev@acme.xyz", mauBracket: "lt1k" });
-            const requested = await dataSource.manager.findOneByOrFail(DappEvent, {
-                dappId: dapp.id,
-                type: DappEventType.CHANGE_REQUESTED,
-            });
-            expect(requested.details).toEqual({
-                changes: [{ field: "contactEmail" }, { field: "mauBracket", before: "lt1k", after: "gt25k" }],
-            });
-            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["change_requested"]);
-            expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "change_requested" }));
-            expect(provisioner.calls).toEqual([]);
+            expect(body).toEqual({ statusCode: 401, message: "UNAUTHENTICATED" });
         });
 
-        it("should queue an approved dApp's synced changes for review, keep the live values and alert the admins", async () => {
-            const dapp = await approvedDapp();
+        it("should answer 403 EMAIL_NOT_VERIFIED to an unverified email, an admin's included", async () => {
+            for (const email of [ownerEmail, ADMIN_EMAIL]) {
+                const { body } = await testApp.request
+                    .get("/dapp")
+                    .set("Authorization", await bearer(email, false))
+                    .expect(403);
 
-            const { body } = await testApp.request
-                .put(`/dapp/${dapp.id}`)
-                .set("Authorization", owner)
-                .send({ ...dappForm({ name: "Acme Pay" }), expectedVersion: 1 })
-                .expect(200);
-
-            expect(body).toMatchObject({ name: "Acme Wallet", pendingChange: dappForm({ name: "Acme Pay" }) });
-            expect(body.pendingChangeAt).toEqual(expect.any(String));
-            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["change_requested"]);
-            expect(slack.notify).toHaveBeenCalledWith(expect.objectContaining({ kind: "change_requested" }));
-            expect(provisioner.calls).toEqual([]);
-        });
-
-        it("should withdraw the pending change when the fields are back to live", async () => {
-            const dapp = await approvedDapp({ pendingChange: dappForm({ name: "Acme Pay" }), pendingChangeAt: new Date() });
-
-            const { body } = await testApp.request
-                .put(`/dapp/${dapp.id}`)
-                .set("Authorization", owner)
-                .send({ ...dappForm(), expectedVersion: 1 })
-                .expect(200);
-
-            expect(body).toMatchObject({ pendingChange: null, pendingChangeAt: null });
-            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["change_withdrawn"]);
-        });
-
-        it("should answer 409 DAPP_CHANGED for a stale expectedVersion and change nothing", async () => {
-            const dapp = await createDapp(dataSource.manager, { ...dappForm(), ownerEmail: OWNER, version: 2 });
-
-            const { body } = await testApp.request
-                .put(`/dapp/${dapp.id}`)
-                .set("Authorization", owner)
-                .send({ ...dappForm({ name: "Stale" }), expectedVersion: 1 })
-                .expect(409);
-
-            expect(body).toMatchObject({ message: "DAPP_CHANGED" });
-            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ name: "Acme Wallet", version: 2 });
-        });
-
-        it("should refuse another owner's dApp: 404 without a live dApp of one's own, 409 DAPP_CHANGED with one", async () => {
-            const dapp = await createDapp(dataSource.manager, { ownerEmail: OWNER });
-            const stranger = await bearer("stranger@owners.test");
-
-            await testApp.request
-                .put(`/dapp/${dapp.id}`)
-                .set("Authorization", stranger)
-                .send({ ...dappForm(), expectedVersion: 1 })
-                .expect(404);
-            await createDapp(dataSource.manager, { ownerEmail: "stranger@owners.test" });
-            const { body } = await testApp.request
-                .put(`/dapp/${dapp.id}`)
-                .set("Authorization", stranger)
-                .send({ ...dappForm(), expectedVersion: 1 })
-                .expect(409);
-
-            expect(body).toMatchObject({ message: "DAPP_CHANGED" });
-        });
-
-        it("should answer 400 Bad Request for an id that is not a uuid and for a missing expectedVersion", async () => {
-            await createDapp(dataSource.manager, { ownerEmail: OWNER });
-
-            await testApp.request
-                .put("/dapp/not-a-uuid")
-                .set("Authorization", owner)
-                .send({ ...dappForm(), expectedVersion: 1 })
-                .expect(400);
-            await testApp.request
-                .put("/dapp/00000000-0000-4000-8000-000000000000")
-                .set("Authorization", owner)
-                .send(dappForm())
-                .expect(400);
+                expect(body).toEqual({ statusCode: 403, message: "EMAIL_NOT_VERIFIED" });
+            }
         });
     });
 
-    describe("DELETE /dapp/:id", () => {
-        it("should remove a pending dApp with 204, log `removed` without a reason, and notify nobody", async () => {
-            const dapp = await createDapp(dataSource.manager, { ownerEmail: OWNER });
+    describe("GET /dapp/:id", () => {
+        it("should answer an admin any dApp", async () => {
+            const dapp = await pendingDapp({ status: DappStatus.REJECTED, reviewedAt: new Date("2026-01-05T00:00:00Z") });
 
-            await testApp.request.delete(`/dapp/${dapp.id}?expectedVersion=1`).set("Authorization", owner).expect(204);
+            const { body } = await testApp.request.get(`/dapp/${dapp.id}`).set("Authorization", admin).expect(200);
 
-            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "removed" });
-            expect(await dataSource.manager.findOneByOrFail(DappEvent, { dappId: dapp.id, type: DappEventType.REMOVED })).toMatchObject({
-                actorRole: "user",
-                details: {},
+            expect(body).toEqual({
+                id: dapp.id,
+                ownerEmail,
+                ...dappForm(),
+                status: "rejected",
+                auth0ClientId: null,
+                auth0Error: null,
+                reviewedAt: "2026-01-05T00:00:00.000Z",
+                createdAt: dapp.createdAt.toISOString(),
             });
-            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["removed"]);
-            expect(provisioner.calls).toEqual([{ op: "findClient", dappId: dapp.id }]);
-            expect(slack.notify).not.toHaveBeenCalled();
         });
 
-        it("should delete an approved dApp's client and clear its pending change", async () => {
-            const dapp = await approvedDapp({ pendingChange: dappForm({ name: "Acme Pay" }), pendingChangeAt: new Date() });
+        it("should answer the owner their own dApp, matching the email in any case", async () => {
+            const dapp = await pendingDapp();
 
-            await testApp.request.delete(`/dapp/${dapp.id}?expectedVersion=1`).set("Authorization", owner).expect(204);
+            const { body } = await testApp.request
+                .get(`/dapp/${dapp.id}`)
+                .set("Authorization", await bearer("BOB@Owners.TEST"))
+                .expect(200);
 
-            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "removed", pendingChange: null });
-            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["removed", "auth0_deleted"]);
-            expect(provisioner.clients.size).toBe(0);
+            expect(body).toMatchObject({ id: dapp.id, ownerEmail });
         });
 
-        it("should let the owner submit again once the dApp is removed", async () => {
-            const dapp = await createDapp(dataSource.manager, { ownerEmail: OWNER });
-            await testApp.request.delete(`/dapp/${dapp.id}?expectedVersion=1`).set("Authorization", owner).expect(204);
+        it("should answer 404 DAPP_NOT_FOUND for another owner's dApp and for an unknown id", async () => {
+            const dapp = await pendingDapp();
+            const stranger = await bearer("stranger@owners.test");
 
-            await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(201);
+            const { body } = await testApp.request.get(`/dapp/${dapp.id}`).set("Authorization", stranger).expect(404);
+            const unknown = await testApp.request.get("/dapp/00000000-0000-4000-8000-000000000000").set("Authorization", admin).expect(404);
+
+            expect(body).toEqual({ statusCode: 404, message: "DAPP_NOT_FOUND" });
+            expect(unknown.body).toEqual({ statusCode: 404, message: "DAPP_NOT_FOUND" });
         });
 
-        it("should answer 502 PROVISIONING_FAILED when Auth0 fails, keep the dApp and record the failure without a version bump", async () => {
-            const dapp = await approvedDapp();
-            provisioner.script("deleteClient", "failed");
-
-            const { body } = await testApp.request.delete(`/dapp/${dapp.id}?expectedVersion=1`).set("Authorization", owner).expect(502);
-
-            expect(body).toEqual({ statusCode: 502, message: "PROVISIONING_FAILED" });
-            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
-                status: "approved",
-                version: 1,
-                auth0Error: "Fake deleteClient: scripted failed",
-            });
-            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["auth0_failed"]);
-        });
-
-        it("should remove the dApp and record the Auth0 error when its client is tagged for another dApp", async () => {
-            const dapp = await approvedDapp();
-            provisioner.script("deleteClient", "tag_mismatch");
-
-            await testApp.request.delete(`/dapp/${dapp.id}?expectedVersion=1`).set("Authorization", owner).expect(204);
-
-            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
-                status: "removed",
-                auth0Error: "Fake deleteClient: scripted tag_mismatch",
-            });
-            expect(await eventTypes(dataSource.manager, dapp.id)).toEqual(["removed", "auth0_failed"]);
-        });
-
-        it("should answer 400 Bad Request for an expectedVersion that is not a number", async () => {
-            const dapp = await createDapp(dataSource.manager, { ownerEmail: OWNER });
-
-            await testApp.request.delete(`/dapp/${dapp.id}?expectedVersion=latest`).set("Authorization", owner).expect(400);
+        it("should answer 400 for an id that is not a uuid", async () => {
+            await testApp.request.get("/dapp/not-a-uuid").set("Authorization", admin).expect(400);
         });
     });
 });

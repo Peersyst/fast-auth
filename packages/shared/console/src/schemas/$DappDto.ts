@@ -2,26 +2,31 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $UpdateDappRequest = {
+export const $DappDto = {
     properties: {
+        id: {
+            type: 'string',
+            isRequired: true,
+            format: 'uuid',
+        },
+        ownerEmail: {
+            type: 'string',
+            isRequired: true,
+        },
         name: {
             type: 'string',
-            description: `The dApp's name.`,
             isRequired: true,
         },
         description: {
             type: 'string',
-            description: `A short description of the dApp.`,
             isRequired: true,
         },
         logoUrl: {
             type: 'string',
-            description: `The URL of the dApp's logo.`,
             isRequired: true,
         },
         mauBracket: {
             type: 'all-of',
-            description: `The expected monthly active users.`,
             contains: [{
                 type: 'MauBracket',
             }],
@@ -50,12 +55,38 @@ export const $UpdateDappRequest = {
         },
         contactEmail: {
             type: 'string',
-            description: `The email address to contact the dApp's team.`,
             isRequired: true,
         },
-        expectedVersion: {
-            type: 'number',
+        status: {
+            type: 'all-of',
+            contains: [{
+                type: 'DappStatus',
+            }],
             isRequired: true,
+        },
+        auth0ClientId: {
+            type: 'string',
+            description: `Null until the dApp is approved.`,
+            isRequired: true,
+            isNullable: true,
+        },
+        auth0Error: {
+            type: 'string',
+            description: `The error of the last failed Auth0 call, null once an Auth0 write succeeds.`,
+            isRequired: true,
+            isNullable: true,
+        },
+        reviewedAt: {
+            type: 'string',
+            description: `Null until an admin or auto-approval reviews the dApp.`,
+            isRequired: true,
+            isNullable: true,
+            format: 'date-time',
+        },
+        createdAt: {
+            type: 'string',
+            isRequired: true,
+            format: 'date-time',
         },
     },
 } as const;

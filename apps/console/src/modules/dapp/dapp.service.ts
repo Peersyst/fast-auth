@@ -1,52 +1,90 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectDataSource } from "@nestjs/typeorm";
-import { DataSource, EntityManager } from "typeorm";
-import { Dapp } from "@database/console/entities";
-import {
-    ActorRole,
-    classifyEdit,
-    DAPP_FIELDS,
-    DappAction,
-    DappEventDetails,
-    DappEventType,
-    DappFields,
-    DappStatus,
-    diffFields,
-    PendingChangeOutcome,
-} from "@shared/modules/dapp";
-import { SessionUser } from "../auth/types/session-user";
+import { DataSource, EntityManager, FindOptionsWhere, ILike, Not, QueryFailedError } from "typeorm";
+import { Dapp, OWNER_EMAIL_LIVE_INDEX } from "@database/console/entities";
+import { DappStatus } from "@shared/modules/dapp";
+import { OrderType } from "@shared/utils";
+import { Role, SessionUser } from "../auth/types/session-user";
 import { BusinessException } from "../common/exception/business.exception";
-import { AdminAlertKind } from "../notification/interfaces/i-slack-notifier.service";
-import { DappWriteService, describeError, Effects, refusedOrFailed } from "./dapp-write.service";
-import { DappNotifier } from "./dapp.notifier";
+import { AdminAlertKind, SlackAlert } from "../notification/interfaces/i-slack-notifier.service";
+import type { ISlackNotifierService } from "../notification/interfaces/i-slack-notifier.service";
+import { SLACK_NOTIFIER } from "../notification/notification.tokens";
+import { DappClient, ProvisioningError } from "../provisioning/interfaces/i-auth0-provisioner.service";
+import type { IAuth0ProvisionerService } from "../provisioning/interfaces/i-auth0-provisioner.service";
+import { AUTH0_PROVISIONER } from "../provisioning/provisioning.tokens";
+import { DappMetricsProvider, TransitionAction } from "./dapp.metrics";
 import { DappErrorCode } from "./error/dapp.error-codes";
-import { toDappFields, UpdateDappRequest, UpsertDappRequest } from "./requests/upsert-dapp.request";
-import { MyDappDto, OwnerDappDto } from "./dtos/owner-dapp.dto";
+import { CreateDappRequest } from "./requests/create-dapp.request";
+import { DEFAULT_PAGE_SIZE, ListDappsRequest } from "./requests/list-dapps.request";
+import { DappDto } from "./dtos/dapp.dto";
+import { PaginatedDappsDto } from "./dtos/paginated-dapps.dto";
 
-type EditOutcome = { dapp: Dapp; alert: AdminAlertKind | null; before: Dapp };
+/** What a write left behind: the dApp, and the alert to send once the transaction commits. */
+type Outcome = { dapp: Dapp; alert: SlackAlert | null };
 
 /**
- * Gives the columns and events that apply an edit's outcome to the pending change.
- * @param outcome What the edit does to the pending change.
- * @param now The time to record as the change's request time.
- * @returns The columns and events.
+ * Maps the database errors a dApp write can expect, a second live dApp for one email or a row lock timeout, to their business error.
+ * @param error The thrown value.
+ * @returns The business error, or the thrown value for any other error.
  */
-function pendingChangeEffects(outcome: PendingChangeOutcome, now: Date): Effects {
-    switch (outcome.kind) {
-        case "unchanged":
-            return { columns: {}, events: [] };
-        case "withdrawn":
-            return {
-                columns: { pendingChange: null, pendingChangeAt: null },
-                events: [{ type: DappEventType.CHANGE_WITHDRAWN, details: {} }],
-            };
-        case "replaced":
-            return {
-                columns: { pendingChange: outcome.change, pendingChangeAt: now },
-                events: [{ type: DappEventType.CHANGE_REQUESTED, details: { changes: outcome.changes } }],
-            };
-    }
+function fromPostgresError(error: unknown): unknown {
+    if (!(error instanceof QueryFailedError)) return error;
+    const { code, constraint } = error.driverError as { code?: string; constraint?: string };
+    // 23505 is unique_violation, 55P03 is lock_not_available.
+    if (code === "23505" && constraint === OWNER_EMAIL_LIVE_INDEX) return new BusinessException(DappErrorCode.DAPP_ALREADY_EXISTS);
+    if (code === "55P03") return new BusinessException(DappErrorCode.DAPP_CHANGED);
+    return error;
+}
+
+/**
+ * Describes a thrown value for a log line by its name and driver code, never by its message.
+ * @param error The thrown value.
+ * @returns The description.
+ */
+function describeError(error: unknown): string {
+    if (!(error instanceof Error)) return typeof error;
+    const driverCode = "code" in error ? error.code : undefined;
+    return typeof driverCode === "string" ? `${error.name} (${driverCode})` : error.name;
+}
+
+/**
+ * Escapes LIKE wildcards so the value matches literally.
+ * @param value The search text.
+ * @returns The escaped text.
+ */
+function escapeLike(value: string): string {
+    return value.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_");
+}
+
+/**
+ * Builds the Auth0 client of a dApp.
+ * @param dapp The dApp.
+ * @returns The client.
+ */
+function clientOf(dapp: Dapp): DappClient {
+    return {
+        dappId: dapp.id,
+        name: dapp.name,
+        description: dapp.description,
+        logoUrl: dapp.logoUrl,
+        callbackUrls: dapp.callbackUrls,
+        logoutUrls: dapp.logoutUrls,
+        webOrigins: dapp.webOrigins,
+    };
+}
+
+/**
+ * Builds the filters of the admin list. TypeORM ORs the entries of the array and ANDs the fields of each.
+ * @param request The filters.
+ * @returns The find conditions, or null when the filters cannot match together.
+ */
+function listFilters({ needsReview, status, search }: ListDappsRequest): FindOptionsWhere<Dapp>[] | null {
+    if (needsReview && status !== undefined && status !== DappStatus.PENDING) return null;
+    const scope: FindOptionsWhere<Dapp> = { status: needsReview ? DappStatus.PENDING : status };
+    if (search === undefined) return [scope];
+    const pattern = ILike(`%${escapeLike(search)}%`);
+    return (["name", "ownerEmail", "contactEmail", "auth0ClientId"] as const).map((column) => ({ ...scope, [column]: pattern }));
 }
 
 @Injectable()
@@ -55,156 +93,213 @@ export class DappService {
 
     constructor(
         @InjectDataSource() private readonly dataSource: DataSource,
-        private readonly writes: DappWriteService,
         private readonly configService: ConfigService,
-        private readonly notifier: DappNotifier,
+        @Inject(AUTH0_PROVISIONER) private readonly provisioner: IAuth0ProvisionerService,
+        @Inject(SLACK_NOTIFIER) private readonly slack: ISlackNotifierService,
+        private readonly metrics: DappMetricsProvider,
     ) {}
 
     /**
-     * Finds the caller's dApp that is not removed, matching the email in any case.
+     * Lists dApps. An admin gets one page of every dApp that matches the filters, sorted by creation time unless a column is
+     * given, the id breaking ties. Anyone else gets their own live dApp, if any, and their filters are ignored.
      * @param user The caller.
-     * @returns The dApp, or null when the caller has none.
+     * @param request The filters, sort and page.
+     * @returns The page.
      */
-    async getOwn(user: SessionUser): Promise<MyDappDto> {
-        return MyDappDto.fromEntity(await this.writes.findLiveByOwner(this.dataSource.manager, user.email));
-    }
-
-    /**
-     * Registers a pending dApp for the caller, auto-approving it if it qualifies, then alerts the admins on Slack. A failed alert does not fail the submission.
-     * @param user The owner.
-     * @param request The submitted fields.
-     * @returns The approved dApp, or the pending one when it was not auto-approved.
-     */
-    async submit(user: SessionUser, request: UpsertDappRequest): Promise<OwnerDappDto> {
-        const fields = toDappFields(request);
-        const dapp = await this.writes.counted("submit", async () => {
-            const { dapp, chosen } = await this.writes
-                .transaction(async (manager) => {
-                    if ((await this.writes.findLiveByOwner(manager, user.email, true)) !== null)
-                        throw new BusinessException(DappErrorCode.DAPP_ALREADY_EXISTS);
-                    // Auto-approval is a first-dApp pass: an email that ever had a dApp, removed ones included, goes to review.
-                    const chosen =
-                        this.configService.get<boolean>("admin.autoApprovalEnabled", false) &&
-                        !(await manager.existsBy(Dapp, { ownerEmail: user.email }));
-                    const { identifiers } = await manager.insert(Dapp, {
-                        ...fields,
-                        ownerEmail: user.email,
-                        status: DappStatus.PENDING,
-                        submittedAt: new Date(),
-                    });
-                    const dapp = await manager.findOneByOrFail(Dapp, { id: identifiers[0].id });
-                    await this.writes.appendEvents(manager, dapp.id, ActorRole.USER, [
-                        { type: DappEventType.SUBMITTED, details: { chosenForAutoApproval: chosen } },
-                    ]);
-                    return { dapp, chosen };
-                })
-                .catch((error: unknown) => {
-                    this.logger.log(`submit by user ${refusedOrFailed(error)}: ${describeError(error)}`);
-                    throw error;
-                });
-            this.logger.log(`submit dApp ${dapp.id} by user: -> pending${chosen ? ", chosen for auto-approval" : ""}`);
-
-            const approved = chosen ? await this.writes.autoApprove(dapp) : null;
-            if (approved !== null) {
-                await this.notifier.autoApproved(approved);
-                return approved;
-            }
-            await this.notifier.submitted(dapp);
-            return dapp;
+    async list(user: SessionUser, request: ListDappsRequest): Promise<PaginatedDappsDto> {
+        if (user.role !== Role.ADMIN) {
+            const own = await this.dataSource.manager.findBy(Dapp, { ownerEmail: user.email, status: Not(DappStatus.REMOVED) });
+            return PaginatedDappsDto.fromEntities(own, own.length, 1, DEFAULT_PAGE_SIZE);
+        }
+        const page = request.page ?? 1;
+        const pageSize = request.pageSize ?? DEFAULT_PAGE_SIZE;
+        const direction = request.order ?? OrderType.ASC;
+        const where = listFilters(request);
+        if (where === null) return PaginatedDappsDto.fromEntities([], 0, page, pageSize);
+        const [items, total] = await this.dataSource.manager.findAndCount(Dapp, {
+            where,
+            order: { [request.orderBy ?? "createdAt"]: direction, id: direction },
+            skip: (page - 1) * pageSize,
+            take: pageSize,
         });
-        return OwnerDappDto.fromEntity(dapp);
+        return PaginatedDappsDto.fromEntities(items, total, page, pageSize);
     }
 
     /**
-     * Edits the caller's live dApp at the expected version. A pending one changes in place, a rejected one is resubmitted, and an approved one keeps its live fields and requests a change for review. Resubmissions and change requests alert the admins.
-     * @param user The owner.
-     * @param id The dApp id the caller named.
-     * @param request The new fields and the version the caller last read.
-     * @returns The updated dApp.
+     * Reads one dApp. An admin can read any dApp, anyone else only their own.
+     * @param user The caller.
+     * @param id The dApp id.
+     * @returns The dApp.
      */
-    async editOwn(user: SessionUser, id: string, request: UpdateDappRequest): Promise<OwnerDappDto> {
-        const fields = toDappFields(request);
-        const dapp = await this.writes.counted(DappAction.EDIT, async () => {
-            const owner = ActorRole.USER;
-            const { dapp, alert, before } = await this.writes.mutate(
-                DappAction.EDIT,
-                owner,
-                { id, ownerEmail: user.email },
-                request.expectedVersion,
-                async (manager, live): Promise<EditOutcome> => ({
-                    ...(await (live.status === DappStatus.APPROVED
-                        ? this.editApproved(manager, live, fields, owner)
-                        : this.editInPlace(manager, live, fields, owner))),
-                    before: live,
-                }),
-            );
-            if (alert === DappEventType.CHANGE_REQUESTED) await this.notifier.changeRequested(dapp);
-            if (alert === DappEventType.RESUBMITTED) await this.notifier.resubmitted(dapp, before);
-            return dapp;
-        });
-        return OwnerDappDto.fromEntity(dapp);
+    async get(user: SessionUser, id: string): Promise<DappDto> {
+        const dapp = await this.dataSource.manager.findOneBy(Dapp, user.role === Role.ADMIN ? { id } : { id, ownerEmail: user.email });
+        if (dapp === null) throw new BusinessException(DappErrorCode.DAPP_NOT_FOUND);
+        return DappDto.fromEntity(dapp);
     }
 
     /**
-     * Removes the caller's live dApp at the expected version, deleting its Auth0 client.
+     * Registers a pending dApp for the caller. With auto-approval on, creates its Auth0 client and approves it. A failed Auth0
+     * call leaves it pending with the error recorded. Alerts the admins of the new dApp, whether it waits for review or not.
      * @param user The owner.
-     * @param id The dApp id the caller named.
-     * @param expectedVersion The version the caller last read.
+     * @param request The dApp's fields.
+     * @returns The new dApp.
      */
-    async removeOwn(user: SessionUser, id: string, expectedVersion: number): Promise<void> {
-        await this.writes.counted(DappAction.REMOVE, () => {
-            const owner = ActorRole.USER;
-            return this.writes.mutate(DappAction.REMOVE, owner, { id, ownerEmail: user.email }, expectedVersion, (manager, live) =>
-                this.writes.removeIn(manager, live, owner),
-            );
-        });
+    async create(user: SessionUser, request: CreateDappRequest): Promise<DappDto> {
+        const { dapp, alert } = await this.counted("create", () =>
+            this.transaction(async (manager): Promise<Outcome> => {
+                const pending = await manager.save(
+                    manager.create(Dapp, { ...request, ownerEmail: user.email, status: DappStatus.PENDING }),
+                );
+                if (!this.autoApprovalEnabled()) return { dapp: pending, alert: { kind: AdminAlertKind.DAPP_SUBMITTED, dapp: pending } };
+                try {
+                    const clientId = await this.counted("autoApprove", () => this.provisioner.create(clientOf(pending)));
+                    const approved = await manager.save(
+                        Object.assign(pending, { status: DappStatus.APPROVED, auth0ClientId: clientId, reviewedAt: new Date() }),
+                    );
+                    return { dapp: approved, alert: { kind: AdminAlertKind.AUTO_APPROVED, dapp: approved } };
+                } catch (error) {
+                    return this.recordAuth0Failure(manager, pending, error);
+                }
+            }),
+        );
+        this.logger.log(`create dApp ${dapp.id}: ${dapp.status}`);
+        await this.notify(alert);
+        return DappDto.fromEntity(dapp);
     }
 
     /**
-     * Applies an edit to a pending or rejected dApp's fields, turning a rejected dApp's edit into a resubmission.
+     * Approves a pending dApp: creates its Auth0 client and sets it approved, clearing any recorded Auth0 error. A failed Auth0
+     * call leaves it pending with the error recorded, and alerts the admins.
+     * @param id The dApp id.
+     * @returns The dApp.
+     */
+    async approve(id: string): Promise<DappDto> {
+        const { dapp, alert } = await this.counted("approve", () =>
+            this.transaction(async (manager): Promise<Outcome> => {
+                const pending = await this.lockPending(manager, id);
+                try {
+                    const clientId = await this.provisioner.create(clientOf(pending));
+                    const approved = await manager.save(
+                        Object.assign(pending, {
+                            status: DappStatus.APPROVED,
+                            auth0ClientId: clientId,
+                            auth0Error: null,
+                            reviewedAt: new Date(),
+                        }),
+                    );
+                    return { dapp: approved, alert: null };
+                } catch (error) {
+                    return this.recordAuth0Failure(manager, pending, error);
+                }
+            }),
+        );
+        this.logger.log(`approve dApp ${dapp.id}: ${dapp.status}`);
+        await this.notify(alert);
+        return DappDto.fromEntity(dapp);
+    }
+
+    /**
+     * Rejects a pending dApp.
+     * @param id The dApp id.
+     * @returns The dApp.
+     */
+    async reject(id: string): Promise<DappDto> {
+        const dapp = await this.counted("reject", () =>
+            this.transaction(async (manager) =>
+                manager.save(Object.assign(await this.lockPending(manager, id), { status: DappStatus.REJECTED, reviewedAt: new Date() })),
+            ),
+        );
+        this.logger.log(`reject dApp ${dapp.id}`);
+        return DappDto.fromEntity(dapp);
+    }
+
+    /**
+     * Locks a dApp's row until the transaction ends.
      * @param manager The transaction's entity manager.
-     * @param live The locked dApp.
-     * @param fields The new fields.
-     * @param owner The owner.
-     * @returns The updated dApp and the admin alert to send, if any.
+     * @param where The dApp to find.
+     * @returns The locked dApp.
      */
-    private async editInPlace(
-        manager: EntityManager,
-        live: Dapp,
-        fields: DappFields,
-        owner: ActorRole,
-    ): Promise<Omit<EditOutcome, "before">> {
-        const changes = diffFields(DAPP_FIELDS, live, fields);
-        const resubmitted = live.status === DappStatus.REJECTED;
-        const dapp = await this.writes.update(manager, live.id, {
-            ...fields,
-            status: DappStatus.PENDING,
-            ...(resubmitted && { reviewedAt: null, auth0Error: null, submittedAt: new Date() }),
-        });
-        const events: DappEventDetails[] = changes.length > 0 ? [{ type: DappEventType.EDITED, details: { changes } }] : [];
-        if (resubmitted) events.push({ type: DappEventType.RESUBMITTED, details: {} });
-        await this.writes.appendEvents(manager, live.id, owner, events);
-        return { dapp, alert: resubmitted ? DappEventType.RESUBMITTED : null };
+    private async lock(manager: EntityManager, where: FindOptionsWhere<Dapp>): Promise<Dapp> {
+        const dapp = await manager.findOne(Dapp, { where, lock: { mode: "pessimistic_write" } });
+        if (dapp === null) throw new BusinessException(DappErrorCode.DAPP_NOT_FOUND);
+        return dapp;
     }
 
     /**
-     * Turns an approved dApp's edit into a pending change for review, or withdraws the pending change when the edit matches the live fields.
+     * Locks a dApp that waits for review.
      * @param manager The transaction's entity manager.
-     * @param live The locked dApp.
-     * @param fields The new fields.
-     * @param owner The owner.
-     * @returns The updated dApp and the admin alert to send, if any.
+     * @param id The dApp id.
+     * @returns The locked pending dApp.
      */
-    private async editApproved(
-        manager: EntityManager,
-        live: Dapp,
-        fields: DappFields,
-        owner: ActorRole,
-    ): Promise<Omit<EditOutcome, "before">> {
-        const pendingChange = classifyEdit(live, live.pendingChange, fields);
-        const effects = pendingChangeEffects(pendingChange, new Date());
-        const dapp = await this.writes.update(manager, live.id, effects.columns);
-        await this.writes.appendEvents(manager, live.id, owner, effects.events);
-        return { dapp, alert: pendingChange.kind === "replaced" ? DappEventType.CHANGE_REQUESTED : null };
+    private async lockPending(manager: EntityManager, id: string): Promise<Dapp> {
+        const dapp = await this.lock(manager, { id });
+        if (dapp.status !== DappStatus.PENDING) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
+        return dapp;
+    }
+
+    /**
+     * Records a failed Auth0 call on the dApp, leaving its fields and status as they are, and builds the alert. Any other error
+     * is rethrown.
+     * @param manager The transaction's entity manager.
+     * @param dapp The dApp.
+     * @param error What the Auth0 call threw.
+     * @returns The dApp with the error recorded, and the alert.
+     */
+    private async recordAuth0Failure(manager: EntityManager, dapp: Dapp, error: unknown): Promise<Outcome> {
+        if (!(error instanceof ProvisioningError)) throw error;
+        this.logger.warn(`Auth0 call failed for dApp ${dapp.id} (${error.kind}): ${error.message}`);
+        const failed = await manager.save(Object.assign(dapp, { auth0Error: error.message }));
+        return { dapp: failed, alert: { kind: AdminAlertKind.AUTH0_FAILED, dapp: failed, error: error.message } };
+    }
+
+    /**
+     * Reads the auto-approval switch.
+     * @returns Whether new dApps are approved without review.
+     */
+    private autoApprovalEnabled(): boolean {
+        return this.configService.get<boolean>("admin.autoApprovalEnabled", false);
+    }
+
+    /**
+     * Runs work in a transaction, mapping the database errors a dApp write can expect to their business error.
+     * @param work The work to run.
+     * @returns What work returns.
+     */
+    private async transaction<T>(work: (manager: EntityManager) => Promise<T>): Promise<T> {
+        try {
+            return await this.dataSource.transaction(work);
+        } catch (error) {
+            throw fromPostgresError(error);
+        }
+    }
+
+    /**
+     * Runs a use case and counts its result under its action.
+     * @param action The use case.
+     * @param work The use case to run.
+     * @returns What work returns.
+     */
+    private async counted<T>(action: TransitionAction, work: () => Promise<T>): Promise<T> {
+        try {
+            const result = await work();
+            this.metrics.countTransition(action, "success");
+            return result;
+        } catch (error) {
+            this.metrics.countTransition(action, error instanceof BusinessException ? error.message : "error");
+            throw error;
+        }
+    }
+
+    /**
+     * Sends a Slack alert, logging instead of throwing when it fails, so the owner's write still succeeds.
+     * @param alert The alert, or null for none.
+     */
+    private async notify(alert: SlackAlert | null): Promise<void> {
+        if (alert === null) return;
+        try {
+            await this.slack.notify(alert);
+        } catch (error) {
+            this.logger.warn(`Slack alert ${alert.kind} for dApp ${alert.dapp.id} failed: ${describeError(error)}`);
+        }
     }
 }

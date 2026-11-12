@@ -4,16 +4,17 @@ import { IsBoolean, IsIn, IsInt, IsOptional, Max, Min, MaxLength } from "class-v
 import { DappStatus, MAX_PAGE, SEARCH_MAX_LENGTH } from "@shared/modules/dapp";
 import { PaginatedRequest } from "@backend/core/pagination";
 import { OrderType } from "@shared/utils";
-import { HasNoNul } from "../../dapp/decorator/dapp-field.decorator";
+import { HasNoNul } from "../decorator/dapp-field.decorator";
 import { DappOrderBy } from "../types/dapp-order";
 
 export const DEFAULT_PAGE_SIZE = 20;
 const MAX_PAGE_SIZE = 100;
 
+/** An admin's filters, sort and page. A regular user's list ignores them. */
 export class ListDappsRequest extends PaginatedRequest {
     @ApiPropertyOptional({
         description:
-            "Only pending dApps and approved dApps with a pending change. Unless `orderBy` is given, they are sorted by how long they have waited for review, oldest first with `order=asc`.",
+            "Only dApps waiting for review, which are the pending ones. Unless `orderBy` is given, they are sorted by how long they have waited, oldest first with `order=ASC`.",
         default: false,
     })
     @IsOptional()

@@ -1,6 +1,6 @@
-import { ApiProperty, IntersectionType } from "@nestjs/swagger";
+import { ApiProperty } from "@nestjs/swagger";
 import { IsEmail, IsIn } from "class-validator";
-import { DappFields, MauBracket } from "@shared/modules/dapp";
+import { MauBracket } from "@shared/modules/dapp";
 import {
     IsDappDescription,
     IsDappName,
@@ -10,9 +10,8 @@ import {
     NormaliseUrlList,
     Trim,
 } from "../decorator/dapp-field.decorator";
-import { ExpectedVersionRequest } from "./expected-version.request";
 
-export class UpsertDappRequest {
+export class CreateDappRequest {
     @ApiProperty({ description: "The dApp's name." })
     @Trim()
     @IsDappName()
@@ -51,16 +50,4 @@ export class UpsertDappRequest {
     @Trim()
     @IsEmail()
     contactEmail: string;
-}
-
-export class UpdateDappRequest extends IntersectionType(UpsertDappRequest, ExpectedVersionRequest) {}
-
-/**
- * Keeps only the dApp fields of a request, dropping expectedVersion and anything else.
- * @param request The validated request.
- * @returns The fields.
- */
-export function toDappFields(request: UpsertDappRequest): DappFields {
-    const { name, description, logoUrl, mauBracket, callbackUrls, logoutUrls, webOrigins, contactEmail } = request;
-    return { name, description, logoUrl, mauBracket, callbackUrls, logoutUrls, webOrigins, contactEmail };
 }

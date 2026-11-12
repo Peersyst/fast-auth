@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { DappFieldsDto } from './DappFieldsDto';
 import type { DappStatus } from './DappStatus';
 import type { MauBracket } from './MauBracket';
-export type OwnerDappDto = {
+export type DappDto = {
     id: string;
+    ownerEmail: string;
     name: string;
     description: string;
     logoUrl: string;
@@ -16,16 +16,18 @@ export type OwnerDappDto = {
     webOrigins: Array<string>;
     contactEmail: string;
     status: DappStatus;
-    pendingChange: DappFieldsDto | null;
-    pendingChangeAt: string | null;
     /**
-     * Null until the dApp is provisioned.
+     * Null until the dApp is approved.
      */
     auth0ClientId: string | null;
     /**
-     * Send it back as `expectedVersion` with the next change.
+     * The error of the last failed Auth0 call, null once an Auth0 write succeeds.
      */
-    version: number;
-    submittedAt: string;
+    auth0Error: string | null;
+    /**
+     * Null until an admin or auto-approval reviews the dApp.
+     */
+    reviewedAt: string | null;
+    createdAt: string;
 };
 

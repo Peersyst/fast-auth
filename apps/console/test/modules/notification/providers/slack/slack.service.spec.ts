@@ -1,6 +1,6 @@
 import { createServer, Server } from "node:http";
 import { AddressInfo } from "node:net";
-import { DappEventType, MauBracket } from "@shared/modules/dapp";
+import { AdminAlertKind } from "../../../../../src/modules/notification/interfaces/i-slack-notifier.service";
 import { slackMessage, SlackService } from "../../../../../src/modules/notification/providers/slack/slack.service";
 import { DappMock } from "../../../../mocks/dapp/dapp.mock";
 
@@ -10,7 +10,7 @@ describe("SlackService", () => {
 
     describe("slackMessage", () => {
         it("should list every field after the summary and the review link, with a dash for an empty list, and never unfurl", () => {
-            expect(slackMessage({ kind: DappEventType.SUBMITTED, dapp }, publicUrl)).toEqual({
+            expect(slackMessage({ kind: AdminAlertKind.DAPP_SUBMITTED, dapp }, publicUrl)).toEqual({
                 text: [
                     "*New dApp submission to review*",
                     "Acme &amp; Co was submitted and is waiting for review.",
@@ -31,32 +31,33 @@ describe("SlackService", () => {
 
         it("should keep a description with line breaks on one line, so it cannot fake another field", () => {
             const { text } = slackMessage(
-                { kind: DappEventType.SUBMITTED, dapp: new DappMock({ description: "Fine\n*Contact:* <!channel>" }) },
+                { kind: AdminAlertKind.DAPP_SUBMITTED, dapp: new DappMock({ description: "Fine\n*Contact:* <!channel>" }) },
                 publicUrl,
             );
 
             expect(text).toContain("*Description:* Fine *Contact:* &lt;!channel&gt;\n");
         });
 
-        it("should mark each field a resubmission changed with its old value", () => {
-            const rejected = { ...dapp, name: "Old Acme", mauBracket: MauBracket.GT_25K };
+        it("should alert on an auto-approval", () => {
+            const { text } = slackMessage({ kind: AdminAlertKind.AUTO_APPROVED, dapp }, publicUrl);
 
-            const { text } = slackMessage({ kind: DappEventType.RESUBMITTED, dapp, rejected }, publicUrl);
-
-            expect(text).toContain("*Name (changed):* Acme &amp; Co (was: Old Acme)\n");
-            expect(text).toContain("*Expected MAU (changed):* Less than 1,000 (was: More than 25,000)");
+            expect(text).toContain(
+                "*A dApp was auto-approved*\nAcme &amp; Co was approved automatically and got an Auth0 client.\n" +
+                    `<${publicUrl}/admin/dapps/${dapp.id}|Review it in the console>\n*Name:* Acme &amp; Co\n`,
+            );
         });
 
-        it("should say when a resubmission changed nothing", () => {
-            const { text } = slackMessage({ kind: DappEventType.RESUBMITTED, dapp, rejected: { ...dapp } }, publicUrl);
+        it("should name the Auth0 error, escaped, before the fields", () => {
+            const { text } = slackMessage(
+                { kind: AdminAlertKind.AUTH0_FAILED, dapp, error: "Auth0 create answered 400: <bad>" },
+                publicUrl,
+            );
 
-            expect(text).toContain("Nothing was changed since the rejection.\n");
-        });
-
-        it("should alert on a change request", () => {
-            const { text } = slackMessage({ kind: DappEventType.CHANGE_REQUESTED, dapp }, publicUrl);
-
-            expect(text).toContain("*A dApp change request to review*\nAcme &amp; Co has a change request that is waiting for review.");
+            expect(text).toContain(
+                "Acme &amp; Co could not be written to Auth0, so it is waiting for review.\n" +
+                    `<${publicUrl}/admin/dapps/${dapp.id}|Review it in the console>\n` +
+                    "*Error:* Auth0 create answered 400: &lt;bad&gt;\n*Name:* Acme &amp; Co\n",
+            );
         });
     });
 
@@ -89,27 +90,27 @@ describe("SlackService", () => {
         });
 
         it("should post the message as JSON to the webhook", async () => {
-            await new SlackService(`${origin}/ok`, publicUrl, 5000).notify({ kind: DappEventType.AUTO_APPROVED, dapp });
+            await new SlackService(`${origin}/ok`, publicUrl, 5000).notify({ kind: AdminAlertKind.DAPP_SUBMITTED, dapp });
 
             expect(received).toEqual([
                 {
                     method: "POST",
                     url: "/ok",
                     contentType: "application/json",
-                    body: JSON.stringify(slackMessage({ kind: DappEventType.AUTO_APPROVED, dapp }, publicUrl)),
+                    body: JSON.stringify(slackMessage({ kind: AdminAlertKind.DAPP_SUBMITTED, dapp }, publicUrl)),
                 },
             ]);
         });
 
         it("should throw on an error answer, naming the status in the error code", async () => {
             await expect(
-                new SlackService(`${origin}/missing`, publicUrl, 5000).notify({ kind: DappEventType.SUBMITTED, dapp }),
+                new SlackService(`${origin}/missing`, publicUrl, 5000).notify({ kind: AdminAlertKind.DAPP_SUBMITTED, dapp }),
             ).rejects.toMatchObject({ message: "Slack webhook answered 404", code: "HTTP_404" });
         });
 
         it("should give up once the deadline passes", async () => {
             await expect(
-                new SlackService(`${origin}/hang`, publicUrl, 50).notify({ kind: DappEventType.SUBMITTED, dapp }),
+                new SlackService(`${origin}/hang`, publicUrl, 50).notify({ kind: AdminAlertKind.DAPP_SUBMITTED, dapp }),
             ).rejects.toMatchObject({ name: "TimeoutError" });
         });
     });

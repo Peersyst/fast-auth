@@ -1,4 +1,4 @@
-import { DAPP_FIELDS, DappEventType, DappField, DappFields, diffFields, FIELD_LABELS, MAU_LABELS } from "@shared/modules/dapp";
+import { DappField, DappFields, FIELD_LABELS, MAU_LABELS } from "@shared/modules/dapp";
 import { AdminAlertKind, ISlackNotifierService, SlackAlert } from "../../interfaces/i-slack-notifier.service";
 import { SlackWebhookPayload } from "./slack.types";
 
@@ -17,15 +17,11 @@ function escapeMrkdwn(value: string): string {
 }
 
 const ADMIN_ALERTS: Record<AdminAlertKind, { subject: string; body: string }> = {
-    [DappEventType.SUBMITTED]: { subject: "New dApp submission to review", body: "was submitted and is waiting for review." },
-    [DappEventType.AUTO_APPROVED]: { subject: "A dApp was auto-approved", body: "was approved automatically and got an Auth0 client." },
-    [DappEventType.RESUBMITTED]: {
-        subject: "A dApp was resubmitted for review",
-        body: "was resubmitted after a rejection and is waiting for review again.",
-    },
-    [DappEventType.CHANGE_REQUESTED]: {
-        subject: "A dApp change request to review",
-        body: "has a change request that is waiting for review.",
+    [AdminAlertKind.DAPP_SUBMITTED]: { subject: "New dApp submission to review", body: "was submitted and is waiting for review." },
+    [AdminAlertKind.AUTO_APPROVED]: { subject: "A dApp was auto-approved", body: "was approved automatically and got an Auth0 client." },
+    [AdminAlertKind.AUTH0_FAILED]: {
+        subject: "Auth0 provisioning failed",
+        body: "could not be written to Auth0, so it is waiting for review.",
     },
 };
 
@@ -41,7 +37,7 @@ const FIELD_LINES: Record<DappField, (fields: DappFields) => string> = {
 };
 
 /**
- * Builds the webhook payload for an alert, with every dApp field and, on a resubmission, what changed since the rejection.
+ * Builds the webhook payload for an alert, with every dApp field.
  * @param alert The alert.
  * @param publicUrl The console's public URL, for the review link.
  * @returns The webhook payload, with link previews off.
@@ -50,20 +46,14 @@ export function slackMessage(alert: SlackAlert, publicUrl: string): SlackWebhook
     const { dapp } = alert;
     const copy = ADMIN_ALERTS[alert.kind];
     const url = `${publicUrl}/admin/dapps/${encodeURIComponent(dapp.id)}`;
-    const resubmitted = alert.kind === DappEventType.RESUBMITTED;
-    const before = resubmitted ? alert.rejected : dapp;
-    const changed: string[] = diffFields(DAPP_FIELDS, before, dapp).map((change) => change.field);
-    const resubmission = resubmitted && changed.length === 0 ? ["Nothing was changed since the rejection."] : [];
-    const fields = Object.entries(FIELD_LINES).map(([field, format]) => {
-        const label = FIELD_LABELS[field as DappField];
-        return changed.includes(field) ? `*${label} (changed):* ${format(dapp)} (was: ${format(before)})` : `*${label}:* ${format(dapp)}`;
-    });
+    const error = alert.kind === AdminAlertKind.AUTH0_FAILED ? [`*Error:* ${escapeMrkdwn(alert.error)}`] : [];
+    const fields = Object.entries(FIELD_LINES).map(([field, format]) => `*${FIELD_LABELS[field as DappField]}:* ${format(dapp)}`);
     return {
         text: [
             `*${copy.subject}*`,
             `${escapeMrkdwn(dapp.name)} ${copy.body}`,
             `<${url}|Review it in the console>`,
-            ...resubmission,
+            ...error,
             ...fields,
         ].join("\n"),
         unfurl_links: false,

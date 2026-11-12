@@ -15,7 +15,7 @@ export const $PaginatedDappsDto = {
         items: {
             type: 'array',
             contains: {
-                type: 'AdminDappDto',
+                type: 'DappDto',
             },
             isRequired: true,
         },

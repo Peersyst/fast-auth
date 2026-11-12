@@ -1,10 +1,9 @@
-import { Check, Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn, VersionColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { DappFields, DappStatus, MauBracket } from "@shared/modules/dapp";
 
 export const OWNER_EMAIL_LIVE_INDEX = "dapp_owner_email_live";
 
 @Entity("dapp")
-@Check("dapp_pending_change_at", `("pending_change" IS NULL) = ("pending_change_at" IS NULL)`)
 @Index(OWNER_EMAIL_LIVE_INDEX, ["ownerEmail"], { unique: true, where: `"status" <> '${DappStatus.REMOVED}'` })
 export class Dapp implements DappFields {
     @PrimaryGeneratedColumn("uuid")
@@ -40,29 +39,14 @@ export class Dapp implements DappFields {
     @Column({ type: "enum", enum: DappStatus })
     status: DappStatus;
 
-    @Column("jsonb", { name: "pending_change", nullable: true })
-    pendingChange: DappFields | null;
-
-    @Column("timestamp with time zone", { name: "pending_change_at", nullable: true })
-    pendingChangeAt: Date | null;
-
     @Column("text", { name: "auth0_client_id", nullable: true })
     auth0ClientId: string | null;
 
     @Column("text", { name: "auth0_error", nullable: true })
     auth0Error: string | null;
 
-    @Column("timestamp with time zone", { name: "submitted_at" })
-    submittedAt: Date;
-
     @Column("timestamp with time zone", { name: "reviewed_at", nullable: true })
     reviewedAt: Date | null;
-
-    @Column("timestamp with time zone", { name: "removed_at", nullable: true })
-    removedAt: Date | null;
-
-    @VersionColumn()
-    version: number;
 
     @CreateDateColumn({ name: "created_at", type: "timestamp with time zone" })
     createdAt: Date;

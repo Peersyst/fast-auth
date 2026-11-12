@@ -1,15 +1,14 @@
 import { Dapp } from "@database/console/entities";
-import { DappEventType, DappFields } from "@shared/modules/dapp";
 
-export type AdminAlertKind =
-    | typeof DappEventType.SUBMITTED
-    | typeof DappEventType.AUTO_APPROVED
-    | typeof DappEventType.RESUBMITTED
-    | typeof DappEventType.CHANGE_REQUESTED;
+export enum AdminAlertKind {
+    DAPP_SUBMITTED = "dapp_submitted",
+    AUTO_APPROVED = "auto_approved",
+    AUTH0_FAILED = "auth0_failed",
+}
 
 export type SlackAlert =
-    | { kind: Exclude<AdminAlertKind, typeof DappEventType.RESUBMITTED>; dapp: Dapp }
-    | { kind: typeof DappEventType.RESUBMITTED; dapp: Dapp; rejected: DappFields };
+    | { kind: AdminAlertKind.DAPP_SUBMITTED | AdminAlertKind.AUTO_APPROVED; dapp: Dapp }
+    | { kind: AdminAlertKind.AUTH0_FAILED; dapp: Dapp; error: string };
 
 export interface ISlackNotifierService {
     notify(alert: SlackAlert): Promise<void>;
