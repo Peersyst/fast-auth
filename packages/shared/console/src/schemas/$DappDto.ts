@@ -70,15 +70,9 @@ export const $DappDto = {
             isRequired: true,
             isNullable: true,
         },
-        auth0Error: {
-            type: 'string',
-            description: `The error of the last failed Auth0 call, null once an Auth0 write succeeds.`,
-            isRequired: true,
-            isNullable: true,
-        },
         reviewedAt: {
             type: 'string',
-            description: `Null until an admin or auto-approval reviews the dApp.`,
+            description: `Null until an admin reviews the dApp.`,
             isRequired: true,
             isNullable: true,
             format: 'date-time',

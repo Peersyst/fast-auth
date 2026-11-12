@@ -37,28 +37,6 @@ describe("SlackService", () => {
 
             expect(text).toContain("*Description:* Fine *Contact:* &lt;!channel&gt;\n");
         });
-
-        it("should alert on an auto-approval", () => {
-            const { text } = slackMessage({ kind: AdminAlertKind.AUTO_APPROVED, dapp }, publicUrl);
-
-            expect(text).toContain(
-                "*A dApp was auto-approved*\nAcme &amp; Co was approved automatically and got an Auth0 client.\n" +
-                    `<${publicUrl}/admin/dapps/${dapp.id}|Review it in the console>\n*Name:* Acme &amp; Co\n`,
-            );
-        });
-
-        it("should name the Auth0 error, escaped, before the fields", () => {
-            const { text } = slackMessage(
-                { kind: AdminAlertKind.AUTH0_FAILED, dapp, error: "Auth0 create answered 400: <bad>" },
-                publicUrl,
-            );
-
-            expect(text).toContain(
-                "Acme &amp; Co could not be written to Auth0, so it is waiting for review.\n" +
-                    `<${publicUrl}/admin/dapps/${dapp.id}|Review it in the console>\n` +
-                    "*Error:* Auth0 create answered 400: &lt;bad&gt;\n*Name:* Acme &amp; Co\n",
-            );
-        });
     });
 
     describe("notify", () => {

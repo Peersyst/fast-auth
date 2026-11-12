@@ -23,5 +23,4 @@ export const NAME_MAX_LENGTH = 64;
 export const DESCRIPTION_MAX_LENGTH = 140;
 /** Auth0's limit for `client_metadata` values. */
 export const LOGO_URL_MAX_LENGTH = 255;
-export const SEARCH_MAX_LENGTH = 100;
 export const MAX_PAGE = 10_000;

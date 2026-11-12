@@ -4,7 +4,6 @@ export enum DappErrorCode {
     DAPP_NOT_FOUND = "DAPP_NOT_FOUND",
     DAPP_ALREADY_EXISTS = "DAPP_ALREADY_EXISTS",
     INVALID_TRANSITION = "INVALID_TRANSITION",
-    DAPP_CHANGED = "DAPP_CHANGED",
 }
 
 export const DappErrorBody: Record<DappErrorCode, { statusCode: HttpStatus; message: string }> = {
@@ -19,9 +18,5 @@ export const DappErrorBody: Record<DappErrorCode, { statusCode: HttpStatus; mess
     [DappErrorCode.INVALID_TRANSITION]: {
         statusCode: HttpStatus.CONFLICT,
         message: DappErrorCode.INVALID_TRANSITION,
-    },
-    [DappErrorCode.DAPP_CHANGED]: {
-        statusCode: HttpStatus.CONFLICT,
-        message: DappErrorCode.DAPP_CHANGED,
     },
 };

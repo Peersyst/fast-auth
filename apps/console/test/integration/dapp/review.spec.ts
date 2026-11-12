@@ -47,9 +47,9 @@ describe("dApp review (integration)", () => {
 
     beforeEach(async () => {
         await truncateAll(dataSource);
+        register.resetMetrics();
         provisioner.reset();
         slack.clearMocks();
-        register.resetMetrics();
         admin = await adminBearer();
     });
 
@@ -69,8 +69,8 @@ describe("dApp review (integration)", () => {
     const review = (path: string) => testApp.request.post(`/dapp/${path}`).set("Authorization", admin);
 
     describe("POST /dapp/:id/approve", () => {
-        it("should create the Auth0 client, approve the dApp and clear its recorded Auth0 error", async () => {
-            const dapp = await pendingDapp({ auth0Error: "Fake create: scripted failed" });
+        it("should create the Auth0 client and approve the dApp", async () => {
+            const dapp = await pendingDapp();
 
             const { body } = await review(`${dapp.id}/approve`).expect(200);
 
@@ -80,7 +80,6 @@ describe("dApp review (integration)", () => {
                 ...dappForm(),
                 status: "approved",
                 auth0ClientId: expect.stringMatching(/^fake_/),
-                auth0Error: null,
                 reviewedAt: expect.any(String),
                 createdAt: dapp.createdAt.toISOString(),
             });
@@ -98,37 +97,23 @@ describe("dApp review (integration)", () => {
             expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
                 status: "approved",
                 auth0ClientId: body.auth0ClientId,
-                auth0Error: null,
                 reviewedAt: new Date(body.reviewedAt),
             });
             expect(slack.notify).not.toHaveBeenCalled();
             expect(await transitionCounts()).toEqual({ "approve success": 1 });
         });
 
-        it("should keep the dApp pending when Auth0 fails, answer 200 with the error and alert the admins", async () => {
+        it("should leave the dApp pending when the Auth0 call fails", async () => {
             const dapp = await pendingDapp();
             provisioner.script("failed");
 
-            const { body } = await review(`${dapp.id}/approve`).expect(200);
+            await review(`${dapp.id}/approve`).expect(500);
 
-            expect(body).toMatchObject({
-                status: "pending",
-                auth0ClientId: null,
-                auth0Error: "Fake create: scripted failed",
-                reviewedAt: null,
-            });
             expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
                 status: "pending",
                 auth0ClientId: null,
-                auth0Error: "Fake create: scripted failed",
                 reviewedAt: null,
             });
-            expect(slack.notify).toHaveBeenCalledWith({
-                kind: "auth0_failed",
-                dapp: expect.objectContaining({ id: dapp.id }),
-                error: "Fake create: scripted failed",
-            });
-            expect(await transitionCounts()).toEqual({ "approve success": 1 });
         });
 
         it.each([DappStatus.APPROVED, DappStatus.REJECTED])("should answer 409 INVALID_TRANSITION for a %s dApp", async (status) => {
@@ -139,14 +124,12 @@ describe("dApp review (integration)", () => {
             expect(body).toEqual({ statusCode: 409, message: "INVALID_TRANSITION" });
             expect(provisioner.calls).toEqual([]);
             expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status });
-            expect(await transitionCounts()).toEqual({ "approve INVALID_TRANSITION": 1 });
         });
 
         it("should answer 404 DAPP_NOT_FOUND for an unknown id", async () => {
             const { body } = await review(`${unknownId}/approve`).expect(404);
 
             expect(body).toEqual({ statusCode: 404, message: "DAPP_NOT_FOUND" });
-            expect(await transitionCounts()).toEqual({ "approve DAPP_NOT_FOUND": 1 });
         });
     });
 
@@ -162,7 +145,6 @@ describe("dApp review (integration)", () => {
                 ...dappForm(),
                 status: "rejected",
                 auth0ClientId: null,
-                auth0Error: null,
                 reviewedAt: expect.any(String),
                 createdAt: dapp.createdAt.toISOString(),
             });
@@ -184,7 +166,6 @@ describe("dApp review (integration)", () => {
             expect(conflict.body).toEqual({ statusCode: 409, message: "INVALID_TRANSITION" });
             expect(missing.body).toEqual({ statusCode: 404, message: "DAPP_NOT_FOUND" });
             expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "approved" });
-            expect(await transitionCounts()).toEqual({ "reject INVALID_TRANSITION": 1, "reject DAPP_NOT_FOUND": 1 });
         });
     });
 
@@ -203,7 +184,6 @@ describe("dApp review (integration)", () => {
                 expect(forbidden.body).toEqual({ statusCode: 403, message: "FORBIDDEN_ROLE" });
                 expect(anonymous.body).toEqual({ statusCode: 401, message: "UNAUTHENTICATED" });
                 expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "pending" });
-                expect(await transitionCounts()).toEqual({});
             },
         );
 

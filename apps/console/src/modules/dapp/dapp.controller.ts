@@ -20,7 +20,7 @@ export class DappController {
     @Get()
     @ApiOkResponse({
         type: PaginatedDappsDto,
-        description: "For an admin, one page of the dApps that match the filters. For anyone else, their own live dApp, if any.",
+        description: "For an admin, one page of every dApp. For anyone else, their own dApp, if any.",
     })
     list(@CurrentUser() user: SessionUser, @Query() request: ListDappsRequest): Promise<PaginatedDappsDto> {
         return this.dappService.list(user, request);
@@ -35,8 +35,7 @@ export class DappController {
     @Post()
     @ApiCreatedResponse({
         type: DappDto,
-        description:
-            "The new dApp. Its status is `pending` until it is reviewed, or `approved` with an Auth0 client when auto-approval approved it.",
+        description: "The new dApp, `pending` until an admin reviews it, or `approved` with its Auth0 client when auto-approval is on.",
     })
     create(@CurrentUser() user: SessionUser, @Body() request: CreateDappRequest): Promise<DappDto> {
         return this.dappService.create(user, request);

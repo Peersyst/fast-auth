@@ -16,7 +16,6 @@ export const DappMock = mockify<DappDto>({
     contactEmail: "dev@acme.xyz",
     status: "pending",
     auth0ClientId: null,
-    auth0Error: null,
     reviewedAt: null,
     createdAt: "2026-10-01T10:00:00.000Z",
 });

@@ -47,9 +47,9 @@ describe("DappModule (integration)", () => {
 
     beforeEach(async () => {
         await truncateAll(dataSource);
+        register.resetMetrics();
         provisioner.reset();
         slack.clearMocks();
-        register.resetMetrics();
         owner = await bearer(ownerEmail);
         admin = await adminBearer();
     });
@@ -83,18 +83,17 @@ describe("DappModule (integration)", () => {
                 ...dappForm(),
                 status: "pending",
                 auth0ClientId: null,
-                auth0Error: null,
                 reviewedAt: null,
                 createdAt: expect.any(String),
             });
             expect(await findDapp(dataSource.manager, body.id)).toMatchObject({
                 ownerEmail,
                 status: "pending",
-                auth0Error: null,
                 reviewedAt: null,
             });
             expect(slack.notify).toHaveBeenCalledWith({ kind: "dapp_submitted", dapp: expect.objectContaining({ id: body.id }) });
             expect(provisioner.calls).toEqual([]);
+            expect(await transitionCounts()).toEqual({ "create success": 1 });
         });
 
         it("should store the normalised values", async () => {
@@ -133,13 +132,6 @@ describe("DappModule (integration)", () => {
                 .expect(409);
 
             expect(body).toEqual({ statusCode: 409, message: "DAPP_ALREADY_EXISTS" });
-        });
-
-        it("should count each create under its result", async () => {
-            await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(201);
-            await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(409);
-
-            expect(await transitionCounts()).toEqual({ "create success": 1, "create DAPP_ALREADY_EXISTS": 1 });
         });
 
         it("should give one 201 and one 409 for two concurrent submissions of one email", async () => {
@@ -193,66 +185,25 @@ describe("DappModule (integration)", () => {
             expect(await adminList("page=2&pageSize=2")).toEqual(["c@owners.test"]);
         });
 
-        it("should list only the pending dApps for review, oldest first", async () => {
-            await pendingDapp({ ownerEmail: "late@owners.test", createdAt: new Date("2026-01-02T00:00:00Z") });
-            await pendingDapp({ ownerEmail: "early@owners.test", createdAt: new Date("2026-01-01T00:00:00Z") });
-            await pendingDapp({ ownerEmail: "approved@owners.test", status: DappStatus.APPROVED, auth0ClientId: "client_live" });
-            await pendingDapp({ ownerEmail: "rejected@owners.test", status: DappStatus.REJECTED });
-
-            expect(await adminList("needsReview=true")).toEqual(["early@owners.test", "late@owners.test"]);
+        it.each([
+            "page=0",
+            "pageSize=0",
+            "pageSize=101",
+            "needsReview=true",
+            "status=pending",
+            "search=acme",
+            "orderBy=name",
+            "order=DESC",
+        ])("should refuse %s with 400", async (query) => {
+            await testApp.request.get(`/dapp?${query}`).set("Authorization", admin).expect(400);
         });
 
-        it("should narrow the review queue by status instead of replacing it", async () => {
-            await pendingDapp({ ownerEmail: "pending@owners.test" });
-            await pendingDapp({ ownerEmail: "rejected@owners.test", status: DappStatus.REJECTED });
-
-            expect(await adminList("needsReview=true&status=pending")).toEqual(["pending@owners.test"]);
-            expect(await adminList("needsReview=true&status=rejected")).toEqual([]);
-            expect(await adminList("status=rejected")).toEqual(["rejected@owners.test"]);
-        });
-
-        it("should search case-insensitively with LIKE wildcards taken literally", async () => {
-            await pendingDapp({ ownerEmail: "a@owners.test", name: "Acme 100% Wallet" });
-            await pendingDapp({ ownerEmail: "b@owners.test", name: "Acme 100 Wallet" });
-            await pendingDapp({ ownerEmail: "c@owners.test", name: "Acme_Pay" });
-            await pendingDapp({ ownerEmail: "d@owners.test", name: "AcmeXPay" });
-
-            expect(await adminList("search=100%25")).toEqual(["a@owners.test"]);
-            expect(await adminList("search=acme_pay")).toEqual(["c@owners.test"]);
-        });
-
-        it("should search the owner email, the contact email and the Auth0 client id, within the status filter", async () => {
-            await pendingDapp({ ownerEmail: "owner-match@owners.test" });
-            await pendingDapp({ ownerEmail: "b@owners.test", contactEmail: "ops@match.xyz" });
-            await pendingDapp({ ownerEmail: "c@owners.test", status: DappStatus.APPROVED, auth0ClientId: "client_MATCH" });
-            await pendingDapp({ ownerEmail: "d@owners.test", status: DappStatus.REJECTED, contactEmail: "dev@match.xyz" });
-            await pendingDapp({ ownerEmail: "e@owners.test" });
-
-            expect(await adminList("search=match&orderBy=name")).toHaveLength(4);
-            expect(await adminList("search=MATCH&status=approved")).toEqual(["c@owners.test"]);
-        });
-
-        it("should sort by the requested column and order", async () => {
-            await pendingDapp({ ownerEmail: "a@owners.test", name: "Alpha" });
-            await pendingDapp({ ownerEmail: "b@owners.test", name: "Zulu" });
-
-            expect(await adminList("orderBy=name&order=DESC", "name")).toEqual(["Zulu", "Alpha"]);
-            expect(await adminList("orderBy=name&order=ASC", "name")).toEqual(["Alpha", "Zulu"]);
-        });
-
-        it.each(["page=0", "pageSize=101", "status=gone", "orderBy=owner", "search=acme%00", "order=desc", "needsReview=yes"])(
-            "should refuse %s with 400",
-            async (query) => {
-                await testApp.request.get(`/dapp?${query}`).set("Authorization", admin).expect(400);
-            },
-        );
-
-        it("should answer a user only their own live dApp as a list of one, ignoring the filters", async () => {
+        it("should answer a user only their own dApp as a list of one, matching the email in any case", async () => {
             const own = await pendingDapp();
             await pendingDapp({ ownerEmail: "other@owners.test" });
 
             const { body } = await testApp.request
-                .get("/dapp?status=rejected&needsReview=true&page=3&pageSize=1&search=other")
+                .get("/dapp")
                 .set("Authorization", await bearer("BOB@owners.test"))
                 .expect(200);
 
@@ -264,7 +215,6 @@ describe("DappModule (integration)", () => {
                         ...dappForm(),
                         status: "pending",
                         auth0ClientId: null,
-                        auth0Error: null,
                         reviewedAt: null,
                         createdAt: own.createdAt.toISOString(),
                     },
@@ -313,7 +263,6 @@ describe("DappModule (integration)", () => {
                 ...dappForm(),
                 status: "rejected",
                 auth0ClientId: null,
-                auth0Error: null,
                 reviewedAt: "2026-01-05T00:00:00.000Z",
                 createdAt: dapp.createdAt.toISOString(),
             });

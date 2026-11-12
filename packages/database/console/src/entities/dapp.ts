@@ -42,9 +42,6 @@ export class Dapp implements DappFields {
     @Column("text", { name: "auth0_client_id", nullable: true })
     auth0ClientId: string | null;
 
-    @Column("text", { name: "auth0_error", nullable: true })
-    auth0Error: string | null;
-
     @Column("timestamp with time zone", { name: "reviewed_at", nullable: true })
     reviewedAt: Date | null;
 

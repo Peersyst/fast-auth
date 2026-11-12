@@ -4,9 +4,6 @@
 /* eslint-disable */
 import type { CreateDappRequest } from '../models/CreateDappRequest';
 import type { DappDto } from '../models/DappDto';
-import type { DappOrderBy } from '../models/DappOrderBy';
-import type { DappStatus } from '../models/DappStatus';
-import type { OrderType } from '../models/OrderType';
 import type { PaginatedDappsDto } from '../models/PaginatedDappsDto';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
@@ -15,22 +12,12 @@ export class DappApi {
     /**
      * @param page
      * @param pageSize
-     * @param order
-     * @param orderBy
-     * @param needsReview Only dApps waiting for review, which are the pending ones. Unless `orderBy` is given, they are sorted by how long they have waited, oldest first with `order=ASC`.
-     * @param status
-     * @param search Case-insensitive substring of the name, owner email, contact email or Auth0 client id.
-     * @returns PaginatedDappsDto For an admin, one page of the dApps that match the filters. For anyone else, their own live dApp, if any.
+     * @returns PaginatedDappsDto For an admin, one page of every dApp. For anyone else, their own dApp, if any.
      * @throws ApiError
      */
     public static list(
         page: number = 1,
         pageSize: number = 20,
-        order?: OrderType,
-        orderBy?: DappOrderBy,
-        needsReview: boolean = false,
-        status?: DappStatus,
-        search?: string,
     ): CancelablePromise<PaginatedDappsDto> {
         return __request(OpenAPI, {
             method: 'GET',
@@ -38,17 +25,12 @@ export class DappApi {
             query: {
                 'page': page,
                 'pageSize': pageSize,
-                'order': order,
-                'orderBy': orderBy,
-                'needsReview': needsReview,
-                'status': status,
-                'search': search,
             },
         });
     }
     /**
      * @param requestBody
-     * @returns DappDto The new dApp. Its status is `pending` until it is reviewed, or `approved` with an Auth0 client when auto-approval approved it.
+     * @returns DappDto The new dApp, `pending` until an admin reviews it, or `approved` with its Auth0 client when auto-approval is on.
      * @throws ApiError
      */
     public static create(
@@ -79,7 +61,7 @@ export class DappApi {
     }
     /**
      * @param id
-     * @returns DappDto The dApp, `approved` with its new Auth0 client, or still `pending` with `auth0Error` when the Auth0 call failed.
+     * @returns DappDto The dApp, `approved` with its new Auth0 client.
      * @throws ApiError
      */
     public static approve(

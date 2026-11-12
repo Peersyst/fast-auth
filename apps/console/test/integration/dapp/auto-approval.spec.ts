@@ -3,6 +3,7 @@ import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { register } from "prom-client";
 import { DataSource } from "typeorm";
+import { Dapp } from "@database/console/entities";
 import { DappModule } from "../../../src/modules/dapp/dapp.module";
 import { JWT_KEY_SET } from "../../../src/modules/auth/jwt-key-set";
 import { SLACK_NOTIFIER } from "../../../src/modules/notification/notification.tokens";
@@ -47,9 +48,9 @@ describe("Auto-approval (integration)", () => {
 
     beforeEach(async () => {
         await truncateAll(dataSource);
+        register.resetMetrics();
         provisioner.reset();
         slack.clearMocks();
-        register.resetMetrics();
         owner = await bearer(ownerEmail);
     });
 
@@ -78,30 +79,19 @@ describe("Auto-approval (integration)", () => {
                 auth0ClientId: body.auth0ClientId,
                 reviewedAt: new Date(body.reviewedAt),
             });
-            expect(slack.notify).toHaveBeenCalledWith({
-                kind: "auto_approved",
-                dapp: expect.objectContaining({ id: body.id, status: "approved", auth0ClientId: body.auth0ClientId }),
-            });
-            expect(await transitionCounts()).toEqual({ "create success": 1, "autoApprove success": 1 });
+            expect(slack.notify).toHaveBeenCalledWith({ kind: "dapp_submitted", dapp: expect.objectContaining({ id: body.id }) });
+            expect(await transitionCounts()).toEqual({ "create success": 1, "approve success": 1 });
         });
 
-        it("should keep the dApp pending when Auth0 fails, answer 201, record the error and alert the admins", async () => {
+        it("should leave the stored dApp pending for an admin when the Auth0 call fails", async () => {
             provisioner.script("failed");
 
-            const { body } = await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(201);
+            await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(500);
 
-            expect(body).toMatchObject({ status: "pending", auth0ClientId: null, reviewedAt: null });
-            expect(await findDapp(dataSource.manager, body.id)).toMatchObject({
-                status: "pending",
-                auth0Error: "Fake create: scripted failed",
-                reviewedAt: null,
-            });
-            expect(slack.notify).toHaveBeenCalledWith({
-                kind: "auth0_failed",
-                dapp: expect.objectContaining({ id: body.id }),
-                error: "Fake create: scripted failed",
-            });
-            expect(await transitionCounts()).toEqual({ "create success": 1, "autoApprove error": 1 });
+            const [dapp] = await dataSource.manager.find(Dapp);
+            expect(dapp).toMatchObject({ ownerEmail, status: "pending", auth0ClientId: null, reviewedAt: null });
+            expect(slack.notify).toHaveBeenCalledWith({ kind: "dapp_submitted", dapp: expect.objectContaining({ id: dapp.id }) });
+            expect(await transitionCounts()).toEqual({ "create success": 1 });
         });
     });
 });

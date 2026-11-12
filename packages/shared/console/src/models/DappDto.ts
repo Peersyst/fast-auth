@@ -21,11 +21,7 @@ export type DappDto = {
      */
     auth0ClientId: string | null;
     /**
-     * The error of the last failed Auth0 call, null once an Auth0 write succeeds.
-     */
-    auth0Error: string | null;
-    /**
-     * Null until an admin or auto-approval reviews the dApp.
+     * Null until an admin reviews the dApp.
      */
     reviewedAt: string | null;
     createdAt: string;

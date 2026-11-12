@@ -18,11 +18,6 @@ function escapeMrkdwn(value: string): string {
 
 const ADMIN_ALERTS: Record<AdminAlertKind, { subject: string; body: string }> = {
     [AdminAlertKind.DAPP_SUBMITTED]: { subject: "New dApp submission to review", body: "was submitted and is waiting for review." },
-    [AdminAlertKind.AUTO_APPROVED]: { subject: "A dApp was auto-approved", body: "was approved automatically and got an Auth0 client." },
-    [AdminAlertKind.AUTH0_FAILED]: {
-        subject: "Auth0 provisioning failed",
-        body: "could not be written to Auth0, so it is waiting for review.",
-    },
 };
 
 const FIELD_LINES: Record<DappField, (fields: DappFields) => string> = {
@@ -46,16 +41,9 @@ export function slackMessage(alert: SlackAlert, publicUrl: string): SlackWebhook
     const { dapp } = alert;
     const copy = ADMIN_ALERTS[alert.kind];
     const url = `${publicUrl}/admin/dapps/${encodeURIComponent(dapp.id)}`;
-    const error = alert.kind === AdminAlertKind.AUTH0_FAILED ? [`*Error:* ${escapeMrkdwn(alert.error)}`] : [];
     const fields = Object.entries(FIELD_LINES).map(([field, format]) => `*${FIELD_LABELS[field as DappField]}:* ${format(dapp)}`);
     return {
-        text: [
-            `*${copy.subject}*`,
-            `${escapeMrkdwn(dapp.name)} ${copy.body}`,
-            `<${url}|Review it in the console>`,
-            ...error,
-            ...fields,
-        ].join("\n"),
+        text: [`*${copy.subject}*`, `${escapeMrkdwn(dapp.name)} ${copy.body}`, `<${url}|Review it in the console>`, ...fields].join("\n"),
         unfurl_links: false,
         unfurl_media: false,
     };

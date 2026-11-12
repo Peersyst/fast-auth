@@ -41,16 +41,9 @@ export class DappDto {
 
     @ApiProperty({
         type: String,
-        nullable: true,
-        description: "The error of the last failed Auth0 call, null once an Auth0 write succeeds.",
-    })
-    auth0Error: string | null;
-
-    @ApiProperty({
-        type: String,
         format: "date-time",
         nullable: true,
-        description: "Null until an admin or auto-approval reviews the dApp.",
+        description: "Null until an admin reviews the dApp.",
     })
     reviewedAt: string | null;
 
@@ -76,7 +69,6 @@ export class DappDto {
             contactEmail: dapp.contactEmail,
             status: dapp.status,
             auth0ClientId: dapp.auth0ClientId,
-            auth0Error: dapp.auth0Error,
             reviewedAt: dapp.reviewedAt?.toISOString() ?? null,
             createdAt: dapp.createdAt.toISOString(),
         };

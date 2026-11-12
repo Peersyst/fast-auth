@@ -10,22 +10,18 @@ export type { OpenAPIConfig } from './core/OpenAPI';
 export type { ApiException } from './models/ApiException';
 export type { CreateDappRequest } from './models/CreateDappRequest';
 export type { DappDto } from './models/DappDto';
-export type { DappOrderBy } from './models/DappOrderBy';
 export type { DappStatus } from './models/DappStatus';
 export type { MauBracket } from './models/MauBracket';
 export type { MeDto } from './models/MeDto';
-export type { OrderType } from './models/OrderType';
 export type { PaginatedDappsDto } from './models/PaginatedDappsDto';
 export type { Role } from './models/Role';
 
 export { $ApiException } from './schemas/$ApiException';
 export { $CreateDappRequest } from './schemas/$CreateDappRequest';
 export { $DappDto } from './schemas/$DappDto';
-export { $DappOrderBy } from './schemas/$DappOrderBy';
 export { $DappStatus } from './schemas/$DappStatus';
 export { $MauBracket } from './schemas/$MauBracket';
 export { $MeDto } from './schemas/$MeDto';
-export { $OrderType } from './schemas/$OrderType';
 export { $PaginatedDappsDto } from './schemas/$PaginatedDappsDto';
 export { $Role } from './schemas/$Role';
 

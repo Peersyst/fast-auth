@@ -14,10 +14,7 @@ export class DappReviewController {
 
     @Post(":id/approve")
     @HttpCode(HttpStatus.OK)
-    @ApiOkResponse({
-        type: DappDto,
-        description: "The dApp, `approved` with its new Auth0 client, or still `pending` with `auth0Error` when the Auth0 call failed.",
-    })
+    @ApiOkResponse({ type: DappDto, description: "The dApp, `approved` with its new Auth0 client." })
     approve(@Param("id", ParseUUIDPipe) id: string): Promise<DappDto> {
         return this.dappService.approve(id);
     }

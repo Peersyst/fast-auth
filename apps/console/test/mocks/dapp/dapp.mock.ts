@@ -18,7 +18,6 @@ export const DappMock = mockify<Dapp>({
     contactEmail: "dev@acme.example",
     status: DappStatus.PENDING,
     auth0ClientId: null,
-    auth0Error: null,
     reviewedAt: null,
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),

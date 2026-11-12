@@ -111,13 +111,13 @@ The review routes, `POST /dapp/:id/approve` and `/reject`, are under `AdminAuthe
 
 | Route                    | Answer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /dapp`              | 200 `{ items, totalItems, currentPage, pages }`, the `Paginated` shape of `@backend/core/pagination`, holding `Dapp` items. An admin gets one page of every dApp that matches the query: `needsReview` (pending), `status`, `search`, `page` (1 to 10000, default 1), `pageSize` (1 to 100, default 20), `orderBy` (`createdAt`, `updatedAt`, `name` or `status`) and `order` (`ASC`, the default, or `DESC`). `search` matches a case-insensitive substring of the name, owner email, contact email or client id, with LIKE wildcards taken literally. Without `orderBy`, the list sorts by creation time. The id breaks ties. Anyone else gets their own live (not removed) dApp, matched by email case-insensitively, as a list of 0 or 1 item. The query is validated but ignored for them. |
+| `GET /dapp`              | 200 `{ items, totalItems, currentPage, pages }`, the `Paginated` shape of `@backend/core/pagination`, holding `Dapp` items, oldest first. An admin gets one page of every dApp; anyone else gets their own, matched by email case-insensitively, as a list of 0 or 1 item. The query takes `page` (1 to 10000, default 1) and `pageSize` (1 to 100, default 20), and nothing else. |
 | `GET /dapp/:id`          | 200 `Dapp`. An admin can read any dApp, anyone else only their own. 404 `DAPP_NOT_FOUND` otherwise.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `POST /dapp`             | Body `CreateDappRequest`. 201 `Dapp` with status `pending`, or `approved` with an Auth0 client when auto-approval approved it. 409 `DAPP_ALREADY_EXISTS` when the email already owns a live dApp.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `POST /dapp/:id/approve` | Creates the pending dApp's Auth0 client and approves it. 200 `Dapp`, or 200 `Dapp` still `pending` with `auth0Error` when the Auth0 call fails. 409 `INVALID_TRANSITION` for a dApp that is not pending.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| `POST /dapp/:id/reject`  | Rejects a pending dApp. 200 `Dapp`. 409 `INVALID_TRANSITION` for a dApp that is not pending.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `POST /dapp`             | Body `CreateDappRequest`. 201 `Dapp` with status `pending`, and a Slack alert to the admins, or `approved` with its Auth0 client when auto-approval is on. 409 `DAPP_ALREADY_EXISTS` when the email already owns a live dApp. |
+| `POST /dapp/:id/approve` | Creates the pending dApp's Auth0 client and approves it. 200 `Dapp`. 409 `INVALID_TRANSITION` for a dApp that is not pending, and 500 when the Auth0 call fails, which leaves the dApp pending. |
+| `POST /dapp/:id/reject`  | Rejects a pending dApp. 200 `Dapp`. 409 `INVALID_TRANSITION` for a dApp that is not pending. |
 
-`Dapp` is `{ id, ownerEmail, name, description, logoUrl, mauBracket, callbackUrls, logoutUrls, webOrigins, contactEmail, status, auth0ClientId, auth0Error, reviewedAt, createdAt }`. `auth0Error` holds the error of the last failed Auth0 call and is `null` once an Auth0 write succeeds. `reviewedAt` is when an admin approved or rejected the dApp, or auto-approval approved it, and `null` while it is pending. Dates are ISO strings.
+`Dapp` is `{ id, ownerEmail, name, description, logoUrl, mauBracket, callbackUrls, logoutUrls, webOrigins, contactEmail, status, auth0ClientId, reviewedAt, createdAt }`. `reviewedAt` is when an admin approved or rejected the dApp, and `null` while it is pending. Dates are ISO strings.
 
 `CreateDappRequest` fields follow the rules in `@shared/modules/dapp`:
 
@@ -127,30 +127,26 @@ The review routes, `POST /dapp/:id/approve` and `/reject`, are under `AdminAuthe
 - `mauBracket` is one of `lt1k`, `1k_10k`, `10k_25k` and `gt25k`.
 - `callbackUrls` holds 1 to 10 URLs, `logoutUrls` 0 to 10, and `webOrigins` 1 to 10. Each entry is trimmed, its scheme and authority lowercased, and the list de-duplicated. Each must be an `https:` URL on a DNS name with a top-level domain: no IP address, no single-label host, no credentials, no fragment on a URL, and nothing after the port on an origin.
 - `contactEmail` is a plain address with a dotted domain, at most 254 characters.
-- No text may contain NUL. The admin `search` is at most 100 characters.
+- No text may contain NUL.
 
 ## dApp writes
 
-`src/modules/dapp/dapp.service.ts` runs each write in one transaction. A review locks the dApp row `FOR UPDATE` and checks the status after the lock, so two reviews of one dApp run one after the other.
+`src/modules/dapp/dapp.service.ts` holds one method per use case. `create` stores the dApp as `pending`, alerts the admins and, with auto-approval on, calls `approve` itself; the `dapp_owner_email_live` unique index, not the service, is what keeps one live dApp per owner email, and its violation becomes `DAPP_ALREADY_EXISTS`. `reject` sets the status. `approve` calls Auth0 and saves the client in one transaction, so a failed call leaves the dApp pending with no client and answers 500; the admin can approve again.
 
 ### Statuses
 
 | Record | From      | Action                               | To         |
 | ------ | --------- | ------------------------------------ | ---------- |
 | dApp   | (new)     | owner `POST /dapp`                   | `pending`  |
-| dApp   | (new)     | owner `POST /dapp`, auto-approval on | `approved` |
+| dApp   | `pending` | owner `POST /dapp`, auto-approval on | `approved` |
 | dApp   | `pending` | admin approve                        | `approved` |
 | dApp   | `pending` | admin reject                         | `rejected` |
 
 Any other action answers `INVALID_TRANSITION`.
 
-### Auth0 failures
-
-A failed Auth0 call never fails the request. The console records the error in the dApp's `auth0_error`, leaves the dApp pending, and alerts the admins. A later successful Auth0 write clears `auth0_error`.
-
 ## Auto-approval
 
-Auto-approval is on when `AUTO_APPROVAL_ENABLED` is `true` and off otherwise. The console reads it at startup, so changing it needs a restart. While it is on, a new dApp gets its Auth0 client at once and is approved. If the Auth0 call fails, it stays pending.
+Auto-approval is on when `AUTO_APPROVAL_ENABLED` is `true` and off otherwise. The console reads it at startup, so changing it needs a restart. While it is on, `create` runs `approve` on the dApp it just stored, so the owner gets it `approved` with its Auth0 client. A failed Auth0 call answers 500 and leaves the dApp `pending`, where an admin can approve it again.
 
 ## Provisioning
 
@@ -164,15 +160,15 @@ Auto-approval is on when `AUTO_APPROVAL_ENABLED` is `true` and off otherwise. Th
 
 The console notifies admins on Slack only, through `providers/slack/` behind the `SLACK_NOTIFIER` token of `src/modules/notification/notification.tokens.ts`. With `SLACK_WEBHOOK_URL` empty, no alert is sent.
 
-Alerts go out on a new pending dApp, an auto-approved dApp, and a failed Auth0 call, an admin's approval included. Admin reviews send no other alert. Links point at `/admin/dapps/<id>` under `PUBLIC_URL`.
+One alert goes out, on a new pending dApp, auto-approval on or off. Admin reviews send none. Links point at `/admin/dapps/<id>` under `PUBLIC_URL`.
 
-A Slack message carries the subject, the review link, the Auth0 error if any, and every field on one escaped line. Link unfurling is off. A Slack failure, including a non-2xx answer, is only logged.
+A Slack message carries the subject, the review link, and every field on one escaped line. Link unfurling is off. A Slack failure, including a non-2xx answer, is only logged.
 
 ## Metrics
 
 `PrometheusModule` serves `/api/console/metrics` on `APP_PORT`, with the default labels `app=console` and `environment=<CONFIG_ENV>`:
 
-- `console_transitions_total{action, result}` counts each use case, `create`, the Auth0 create of `autoApprove`, and the admin's `approve` and `reject`, with `result` one of `success`, the error code and `error`. An admin approval whose Auth0 call fails answers 200 and counts `success`. The alert and `auth0_error` record the failure.
+- `console_transitions_total{action, result}` counts each use case that ran through, with `action` one of `create`, `approve` and `reject`, and `result` `success`. An auto-approved dApp counts one `create` and one `approve`. A refused or failed call counts nothing.
 - `console_dapps{status}` counts the dApps per status on each scrape.
 - `console_auth0_request_duration_seconds{op, outcome}` times each Management API call.
 
