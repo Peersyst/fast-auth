@@ -1,16 +1,11 @@
-import { CoreConfig } from "./types";
+import { CoreConfig, NearNetwork } from "./types";
 
 /**
  * Static config which is the base of the config.
- * It can be overridden by the ConfigManager.
  */
 export const config: CoreConfig = {
-    version: 0,
-    projectName: "",
-    publicUrl: "/",
     backendUrl: process.env.BACKEND_URL || "",
-    configUrl: "/config.json",
-    auth0Domain: "",
-    auth0ClientId: "",
-    nearNetwork: "testnet",
+    auth0Domain: process.env.AUTH0_LOGIN_DOMAIN || "",
+    auth0ClientId: process.env.AUTH0_CLIENT_ID || "",
+    nearNetwork: (process.env.NEAR_NETWORK as NearNetwork) || "testnet",
 };

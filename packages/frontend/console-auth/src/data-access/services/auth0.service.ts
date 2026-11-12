@@ -1,5 +1,5 @@
 import { Auth0Client, GenericError, IdToken, PopupOpenError } from "@auth0/auth0-spa-js";
-import { IConfigManager } from "@frontend/config";
+import { Config } from "@frontend/config";
 import { Service } from "@frontend/core/data-access/service";
 import { ServiceError } from "@frontend/core/data-access/service/error";
 import { IAuth0Service } from "../../domain/interfaces";
@@ -32,17 +32,17 @@ function isRedirectCallback(search: string): boolean {
 
 @Service()
 export class Auth0Service implements IAuth0Service {
-    constructor(private readonly configManager: IConfigManager) {}
+    constructor(private readonly config: Pick<Config, "auth0Domain" | "auth0ClientId">) {}
 
     private client: Auth0Client | null = null;
 
     /**
-     * Auto-invoked by `ServiceFactory.load()` after the config has loaded. Builds the SDK client, then finishes a redirect
+     * Auto-invoked by `ServiceFactory.load()`. Builds the SDK client, then finishes a redirect
      * sign-in or restores the session.
      * @throws `ServiceError(NOT_CONFIGURED)` when the config has no Auth0 tenant or client.
      */
     async onLoad(): Promise<void> {
-        const { auth0Domain, auth0ClientId } = this.configManager.config;
+        const { auth0Domain, auth0ClientId } = this.config;
         if (!auth0Domain || !auth0ClientId) throw new ServiceError(Auth0ServiceErrors.NOT_CONFIGURED);
 
         this.client = new Auth0Client({

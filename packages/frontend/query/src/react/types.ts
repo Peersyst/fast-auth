@@ -11,5 +11,3 @@ export type UseExternalMutationOptions<TData = unknown, TError = Error, TVariabl
     UseMutationOptions<TData, TError, TVariables, TContext>,
     "mutationFn"
 >;
-
-export type ExtractQueryKey<F, K extends keyof F> = F[K] extends (...args: any[]) => any ? ReturnType<F[K]> : F[K];

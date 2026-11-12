@@ -1,5 +1,5 @@
 import { Trans } from "react-i18next";
-import { useConfig } from "@frontend/config/react";
+import { config } from "../../../../config";
 import { sessionCardClassNames } from "../session-card/session-card";
 
 export type SupportLinkProps = {
@@ -7,7 +7,7 @@ export type SupportLinkProps = {
 };
 
 export function SupportLink({ i18nKey }: SupportLinkProps): React.JSX.Element {
-    const supportUrl = useConfig("supportUrl");
+    const { supportUrl } = config;
     return (
         <p className={sessionCardClassNames.support}>
             <Trans i18nKey={i18nKey} components={{ contact: <a href={supportUrl} /> }} />

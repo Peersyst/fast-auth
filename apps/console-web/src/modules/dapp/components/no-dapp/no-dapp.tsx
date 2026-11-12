@@ -3,8 +3,8 @@ import { Trans } from "react-i18next";
 import { Button } from "@frontend/design-system-react/button";
 import { Card } from "@frontend/design-system-react/card";
 import { GridIcon, PlusIcon } from "@frontend/design-system-react/icons";
-import { useConfig } from "@frontend/config/react";
 import { useTranslate } from "@frontend/locale/react";
+import { config } from "../../../../config";
 
 const KICKER = "font-mono text-xs font-medium tracking-kicker text-ink-subtle uppercase";
 
@@ -21,7 +21,7 @@ export type NoDappProps = {
 
 export function NoDapp({ email, focus, onRegister }: NoDappProps): React.JSX.Element {
     const translate = useTranslate();
-    const { nearNetwork, applyDocsUrl, supportUrl } = useConfig("nearNetwork", "applyDocsUrl", "supportUrl");
+    const { nearNetwork, applyDocsUrl, supportUrl } = config;
     const heading = useRef<HTMLHeadingElement>(null);
     const register = useRef<HTMLButtonElement>(null);
     useEffect(() => {

@@ -23,7 +23,6 @@
         "@frontend/console-dapp": "workspace:*",
         "@frontend/core": "workspace:*",
         "@frontend/design-system-react": "workspace:*",
-        "@frontend/events": "workspace:*",
         "@frontend/locale": "workspace:*",
         "@frontend/query": "workspace:*",
         "@frontend/settings": "workspace:*",
@@ -41,7 +40,6 @@
         "react-hook-form": "7.90.0",
         "react-i18next": "17.1.9",
         "react-router": "7.18.5",
-        "stable-hash": "0.0.6",
         "tailwind-merge": "3.7.0",
         "zod": "3.25.76",
         "zustand": "5.0.16"

@@ -2,14 +2,11 @@ import { PropsWithChildren, ReactElement } from "react";
 import { act, render, RenderResult } from "@testing-library/react";
 import { createMemoryRouter, MemoryRouter, Outlet, RouteObject, RouterProvider } from "react-router";
 import { focusManager, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ConfigManagerProvider } from "@frontend/config/react";
 import { getInstance } from "@frontend/core/common/utils/singleton";
 import { ConsoleAuthController } from "@frontend/console-auth/domain/controllers";
 import { Config } from "@frontend/config";
 import { MeDto } from "@shared/console";
-import { deepmerge, getAttribute } from "@shared/utils";
-import staticConfig from "../src/config/static";
-import { configManager } from "../src/config";
+import { config } from "../src/config";
 import { DSProvider } from "../src/design-system/ds.provider";
 import { createQueryClient } from "../src/query/query-client.provider";
 import { ErrorHandler } from "../src/modules/common/components/feedback/error-handler/error-handler";
@@ -36,13 +33,11 @@ function createTestQueryClient(): QueryClient {
 function providers(queryClient: QueryClient): (props: PropsWithChildren) => React.JSX.Element {
     return function Providers({ children }: PropsWithChildren): React.JSX.Element {
         return (
-            <ConfigManagerProvider value={configManager}>
-                <DSProvider>
-                    <QueryClientProvider client={queryClient}>
-                        <ErrorHandler>{children}</ErrorHandler>
-                    </QueryClientProvider>
-                </DSProvider>
-            </ConfigManagerProvider>
+            <DSProvider>
+                <QueryClientProvider client={queryClient}>
+                    <ErrorHandler>{children}</ErrorHandler>
+                </QueryClientProvider>
+            </DSProvider>
         );
     };
 }
@@ -141,13 +136,11 @@ export function apiError(statusCode: number, code: string): MockAnswer {
 }
 
 /**
- * Overrides the config the app reads, as `/config.json` would.
- * @param overrides The values to change.
+ * Overrides the NEAR network the app reads until the test ends.
+ * @param nearNetwork The network.
  */
-export function mockConfig(overrides: Partial<Config>): void {
-    const config: Config = deepmerge(staticConfig, overrides);
-    jest.spyOn(configManager, "getAll").mockReturnValue(config);
-    jest.spyOn(configManager, "get").mockImplementation((key) => getAttribute(config, key));
+export function mockNearNetwork(nearNetwork: Config["nearNetwork"]): void {
+    jest.replaceProperty(config, "nearNetwork", nearNetwork);
 }
 
 /**

@@ -1,5 +1,4 @@
 import { Auth0Client, GenericError, PopupOpenError } from "@auth0/auth0-spa-js";
-import { ConfigManagerMock } from "@frontend/config/mocks/core/manager";
 import { ServiceError } from "@frontend/core/data-access/service/error";
 import { Auth0Service } from "../../../../src/data-access/services";
 import { Auth0ServiceErrors } from "../../../../src/data-access/console-auth.service.errors";
@@ -24,10 +23,8 @@ const client = {
 };
 
 describe("Auth0Service", () => {
-    const configManagerMock = new ConfigManagerMock();
-    configManagerMock.config = { ...configManagerMock.config, auth0Domain: "login.example.com", auth0ClientId: "console-client" };
-
-    const service = new Auth0Service(configManagerMock);
+    const config = { auth0Domain: "login.example.com", auth0ClientId: "console-client" };
+    const service = new Auth0Service(config);
 
     beforeEach(() => {
         Object.values(client).forEach((method) => method.mockReset());
@@ -71,13 +68,11 @@ describe("Auth0Service", () => {
         });
 
         it("should refuse to load without an Auth0 tenant", async () => {
-            const unconfigured = new ConfigManagerMock();
-            const original = configManagerMock.config;
-            configManagerMock.config = unconfigured.config;
+            const auth0Domain = jest.replaceProperty(config, "auth0Domain", "");
 
             await expect(service.onLoad()).rejects.toEqual(new ServiceError(Auth0ServiceErrors.NOT_CONFIGURED));
 
-            configManagerMock.config = original;
+            auth0Domain.restore();
         });
     });
 

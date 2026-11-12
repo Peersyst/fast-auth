@@ -3,8 +3,8 @@ import { Callout } from "@frontend/design-system-react/callout";
 import { Card, CardHeader } from "@frontend/design-system-react/card";
 import { CopyButton } from "@frontend/design-system-react/copy-button";
 import { KeyIcon } from "@frontend/design-system-react/icons";
-import { useConfig } from "@frontend/config/react";
 import { useTranslate } from "@frontend/locale/react";
+import { config } from "../../../../config";
 import { FieldList, valueClassNames } from "../../components/field-values/field-values";
 
 const NOTE = "text-sm text-ink-subtle";
@@ -15,7 +15,7 @@ export type CredentialsProps = {
 
 export function Credentials({ clientId }: CredentialsProps): React.JSX.Element {
     const translate = useTranslate();
-    const { nearNetwork: network, nearNetworks } = useConfig("nearNetwork", "nearNetworks");
+    const { nearNetwork: network, nearNetworks } = config;
     const settings = nearNetworks[network];
     const name = translate(`dapp.networks.${network}`);
     return (

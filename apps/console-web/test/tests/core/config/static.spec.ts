@@ -1,38 +1,45 @@
 import type { Config } from "@frontend/config";
 
 /**
- * Loads the static config afresh with the given /env.js value.
- * @param env The value /env.js sets, or undefined when it sets none.
+ * Loads the static config afresh with the given build variables.
+ * @param env The build variables.
  * @returns The static config.
  */
-async function loadWith(env: { BACKEND_URL?: string } | undefined): Promise<Config> {
-    Object.assign(globalThis, { __CONSOLE_ENV__: env });
+async function loadWith(env: Record<string, string>): Promise<Config> {
+    const previousEnv = process.env;
+    process.env = { ...previousEnv, ...env };
     let config: Config | undefined;
-    await jest.isolateModulesAsync(async () => {
-        config = (await import("../../../../src/config/static")).default;
-    });
+    try {
+        await jest.isolateModulesAsync(async () => {
+            config = (await import("../../../../src/config/static")).default;
+        });
+    } finally {
+        process.env = previousEnv;
+    }
     return config!;
 }
 
 describe("static config", () => {
-    afterEach(() => {
-        delete (globalThis as { __CONSOLE_ENV__?: unknown }).__CONSOLE_ENV__;
-    });
-
-    it("should call the console API at the BACKEND_URL the image serves", async () => {
-        const config = await loadWith({ BACKEND_URL: "https://console-api.example.test" });
+    it("should take the console API, Auth0 application and NEAR network from the build variables", async () => {
+        const config = await loadWith({
+            BACKEND_URL: "https://console-api.example.test",
+            AUTH0_LOGIN_DOMAIN: "login.example.test",
+            AUTH0_CLIENT_ID: "console-client-id",
+            NEAR_NETWORK: "mainnet",
+        });
 
         expect(config.backendUrl).toBe("https://console-api.example.test");
-        expect(config.configUrl).toBe("/config.json");
+        expect(config.auth0Domain).toBe("login.example.test");
+        expect(config.auth0ClientId).toBe("console-client-id");
+        expect(config.nearNetwork).toBe("mainnet");
     });
 
-    it.each([
-        ["an empty BACKEND_URL", { BACKEND_URL: "" }],
-        ["no /env.js value", undefined],
-    ])("should call the console API on its own host with %s", async (_case, env) => {
-        const config = await loadWith(env);
+    it("should call the console API on its own host on testnet without build variables", async () => {
+        const config = await loadWith({ BACKEND_URL: "", AUTH0_LOGIN_DOMAIN: "", AUTH0_CLIENT_ID: "", NEAR_NETWORK: "" });
 
         expect(config.backendUrl).toBe("");
-        expect(config.configUrl).toBe("/config.json");
+        expect(config.auth0Domain).toBe("");
+        expect(config.auth0ClientId).toBe("");
+        expect(config.nearNetwork).toBe("testnet");
     });
 });

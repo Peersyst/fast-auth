@@ -2,9 +2,9 @@ import { useEffect, useRef } from "react";
 import { Trans } from "react-i18next";
 import { Callout } from "@frontend/design-system-react/callout";
 import { PageTitle } from "@frontend/design-system-react/page-title";
-import { useConfig } from "@frontend/config/react";
 import { useSubmitDapp } from "@frontend/console-dapp/ui/queries";
 import { useTranslate } from "@frontend/locale/react";
+import { config } from "../../../../config";
 import { DappForm } from "../dapp-form/dapp-form";
 
 const CONTAINER = "mx-auto my-0 flex w-full max-w-[848px] flex-col gap-6";
@@ -15,7 +15,7 @@ export type RegisterDappProps = {
 
 export function RegisterDapp({ onCancel }: RegisterDappProps): React.JSX.Element {
     const translate = useTranslate();
-    const { nearNetwork, applyDocsUrl } = useConfig("nearNetwork", "applyDocsUrl");
+    const { nearNetwork, applyDocsUrl } = config;
     const { mutateAsync: submit } = useSubmitDapp();
     const heading = useRef<HTMLHeadingElement>(null);
     useEffect(() => heading.current?.focus(), []);

@@ -1,7 +1,7 @@
 import userEvent, { UserEvent } from "@testing-library/user-event";
 import { DAPP_ID_MOCK, OwnerDappMock } from "@shared/console/test/mocks/dapp";
 import { MyDappScreen } from "../../../../../../src/modules/dapp/screens/my-dapp/my-dapp.screen";
-import { apiError, mockApi, mockConfig, MockRoutes, refocus, renderRoutes, screen, waitFor, within } from "../../../../../utils";
+import { apiError, mockApi, mockNearNetwork, MockRoutes, refocus, renderRoutes, screen, waitFor, within } from "../../../../../utils";
 
 /**
  * Renders the page with the console answering from the given routes.
@@ -156,7 +156,7 @@ describe("MyDappScreen", () => {
     ] as const)(
         "should show an approved dApp the %s settings it plugs into",
         async (network, audience, fastAuth, mpc, resources, resourcesUrl) => {
-            mockConfig({ nearNetwork: network });
+            mockNearNetwork(network);
             renderPage({ "GET /api/console/dapp": { body: { dapp: ownerDapp({ status: "approved", auth0ClientId: "client-abc" }) } } });
 
             expect(await screen.findByText(audience)).toBeInTheDocument();
@@ -170,7 +170,7 @@ describe("MyDappScreen", () => {
     );
 
     it("should name the deployment's network to a user with no dApp", async () => {
-        mockConfig({ nearNetwork: "testnet" });
+        mockNearNetwork("testnet");
         renderPage({ "GET /api/console/dapp": { body: { dapp: null } } });
 
         expect(await screen.findByText("Testnet access")).toBeInTheDocument();

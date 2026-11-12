@@ -1,6 +1,6 @@
 import { Config, CoreConfig } from "../types";
 import { config as coreConfig } from "../config";
-import { Demand, LoosenDeeply } from "@swisstype/essential";
+import { LoosenDeeply } from "@swisstype/essential";
 import { deepmerge } from "@shared/utils";
 
 /**
@@ -8,6 +8,6 @@ import { deepmerge } from "@shared/utils";
  * @param config The config.
  * @returns The created config.
  */
-export function createConfig(config: Demand<LoosenDeeply<Config, keyof CoreConfig>, "projectName">): Config {
+export function createConfig(config: LoosenDeeply<Config, keyof CoreConfig>): Config {
     return deepmerge(coreConfig, config);
 }

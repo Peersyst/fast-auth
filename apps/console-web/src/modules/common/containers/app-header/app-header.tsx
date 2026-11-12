@@ -3,9 +3,9 @@ import { Button } from "@frontend/design-system-react/button";
 import { MailIcon } from "@frontend/design-system-react/icons";
 import { NearAuthLogo } from "@frontend/design-system-react/near-auth-logo";
 import { cn } from "@frontend/design-system-react/utils";
-import { useConfig } from "@frontend/config/react";
 import { useGetMe, useGetSession, useSignOut } from "@frontend/console-auth/ui/queries";
 import { useTranslate } from "@frontend/locale/react";
+import { config } from "../../../../config";
 import { ThemeSelect } from "../theme-select/theme-select";
 
 const NAV_LINK = "flex items-center border-b-2 border-b-transparent text-ink-subtle no-underline hover:text-ink";
@@ -25,7 +25,7 @@ function navLinkClassName({ isActive }: { isActive: boolean }): string {
 
 export function AppHeader(): React.JSX.Element {
     const translate = useTranslate();
-    const docsUrl = useConfig("docsUrl");
+    const { docsUrl } = config;
     const { data: session } = useGetSession();
     const signedIn = session?.isAuthenticated === true;
     const { data: me } = useGetMe({ enabled: signedIn });
