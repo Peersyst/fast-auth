@@ -46,7 +46,6 @@ export function RegisterDapp({ onCancel }: RegisterDappProps): React.JSX.Element
             </div>
             <div className={CONTAINER}>
                 <DappForm
-                    mode="owner"
                     values={null}
                     saveLabel={translate("myDapp.register.submit")}
                     saveHint={translate("myDapp.register.submitHint")}

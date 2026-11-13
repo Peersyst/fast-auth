@@ -22,18 +22,12 @@ const CODE = "rounded-[4px] bg-surface-muted px-[5px] py-px font-mono text-sm";
 /**
  * The errors whose cause a reload of the dApp shows, so the form offers one.
  */
-const RELOAD_ERRORS = new Set<string>([
-    ConsoleDappErrors.DAPP_CHANGED,
-    ConsoleDappErrors.DAPP_NOT_FOUND,
-    ConsoleDappErrors.DAPP_ALREADY_EXISTS,
-    ConsoleDappErrors.INVALID_TRANSITION,
-]);
+const RELOAD_ERRORS = new Set<string>([ConsoleDappErrors.DAPP_NOT_FOUND, ConsoleDappErrors.INVALID_TRANSITION]);
 
-export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, onReload, onRemove }: DappFormProps): React.JSX.Element {
+export function DappForm({ values, saveLabel, saveHint, onSave, onCancel, onReload }: DappFormProps): React.JSX.Element {
     const translate = useTranslate();
     const translateError = useTranslate("error");
-    const reviewed = mode === "owner" && values?.status === "approved";
-    const form = useDappForm(values, reviewed);
+    const form = useDappForm(values);
     const { register, formState } = form;
     const { errors } = formState;
     const [saveError, setSaveError] = useState<unknown>(null);
@@ -58,12 +52,6 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
 
     return (
         <form className="flex min-w-0 flex-col gap-10" noValidate onSubmit={(event) => void submit(event)}>
-            {mode === "admin" && values?.status === "approved" && (
-                <Callout tone="warning" title={translate("dappForm.liveTitle")}>
-                    <p>{translate("dappForm.liveDescription")}</p>
-                </Callout>
-            )}
-
             <fieldset className={SECTION}>
                 <legend>
                     <h2>{translate("dappForm.application.title")}</h2>
@@ -195,11 +183,6 @@ export function DappForm({ mode, values, saveLabel, saveHint, onSave, onCancel, 
                     {translate("dappForm.cancel")}
                 </Button>
                 {saveHint && <span className="text-sm text-ink-subtle">{saveHint}</span>}
-                {onRemove && (
-                    <Button variant="danger" className="ml-auto" onClick={onRemove}>
-                        {translate("dappForm.remove")}
-                    </Button>
-                )}
             </div>
         </form>
     );

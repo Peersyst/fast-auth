@@ -88,13 +88,12 @@
             "wait": "You can keep editing the details below while you wait."
         },
         "rejected": {
-            "title": "Your application was not approved",
-            "resubmit": "Update the details below and resubmit. Your dApp goes straight back into the review queue."
+            "title": "Your application was not approved"
         },
         "changeUnderReview": {
             "title": "Change under review",
             "requested": "Requested {{date}}",
-            "description": "Your live settings stay as they are until the NEAR Auth team approves it. To withdraw it, edit the fields back to their live values or use Withdraw change."
+            "description": "Your live settings stay as they are until the NEAR Auth team approves it. Saving another edit replaces it."
         },
         "credentials": {
             "title": "{{network}} credentials",
@@ -117,69 +116,22 @@
             "kicker": "Edit details",
             "save": "Save changes",
             "pendingNote": "Your dApp is still in review. Saved edits keep it in the queue, so you don't need to resubmit.",
-            "rejectedNote": "Fix what the review flagged, then resubmit.",
-            "resubmit": "Resubmit for review",
-            "resubmitHint": "Resubmitting puts the dApp back in the review queue.",
             "approvedNote": "Your dApp is live. {{rule}}"
-        },
-        "changed": {
-            "title": "Nothing was done",
-            "description": "Your dApp changed since you opened that dialog. Check its latest version below, then try again."
-        },
-        "withdraw": {
-            "title": "Withdraw the change?",
-            "confirm": "Withdraw change",
-            "description": "The NEAR Auth team will not review it, and your live settings stay as they are.",
-            "failed": "Not withdrawn"
-        },
-        "remove": {
-            "title": "Remove {{name}}?",
-            "live": "This deletes the dApp and its Auth0 application. Logins through client ID <code>{{clientId}}</code> stop working immediately.",
-            "pending": "This deletes the dApp and takes it out of the review queue.",
-            "other": "This deletes the dApp.",
-            "final": "It can't be undone. A new dApp can be submitted afterwards with the same email.",
-            "failed": "Not removed"
         }
     },
     "admin": {
         "dapps": {
             "title": "dApps",
             "description": "Applications registered for NEAR Auth. Approving one creates its Auth0 application.",
-            "views": {
-                "review": "Needs review",
-                "all": "All"
-            },
-            "filter": "Filter by status",
-            "sortBy": "Sort by",
-            "order": "Order",
-            "waitingSince": "Waiting since",
-            "orderBy": {
-                "submittedAt": "Submitted",
-                "updatedAt": "Last updated",
-                "name": "Name",
-                "status": "Status"
-            },
-            "orders": {
-                "date": {
-                    "asc": "Oldest first",
-                    "desc": "Newest first"
-                },
-                "text": {
-                    "asc": "Ascending",
-                    "desc": "Descending"
-                }
-            },
-            "search": "Search dApps",
-            "searchPlaceholder": "Search by name, email or client ID",
             "loadError": "The dApps could not be loaded",
             "columns": {
                 "dapp": "dApp",
+                "submitted": "Submitted",
                 "status": "Status",
                 "actions": "Actions"
             },
             "view": "View",
-            "nothingToReview": "Nothing needs review.",
-            "noMatch": "No dApps match.",
+            "empty": "No dApps yet.",
             "showing_one": "Showing {{shown}} of {{count}} dApp · page {{page}} of {{pages}}",
             "showing_other": "Showing {{shown}} of {{count}} dApps · page {{page}} of {{pages}}",
             "pages": "Pages",
@@ -194,40 +146,16 @@
             "submitted": "Submitted {{date}} · owned by",
             "approve": "Approve",
             "reject": "Reject",
-            "edit": "Edit",
-            "editBlocked": "Approve or reject the pending change before editing.",
-            "changed": {
-                "title": "Nothing was done",
-                "description": "This dApp changed since you opened that dialog. Review its latest version below, then decide again."
-            },
-            "auth0Error": {
-                "title": "The last Auth0 call failed",
-                "nothingSaved": "The console saved nothing, though Auth0 may hold part of the failed write. Retrying the same action is safe; this clears after the next successful Auth0 write.",
-                "rejected": "If this came from the rejection, the rejection went through and the console left this Auth0 client in place because it is not tagged as this dApp's. Check in the Auth0 dashboard what uses it before you delete it there by hand. If it came from a removal, the console saved nothing and retrying it is safe.",
-                "removed": "The removal went through, but the console left this Auth0 client in place because it is not tagged as this dApp's. Check in the Auth0 dashboard what uses it before you delete it there by hand."
-            },
-            "removedTitle": "Removed",
-            "dangerZone": {
-                "title": "Danger zone",
-                "description": "Deletes its Auth0 application, if any; the record and its activity log are kept. You'll be asked to confirm. The owner can submit again with the same email.",
-                "action": "Remove dApp…"
-            },
-            "liveSave": {
-                "title": "Apply changes to the live app?",
-                "description": "{{name}} is approved and live. Saving updates its Auth0 application immediately. A wrong callback URL or origin breaks login for its users until it is fixed.",
-                "confirm": "Save and apply",
-                "cancel": "Keep editing"
-            },
             "approveDialog": {
                 "title": "Approve {{name}}?",
                 "description": "This creates its Auth0 application. The dApp can authenticate real users immediately.",
                 "confirm": "Approve and provision",
                 "application": "Auth0 application",
-                "note": "Later owner changes come back for review. You can remove the dApp at any time."
+                "note": "Later owner changes come back for review."
             },
             "rejectDialog": {
                 "title": "Reject {{name}}?",
-                "description": "The owner sees the rejection on their dashboard. They can fix the issues and resubmit.",
+                "description": "The owner sees the rejection on their dashboard.",
                 "confirm": "Reject dApp"
             },
             "approveChangeDialog": {
@@ -239,12 +167,6 @@
                 "title": "Reject the change?",
                 "description": "The live values stay as they are.",
                 "confirm": "Reject change"
-            },
-            "removeDialog": {
-                "title": "Remove {{name}}?",
-                "live": "This deletes its Auth0 application. Logins through client ID <code>{{clientId}}</code> stop working immediately.",
-                "noClient": "It has no Auth0 application yet, so no logins are affected.",
-                "note": "The record and its activity log are kept."
             },
             "notDone": "Not done",
             "changeReview": {
@@ -272,45 +194,7 @@
                 "reviewed": "Reviewed",
                 "notYet": "Not yet",
                 "created": "Created",
-                "updated": "Updated",
                 "id": "ID"
-            },
-            "activity": {
-                "title": "Activity",
-                "count_one": "{{count}} event · newest first",
-                "count_other": "{{count}} events · newest first",
-                "loading": "Loading the activity…",
-                "loadError": "The activity could not be loaded",
-                "empty": "No activity yet.",
-                "events": {
-                    "submitted": "Submitted for review",
-                    "edited": "Edited",
-                    "resubmitted": "Resubmitted for review",
-                    "approved": "Approved",
-                    "auto_approved": "Auto-approved",
-                    "rejected": "Rejected",
-                    "change_requested": "Change requested",
-                    "change_withdrawn": "Change withdrawn",
-                    "change_approved": "Change approved",
-                    "change_rejected": "Change rejected",
-                    "removed": "Removed",
-                    "auth0_created": "Auth0 client created",
-                    "auth0_updated": "Auth0 client updated",
-                    "auth0_deleted": "Auth0 client deleted",
-                    "auth0_failed": "Auth0 call failed"
-                },
-                "chosenForAutoApproval": "Chosen for auto-approval.",
-                "queued": "Queued for manual review.",
-                "contactChanged": "The contact email changed.",
-                "errorLabel": "Error:",
-                "clientIdLabel": "Client ID:",
-                "operation": "Auth0 operation: {{op}}.",
-                "values": "Values sent to Auth0",
-                "by": {
-                    "system": "by the system",
-                    "admin": "by an admin",
-                    "user": "by the owner"
-                }
             }
         }
     },
@@ -321,8 +205,7 @@
         "clientId": "Copy client ID"
     },
     "confirmDialog": {
-        "cancel": "Cancel",
-        "typeToConfirm": "Type <strong>{{text}}</strong> to confirm"
+        "cancel": "Cancel"
     },
     "dapp": {
         "status": {
@@ -356,17 +239,12 @@
         "diff": {
             "field": "Field",
             "live": "Live",
-            "proposed": "Proposed",
-            "new": "New",
-            "before": "Before",
-            "after": "After"
+            "proposed": "Proposed"
         }
     },
     "dappForm": {
         "required": "required",
         "optional": "optional",
-        "liveTitle": "This dApp is live",
-        "liveDescription": "Changes to the name, description, logo or URLs update its Auth0 client at once.",
         "application": {
             "title": "Application",
             "hint": "Shown to your users on the NEAR Auth login and transaction-approval screens."
@@ -434,7 +312,6 @@
         },
         "notSaved": "Not saved",
         "reload": "Reload",
-        "cancel": "Cancel",
-        "remove": "Remove dApp"
+        "cancel": "Cancel"
     }
 }

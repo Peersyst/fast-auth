@@ -3,22 +3,18 @@ import { getInstance } from "@frontend/core/common/utils/singleton";
 import { UseExternalQueryOptions } from "@frontend/query/react";
 import { PaginatedDappsDto } from "@shared/console";
 import { ConsoleAdminController } from "../../domain/controllers";
-import { ListDappsParams } from "../interfaces";
 import { consoleAdminQueryKeys } from "./console-admin.queries";
 
 /**
- * Lists the dApps a filter matches, keeping the shown page while the next one loads.
- * @param params The filter, sort and page.
+ * Lists every dApp a page at a time, keeping the shown page while the next one loads.
+ * @param page The page.
  * @param options The query options.
  * @returns The query result with the page.
  */
-export function useGetDapps(
-    params: ListDappsParams,
-    options?: UseExternalQueryOptions<PaginatedDappsDto, Error>,
-): UseQueryResult<PaginatedDappsDto> {
+export function useGetDapps(page: number, options?: UseExternalQueryOptions<PaginatedDappsDto, Error>): UseQueryResult<PaginatedDappsDto> {
     return useQuery({
-        queryKey: consoleAdminQueryKeys.list(params),
-        queryFn: () => getInstance(ConsoleAdminController).listDapps(params),
+        queryKey: consoleAdminQueryKeys.list(page),
+        queryFn: () => getInstance(ConsoleAdminController).listDapps(page),
         placeholderData: keepPreviousData,
         ...options,
     });

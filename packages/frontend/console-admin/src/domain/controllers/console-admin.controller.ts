@@ -1,7 +1,7 @@
 import { Controller } from "@frontend/core/domain/controller";
 import { ApiErrors, DefaultError } from "@frontend/core/domain/error/decorators";
-import { AdminDappDto, DappEventDto, PaginatedDappsDto } from "@shared/console";
-import { AdminEditDappParams, DappActionParams, IConsoleAdminController, ListDappsParams } from "../../ui/interfaces";
+import { DappDto, PaginatedDappsDto } from "@shared/console";
+import { IConsoleAdminController } from "../../ui/interfaces";
 import { CONSOLE_ADMIN_API_ERRORS, CONSOLE_ADMIN_GET_DAPP_ERRORS, ConsoleAdminErrors } from "../console-admin.errors";
 import { IConsoleAdminApi } from "../interfaces";
 
@@ -16,8 +16,8 @@ export class ConsoleAdminController implements IConsoleAdminController {
      */
     @DefaultError(ConsoleAdminErrors.CONSOLE_UNREACHABLE)
     @ApiErrors(CONSOLE_ADMIN_API_ERRORS)
-    async listDapps({ page, order, orderBy, needsReview, status, search }: ListDappsParams): Promise<PaginatedDappsDto> {
-        return this.consoleAdminApi.list(page, PAGE_SIZE, order, orderBy, needsReview, status, search);
+    async listDapps(page: number): Promise<PaginatedDappsDto> {
+        return this.consoleAdminApi.list(page, PAGE_SIZE);
     }
 
     /**
@@ -25,7 +25,7 @@ export class ConsoleAdminController implements IConsoleAdminController {
      */
     @DefaultError(ConsoleAdminErrors.CONSOLE_UNREACHABLE)
     @ApiErrors(CONSOLE_ADMIN_GET_DAPP_ERRORS)
-    async getDapp(id: string): Promise<AdminDappDto> {
+    async getDapp(id: string): Promise<DappDto> {
         return this.consoleAdminApi.get(id);
     }
 
@@ -34,8 +34,8 @@ export class ConsoleAdminController implements IConsoleAdminController {
      */
     @DefaultError(ConsoleAdminErrors.CONSOLE_UNREACHABLE)
     @ApiErrors(CONSOLE_ADMIN_API_ERRORS)
-    async getDappEvents(id: string): Promise<DappEventDto[]> {
-        return this.consoleAdminApi.listEvents(id);
+    async approveDapp(id: string): Promise<DappDto> {
+        return this.consoleAdminApi.approve(id);
     }
 
     /**
@@ -43,8 +43,8 @@ export class ConsoleAdminController implements IConsoleAdminController {
      */
     @DefaultError(ConsoleAdminErrors.CONSOLE_UNREACHABLE)
     @ApiErrors(CONSOLE_ADMIN_API_ERRORS)
-    async editDapp({ id, request }: AdminEditDappParams): Promise<AdminDappDto> {
-        return this.consoleAdminApi.edit(id, request);
+    async rejectDapp(id: string): Promise<DappDto> {
+        return this.consoleAdminApi.reject(id);
     }
 
     /**
@@ -52,8 +52,8 @@ export class ConsoleAdminController implements IConsoleAdminController {
      */
     @DefaultError(ConsoleAdminErrors.CONSOLE_UNREACHABLE)
     @ApiErrors(CONSOLE_ADMIN_API_ERRORS)
-    async approveDapp({ id, expectedVersion }: DappActionParams): Promise<AdminDappDto> {
-        return this.consoleAdminApi.approve(id, { expectedVersion });
+    async approveChange(id: string): Promise<DappDto> {
+        return this.consoleAdminApi.approveChange(id);
     }
 
     /**
@@ -61,34 +61,7 @@ export class ConsoleAdminController implements IConsoleAdminController {
      */
     @DefaultError(ConsoleAdminErrors.CONSOLE_UNREACHABLE)
     @ApiErrors(CONSOLE_ADMIN_API_ERRORS)
-    async rejectDapp({ id, expectedVersion }: DappActionParams): Promise<AdminDappDto> {
-        return this.consoleAdminApi.reject(id, { expectedVersion });
-    }
-
-    /**
-     * @inheritdoc
-     */
-    @DefaultError(ConsoleAdminErrors.CONSOLE_UNREACHABLE)
-    @ApiErrors(CONSOLE_ADMIN_API_ERRORS)
-    async approveChange({ id, expectedVersion }: DappActionParams): Promise<AdminDappDto> {
-        return this.consoleAdminApi.approveChange(id, { expectedVersion });
-    }
-
-    /**
-     * @inheritdoc
-     */
-    @DefaultError(ConsoleAdminErrors.CONSOLE_UNREACHABLE)
-    @ApiErrors(CONSOLE_ADMIN_API_ERRORS)
-    async rejectChange({ id, expectedVersion }: DappActionParams): Promise<AdminDappDto> {
-        return this.consoleAdminApi.rejectChange(id, { expectedVersion });
-    }
-
-    /**
-     * @inheritdoc
-     */
-    @DefaultError(ConsoleAdminErrors.CONSOLE_UNREACHABLE)
-    @ApiErrors(CONSOLE_ADMIN_API_ERRORS)
-    async removeDapp({ id, expectedVersion }: DappActionParams): Promise<AdminDappDto> {
-        return this.consoleAdminApi.remove(id, { expectedVersion });
+    async rejectChange(id: string): Promise<DappDto> {
+        return this.consoleAdminApi.rejectChange(id);
     }
 }

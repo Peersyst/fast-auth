@@ -1,15 +1,14 @@
 import { DefaultValues, useForm, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UpsertDappRequest } from "@shared/console";
-import { DappFormInput, dappFormSchema, EditedDapp } from "../dapp-form.types";
+import { CreateDappRequest, DappDto } from "@shared/console";
+import { DappFormInput, dappFormSchema } from "../dapp-form.types";
 
 /**
  * The form's starting values: empty for a new dApp, or the dApp's own with its change under review when one waits.
  * @param dapp The dApp being edited, if any.
- * @param showPendingChange Whether to show the change under review instead of the live values.
  * @returns The default values.
  */
-function toFormInput(dapp: EditedDapp | null, showPendingChange: boolean): DefaultValues<DappFormInput> {
+function toFormInput(dapp: DappDto | null): DefaultValues<DappFormInput> {
     if (!dapp) {
         return {
             name: "",
@@ -21,29 +20,28 @@ function toFormInput(dapp: EditedDapp | null, showPendingChange: boolean): Defau
             contactEmail: "",
         };
     }
-    const fields = showPendingChange && dapp.pendingChange ? { ...dapp, ...dapp.pendingChange } : dapp;
+    const change = dapp.pendingChange;
     const rows = (list: string[]): { value: string }[] => list.map((value) => ({ value }));
     return {
-        name: fields.name,
-        description: fields.description,
-        logoUrl: fields.logoUrl,
-        mauBracket: fields.mauBracket,
-        callbackUrls: rows(fields.callbackUrls),
-        logoutUrls: rows(fields.logoutUrls),
-        webOrigins: rows(fields.webOrigins),
-        contactEmail: fields.contactEmail,
+        name: change?.name ?? dapp.name,
+        description: change?.description ?? dapp.description,
+        logoUrl: change?.logoUrl ?? dapp.logoUrl,
+        mauBracket: change?.mauBracket ?? dapp.mauBracket,
+        callbackUrls: rows(change?.callbackUrls ?? dapp.callbackUrls),
+        logoutUrls: rows(change?.logoutUrls ?? dapp.logoutUrls),
+        webOrigins: rows(change?.webOrigins ?? dapp.webOrigins),
+        contactEmail: change?.contactEmail ?? dapp.contactEmail,
     };
 }
 
 /**
  * The dApp form hook.
  * @param dapp The dApp being edited, or `null` for a new one.
- * @param showPendingChange Whether to start from the change under review.
  * @returns The form, whose output is the request the API takes.
  */
-export function useDappForm(dapp: EditedDapp | null, showPendingChange: boolean): UseFormReturn<DappFormInput, unknown, UpsertDappRequest> {
-    return useForm<DappFormInput, unknown, UpsertDappRequest>({
+export function useDappForm(dapp: DappDto | null): UseFormReturn<DappFormInput, unknown, CreateDappRequest> {
+    return useForm<DappFormInput, unknown, CreateDappRequest>({
         resolver: zodResolver(dappFormSchema),
-        defaultValues: toFormInput(dapp, showPendingChange),
+        defaultValues: toFormInput(dapp),
     });
 }

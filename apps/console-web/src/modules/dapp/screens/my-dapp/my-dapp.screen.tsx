@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useGetMyDapp } from "@frontend/console-dapp/ui/queries";
 import { useTranslate } from "@frontend/locale/react";
-import { OwnerDappDto } from "@shared/console";
+import { DappDto } from "@shared/console";
 import { LoadError, RefreshError } from "../../../common/components/feedback/load-error/load-error";
 import { LoadingScreen } from "../../../common/components/feedback/loading-screen/loading-screen";
 import { DappView, LiveDapp } from "../../containers/dapp-view/dapp-view";
@@ -12,7 +12,7 @@ import { NewDapp } from "../../containers/new-dapp/new-dapp";
  * @param dapp The dApp.
  * @returns `true` unless it was removed.
  */
-function isLive(dapp: OwnerDappDto): dapp is LiveDapp {
+function isLive(dapp: DappDto): dapp is LiveDapp {
     return dapp.status !== "removed";
 }
 

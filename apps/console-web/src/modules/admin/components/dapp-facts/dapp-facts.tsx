@@ -1,6 +1,6 @@
 import { Card, CardHeader } from "@frontend/design-system-react/card";
 import { useTranslate } from "@frontend/locale/react";
-import { AdminDappDto } from "@shared/console";
+import { DappDto } from "@shared/console";
 import { FieldList, FieldRow, Value, valueClassNames } from "../../../dapp/components/field-values/field-values";
 
 type FactCardProps = {
@@ -20,7 +20,7 @@ function FactCard({ title, facts }: FactCardProps): React.JSX.Element {
 }
 
 export type DappFactsProps = {
-    dapp: AdminDappDto;
+    dapp: DappDto;
 };
 
 export function DappFacts({ dapp }: DappFactsProps): React.JSX.Element {

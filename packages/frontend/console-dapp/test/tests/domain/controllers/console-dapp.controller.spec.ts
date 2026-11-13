@@ -1,13 +1,13 @@
 import { DomainError } from "@frontend/core/domain/error";
-import { DappFieldsDto, UpsertDappRequest } from "@shared/console";
+import { CreateDappRequest } from "@shared/console";
 import { ConsoleDappController } from "../../../../src/domain/controllers";
 import { ConsoleDappErrors } from "../../../../src/domain/console-dapp.errors";
 import { ConsoleDappApiMock } from "../../../mocks/data-access/api";
 import { createApiErrorMock } from "@shared/console/test/mocks/common";
-import { DAPP_ID_MOCK, OwnerDappMock } from "@shared/console/test/mocks/dapp";
+import { DAPP_ID_MOCK, DappMock } from "@shared/console/test/mocks/dapp";
 
 describe("ConsoleDappController", () => {
-    const fields: UpsertDappRequest = {
+    const fields: CreateDappRequest = {
         name: "Acme Wallet",
         description: "",
         logoUrl: "https://cdn.acme.xyz/logo.png",
@@ -16,17 +16,6 @@ describe("ConsoleDappController", () => {
         logoutUrls: [],
         webOrigins: ["https://app.acme.xyz"],
         contactEmail: "dev@acme.xyz",
-    };
-
-    const change: DappFieldsDto = {
-        name: "Acme Pay",
-        description: "A wallet for NEAR.",
-        logoUrl: "https://cdn.acme.xyz/pay.png",
-        callbackUrls: ["https://app.acme.xyz/callback", "https://app.acme.xyz/silent"],
-        logoutUrls: [],
-        webOrigins: ["https://app.acme.xyz"],
-        contactEmail: "ops@acme.xyz",
-        mauBracket: "gt25k",
     };
 
     const consoleDappApiMock = new ConsoleDappApiMock();
@@ -39,14 +28,14 @@ describe("ConsoleDappController", () => {
 
     describe("getMyDapp", () => {
         it("should return the owner's dApp", async () => {
-            const dapp = new OwnerDappMock({ status: "approved", auth0ClientId: "client-abc" });
-            consoleDappApiMock.getMine.mockResolvedValueOnce({ dapp });
+            const dapp = new DappMock({ status: "approved", auth0ClientId: "client-abc" });
+            consoleDappApiMock.list.mockResolvedValueOnce({ items: [dapp], totalItems: 1, currentPage: 1, pages: 1 });
 
             await expect(controller.getMyDapp()).resolves.toBe(dapp);
         });
 
         it("should return null when the owner has no dApp", async () => {
-            consoleDappApiMock.getMine.mockResolvedValueOnce({ dapp: null });
+            consoleDappApiMock.list.mockResolvedValueOnce({ items: [], totalItems: 0, currentPage: 1, pages: 0 });
 
             await expect(controller.getMyDapp()).resolves.toBeNull();
         });
@@ -59,13 +48,13 @@ describe("ConsoleDappController", () => {
             [403, "FORBIDDEN_ROLE", ConsoleDappErrors.FORBIDDEN_ROLE],
             [500, "Internal server error", ConsoleDappErrors.SERVER_ERROR],
         ])("should report a %i %s as %s", async (status, code, error) => {
-            consoleDappApiMock.getMine.mockRejectedValueOnce(createApiErrorMock(status, code));
+            consoleDappApiMock.list.mockRejectedValueOnce(createApiErrorMock(status, code));
 
             await expect(controller.getMyDapp()).rejects.toEqual(new DomainError(error));
         });
 
         it("should report a request that never reached the console as unreachable", async () => {
-            consoleDappApiMock.getMine.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+            consoleDappApiMock.list.mockRejectedValueOnce(new TypeError("Failed to fetch"));
 
             await expect(controller.getMyDapp()).rejects.toEqual(new DomainError(ConsoleDappErrors.CONSOLE_UNREACHABLE));
         });
@@ -73,12 +62,12 @@ describe("ConsoleDappController", () => {
 
     describe("submitDapp", () => {
         it("should submit the fields", async () => {
-            await expect(controller.submitDapp(fields)).resolves.toEqual(new OwnerDappMock());
-            expect(consoleDappApiMock.submit).toHaveBeenCalledWith(fields);
+            await expect(controller.submitDapp(fields)).resolves.toEqual(new DappMock());
+            expect(consoleDappApiMock.create).toHaveBeenCalledWith(fields);
         });
 
         it("should say when the email already has a dApp", async () => {
-            consoleDappApiMock.submit.mockRejectedValueOnce(createApiErrorMock(409, "DAPP_ALREADY_EXISTS"));
+            consoleDappApiMock.create.mockRejectedValueOnce(createApiErrorMock(409, "DAPP_ALREADY_EXISTS"));
 
             await expect(controller.submitDapp(fields)).rejects.toEqual(new DomainError(ConsoleDappErrors.DAPP_ALREADY_EXISTS));
         });
@@ -87,87 +76,31 @@ describe("ConsoleDappController", () => {
             ["the OpenAPI validator", "request/body must have required property 'name'"],
             ["the validation pipe", ["name must be a valid dApp name"]],
         ])("should report a value %s refused", async (_, message) => {
-            consoleDappApiMock.submit.mockRejectedValueOnce(createApiErrorMock(400, message));
+            consoleDappApiMock.create.mockRejectedValueOnce(createApiErrorMock(400, message));
 
             await expect(controller.submitDapp(fields)).rejects.toEqual(new DomainError(ConsoleDappErrors.VALIDATION_FAILED));
         });
     });
 
     describe("editDapp", () => {
-        it("should save the edit with the version it was made on", async () => {
-            const request = { ...fields, expectedVersion: 3 };
+        it("should save the edit", async () => {
+            const request = { description: "The wallet." };
 
-            await expect(controller.editDapp({ id: DAPP_ID_MOCK, request })).resolves.toEqual(new OwnerDappMock({ version: 4 }));
-            expect(consoleDappApiMock.edit).toHaveBeenCalledWith(DAPP_ID_MOCK, request);
+            await expect(controller.editDapp({ id: DAPP_ID_MOCK, request })).resolves.toEqual(new DappMock({ description: "The wallet." }));
+            expect(consoleDappApiMock.update).toHaveBeenCalledWith(DAPP_ID_MOCK, request);
         });
 
         it.each([
-            [409, "DAPP_CHANGED", ConsoleDappErrors.DAPP_CHANGED],
             [404, "DAPP_NOT_FOUND", ConsoleDappErrors.DAPP_NOT_FOUND],
             [409, "INVALID_TRANSITION", ConsoleDappErrors.INVALID_TRANSITION],
-            [422, "PROVISIONING_REJECTED", ConsoleDappErrors.PROVISIONING_REJECTED],
-            [502, "PROVISIONING_FAILED", ConsoleDappErrors.PROVISIONING_FAILED],
-        ])("should report a %i %s as %s", async (status, code, error) => {
-            consoleDappApiMock.edit.mockRejectedValueOnce(createApiErrorMock(status, code));
-
-            await expect(controller.editDapp({ id: DAPP_ID_MOCK, request: { ...fields, expectedVersion: 3 } })).rejects.toEqual(
-                new DomainError(error),
-            );
-        });
-    });
-
-    describe("withdrawChange", () => {
-        it("should save the live fields, not the change, with the version shown", async () => {
-            const dapp = new OwnerDappMock({ status: "approved", pendingChange: change, pendingChangeAt: "2026-10-03T10:00:00Z" });
-
-            await controller.withdrawChange({ dapp, expectedVersion: 3 });
-
-            expect(consoleDappApiMock.edit).toHaveBeenCalledWith(DAPP_ID_MOCK, {
-                name: "Acme Wallet",
-                description: "A wallet for NEAR.",
-                logoUrl: "https://cdn.acme.xyz/logo.png",
-                mauBracket: "1k_10k",
-                callbackUrls: ["https://app.acme.xyz/callback"],
-                logoutUrls: [],
-                webOrigins: ["https://app.acme.xyz"],
-                contactEmail: "dev@acme.xyz",
-                expectedVersion: 3,
-            });
-        });
-
-        it("should say when the dApp changed since it was shown", async () => {
-            consoleDappApiMock.edit.mockRejectedValueOnce(createApiErrorMock(409, "DAPP_CHANGED"));
-
-            await expect(controller.withdrawChange({ dapp: new OwnerDappMock(), expectedVersion: 3 })).rejects.toEqual(
-                new DomainError(ConsoleDappErrors.DAPP_CHANGED),
-            );
-        });
-    });
-
-    describe("removeDapp", () => {
-        it("should remove the dApp on the version shown", async () => {
-            await expect(controller.removeDapp({ id: DAPP_ID_MOCK, expectedVersion: 3 })).resolves.toBeUndefined();
-            expect(consoleDappApiMock.remove).toHaveBeenCalledWith(DAPP_ID_MOCK, 3);
-        });
-
-        it("should say when the dApp changed since it was shown", async () => {
-            consoleDappApiMock.remove.mockRejectedValueOnce(createApiErrorMock(409, "DAPP_CHANGED"));
-
-            await expect(controller.removeDapp({ id: DAPP_ID_MOCK, expectedVersion: 3 })).rejects.toEqual(
-                new DomainError(ConsoleDappErrors.DAPP_CHANGED),
-            );
-        });
-
-        it.each([
-            [400, "request/query/expectedVersion must be integer", ConsoleDappErrors.VALIDATION_FAILED],
             [404, "not found", ConsoleDappErrors.SERVER_ERROR],
             [405, "method not allowed", ConsoleDappErrors.SERVER_ERROR],
             [413, "request entity too large", ConsoleDappErrors.SERVER_ERROR],
             [415, "unsupported media type", ConsoleDappErrors.SERVER_ERROR],
-        ])("should report a %i %s as %s, not as the console being unreachable", async (status, code, error) => {
-            consoleDappApiMock.remove.mockRejectedValueOnce(createApiErrorMock(status, code));
+        ])("should report a %i %s as %s", async (status, code, error) => {
+            consoleDappApiMock.update.mockRejectedValueOnce(createApiErrorMock(status, code));
 
-            await expect(controller.removeDapp({ id: DAPP_ID_MOCK, expectedVersion: 3 })).rejects.toEqual(new DomainError(error));
+            await expect(controller.editDapp({ id: DAPP_ID_MOCK, request: fields })).rejects.toEqual(new DomainError(error));
         });
     });
 });

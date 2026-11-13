@@ -2,13 +2,16 @@ import { Button } from "@frontend/design-system-react/button";
 import { Card } from "@frontend/design-system-react/card";
 import { PencilIcon } from "@frontend/design-system-react/icons";
 import { useTranslate } from "@frontend/locale/react";
-import { OwnerDappDto } from "@shared/console";
+import { DappDto } from "@shared/console";
 import { initials } from "../../../common/utils/initials";
 import { FieldList, Value } from "../field-values/field-values";
 
 export type DappSummaryProps = {
-    dapp: OwnerDappDto;
-    onEdit: () => void;
+    dapp: DappDto;
+    /**
+     * Opens the form, when the dApp can still be edited.
+     */
+    onEdit?: () => void;
 };
 
 export function DappSummary({ dapp, onEdit }: DappSummaryProps): React.JSX.Element {
@@ -26,10 +29,12 @@ export function DappSummary({ dapp, onEdit }: DappSummaryProps): React.JSX.Eleme
                     <h2>{dapp.name}</h2>
                     {dapp.description && <p>{dapp.description}</p>}
                 </div>
-                <Button variant="secondary" onClick={onEdit}>
-                    <PencilIcon />
-                    {translate("myDapp.edit.action")}
-                </Button>
+                {onEdit && (
+                    <Button variant="secondary" onClick={onEdit}>
+                        <PencilIcon />
+                        {translate("myDapp.edit.action")}
+                    </Button>
+                )}
             </div>
             <FieldList
                 rows={[

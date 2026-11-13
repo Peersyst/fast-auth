@@ -1,18 +1,16 @@
-import { Button } from "@frontend/design-system-react/button";
 import { Card, CardHeader } from "@frontend/design-system-react/card";
 import { ClockIcon } from "@frontend/design-system-react/icons";
 import { useTranslate } from "@frontend/locale/react";
-import { OwnerDappDto, DappFieldsDto } from "@shared/console";
+import { DappChangeDto, DappDto } from "@shared/console";
 import { formatDateTime } from "../../../common/utils/format";
 import { ChangeDiff, pendingChangeRows } from "../change-diff/change-diff";
 
 export type ChangeUnderReviewProps = {
-    live: OwnerDappDto;
-    change: DappFieldsDto;
-    onWithdraw: () => void;
+    live: DappDto;
+    change: DappChangeDto;
 };
 
-export function ChangeUnderReview({ live, change, onWithdraw }: ChangeUnderReviewProps): React.JSX.Element {
+export function ChangeUnderReview({ live, change }: ChangeUnderReviewProps): React.JSX.Element {
     const translate = useTranslate();
     return (
         <Card className="flex flex-col overflow-hidden">
@@ -21,11 +19,9 @@ export function ChangeUnderReview({ live, change, onWithdraw }: ChangeUnderRevie
                     <ClockIcon />
                 </span>
                 <h2>{translate("myDapp.changeUnderReview.title")}</h2>
-                {live.pendingChangeAt && (
-                    <span className="text-sm text-ink-subtle">
-                        {translate("myDapp.changeUnderReview.requested", { date: formatDateTime(live.pendingChangeAt) })}
-                    </span>
-                )}
+                <span className="text-sm text-ink-subtle">
+                    {translate("myDapp.changeUnderReview.requested", { date: formatDateTime(change.createdAt) })}
+                </span>
             </CardHeader>
             <div className="flex flex-col gap-4 px-6 py-5 text-base">
                 <p>{translate("myDapp.changeUnderReview.description")}</p>
@@ -34,11 +30,6 @@ export function ChangeUnderReview({ live, change, onWithdraw }: ChangeUnderRevie
                     beforeLabel={translate("dapp.diff.live")}
                     afterLabel={translate("dapp.diff.proposed")}
                 />
-                <div>
-                    <Button variant="secondary" onClick={onWithdraw}>
-                        {translate("myDapp.withdraw.confirm")}
-                    </Button>
-                </div>
             </div>
         </Card>
     );

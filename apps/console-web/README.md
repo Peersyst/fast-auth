@@ -1,6 +1,6 @@
 # Console Web
 
-React web app of the NEAR Auth Console. A dApp team signs in with Auth0, registers its dApp, follows its review and copies its credentials. An admin reviews, edits, approves, rejects and removes dApps. It talks only to the console API under `/api/console`, at `BACKEND_URL`.
+React web app of the NEAR Auth Console. A dApp team signs in with Auth0, registers its dApp, follows its review and copies its credentials. An admin approves or rejects each dApp and each change its owner asks for. It talks only to the console API under `/api/console`, at `BACKEND_URL`.
 
 ## Getting Started
 
@@ -31,7 +31,7 @@ Set `AUTH0_LOGIN_DOMAIN` and `AUTH0_CLIENT_ID` to sign in. `NEAR_NETWORK` is `te
 
 ## Structure
 
-- `src/modules/` holds the screens, containers and components per area: `session` (sign-in and session gates), `dapp` (the owner's dApp), `admin` (review queue and dApp detail) and `common` (layout, header, dialogs, errors).
+- `src/modules/` holds the screens, containers and components per area: `session` (sign-in and session gates), `dapp` (the owner's dApp), `admin` (dApps list and dApp detail) and `common` (layout, header, dialogs, errors).
 - `src/core/` wires the dependency-injection factories, the API setup and the app state. `src/router/` holds the routes.
 - `src/config/` holds the settings (docs and support links, NEAR network contracts, and the build variables above). They are fixed at build time and the app imports them directly.
 - `src/design-system/`, `src/locale/` and `src/query/` set up the design system, i18next and TanStack Query providers.

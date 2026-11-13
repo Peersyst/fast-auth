@@ -1,20 +1,16 @@
-import { MyDappDto, OwnerDappDto, UpdateDappRequest, UpsertDappRequest } from "@shared/console";
+import { CreateDappRequest, DappDto, PaginatedDappsDto, UpdateDappRequest } from "@shared/console";
 
 export interface IConsoleDappApi {
     /**
-     * Gets the signed-in user's dApp.
+     * Lists the signed-in user's dApps, which are at most one.
      */
-    getMine(): Promise<MyDappDto>;
+    list(): Promise<PaginatedDappsDto>;
     /**
      * Submits a new dApp for review.
      */
-    submit(requestBody: UpsertDappRequest): Promise<OwnerDappDto>;
+    create(requestBody: CreateDappRequest): Promise<DappDto>;
     /**
      * Saves the owner's edit of their dApp.
      */
-    edit(id: string, requestBody: UpdateDappRequest): Promise<OwnerDappDto>;
-    /**
-     * Removes the owner's dApp.
-     */
-    remove(id: string, expectedVersion: number): Promise<void>;
+    update(id: string, requestBody: UpdateDappRequest): Promise<DappDto>;
 }

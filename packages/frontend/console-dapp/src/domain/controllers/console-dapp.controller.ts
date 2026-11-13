@@ -1,8 +1,7 @@
 import { Controller } from "@frontend/core/domain/controller";
 import { ApiErrors, DefaultError } from "@frontend/core/domain/error/decorators";
-import { OwnerDappDto, UpsertDappRequest } from "@shared/console";
-import { syncedFieldsOf } from "@shared/modules/dapp";
-import { EditDappParams, IConsoleDappController, RemoveDappParams, WithdrawChangeParams } from "../../ui/interfaces";
+import { CreateDappRequest, DappDto } from "@shared/console";
+import { EditDappParams, IConsoleDappController } from "../../ui/interfaces";
 import { CONSOLE_DAPP_API_ERRORS, ConsoleDappErrors } from "../console-dapp.errors";
 import { IConsoleDappApi } from "../interfaces";
 
@@ -15,9 +14,9 @@ export class ConsoleDappController implements IConsoleDappController {
      */
     @DefaultError(ConsoleDappErrors.CONSOLE_UNREACHABLE)
     @ApiErrors(CONSOLE_DAPP_API_ERRORS)
-    async getMyDapp(): Promise<OwnerDappDto | null> {
-        const { dapp } = await this.consoleDappApi.getMine();
-        return dapp;
+    async getMyDapp(): Promise<DappDto | null> {
+        const { items } = await this.consoleDappApi.list();
+        return items[0] ?? null;
     }
 
     /**
@@ -25,8 +24,8 @@ export class ConsoleDappController implements IConsoleDappController {
      */
     @DefaultError(ConsoleDappErrors.CONSOLE_UNREACHABLE)
     @ApiErrors(CONSOLE_DAPP_API_ERRORS)
-    async submitDapp(fields: UpsertDappRequest): Promise<OwnerDappDto> {
-        return this.consoleDappApi.submit(fields);
+    async submitDapp(fields: CreateDappRequest): Promise<DappDto> {
+        return this.consoleDappApi.create(fields);
     }
 
     /**
@@ -34,26 +33,7 @@ export class ConsoleDappController implements IConsoleDappController {
      */
     @DefaultError(ConsoleDappErrors.CONSOLE_UNREACHABLE)
     @ApiErrors(CONSOLE_DAPP_API_ERRORS)
-    async editDapp({ id, request }: EditDappParams): Promise<OwnerDappDto> {
-        return this.consoleDappApi.edit(id, request);
-    }
-
-    /**
-     * @inheritdoc
-     */
-    withdrawChange({ dapp, expectedVersion }: WithdrawChangeParams): Promise<OwnerDappDto> {
-        return this.editDapp({
-            id: dapp.id,
-            request: { ...syncedFieldsOf(dapp), contactEmail: dapp.contactEmail, mauBracket: dapp.mauBracket, expectedVersion },
-        });
-    }
-
-    /**
-     * @inheritdoc
-     */
-    @DefaultError(ConsoleDappErrors.CONSOLE_UNREACHABLE)
-    @ApiErrors(CONSOLE_DAPP_API_ERRORS)
-    async removeDapp({ id, expectedVersion }: RemoveDappParams): Promise<void> {
-        await this.consoleDappApi.remove(id, expectedVersion);
+    async editDapp({ id, request }: EditDappParams): Promise<DappDto> {
+        return this.consoleDappApi.update(id, request);
     }
 }

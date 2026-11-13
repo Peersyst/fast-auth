@@ -1,10 +1,9 @@
 import { createMock, MethodMock } from "@shared/test";
 import { IConsoleDappApi } from "../../../../src/domain/interfaces";
-import { OwnerDappMock } from "@shared/console/test/mocks/dapp";
+import { DappMock } from "@shared/console/test/mocks/dapp";
 
 export const ConsoleDappApiMock = createMock<IConsoleDappApi>({
-    getMine: new MethodMock("mockResolvedValue", { dapp: new OwnerDappMock() }),
-    submit: new MethodMock("mockResolvedValue", new OwnerDappMock()),
-    edit: new MethodMock("mockResolvedValue", new OwnerDappMock({ version: 4 })),
-    remove: new MethodMock("mockResolvedValue"),
+    list: new MethodMock("mockResolvedValue", { items: [new DappMock()], totalItems: 1, currentPage: 1, pages: 1 }),
+    create: new MethodMock("mockResolvedValue", new DappMock()),
+    update: new MethodMock("mockResolvedValue", new DappMock({ description: "The wallet." })),
 });

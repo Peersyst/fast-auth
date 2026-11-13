@@ -1,7 +1,7 @@
 import { useQuery, UseQueryResult } from "@tanstack/react-query";
 import { getInstance } from "@frontend/core/common/utils/singleton";
 import { UseExternalQueryOptions } from "@frontend/query/react";
-import { AdminDappDto } from "@shared/console";
+import { DappDto } from "@shared/console";
 import { ConsoleAdminController } from "../../domain/controllers";
 import { consoleAdminQueryKeys } from "./console-admin.queries";
 
@@ -11,7 +11,7 @@ import { consoleAdminQueryKeys } from "./console-admin.queries";
  * @param options The query options.
  * @returns The query result with the dApp.
  */
-export function useGetDapp(id: string, options?: UseExternalQueryOptions<AdminDappDto, Error>): UseQueryResult<AdminDappDto> {
+export function useGetDapp(id: string, options?: UseExternalQueryOptions<DappDto, Error>): UseQueryResult<DappDto> {
     return useQuery({
         queryKey: consoleAdminQueryKeys.detail(id),
         queryFn: () => getInstance(ConsoleAdminController).getDapp(id),

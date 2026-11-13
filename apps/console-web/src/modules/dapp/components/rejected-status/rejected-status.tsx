@@ -13,7 +13,6 @@ export function RejectedStatus(): React.JSX.Element {
                     <p className="text-md font-semibold">{translate("myDapp.rejected.title")}</p>
                 </div>
             </div>
-            <p>{translate("myDapp.rejected.resubmit")}</p>
         </section>
     );
 }

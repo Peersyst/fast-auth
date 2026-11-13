@@ -2,13 +2,13 @@ import { Button } from "@frontend/design-system-react/button";
 import { Card, CardBody, CardHeader } from "@frontend/design-system-react/card";
 import { CheckIcon } from "@frontend/design-system-react/icons";
 import { useTranslate } from "@frontend/locale/react";
-import { AdminDappDto, DappFieldsDto } from "@shared/console";
+import { DappChangeDto, DappDto } from "@shared/console";
 import { formatDateTime } from "../../../common/utils/format";
 import { ChangeDiff, pendingChangeRows } from "../../../dapp/components/change-diff/change-diff";
 
 export type ChangeReviewProps = {
-    dapp: AdminDappDto;
-    change: DappFieldsDto;
+    dapp: DappDto;
+    change: DappChangeDto;
     onApprove: () => void;
     onReject: () => void;
 };
@@ -19,11 +19,9 @@ export function ChangeReview({ dapp, change, onApprove, onReject }: ChangeReview
         <Card className="overflow-hidden border-warning-border" aria-labelledby="change-heading">
             <CardHeader variant="split">
                 <h2 id="change-heading">{translate("myDapp.changeUnderReview.title")}</h2>
-                {dapp.pendingChangeAt && (
-                    <span className="text-sm text-ink-subtle">
-                        {translate("myDapp.changeUnderReview.requested", { date: formatDateTime(dapp.pendingChangeAt) })}
-                    </span>
-                )}
+                <span className="text-sm text-ink-subtle">
+                    {translate("myDapp.changeUnderReview.requested", { date: formatDateTime(change.createdAt) })}
+                </span>
             </CardHeader>
             <CardBody>
                 <ChangeDiff
@@ -31,10 +29,13 @@ export function ChangeReview({ dapp, change, onApprove, onReject }: ChangeReview
                     beforeLabel={translate("dapp.diff.live")}
                     afterLabel={translate("dapp.diff.proposed")}
                 />
-                {change.logoUrl !== dapp.logoUrl && (
+                {change.logoUrl !== null && (
                     <figure className="m-0 flex items-center gap-3 text-sm text-ink-subtle">
                         <span className="flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px] border border-border bg-canvas text-faint [&_img]:size-full [&_img]:object-contain">
-                            <img src={change.logoUrl} alt={translate("admin.dapp.changeReview.proposedLogoAlt", { name: change.name })} />
+                            <img
+                                src={change.logoUrl}
+                                alt={translate("admin.dapp.changeReview.proposedLogoAlt", { name: change.name ?? dapp.name })}
+                            />
                         </span>
                         <figcaption>{translate("admin.dapp.changeReview.proposedLogo")}</figcaption>
                     </figure>

@@ -6,12 +6,12 @@ import { CloseIcon, PlusIcon } from "@frontend/design-system-react/icons";
 import { cn } from "@frontend/design-system-react/utils";
 import { useTranslate } from "@frontend/locale/react";
 import { LocaleErrorResource } from "@frontend/locale";
-import { UpsertDappRequest } from "@shared/console";
+import { CreateDappRequest } from "@shared/console";
 import { URL_LIST_RULES, UrlListField as UrlListFieldName } from "@shared/modules/dapp";
 import { DAPP_FORM_ERROR_VALUES, DappFormInput } from "../dapp-form.types";
 
 export type UrlListFieldProps = {
-    form: UseFormReturn<DappFormInput, unknown, UpsertDappRequest>;
+    form: UseFormReturn<DappFormInput, unknown, CreateDappRequest>;
     name: UrlListFieldName;
     hint: ReactNode;
 };

@@ -1,8 +1,7 @@
 import userEvent, { UserEvent } from "@testing-library/user-event";
-import { DappFieldsDto } from "@shared/console";
-import { DAPP_ID_MOCK, OwnerDappMock } from "@shared/console/test/mocks/dapp";
+import { DAPP_ID_MOCK, DappChangeMock, DappMock } from "@shared/console/test/mocks/dapp";
 import { MyDappScreen } from "../../../../../../src/modules/dapp/screens/my-dapp/my-dapp.screen";
-import { apiError, mockApi, mockNearNetwork, MockRoutes, refocus, renderRoutes, screen, waitFor, within } from "../../../../../utils";
+import { apiError, mockApi, mockNearNetwork, MockRoutes, refocus, renderRoutes, screen, within } from "../../../../../utils";
 
 /**
  * Renders the page with the console answering from the given routes.
@@ -28,35 +27,30 @@ async function fillValidForm(user: UserEvent): Promise<void> {
     await user.selectOptions(screen.getByLabelText("Expected monthly active users"), "1,000 – 10,000");
 }
 
-const PUT_DAPP = `PUT /api/console/dapp/${DAPP_ID_MOCK}`;
-const DELETE_DAPP = `DELETE /api/console/dapp/${DAPP_ID_MOCK}`;
-
-const CHANGE: DappFieldsDto = {
-    name: "Acme Wallet",
-    description: "A wallet for NEAR.",
-    logoUrl: "https://cdn.acme.xyz/logo.png",
-    callbackUrls: ["https://app.acme.xyz/callback", "https://app.acme.xyz/silent"],
-    logoutUrls: [],
-    webOrigins: ["https://app.acme.xyz"],
-    contactEmail: "ops@acme.xyz",
-    mauBracket: "gt25k",
-};
-
-/**
- * Builds the owner's dApp as the console answers it.
- * @param overrides The fields that differ from the default pending dApp.
- * @returns The dApp.
- */
-function ownerDapp(overrides: ConstructorParameters<typeof OwnerDappMock>[0] = {}): InstanceType<typeof OwnerDappMock> {
-    return new OwnerDappMock(overrides);
-}
-
 describe("MyDappScreen", () => {
+    const patchDapp = `PATCH /api/console/dapp/${DAPP_ID_MOCK}`;
+
+    const change = new DappChangeMock({
+        callbackUrls: ["https://app.acme.xyz/callback", "https://app.acme.xyz/silent"],
+        contactEmail: "ops@acme.xyz",
+        mauBracket: "gt25k",
+    });
+
+    /**
+     * Builds the page of dApps the console lists for an owner, which holds their dApp if they have one.
+     * @param overrides The fields that differ from the default pending dApp, or `null` for an owner with no dApp.
+     * @returns The page.
+     */
+    function myDapps(overrides: ConstructorParameters<typeof DappMock>[0] | null = {}): { body: unknown } {
+        const items = overrides === null ? [] : [new DappMock(overrides)];
+        return { body: { items, totalItems: items.length, currentPage: 1, pages: items.length } };
+    }
+
     it("should explain the console and offer the form when there is no dApp, then submit it", async () => {
         const user = userEvent.setup();
         const api = renderPage({
-            "GET /api/console/dapp": { body: { dapp: null } },
-            "POST /api/console/dapp": { status: 201, body: ownerDapp() },
+            "GET /api/console/dapp": myDapps(null),
+            "POST /api/console/dapp": { status: 201, body: new DappMock() },
         });
 
         expect(await screen.findByRole("heading", { name: "You haven't registered a dApp yet" })).toBeInTheDocument();
@@ -83,8 +77,8 @@ describe("MyDappScreen", () => {
     it("should move focus to the dApp's title once the first submission shows it", async () => {
         const user = userEvent.setup();
         renderPage({
-            "GET /api/console/dapp": { body: { dapp: null } },
-            "POST /api/console/dapp": { status: 201, body: ownerDapp() },
+            "GET /api/console/dapp": myDapps(null),
+            "POST /api/console/dapp": { status: 201, body: new DappMock() },
         });
 
         await user.click(await screen.findByRole("button", { name: "Register your dApp" }));
@@ -95,14 +89,14 @@ describe("MyDappScreen", () => {
     });
 
     it("should not take focus when an existing dApp loads", async () => {
-        renderPage({ "GET /api/console/dapp": { body: { dapp: ownerDapp() } } });
+        renderPage({ "GET /api/console/dapp": myDapps() });
 
         expect(await screen.findByRole("heading", { name: "Acme Wallet", level: 1 })).not.toHaveFocus();
     });
 
     it("should go back from the form to the first-visit card on Cancel", async () => {
         const user = userEvent.setup();
-        renderPage({ "GET /api/console/dapp": { body: { dapp: null } } });
+        renderPage({ "GET /api/console/dapp": myDapps(null) });
 
         await user.click(await screen.findByRole("button", { name: "Register your dApp" }));
         await user.click(screen.getByRole("button", { name: "Cancel" }));
@@ -111,11 +105,11 @@ describe("MyDappScreen", () => {
         expect(screen.getByRole("button", { name: "Register your dApp" })).toHaveFocus();
     });
 
-    it("should show a pending dApp and edit it in place with the version it showed", async () => {
+    it("should show a pending dApp and send the whole form as its edit", async () => {
         const user = userEvent.setup();
         const api = renderPage({
-            "GET /api/console/dapp": { body: { dapp: ownerDapp() } },
-            [PUT_DAPP]: { body: ownerDapp({ version: 4 }) },
+            "GET /api/console/dapp": myDapps(),
+            [patchDapp]: { body: new DappMock({ description: "The wallet." }) },
         });
 
         expect(await screen.findByRole("heading", { name: "Acme Wallet", level: 1 })).toBeInTheDocument();
@@ -127,11 +121,20 @@ describe("MyDappScreen", () => {
         await user.click(screen.getByRole("button", { name: "Save changes" }));
 
         expect(await screen.findByRole("button", { name: "Edit" })).toBeInTheDocument();
-        expect(api.sent(PUT_DAPP)[0]?.body).toMatchObject({ description: "The wallet.", expectedVersion: 3 });
+        expect(api.sent(patchDapp)[0]?.body).toEqual({
+            name: "Acme Wallet",
+            description: "The wallet.",
+            logoUrl: "https://cdn.acme.xyz/logo.png",
+            mauBracket: "1k_10k",
+            callbackUrls: ["https://app.acme.xyz/callback"],
+            logoutUrls: [],
+            webOrigins: ["https://app.acme.xyz"],
+            contactEmail: "dev@acme.xyz",
+        });
     });
 
     it("should show an approved dApp's client ID", async () => {
-        renderPage({ "GET /api/console/dapp": { body: { dapp: ownerDapp({ status: "approved", auth0ClientId: "client-abc" }) } } });
+        renderPage({ "GET /api/console/dapp": myDapps({ status: "approved", auth0ClientId: "client-abc" }) });
 
         expect(await screen.findByText("client-abc")).toBeInTheDocument();
         expect(screen.getByText("Approved")).toBeInTheDocument();
@@ -160,7 +163,7 @@ describe("MyDappScreen", () => {
         "should show an approved dApp the %s settings it plugs into",
         async (network, audience, fastAuth, mpc, resources, resourcesUrl) => {
             mockNearNetwork(network);
-            renderPage({ "GET /api/console/dapp": { body: { dapp: ownerDapp({ status: "approved", auth0ClientId: "client-abc" }) } } });
+            renderPage({ "GET /api/console/dapp": myDapps({ status: "approved", auth0ClientId: "client-abc" }) });
 
             expect(await screen.findByText(audience)).toBeInTheDocument();
             expect(screen.getByText(network)).toBeInTheDocument();
@@ -174,125 +177,53 @@ describe("MyDappScreen", () => {
 
     it("should name the deployment's network to a user with no dApp", async () => {
         mockNearNetwork("testnet");
-        renderPage({ "GET /api/console/dapp": { body: { dapp: null } } });
+        renderPage({ "GET /api/console/dapp": myDapps(null) });
 
         expect(await screen.findByText("Testnet access")).toBeInTheDocument();
         expect(screen.getByText(/and access to the testnet NEAR Auth contract\./)).toBeInTheDocument();
         expect(screen.queryByText(/mainnet/i)).not.toBeInTheDocument();
     });
 
-    it("should show the change under review with its proposed values, and withdraw it by saving the live values", async () => {
-        const user = userEvent.setup();
-        const dapp = ownerDapp({
-            status: "approved",
-            auth0ClientId: "client-abc",
-            pendingChange: CHANGE,
-            pendingChangeAt: "2026-10-03T10:00:00Z",
-        });
-        const api = renderPage({
-            "GET /api/console/dapp": { body: { dapp } },
-            [PUT_DAPP]: { body: { ...dapp, pendingChange: null, version: 4 } },
-        });
+    it("should show the change under review with the values it proposes", async () => {
+        renderPage({ "GET /api/console/dapp": myDapps({ status: "approved", auth0ClientId: "client-abc", pendingChange: change }) });
 
         expect(await screen.findByText(/Your live settings stay as they are until the NEAR Auth team approves it/)).toBeInTheDocument();
         expect(screen.getByText("Changes go live once the NEAR Auth team approves them.")).toBeInTheDocument();
         const diff = screen.getByRole("table");
+        expect(within(diff).getAllByRole("row")).toHaveLength(4);
         expect(within(diff).getByRole("row", { name: /Callback URLs/ })).toHaveTextContent("https://app.acme.xyz/silent");
         expect(within(diff).getByRole("row", { name: /Contact/ })).toHaveTextContent("Contactdev@acme.xyzops@acme.xyz");
         expect(within(diff).getByRole("row", { name: /Expected MAU/ })).toHaveTextContent("Expected MAU1,000 – 10,000More than 25,000");
-        await user.click(screen.getByRole("button", { name: "Withdraw change" }));
-        expect(screen.getByRole("dialog")).toHaveAccessibleDescription(
-            "The NEAR Auth team will not review it, and your live settings stay as they are.",
-        );
-        await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Withdraw change" }));
-
-        expect(api.sent(PUT_DAPP)[0]?.body).toEqual({
-            name: "Acme Wallet",
-            description: "A wallet for NEAR.",
-            logoUrl: "https://cdn.acme.xyz/logo.png",
-            mauBracket: "1k_10k",
-            callbackUrls: ["https://app.acme.xyz/callback"],
-            logoutUrls: [],
-            webOrigins: ["https://app.acme.xyz"],
-            contactEmail: "dev@acme.xyz",
-            expectedVersion: 3,
-        });
     });
 
-    it("should show a rejection and resubmit through the form", async () => {
-        const user = userEvent.setup();
-        const dapp = ownerDapp({ status: "rejected" });
-        const api = renderPage({ "GET /api/console/dapp": { body: { dapp } }, [PUT_DAPP]: { body: ownerDapp({ version: 4 }) } });
-
-        expect(await screen.findByText("Your application was not approved")).toBeInTheDocument();
-        await user.click(screen.getByRole("button", { name: "Edit" }));
-        await user.click(screen.getByRole("button", { name: "Resubmit for review" }));
-
-        expect(api.sent(PUT_DAPP)[0]?.body).toMatchObject({ name: "Acme Wallet", expectedVersion: 3 });
-    });
-
-    it("should remove the dApp once its name is typed, with the version it showed", async () => {
-        const user = userEvent.setup();
-        const api = renderPage({
-            "GET /api/console/dapp": { body: { dapp: ownerDapp() } },
-            [DELETE_DAPP]: { status: 204 },
-        });
-
-        await user.click(await screen.findByRole("button", { name: "Edit" }));
-        await user.click(screen.getByRole("button", { name: "Remove dApp" }));
-        const dialog = screen.getByRole("dialog", { name: "Remove Acme Wallet?" });
-        expect(dialog).toHaveAccessibleDescription(
-            "This deletes the dApp and takes it out of the review queue. It can't be undone. A new dApp can be submitted afterwards with the same email.",
-        );
-        expect(within(dialog).getByRole("button", { name: "Remove dApp" })).toBeDisabled();
-        await user.type(within(dialog).getByLabelText("Type Acme Wallet to confirm"), "Acme Wallet");
-        await user.click(within(dialog).getByRole("button", { name: "Remove dApp" }));
-
-        expect(await screen.findByRole("heading", { name: "You haven't registered a dApp yet" })).toHaveFocus();
-        expect(api.sent(DELETE_DAPP)[0]?.query.get("expectedVersion")).toBe("3");
-    });
-
-    it("should remove against the version shown when the dialog opened; a newer one closes it", async () => {
+    it("should send an approved dApp's edit for review and show it as a change under review", async () => {
         const user = userEvent.setup();
         const routes: MockRoutes = {
-            "GET /api/console/dapp": { body: { dapp: ownerDapp() } },
-            [DELETE_DAPP]: apiError(409, "DAPP_CHANGED"),
+            "GET /api/console/dapp": myDapps({ status: "approved", auth0ClientId: "client-abc" }),
+            [patchDapp]: { body: new DappMock({ status: "approved", auth0ClientId: "client-abc", pendingChange: change }) },
         };
         const api = renderPage(routes);
 
         await user.click(await screen.findByRole("button", { name: "Edit" }));
-        await user.click(screen.getByRole("button", { name: "Remove dApp" }));
-        const dialog = screen.getByRole("dialog", { name: "Remove Acme Wallet?" });
-        routes["GET /api/console/dapp"] = { body: { dapp: ownerDapp({ status: "approved", auth0ClientId: "client-abc", version: 4 }) } };
-        refocus();
-        await within(dialog).findByText(/stop working immediately/);
-        await user.type(within(dialog).getByLabelText("Type Acme Wallet to confirm"), "Acme Wallet");
-        await user.click(within(dialog).getByRole("button", { name: "Remove dApp" }));
+        expect(screen.getByText("Your dApp is live. Changes go live once the NEAR Auth team approves them.")).toBeInTheDocument();
+        await user.clear(screen.getByLabelText("Primary contact email"));
+        await user.type(screen.getByLabelText("Primary contact email"), "ops@acme.xyz");
+        await user.click(screen.getByRole("button", { name: "Save changes" }));
 
-        expect(api.sent(DELETE_DAPP)[0]?.query.get("expectedVersion")).toBe("3");
-        expect(await screen.findByRole("alert")).toHaveTextContent("Nothing was done");
-        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        expect(await screen.findByRole("heading", { name: "Change under review" })).toBeInTheDocument();
+        expect(api.sent(patchDapp)[0]?.body).toMatchObject({ contactEmail: "ops@acme.xyz" });
     });
 
-    it("should announce that a withdrawal did nothing when the dApp changed meanwhile", async () => {
-        const user = userEvent.setup();
-        const dapp = ownerDapp({
-            status: "approved",
-            auth0ClientId: "client-abc",
-            pendingChange: CHANGE,
-            pendingChangeAt: "2026-10-03T10:00:00Z",
-        });
-        renderPage({ "GET /api/console/dapp": { body: { dapp } }, [PUT_DAPP]: apiError(409, "DAPP_CHANGED") });
+    it("should show a rejection with no way to edit the dApp", async () => {
+        renderPage({ "GET /api/console/dapp": myDapps({ status: "rejected" }) });
 
-        await user.click(await screen.findByRole("button", { name: "Withdraw change" }));
-        await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Withdraw change" }));
-
-        expect(await screen.findByRole("alert")).toHaveTextContent("Nothing was done");
+        expect(await screen.findByText("Your application was not approved")).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
     });
 
     it("should keep the edit form and its edits when a background refetch fails", async () => {
         const user = userEvent.setup();
-        const routes: MockRoutes = { "GET /api/console/dapp": { body: { dapp: ownerDapp() } } };
+        const routes: MockRoutes = { "GET /api/console/dapp": myDapps() };
         renderPage(routes);
 
         await user.click(await screen.findByRole("button", { name: "Edit" }));
@@ -304,78 +235,29 @@ describe("MyDappScreen", () => {
         expect(screen.getByLabelText("Application name")).toHaveValue("Acme Wallet v2");
     });
 
-    it("should say when the dApp changed meanwhile and reload the latest version", async () => {
+    it("should say when the dApp was rejected meanwhile and go back to it on Reload", async () => {
         const user = userEvent.setup();
         const routes: MockRoutes = {
-            "GET /api/console/dapp": { body: { dapp: ownerDapp() } },
-            [PUT_DAPP]: (request) =>
-                (request.body as { expectedVersion: number }).expectedVersion === 4
-                    ? { body: ownerDapp({ version: 5 }) }
-                    : apiError(409, "DAPP_CHANGED"),
+            "GET /api/console/dapp": myDapps(),
+            [patchDapp]: apiError(409, "INVALID_TRANSITION"),
         };
-        const api = renderPage(routes);
+        renderPage(routes);
 
         await user.click(await screen.findByRole("button", { name: "Edit" }));
-        routes["GET /api/console/dapp"] = { body: { dapp: ownerDapp({ version: 4, description: "Changed" }) } };
+        routes["GET /api/console/dapp"] = myDapps({ status: "rejected" });
         await user.click(screen.getByRole("button", { name: "Save changes" }));
         const alert = await screen.findByRole("alert");
-        expect(alert).toHaveTextContent("This dApp changed since you opened it.");
+        expect(alert).toHaveTextContent("That action is not possible in the dApp's current state.");
         await user.click(within(alert).getByRole("button", { name: "Reload" }));
+
         expect(screen.getByRole("heading", { name: "Acme Wallet", level: 1 })).toHaveFocus();
-        expect(screen.getByLabelText("Application description")).toHaveValue("Changed");
-        await user.click(screen.getByRole("button", { name: "Save changes" }));
-
-        expect(await screen.findByRole("button", { name: "Edit" })).toBeInTheDocument();
-        const versions = api.sent(PUT_DAPP).map((request) => (request.body as { expectedVersion: number }).expectedVersion);
-        expect(versions).toEqual([3, 4]);
-    });
-
-    it("should leave the form when its change is withdrawn, as the form's version is then out of date", async () => {
-        const user = userEvent.setup();
-        const dapp = ownerDapp({
-            status: "approved",
-            auth0ClientId: "client-abc",
-            pendingChange: CHANGE,
-            pendingChangeAt: "2026-10-03T10:00:00Z",
-        });
-        const withdrawn = { ...dapp, pendingChange: null, pendingChangeAt: null, version: 4 };
-        renderPage({
-            "GET /api/console/dapp": { body: { dapp } },
-            [PUT_DAPP]: { body: withdrawn },
-        });
-
-        await user.click(await screen.findByRole("button", { name: "Edit" }));
-        await user.click(screen.getByRole("button", { name: "Withdraw change" }));
-        await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Withdraw change" }));
-
-        expect(await screen.findByRole("button", { name: "Edit" })).toBeInTheDocument();
+        expect(screen.getByText("Your application was not approved")).toBeInTheDocument();
         expect(screen.queryByLabelText("Application name")).not.toBeInTheDocument();
-    });
-
-    it("should clear a dialog's Nothing was done once the user edits again", async () => {
-        const user = userEvent.setup();
-        renderPage({
-            "GET /api/console/dapp": { body: { dapp: ownerDapp() } },
-            [DELETE_DAPP]: apiError(409, "DAPP_CHANGED"),
-            [PUT_DAPP]: { body: ownerDapp({ version: 4 }) },
-        });
-
-        await user.click(await screen.findByRole("button", { name: "Edit" }));
-        await user.click(screen.getByRole("button", { name: "Remove dApp" }));
-        const dialog = screen.getByRole("dialog", { name: "Remove Acme Wallet?" });
-        await user.type(within(dialog).getByLabelText("Type Acme Wallet to confirm"), "Acme Wallet");
-        await user.click(within(dialog).getByRole("button", { name: "Remove dApp" }));
-        expect(await screen.findByText("Nothing was done")).toBeInTheDocument();
-        await user.click(screen.getByRole("button", { name: "Edit" }));
-        await user.click(screen.getByRole("button", { name: "Save changes" }));
-
-        expect(await screen.findByRole("button", { name: "Edit" })).toBeInTheDocument();
-        expect(screen.queryByText("Nothing was done")).not.toBeInTheDocument();
     });
 
     it("should move focus to the title when switching between the details and the form", async () => {
         const user = userEvent.setup();
-        renderPage({ "GET /api/console/dapp": { body: { dapp: ownerDapp() } } });
+        renderPage({ "GET /api/console/dapp": myDapps() });
 
         await user.click(await screen.findByRole("button", { name: "Edit" }));
         expect(screen.getByRole("heading", { name: "Acme Wallet", level: 1 })).toHaveFocus();
@@ -383,30 +265,9 @@ describe("MyDappScreen", () => {
         expect(screen.getByRole("heading", { name: "Acme Wallet", level: 1 })).toHaveFocus();
     });
 
-    it("should move focus to the title once a change withdrawn from the details is gone", async () => {
-        const user = userEvent.setup();
-        const dapp = ownerDapp({
-            status: "approved",
-            auth0ClientId: "client-abc",
-            pendingChange: CHANGE,
-            pendingChangeAt: "2026-10-03T10:00:00Z",
-        });
-        const withdrawn = { ...dapp, pendingChange: null, pendingChangeAt: null, version: 4 };
-        renderPage({
-            "GET /api/console/dapp": { body: { dapp } },
-            [PUT_DAPP]: { body: withdrawn },
-        });
-
-        await user.click(await screen.findByRole("button", { name: "Withdraw change" }));
-        await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Withdraw change" }));
-
-        await waitFor(() => expect(screen.queryByRole("button", { name: "Withdraw change" })).not.toBeInTheDocument());
-        await waitFor(() => expect(screen.getByRole("heading", { name: "Acme Wallet", level: 1 })).toHaveFocus());
-    });
-
     it("should load the dApp once when the page opens", async () => {
         const api = renderPage({
-            "GET /api/console/dapp": { body: { dapp: ownerDapp({ status: "approved", auth0ClientId: "client-abc" }) } },
+            "GET /api/console/dapp": myDapps({ status: "approved", auth0ClientId: "client-abc" }),
         });
 
         await screen.findByText("client-abc");

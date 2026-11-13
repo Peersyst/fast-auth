@@ -2,10 +2,8 @@ import { DomainError } from "@frontend/core/domain/error";
 import { ConsoleAdminController } from "../../../../src/domain/controllers";
 import { ConsoleAdminErrors } from "../../../../src/domain/console-admin.errors";
 import { ConsoleAdminApiMock } from "../../../mocks/data-access/api";
-import { ADMIN_DAPP_ID_MOCK, AdminDappMock } from "@shared/console/test/mocks/admin";
+import { DAPP_ID_MOCK, DappMock } from "@shared/console/test/mocks/dapp";
 import { createApiErrorMock } from "@shared/console/test/mocks/common";
-
-const ID = ADMIN_DAPP_ID_MOCK;
 
 describe("ConsoleAdminController", () => {
     const consoleAdminApiMock = new ConsoleAdminApiMock();
@@ -17,29 +15,25 @@ describe("ConsoleAdminController", () => {
     });
 
     describe("listDapps", () => {
-        it("should ask for a page of twenty with the filter, sort and search", async () => {
-            const page = { items: [new AdminDappMock()], totalItems: 45, currentPage: 2, pages: 3 };
+        it("should ask for the page, twenty at a time", async () => {
+            const page = { items: [new DappMock()], totalItems: 45, currentPage: 2, pages: 3 };
             consoleAdminApiMock.list.mockResolvedValueOnce(page);
 
-            await expect(
-                controller.listDapps({ page: 2, order: "DESC", orderBy: "name", needsReview: false, status: "removed", search: "acme" }),
-            ).resolves.toBe(page);
-            expect(consoleAdminApiMock.list).toHaveBeenCalledWith(2, 20, "DESC", "name", false, "removed", "acme");
+            await expect(controller.listDapps(2)).resolves.toBe(page);
+            expect(consoleAdminApiMock.list).toHaveBeenCalledWith(2, 20);
         });
 
         it("should report a refusal to a signed-in user who is not an admin", async () => {
             consoleAdminApiMock.list.mockRejectedValueOnce(createApiErrorMock(403, "FORBIDDEN_ROLE"));
 
-            await expect(controller.listDapps({ page: 1, order: "ASC", needsReview: true })).rejects.toEqual(
-                new DomainError(ConsoleAdminErrors.FORBIDDEN_ROLE),
-            );
+            await expect(controller.listDapps(1)).rejects.toEqual(new DomainError(ConsoleAdminErrors.FORBIDDEN_ROLE));
         });
     });
 
     describe("getDapp", () => {
         it("should return the dApp", async () => {
-            await expect(controller.getDapp(ID)).resolves.toEqual(new AdminDappMock());
-            expect(consoleAdminApiMock.get).toHaveBeenCalledWith(ID);
+            await expect(controller.getDapp(DAPP_ID_MOCK)).resolves.toEqual(new DappMock());
+            expect(consoleAdminApiMock.get).toHaveBeenCalledWith(DAPP_ID_MOCK);
         });
 
         it.each([
@@ -53,99 +47,41 @@ describe("ConsoleAdminController", () => {
         });
     });
 
-    describe("getDappEvents", () => {
-        it("should return the dApp's events", async () => {
-            const events = [
-                {
-                    id: "e1",
-                    type: "submitted" as const,
-                    actorRole: "user" as const,
-                    details: { chosenForAutoApproval: false },
-                    createdAt: "2026-10-01T10:00:00.000Z",
-                },
-            ];
-            consoleAdminApiMock.listEvents.mockResolvedValueOnce(events);
-
-            await expect(controller.getDappEvents(ID)).resolves.toBe(events);
-            expect(consoleAdminApiMock.listEvents).toHaveBeenCalledWith(ID);
-        });
-    });
-
-    describe("editDapp", () => {
-        const request = {
-            name: "Acme Pay",
-            description: "",
-            logoUrl: "https://cdn.acme.xyz/logo.png",
-            mauBracket: "1k_10k" as const,
-            callbackUrls: ["https://app.acme.xyz/callback"],
-            logoutUrls: [],
-            webOrigins: ["https://app.acme.xyz"],
-            contactEmail: "dev@acme.xyz",
-            expectedVersion: 3,
-        };
-
-        it("should save the edit with the version it was made on", async () => {
-            await controller.editDapp({ id: ID, request });
-
-            expect(consoleAdminApiMock.edit).toHaveBeenCalledWith(ID, request);
-        });
-
-        it("should point to the stored Auth0 error when Auth0 refuses the edit", async () => {
-            consoleAdminApiMock.edit.mockRejectedValueOnce(createApiErrorMock(422, "PROVISIONING_REJECTED"));
-
-            await expect(controller.editDapp({ id: ID, request })).rejects.toEqual(
-                new DomainError(ConsoleAdminErrors.PROVISIONING_REJECTED),
-            );
-        });
-
-        it("should report a value the console's validation refused", async () => {
-            consoleAdminApiMock.edit.mockRejectedValueOnce(createApiErrorMock(400, ["webOrigins must be a list of valid web origins"]));
-
-            await expect(controller.editDapp({ id: ID, request })).rejects.toEqual(new DomainError(ConsoleAdminErrors.VALIDATION_FAILED));
-        });
-    });
-
     describe("actions", () => {
-        it("should approve on the version shown", async () => {
-            await controller.approveDapp({ id: ID, expectedVersion: 3 });
-
-            expect(consoleAdminApiMock.approve).toHaveBeenCalledWith(ID, { expectedVersion: 3 });
+        it("should approve the dApp", async () => {
+            await expect(controller.approveDapp(DAPP_ID_MOCK)).resolves.toEqual(new DappMock({ status: "approved" }));
+            expect(consoleAdminApiMock.approve).toHaveBeenCalledWith(DAPP_ID_MOCK);
         });
 
-        it("should reject on the version shown", async () => {
-            await controller.rejectDapp({ id: ID, expectedVersion: 3 });
-
-            expect(consoleAdminApiMock.reject).toHaveBeenCalledWith(ID, { expectedVersion: 3 });
+        it("should reject the dApp", async () => {
+            await expect(controller.rejectDapp(DAPP_ID_MOCK)).resolves.toEqual(new DappMock({ status: "rejected" }));
+            expect(consoleAdminApiMock.reject).toHaveBeenCalledWith(DAPP_ID_MOCK);
         });
 
-        it("should approve a change on the version shown", async () => {
-            await controller.approveChange({ id: ID, expectedVersion: 7 });
-
-            expect(consoleAdminApiMock.approveChange).toHaveBeenCalledWith(ID, { expectedVersion: 7 });
+        it("should approve the dApp's change", async () => {
+            await expect(controller.approveChange(DAPP_ID_MOCK)).resolves.toEqual(new DappMock({ status: "approved" }));
+            expect(consoleAdminApiMock.approveChange).toHaveBeenCalledWith(DAPP_ID_MOCK);
         });
 
-        it("should reject a change on the version shown", async () => {
-            await controller.rejectChange({ id: ID, expectedVersion: 7 });
-
-            expect(consoleAdminApiMock.rejectChange).toHaveBeenCalledWith(ID, { expectedVersion: 7 });
-        });
-
-        it("should remove on the version shown", async () => {
-            await controller.removeDapp({ id: ID, expectedVersion: 3 });
-
-            expect(consoleAdminApiMock.remove).toHaveBeenCalledWith(ID, { expectedVersion: 3 });
+        it("should reject the dApp's change", async () => {
+            await expect(controller.rejectChange(DAPP_ID_MOCK)).resolves.toEqual(new DappMock({ status: "approved" }));
+            expect(consoleAdminApiMock.rejectChange).toHaveBeenCalledWith(DAPP_ID_MOCK);
         });
 
         it.each([
-            [409, "DAPP_CHANGED", ConsoleAdminErrors.DAPP_CHANGED],
+            [404, "DAPP_NOT_FOUND", ConsoleAdminErrors.DAPP_NOT_FOUND],
             [409, "INVALID_TRANSITION", ConsoleAdminErrors.INVALID_TRANSITION],
-            [409, "NO_PENDING_CHANGE", ConsoleAdminErrors.NO_PENDING_CHANGE],
-            [422, "PROVISIONING_REJECTED", ConsoleAdminErrors.PROVISIONING_REJECTED],
-            [502, "PROVISIONING_FAILED", ConsoleAdminErrors.PROVISIONING_FAILED],
+            [500, "Internal server error", ConsoleAdminErrors.SERVER_ERROR],
         ])("should report a %i %s as %s", async (status, code, error) => {
             consoleAdminApiMock.approve.mockRejectedValueOnce(createApiErrorMock(status, code));
 
-            await expect(controller.approveDapp({ id: ID, expectedVersion: 3 })).rejects.toEqual(new DomainError(error));
+            await expect(controller.approveDapp(DAPP_ID_MOCK)).rejects.toEqual(new DomainError(error));
+        });
+
+        it("should report a change that is no longer waiting for review", async () => {
+            consoleAdminApiMock.approveChange.mockRejectedValueOnce(createApiErrorMock(404, "DAPP_CHANGE_NOT_FOUND"));
+
+            await expect(controller.approveChange(DAPP_ID_MOCK)).rejects.toEqual(new DomainError(ConsoleAdminErrors.NO_PENDING_CHANGE));
         });
 
         it.each([
@@ -154,11 +90,9 @@ describe("ConsoleAdminController", () => {
             [413, "request entity too large"],
             [415, "unsupported media type"],
         ])("should report a %i %s as a server error, not as the console being unreachable", async (status, code) => {
-            consoleAdminApiMock.remove.mockRejectedValueOnce(createApiErrorMock(status, code));
+            consoleAdminApiMock.rejectChange.mockRejectedValueOnce(createApiErrorMock(status, code));
 
-            await expect(controller.removeDapp({ id: ID, expectedVersion: 3 })).rejects.toEqual(
-                new DomainError(ConsoleAdminErrors.SERVER_ERROR),
-            );
+            await expect(controller.rejectChange(DAPP_ID_MOCK)).rejects.toEqual(new DomainError(ConsoleAdminErrors.SERVER_ERROR));
         });
     });
 });

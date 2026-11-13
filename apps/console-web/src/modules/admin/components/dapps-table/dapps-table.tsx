@@ -1,7 +1,7 @@
 import { Link } from "react-router";
 import { buttonClassName } from "@frontend/design-system-react/button";
 import { useTranslate } from "@frontend/locale/react";
-import { AdminDappDto } from "@shared/console";
+import { DappDto } from "@shared/console";
 import { formatDateTime } from "../../../common/utils/format";
 import { initials } from "../../../common/utils/initials";
 import { StatusBadge } from "../../../dapp/components/status-badge/status-badge";
@@ -10,14 +10,8 @@ const HEAD = "border-b border-b-border bg-canvas px-4 py-3 font-mono text-3xs fo
 const CELL = "border-b border-b-border px-4 text-ink-2 [tr:last-child_&]:border-b-0";
 const ACTIONS = "text-right whitespace-nowrap";
 
-export type DappsTableDateColumn = {
-    label: string;
-    of: (dapp: AdminDappDto) => string;
-};
-
 export type DappsTableProps = {
-    dapps: AdminDappDto[];
-    dateColumn: DappsTableDateColumn;
+    dapps: DappDto[];
     /**
      * Whether the rows are the previous page's, kept while the next loads.
      */
@@ -28,7 +22,7 @@ export type DappsTableProps = {
     listSearch: string;
 };
 
-export function DappsTable({ dapps, dateColumn, busy, listSearch }: DappsTableProps): React.JSX.Element {
+export function DappsTable({ dapps, busy, listSearch }: DappsTableProps): React.JSX.Element {
     const translate = useTranslate();
     const listState = { listSearch };
     return (
@@ -43,7 +37,7 @@ export function DappsTable({ dapps, dateColumn, busy, listSearch }: DappsTablePr
                             {translate("dapp.fields.mauBracket")}
                         </th>
                         <th scope="col" className={`${HEAD} text-left`}>
-                            {dateColumn.label}
+                            {translate("admin.dapps.columns.submitted")}
                         </th>
                         <th scope="col" className={`${HEAD} text-left`}>
                             {translate("admin.dapps.columns.status")}
@@ -77,7 +71,7 @@ export function DappsTable({ dapps, dateColumn, busy, listSearch }: DappsTablePr
                                 </div>
                             </td>
                             <td className={`${CELL} py-[14px]`}>{translate(`dapp.mau.${dapp.mauBracket}`)}</td>
-                            <td className={`${CELL} py-[14px] whitespace-nowrap`}>{formatDateTime(dateColumn.of(dapp))}</td>
+                            <td className={`${CELL} py-[14px] whitespace-nowrap`}>{formatDateTime(dapp.createdAt)}</td>
                             <td className={`${CELL} py-[14px]`}>
                                 <span className="inline-flex flex-wrap gap-2">
                                     <StatusBadge status={dapp.status} />

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient, UseMutationResult } from "@tanstack/react-query";
 import { getInstance } from "@frontend/core/common/utils/singleton";
 import { UseExternalMutationOptions } from "@frontend/query/react";
-import { OwnerDappDto } from "@shared/console";
+import { DappDto } from "@shared/console";
 import { EditDappParams } from "../interfaces";
 import { ConsoleDappController } from "../../domain/controllers";
 import { consoleDappQueryKeys } from "./console-dapp.queries";
@@ -14,7 +14,7 @@ import { consoleDappQueryKeys } from "./console-dapp.queries";
 export function useEditDapp({
     onSuccess,
     ...restOptions
-}: UseExternalMutationOptions<OwnerDappDto, Error, EditDappParams> = {}): UseMutationResult<OwnerDappDto, Error, EditDappParams> {
+}: UseExternalMutationOptions<DappDto, Error, EditDappParams> = {}): UseMutationResult<DappDto, Error, EditDappParams> {
     const queryClient = useQueryClient();
 
     return useMutation({

@@ -1,27 +1,22 @@
 import userEvent from "@testing-library/user-event";
 import { DomainError } from "@frontend/core/domain/error";
 import { ConsoleDappErrors } from "@frontend/console-dapp/domain/errors";
-import { DappFieldsDto } from "@shared/console";
-import { OwnerDappMock } from "@shared/console/test/mocks/dapp";
+import { DappChangeMock, DappMock } from "@shared/console/test/mocks/dapp";
 import { DappForm } from "../../../../../../src/modules/dapp/containers/dapp-form/dapp-form";
 import { render, screen, within } from "../../../../../utils";
 
-const PROPOSED: DappFieldsDto = {
-    name: "Acme Wallet 2",
-    description: "A better wallet.",
-    logoUrl: "https://cdn.acme.xyz/logo-2.png",
-    callbackUrls: ["https://app.acme.xyz/callback", "https://app.acme.xyz/silent"],
-    logoutUrls: [],
-    webOrigins: ["https://app.acme.xyz"],
-    contactEmail: "ops@acme.xyz",
-    mauBracket: "gt25k",
-};
-
 describe("DappForm", () => {
+    const proposed = new DappChangeMock({
+        name: "Acme Wallet 2",
+        callbackUrls: ["https://app.acme.xyz/callback", "https://app.acme.xyz/silent"],
+        contactEmail: "ops@acme.xyz",
+        mauBracket: "gt25k",
+    });
+
     it("should explain every invalid field and not save", async () => {
         const user = userEvent.setup();
         const onSave = jest.fn();
-        render(<DappForm mode="owner" values={null} saveLabel="Submit for review" onSave={onSave} onCancel={jest.fn()} />);
+        render(<DappForm values={null} saveLabel="Submit for review" onSave={onSave} onCancel={jest.fn()} />);
 
         await user.type(screen.getByLabelText("Application name"), "Acme <Wallet>");
         await user.type(screen.getByLabelText("Application logo"), "http://cdn.acme.xyz/logo.png");
@@ -55,7 +50,7 @@ describe("DappForm", () => {
 
     it("should focus a new URL row, and a neighbour or the Add button after a removal", async () => {
         const user = userEvent.setup();
-        render(<DappForm mode="owner" values={null} saveLabel="Submit for review" onSave={jest.fn()} onCancel={jest.fn()} />);
+        render(<DappForm values={null} saveLabel="Submit for review" onSave={jest.fn()} onCancel={jest.fn()} />);
         const add = screen.getByRole("button", { name: "Add callback URL" });
 
         await user.click(add);
@@ -78,7 +73,7 @@ describe("DappForm", () => {
 
     it("should add and remove URL rows, keeping at least one callback URL and at most ten", async () => {
         const user = userEvent.setup();
-        render(<DappForm mode="owner" values={null} saveLabel="Submit for review" onSave={jest.fn()} onCancel={jest.fn()} />);
+        render(<DappForm values={null} saveLabel="Submit for review" onSave={jest.fn()} onCancel={jest.fn()} />);
         const add = screen.getByRole("button", { name: "Add callback URL" });
 
         expect(screen.getByRole("button", { name: "Remove callback URL 1" })).toBeDisabled();
@@ -100,7 +95,7 @@ describe("DappForm", () => {
     it("should save the normalised fields", async () => {
         const user = userEvent.setup();
         const onSave = jest.fn(async () => {});
-        render(<DappForm mode="owner" values={null} saveLabel="Submit for review" onSave={onSave} onCancel={jest.fn()} />);
+        render(<DappForm values={null} saveLabel="Submit for review" onSave={onSave} onCancel={jest.fn()} />);
 
         await user.type(screen.getByLabelText("Application name"), "  Acme Wallet ");
         await user.type(screen.getByLabelText("Application logo"), "https://CDN.acme.xyz/Logo.png");
@@ -124,22 +119,24 @@ describe("DappForm", () => {
         });
     });
 
-    it("should start an approved dApp's owner from the pending change in every field", () => {
-        const dapp = new OwnerDappMock({ status: "approved", auth0ClientId: "client-1", pendingChange: PROPOSED });
-        render(<DappForm mode="owner" values={dapp} saveLabel="Save changes" onSave={jest.fn()} onCancel={jest.fn()} />);
+    it("should start an approved dApp from its pending change, keeping the live value of each field it leaves as is", () => {
+        const dapp = new DappMock({ status: "approved", auth0ClientId: "client-1", pendingChange: proposed });
+        render(<DappForm values={dapp} saveLabel="Save changes" onSave={jest.fn()} onCancel={jest.fn()} />);
 
         expect(screen.getByLabelText("Application name")).toHaveValue("Acme Wallet 2");
         expect(screen.getByLabelText("Callback URL 2")).toHaveValue("https://app.acme.xyz/silent");
         expect(screen.getByLabelText("Primary contact email")).toHaveValue("ops@acme.xyz");
         expect(screen.getByLabelText("Expected monthly active users")).toHaveValue("gt25k");
+        expect(screen.getByLabelText("Application description")).toHaveValue("A wallet for NEAR.");
+        expect(screen.getByLabelText("Application logo")).toHaveValue("https://cdn.acme.xyz/logo.png");
+        expect(screen.getByLabelText("Web origin 1")).toHaveValue("https://app.acme.xyz");
     });
 
-    it("should show an admin an approved dApp's live values and warn that saving updates Auth0", () => {
-        const approved = new OwnerDappMock({ status: "approved", auth0ClientId: "client-1", pendingChange: PROPOSED });
-        render(<DappForm mode="admin" values={approved} saveLabel="Save changes" onSave={jest.fn()} onCancel={jest.fn()} />);
+    it("should start a pending dApp from its own values", () => {
+        render(<DappForm values={new DappMock()} saveLabel="Save changes" onSave={jest.fn()} onCancel={jest.fn()} />);
 
         expect(screen.getByLabelText("Application name")).toHaveValue("Acme Wallet");
-        expect(screen.getByText("Changes to the name, description, logo or URLs update its Auth0 client at once.")).toBeInTheDocument();
+        expect(screen.getByLabelText("Primary contact email")).toHaveValue("dev@acme.xyz");
     });
 
     it("should show a value the console refused in a callout", async () => {
@@ -147,33 +144,24 @@ describe("DappForm", () => {
         const onSave = jest.fn(async () => {
             throw new DomainError(ConsoleDappErrors.VALIDATION_FAILED);
         });
-        render(<DappForm mode="owner" values={new OwnerDappMock()} saveLabel="Save changes" onSave={onSave} onCancel={jest.fn()} />);
+        render(<DappForm values={new DappMock()} saveLabel="Save changes" onSave={onSave} onCancel={jest.fn()} />);
 
         await user.click(screen.getByRole("button", { name: "Save changes" }));
 
         expect(screen.getByRole("alert")).toHaveTextContent("Not savedSome values were not accepted. Check the form and try again.");
     });
 
-    it("should show other errors in a callout, with Reload when the dApp changed", async () => {
+    it("should show other errors in a callout, with Reload when the dApp can no longer be edited", async () => {
         const user = userEvent.setup();
         const onReload = jest.fn();
         const onSave = jest.fn(async () => {
-            throw new DomainError(ConsoleDappErrors.DAPP_CHANGED);
+            throw new DomainError(ConsoleDappErrors.INVALID_TRANSITION);
         });
-        render(
-            <DappForm
-                mode="owner"
-                values={new OwnerDappMock()}
-                saveLabel="Save changes"
-                onSave={onSave}
-                onCancel={jest.fn()}
-                onReload={onReload}
-            />,
-        );
+        render(<DappForm values={new DappMock()} saveLabel="Save changes" onSave={onSave} onCancel={jest.fn()} onReload={onReload} />);
 
         await user.click(screen.getByRole("button", { name: "Save changes" }));
         const alert = screen.getByRole("alert");
-        expect(alert).toHaveTextContent("This dApp changed since you opened it.");
+        expect(alert).toHaveTextContent("That action is not possible in the dApp's current state.");
         await user.click(within(alert).getByRole("button", { name: "Reload" }));
 
         expect(onReload).toHaveBeenCalledTimes(1);

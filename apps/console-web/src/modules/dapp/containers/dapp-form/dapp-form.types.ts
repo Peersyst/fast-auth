@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { z } from "zod";
-import { DappStatus, DappFieldsDto, UpsertDappRequest } from "@shared/console";
+import { CreateDappRequest, DappDto } from "@shared/console";
 import {
     DESCRIPTION_MAX_LENGTH,
     isLogoUrl,
@@ -30,7 +30,7 @@ export const DAPP_FORM_ERRORS = {
     logoutUrls: "logoutUrlsInvalid",
     webOrigins: "webOriginsInvalid",
     contactEmail: "contactEmailInvalid",
-} as const satisfies Record<keyof UpsertDappRequest, string>;
+} as const satisfies Record<keyof CreateDappRequest, string>;
 
 /**
  * The error key of a URL that breaks its list's rule, by list.
@@ -93,15 +93,11 @@ export const DAPP_FORM_ERROR_VALUES: Partial<Record<DappFormField, { min?: numbe
     webOrigins: URL_LIST_RULES.webOrigins,
 };
 
-export type EditedDapp = UpsertDappRequest & { status: DappStatus; pendingChange: DappFieldsDto | null };
-
 export type DappFormProps = {
-    mode: "owner" | "admin";
-    values: EditedDapp | null;
+    values: DappDto | null;
     saveLabel: string;
     saveHint?: ReactNode;
-    onSave: (fields: UpsertDappRequest) => Promise<unknown>;
+    onSave: (fields: CreateDappRequest) => Promise<unknown>;
     onCancel: () => void;
     onReload?: () => void;
-    onRemove?: () => void;
 };

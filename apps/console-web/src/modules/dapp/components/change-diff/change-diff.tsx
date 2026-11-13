@@ -1,5 +1,6 @@
 import { useTranslate } from "@frontend/locale/react";
-import { DAPP_FIELDS, DappField, DappFields, diffFields, FieldValue, MauBracket } from "@shared/modules/dapp";
+import { DappChangeDto } from "@shared/console";
+import { DAPP_FIELDS, DappField, DappFields, FieldValue, MauBracket } from "@shared/modules/dapp";
 import { NoValue, valueClassNames } from "../field-values/field-values";
 
 const CELL = "border-b border-b-border px-3 py-2.5 text-left align-top wrap-anywhere";
@@ -19,13 +20,16 @@ function isMauBracket(value: string): value is MauBracket {
 }
 
 /**
- * Lists the fields a pending change changes, with the live and proposed value of each, the contact email's included.
+ * Lists the fields a pending change sets, with the live and proposed value of each, the contact email's included.
  * @param live The live fields.
- * @param change The pending change.
+ * @param change The pending change, whose `null` fields stay as they are.
  * @returns The rows.
  */
-export function pendingChangeRows(live: DappFields, change: DappFields): ChangeDiffRow[] {
-    return diffFields(DAPP_FIELDS, live, change).map(({ field }) => ({ field, before: live[field], after: change[field] }));
+export function pendingChangeRows(live: DappFields, change: DappChangeDto): ChangeDiffRow[] {
+    return DAPP_FIELDS.flatMap((field) => {
+        const after = change[field];
+        return after === null ? [] : [{ field, before: live[field], after }];
+    });
 }
 
 export type ChangeDiffProps = {

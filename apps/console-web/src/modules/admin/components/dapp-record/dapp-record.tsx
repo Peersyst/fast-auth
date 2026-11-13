@@ -2,7 +2,7 @@ import { Card } from "@frontend/design-system-react/card";
 import { CopyButton } from "@frontend/design-system-react/copy-button";
 import { InfoIcon } from "@frontend/design-system-react/icons";
 import { useTranslate } from "@frontend/locale/react";
-import { AdminDappDto } from "@shared/console";
+import { DappDto } from "@shared/console";
 import { formatDateTime } from "../../../common/utils/format";
 import { FieldList, FieldRow, NoValue } from "../../../dapp/components/field-values/field-values";
 
@@ -12,7 +12,7 @@ const SIDE_FACTS = {
 };
 
 export type DappRecordProps = {
-    dapp: AdminDappDto;
+    dapp: DappDto;
 };
 
 export function DappRecord({ dapp }: DappRecordProps): React.JSX.Element {
@@ -64,7 +64,6 @@ export function DappRecord({ dapp }: DappRecordProps): React.JSX.Element {
                     rows={[
                         [translate("admin.dapp.record.reviewed"), reviewed],
                         [translate("admin.dapp.record.created"), formatDateTime(dapp.createdAt)],
-                        [translate("admin.dapp.record.updated"), formatDateTime(dapp.updatedAt)],
                         [translate("admin.dapp.record.id"), <code key="id">{dapp.id}</code>],
                     ]}
                 />

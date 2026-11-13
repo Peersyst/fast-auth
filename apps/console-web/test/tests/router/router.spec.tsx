@@ -5,7 +5,7 @@ describe("Routes", () => {
     it("should load the signed-in user once for the home page", async () => {
         const auth = spyOnConsoleAuth();
         auth.getSession.mockResolvedValue({ isAuthenticated: true, email: "owner@example.com" });
-        mockApi({ "GET /api/console/dapp": { body: { dapp: null } } });
+        mockApi({ "GET /api/console/dapp": { body: { items: [], totalItems: 0, currentPage: 1, pages: 0 } } });
 
         render(<Routes />, { route: "/" });
 
