@@ -1,15 +1,15 @@
 import { SyncedFields } from "@shared/modules/dapp";
 
+/** The synced fields of a dApp's Auth0 client, with the dApp it is tagged with. */
+export type DappClient = SyncedFields & { dappId: string };
+
 export interface IAuth0ProvisionerService {
-    findClient(dappId: string): Promise<string | null>;
-    /** Can create the client even when it throws, so find it before creating again. */
-    createClient(dappId: string, input: SyncedFields): Promise<string>;
-    updateClient(dappId: string, clientId: string, input: SyncedFields): Promise<void>;
-    /** Resolves when Auth0 answers that the client does not exist. */
-    deleteClient(dappId: string, clientId: string): Promise<void>;
+    /** Can create the client even when it throws. */
+    create(client: DappClient): Promise<string>;
+    update(clientId: string, client: DappClient): Promise<void>;
 }
 
-export type ProvisioningErrorKind = "rejected" | "failed" | "tag_mismatch";
+export type ProvisioningErrorKind = "rejected" | "failed";
 
 export class ProvisioningError extends Error {
     constructor(

@@ -1,2 +1,2 @@
 export * from "./dapp";
-export * from "./dapp-event";
+export * from "./dapp-change";

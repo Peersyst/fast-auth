@@ -1,1 +1,1 @@
-export * from "./owner-dapp.dto.mock";
+export * from "./dapp.dto.mock";

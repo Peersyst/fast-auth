@@ -2,32 +2,41 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { MyDappDto } from '../models/MyDappDto';
-import type { OwnerDappDto } from '../models/OwnerDappDto';
+import type { CreateDappRequest } from '../models/CreateDappRequest';
+import type { DappDto } from '../models/DappDto';
+import type { PaginatedDappsDto } from '../models/PaginatedDappsDto';
 import type { UpdateDappRequest } from '../models/UpdateDappRequest';
-import type { UpsertDappRequest } from '../models/UpsertDappRequest';
 import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class DappApi {
     /**
-     * @returns MyDappDto
+     * @param page
+     * @param pageSize
+     * @returns PaginatedDappsDto For an admin, one page of every dApp. For anyone else, their own dApp, if any.
      * @throws ApiError
      */
-    public static getMine(): CancelablePromise<MyDappDto> {
+    public static list(
+        page: number = 1,
+        pageSize: number = 20,
+    ): CancelablePromise<PaginatedDappsDto> {
         return __request(OpenAPI, {
             method: 'GET',
             url: '/api/console/dapp',
+            query: {
+                'page': page,
+                'pageSize': pageSize,
+            },
         });
     }
     /**
      * @param requestBody
-     * @returns OwnerDappDto The new dApp. Its status is `pending` until an admin reviews it, or `approved` with an Auth0 client when auto-approval approved it.
+     * @returns DappDto The new dApp, `pending` until an admin reviews it, or `approved` with its Auth0 client when auto-approval is on.
      * @throws ApiError
      */
-    public static submit(
-        requestBody: UpsertDappRequest,
-    ): CancelablePromise<OwnerDappDto> {
+    public static create(
+        requestBody: CreateDappRequest,
+    ): CancelablePromise<DappDto> {
         return __request(OpenAPI, {
             method: 'POST',
             url: '/api/console/dapp',
@@ -37,16 +46,32 @@ export class DappApi {
     }
     /**
      * @param id
-     * @param requestBody
-     * @returns OwnerDappDto
+     * @returns DappDto The dApp. An admin can read any dApp, anyone else only their own.
      * @throws ApiError
      */
-    public static edit(
+    public static get(
+        id: string,
+    ): CancelablePromise<DappDto> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/console/dapp/{id}',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @param requestBody
+     * @returns DappDto The dApp. A pending dApp is edited in place. An approved dApp shows the edit in `pendingChange` until it is reviewed.
+     * @throws ApiError
+     */
+    public static update(
         id: string,
         requestBody: UpdateDappRequest,
-    ): CancelablePromise<OwnerDappDto> {
+    ): CancelablePromise<DappDto> {
         return __request(OpenAPI, {
-            method: 'PUT',
+            method: 'PATCH',
             url: '/api/console/dapp/{id}',
             path: {
                 'id': id,
@@ -57,22 +82,65 @@ export class DappApi {
     }
     /**
      * @param id
-     * @param expectedVersion
-     * @returns void
+     * @returns DappDto The dApp, `approved` with its new Auth0 client.
      * @throws ApiError
      */
-    public static remove(
+    public static approve(
         id: string,
-        expectedVersion: number,
-    ): CancelablePromise<void> {
+    ): CancelablePromise<DappDto> {
         return __request(OpenAPI, {
-            method: 'DELETE',
-            url: '/api/console/dapp/{id}',
+            method: 'POST',
+            url: '/api/console/dapp/{id}/approve',
             path: {
                 'id': id,
             },
-            query: {
-                'expectedVersion': expectedVersion,
+        });
+    }
+    /**
+     * @param id
+     * @returns DappDto The dApp, `rejected`.
+     * @throws ApiError
+     */
+    public static reject(
+        id: string,
+    ): CancelablePromise<DappDto> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/console/dapp/{id}/reject',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @returns DappDto The dApp with the change applied.
+     * @throws ApiError
+     */
+    public static approveChange(
+        id: string,
+    ): CancelablePromise<DappDto> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/console/dapp/{id}/change/approve',
+            path: {
+                'id': id,
+            },
+        });
+    }
+    /**
+     * @param id
+     * @returns DappDto The dApp, with no pending change.
+     * @throws ApiError
+     */
+    public static rejectChange(
+        id: string,
+    ): CancelablePromise<DappDto> {
+        return __request(OpenAPI, {
+            method: 'POST',
+            url: '/api/console/dapp/{id}/change/reject',
+            path: {
+                'id': id,
             },
         });
     }

@@ -24,7 +24,6 @@ export async function createDapp(em: EntityManager, overrides: Partial<Dapp> = {
         webOrigins: [`https://acme-${dappCounter}.xyz`],
         contactEmail: `dev@acme-${dappCounter}.xyz`,
         status: DappStatus.PENDING,
-        submittedAt: new Date(),
         ...overrides,
     });
 

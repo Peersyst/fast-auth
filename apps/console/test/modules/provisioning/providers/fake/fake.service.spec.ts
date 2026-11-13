@@ -1,61 +1,57 @@
-import { SyncedFields } from "@shared/modules/dapp";
+import { DappClient } from "../../../../../src/modules/provisioning/interfaces/i-auth0-provisioner.service";
 import { FakeProvisionerService } from "../../../../../src/modules/provisioning/providers/fake/fake.service";
 import { FakeProvisionerMock } from "../../../../mocks/provisioning/fake-provisioner.mock";
 
-const INPUT: SyncedFields = {
-    name: "Acme",
-    description: "",
-    logoUrl: "https://acme.example/logo.png",
-    callbackUrls: ["https://acme.example/callback"],
-    logoutUrls: [],
-    webOrigins: ["https://acme.example"],
-};
-
 describe("FakeProvisionerService", () => {
+    const client: DappClient = {
+        dappId: "dapp-1",
+        name: "Acme",
+        description: "",
+        logoUrl: "https://acme.example/logo.png",
+        callbackUrls: ["https://acme.example/callback"],
+        logoutUrls: [],
+        webOrigins: ["https://acme.example"],
+    };
     let provisioner: FakeProvisionerService;
 
     beforeEach(() => {
         provisioner = new FakeProvisionerService();
     });
 
-    it("should store a created client and find it by its dApp", async () => {
-        const clientId = await provisioner.createClient("dapp-1", INPUT);
+    it("should store a created client under a fake id", async () => {
+        const clientId = await provisioner.create(client);
 
         expect(clientId).toMatch(/^fake_/);
-        await expect(provisioner.findClient("dapp-1")).resolves.toBe(clientId);
-        expect(provisioner.clients.get(clientId)).toEqual({ dappId: "dapp-1", input: INPUT });
+        expect(provisioner.clients.get(clientId)).toEqual(client);
     });
 
-    it("should overwrite an updated client and forget a deleted one", async () => {
-        const clientId = await provisioner.createClient("dapp-1", INPUT);
+    it("should overwrite an updated client", async () => {
+        const clientId = await provisioner.create(client);
 
-        await provisioner.updateClient("dapp-1", clientId, { ...INPUT, name: "Acme 2" });
-        expect(provisioner.clients.get(clientId)).toEqual({ dappId: "dapp-1", input: { ...INPUT, name: "Acme 2" } });
+        await provisioner.update(clientId, { ...client, name: "Acme 2" });
 
-        await provisioner.deleteClient("dapp-1", clientId);
-        await expect(provisioner.findClient("dapp-1")).resolves.toBeNull();
-        expect(provisioner.clients.size).toBe(0);
-    });
-});
-
-describe("FakeProvisionerMock", () => {
-    const provisioner = new FakeProvisionerMock();
-
-    beforeEach(() => {
-        provisioner.reset();
+        expect(provisioner.clients.get(clientId)).toEqual({ ...client, name: "Acme 2" });
     });
 
-    it("should fail a scripted call before it takes effect", async () => {
-        provisioner.script("createClient", "rejected");
+    describe("FakeProvisionerMock", () => {
+        const mock = new FakeProvisionerMock();
 
-        await expect(provisioner.createClient("dapp-1", INPUT)).rejects.toMatchObject({ kind: "rejected" });
-        expect(provisioner.clients.size).toBe(0);
-    });
+        beforeEach(() => {
+            mock.reset();
+        });
 
-    it("should keep the effect of a call scripted to time out after success", async () => {
-        provisioner.script("createClient", "timeout_after_success");
+        it("should fail a scripted call before it takes effect", async () => {
+            mock.script("rejected");
 
-        await expect(provisioner.createClient("dapp-1", INPUT)).rejects.toMatchObject({ kind: "failed" });
-        await expect(provisioner.findClient("dapp-1")).resolves.toMatch(/^fake_/);
+            await expect(mock.create(client)).rejects.toMatchObject({ kind: "rejected" });
+            expect(mock.clients.size).toBe(0);
+        });
+
+        it("should keep the effect of a call scripted to time out after success", async () => {
+            mock.script("timeout_after_success");
+
+            await expect(mock.create(client)).rejects.toMatchObject({ kind: "failed" });
+            expect(mock.clients.size).toBe(1);
+        });
     });
 });

@@ -10,7 +10,6 @@ import { PrometheusModule } from "@willsoto/nestjs-prometheus";
 import configuration from "./config";
 import { HealthModule } from "./modules/health/health.module";
 import { AuthModule } from "./modules/auth/auth.module";
-import { AdminModule } from "./modules/admin/admin.module";
 import { DappModule } from "./modules/dapp/dapp.module";
 
 @Module({
@@ -58,7 +57,6 @@ import { DappModule } from "./modules/dapp/dapp.module";
         AuthModule,
         HealthModule,
         DappModule,
-        AdminModule,
     ],
     providers: [{ provide: APP_FILTER, useClass: ErrorFilter }],
 })

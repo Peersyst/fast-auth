@@ -7,35 +7,34 @@ export type UpdateDappRequest = {
     /**
      * The dApp's name.
      */
-    name: string;
+    name?: string;
     /**
      * A short description of the dApp.
      */
-    description: string;
+    description?: string;
     /**
      * The URL of the dApp's logo.
      */
-    logoUrl: string;
+    logoUrl?: string;
     /**
      * The expected monthly active users.
      */
-    mauBracket: MauBracket;
+    mauBracket?: MauBracket;
     /**
      * The URLs Auth0 may redirect to after login.
      */
-    callbackUrls: Array<string>;
+    callbackUrls?: Array<string>;
     /**
      * The URLs Auth0 may redirect to after logout.
      */
-    logoutUrls: Array<string>;
+    logoutUrls?: Array<string>;
     /**
      * The origins allowed to sign in from the browser.
      */
-    webOrigins: Array<string>;
+    webOrigins?: Array<string>;
     /**
      * The email address to contact the dApp's team.
      */
-    contactEmail: string;
-    expectedVersion: number;
+    contactEmail?: string;
 };
 

@@ -7,8 +7,6 @@ import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class HealthApi {
     /**
-     * Liveness probe endpoint.
-     * Returns 200 OK to indicate the application is running.
      * @returns any
      * @throws ApiError
      */
@@ -19,8 +17,6 @@ export class HealthApi {
         });
     }
     /**
-     * Readiness probe endpoint.
-     * Checks that the database answers before returning success.
      * @returns any
      * @throws ApiError
      */

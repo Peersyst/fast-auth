@@ -16,8 +16,7 @@
         ".": "./src/index.ts",
         "./test/mocks/common": "./test/mocks/common/index.ts",
         "./test/mocks/auth": "./test/mocks/auth/index.ts",
-        "./test/mocks/dapp": "./test/mocks/dapp/index.ts",
-        "./test/mocks/admin": "./test/mocks/admin/index.ts"
+        "./test/mocks/dapp": "./test/mocks/dapp/index.ts"
     },
     "devDependencies": {
         "@shared/eslint": "workspace:*",

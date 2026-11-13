@@ -2,7 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $UpsertDappRequest = {
+export const $CreateDappRequest = {
     properties: {
         name: {
             type: 'string',

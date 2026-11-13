@@ -1,20 +1,5 @@
 import { DAPP_FIELDS, SYNCED_FIELDS } from "./constants";
-import { DappField, DappFields, FieldChange, FieldValue, FieldValueChange, SyncedFields } from "./types";
-
-export type PendingChangeOutcome =
-    | { kind: "unchanged" }
-    | { kind: "withdrawn" }
-    | { kind: "replaced"; change: DappFields; changes: FieldChange[] };
-
-/**
- * Copies only the fields that sync to Auth0, dropping any others the object carries.
- * @param fields An object that holds the synced fields.
- * @returns A new object with only the synced fields.
- */
-export function syncedFieldsOf(fields: SyncedFields): SyncedFields {
-    const { name, description, logoUrl, callbackUrls, logoutUrls, webOrigins } = fields;
-    return { name, description, logoUrl, callbackUrls, logoutUrls, webOrigins };
-}
+import { DappFields, FieldValue } from "./types";
 
 /**
  * Compares strings by value and lists as sets, ignoring order and duplicates.
@@ -30,49 +15,25 @@ function isSameValue(before: FieldValue, after: FieldValue): boolean {
 }
 
 /**
- * Lists the given fields whose values differ, in the order given, without the contact email's values.
- * @param fields The fields to compare.
- * @param before The values before the edit.
- * @param after The values after the edit.
- * @returns One change per differing field.
- */
-export function diffFields<F extends DappField>(
-    fields: readonly F[],
-    before: Pick<DappFields, F>,
-    after: Pick<DappFields, F>,
-): FieldChange[] {
-    return fields
-        .filter((field) => !isSameValue(before[field], after[field]))
-        .map((field): FieldChange => {
-            const key: DappField = field;
-            return key === "contactEmail" ? { field: key } : { field: key, before: before[field], after: after[field] };
-        });
-}
-
-/**
- * Lists the synced fields whose values differ, with before and after values for every one.
+ * Keeps the requested fields whose values differ from the live ones, comparing lists as sets.
  * @param live The live fields.
- * @param change The changed fields.
- * @returns One change per differing synced field.
+ * @param requested The fields the edit sets. A missing field is left as it is.
+ * @returns The fields that change, with their requested values.
  */
-export function diffSyncedFields(live: SyncedFields, change: SyncedFields): FieldValueChange[] {
-    return SYNCED_FIELDS.filter((field) => !isSameValue(live[field], change[field])).map((field) => ({
-        field,
-        before: live[field],
-        after: change[field],
-    }));
+export function changedFields(live: DappFields, requested: Partial<DappFields>): Partial<DappFields> {
+    const changed: Partial<Record<keyof DappFields, FieldValue>> = {};
+    for (const field of DAPP_FIELDS) {
+        const value = requested[field];
+        if (value !== undefined && !isSameValue(live[field], value)) changed[field] = value;
+    }
+    return changed as Partial<DappFields>;
 }
 
 /**
- * Decides whether an approved dApp's edit keeps, withdraws or replaces its pending change, by comparing every field with the pending and live ones.
- * @param live The dApp's live fields.
- * @param pending The pending change, if any.
- * @param proposed The fields the edit proposes.
- * @returns The pending change's outcome.
+ * Tells whether a change touches a field that syncs to Auth0.
+ * @param change The changed fields.
+ * @returns Whether any synced field changes.
  */
-export function classifyEdit(live: DappFields, pending: DappFields | null, proposed: DappFields): PendingChangeOutcome {
-    if (pending !== null && diffFields(DAPP_FIELDS, pending, proposed).length === 0) return { kind: "unchanged" };
-    const changes = diffFields(DAPP_FIELDS, live, proposed);
-    if (changes.length > 0) return { kind: "replaced", change: proposed, changes };
-    return pending === null ? { kind: "unchanged" } : { kind: "withdrawn" };
+export function hasSyncedChange(change: Partial<DappFields>): boolean {
+    return SYNCED_FIELDS.some((field) => change[field] !== undefined);
 }

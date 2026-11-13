@@ -73,9 +73,6 @@ export function isLogoUrl(value: string): boolean {
     return normalised.length <= LOGO_URL_MAX_LENGTH && isPublicHttpsUrl(normalised, true);
 }
 
-/** NUL, which Postgres `text` cannot store. */
-export const NUL = "\u0000";
-
 /**
  * Accepts a non-blank name within the length limit, with no angle brackets or control characters.
  * @param name The dApp name.

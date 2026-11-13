@@ -1,19 +1,8 @@
 import { AuthApiError, ManagementApiError, ResponseError } from "auth0";
 import { Auth0ManagementConfig } from "../../../../config/auth0.config";
-import { ProvisioningError } from "../../interfaces/i-auth0-provisioner.service";
 import { Auth0Call, Auth0Outcome } from "../../provisioning.metrics";
 
 export type Failure = { outcome: Exclude<Auth0Outcome, "success">; retryAfterMs: number | null; message: string };
-
-export class Auth0CallError extends ProvisioningError {
-    constructor(
-        kind: "rejected" | "failed",
-        message: string,
-        readonly outcome: Failure["outcome"],
-    ) {
-        super(kind, message);
-    }
-}
 
 /**
  * Joins the messages down an error's `cause` chain. The Auth0 SDK reports a network failure as "fetch failed" and keeps what
@@ -56,14 +45,12 @@ export function classify(op: Auth0Call, error: unknown, management: Auth0Managem
     const status = error.statusCode;
     const message = `Auth0 ${op} answered ${status}: ${error.message}`;
     if (status === 429) return { outcome: "rate_limited", retryAfterMs: retryAfterMs(error.headers, management), message };
-    // Only the Management API's JSON 404 says the client does not exist.
-    if (status === 404 && error instanceof ManagementApiError) return { outcome: "not_found", retryAfterMs: null, message };
     // A 401 or 403, or a 4xx the token endpoint answers in JSON, means the console's own credentials or scopes are wrong, and
-    // any other 404 comes from a proxy, a wrong domain or a token endpoint that answered in HTML. A retry fixes neither.
+    // a 404 comes from a missing client, a proxy, a wrong domain or a token endpoint that answered in HTML. A retry fixes neither.
     if (status === 401 || status === 403 || status === 404 || (error instanceof AuthApiError && status < 500)) {
         return { outcome: "failed", retryAfterMs: null, message };
     }
     if (status >= 400 && status < 500) return { outcome: "rejected", retryAfterMs: null, message };
-    // A create that answered 5xx may still have made the client, so only the caller's find-then-create may repeat it.
+    // A create that answered 5xx may still have made the client, so a retry could make a second one.
     return { outcome: "failed", retryAfterMs: op === "create" ? null : management.retryAfterMs, message };
 }

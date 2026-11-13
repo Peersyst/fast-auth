@@ -2,12 +2,16 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $AdminDappDto = {
+export const $DappDto = {
     properties: {
         id: {
             type: 'string',
             isRequired: true,
             format: 'uuid',
+        },
+        ownerEmail: {
+            type: 'string',
+            isRequired: true,
         },
         name: {
             type: 'string',
@@ -60,64 +64,29 @@ export const $AdminDappDto = {
             }],
             isRequired: true,
         },
+        auth0ClientId: {
+            type: 'string',
+            description: `Null until the dApp is approved.`,
+            isRequired: true,
+            isNullable: true,
+        },
+        reviewedAt: {
+            type: 'string',
+            description: `Null until an admin reviews the dApp.`,
+            isRequired: true,
+            isNullable: true,
+            format: 'date-time',
+        },
         pendingChange: {
             type: 'all-of',
+            description: `The edit waiting for review. Null when there is none.`,
             contains: [{
-                type: 'DappFieldsDto',
+                type: 'DappChangeDto',
             }],
             isRequired: true,
             isNullable: true,
         },
-        pendingChangeAt: {
-            type: 'string',
-            isRequired: true,
-            isNullable: true,
-            format: 'date-time',
-        },
-        auth0ClientId: {
-            type: 'string',
-            description: `Null until the dApp is provisioned.`,
-            isRequired: true,
-            isNullable: true,
-        },
-        version: {
-            type: 'number',
-            description: `Send it back as \`expectedVersion\` with the next change.`,
-            isRequired: true,
-        },
-        submittedAt: {
-            type: 'string',
-            isRequired: true,
-            format: 'date-time',
-        },
-        ownerEmail: {
-            type: 'string',
-            isRequired: true,
-        },
-        reviewedAt: {
-            type: 'string',
-            isRequired: true,
-            isNullable: true,
-            format: 'date-time',
-        },
-        auth0Error: {
-            type: 'string',
-            description: `The last Auth0 error, cleared by the next successful Auth0 write.`,
-            isRequired: true,
-            isNullable: true,
-        },
-        removedAt: {
-            type: 'string',
-            isRequired: true,
-            isNullable: true,
-            format: 'date-time',
-        },
         createdAt: {
-            type: 'string',
-            isRequired: true,
-            format: 'date-time',
-        },
-        updatedAt: {
             type: 'string',
             isRequired: true,
             format: 'date-time',

@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-import type { AdminDappDto } from './AdminDappDto';
+import type { DappDto } from './DappDto';
 export type PaginatedDappsDto = {
     pages: number;
     currentPage: number;
-    items: Array<AdminDappDto>;
+    items: Array<DappDto>;
     totalItems: number;
 };
 

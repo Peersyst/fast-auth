@@ -3,10 +3,10 @@ import { InjectMetric } from "@willsoto/nestjs-prometheus";
 import { Counter, Gauge } from "prom-client";
 import { DataSource } from "typeorm";
 import { Dapp } from "@database/console/entities";
-import { DappAction, DappStatus } from "@shared/modules/dapp";
+import { DappStatus } from "@shared/modules/dapp";
 import { ModuleMetrics } from "../common/metric/metric";
 
-export type TransitionAction = DappAction | "submit" | "autoApprove";
+export type TransitionAction = "create" | "autoApprove" | "update" | "approve" | "reject" | "approveChange" | "rejectChange";
 
 export enum DappMetric {
     TRANSITIONS = "console_transitions_total",

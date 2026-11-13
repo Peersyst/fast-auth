@@ -2,7 +2,8 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export const $OwnerDappDto = {
+export const $DappChangeDto = {
+    description: `An edit of an approved dApp waiting for review. A null field is one the edit leaves as it is.`,
     properties: {
         id: {
             type: 'string',
@@ -12,21 +13,22 @@ export const $OwnerDappDto = {
         name: {
             type: 'string',
             isRequired: true,
+            isNullable: true,
         },
         description: {
             type: 'string',
             isRequired: true,
+            isNullable: true,
         },
         logoUrl: {
             type: 'string',
             isRequired: true,
+            isNullable: true,
         },
         mauBracket: {
-            type: 'all-of',
-            contains: [{
-                type: 'MauBracket',
-            }],
+            type: 'Enum',
             isRequired: true,
+            isNullable: true,
         },
         callbackUrls: {
             type: 'array',
@@ -34,6 +36,7 @@ export const $OwnerDappDto = {
                 type: 'string',
             },
             isRequired: true,
+            isNullable: true,
         },
         logoutUrls: {
             type: 'array',
@@ -41,6 +44,7 @@ export const $OwnerDappDto = {
                 type: 'string',
             },
             isRequired: true,
+            isNullable: true,
         },
         webOrigins: {
             type: 'array',
@@ -48,44 +52,14 @@ export const $OwnerDappDto = {
                 type: 'string',
             },
             isRequired: true,
+            isNullable: true,
         },
         contactEmail: {
             type: 'string',
             isRequired: true,
-        },
-        status: {
-            type: 'all-of',
-            contains: [{
-                type: 'DappStatus',
-            }],
-            isRequired: true,
-        },
-        pendingChange: {
-            type: 'all-of',
-            contains: [{
-                type: 'DappFieldsDto',
-            }],
-            isRequired: true,
             isNullable: true,
         },
-        pendingChangeAt: {
-            type: 'string',
-            isRequired: true,
-            isNullable: true,
-            format: 'date-time',
-        },
-        auth0ClientId: {
-            type: 'string',
-            description: `Null until the dApp is provisioned.`,
-            isRequired: true,
-            isNullable: true,
-        },
-        version: {
-            type: 'number',
-            description: `Send it back as \`expectedVersion\` with the next change.`,
-            isRequired: true,
-        },
-        submittedAt: {
+        createdAt: {
             type: 'string',
             isRequired: true,
             format: 'date-time',

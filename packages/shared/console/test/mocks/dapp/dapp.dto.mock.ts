@@ -1,10 +1,11 @@
 import { mockify } from "@shared/test";
-import { OwnerDappDto } from "../../../src/models/OwnerDappDto";
+import { DappDto } from "../../../src/models/DappDto";
 
 export const DAPP_ID_MOCK = "0d9f3b8e-1c5e-4a40-9c0e-6a6f7f0b5a11";
 
-export const OwnerDappMock = mockify<OwnerDappDto>({
+export const DappMock = mockify<DappDto>({
     id: DAPP_ID_MOCK,
+    ownerEmail: "owner@acme.xyz",
     name: "Acme Wallet",
     description: "A wallet for NEAR.",
     logoUrl: "https://cdn.acme.xyz/logo.png",
@@ -14,9 +15,8 @@ export const OwnerDappMock = mockify<OwnerDappDto>({
     webOrigins: ["https://app.acme.xyz"],
     contactEmail: "dev@acme.xyz",
     status: "pending",
-    pendingChange: null,
-    pendingChangeAt: null,
     auth0ClientId: null,
-    version: 3,
-    submittedAt: "2026-10-01T10:00:00.000Z",
+    reviewedAt: null,
+    pendingChange: null,
+    createdAt: "2026-10-01T10:00:00.000Z",
 });

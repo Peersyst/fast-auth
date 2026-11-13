@@ -5,7 +5,6 @@ import {
     isValidDescription,
     isValidName,
     isValidUrlList,
-    NUL,
     normaliseUrl,
     normaliseUrlList,
     UrlListField,
@@ -79,14 +78,4 @@ export const IsDappDescription = (): PropertyDecorator =>
     ValidateBy(
         { name: "isDappDescription", validator: { validate: (value: unknown) => typeof value === "string" && isValidDescription(value) } },
         { message: "$property must be a valid dApp description" },
-    );
-
-/**
- * Accepts only a string without a NUL character, which Postgres text cannot store.
- * @returns The property decorator.
- */
-export const HasNoNul = (): PropertyDecorator =>
-    ValidateBy(
-        { name: "hasNoNul", validator: { validate: (value: unknown) => typeof value === "string" && !value.includes(NUL) } },
-        { message: "$property must not contain a NUL character" },
     );

@@ -3,7 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { MauBracket } from './MauBracket';
-export type UpsertDappRequest = {
+export type CreateDappRequest = {
     /**
      * The dApp's name.
      */

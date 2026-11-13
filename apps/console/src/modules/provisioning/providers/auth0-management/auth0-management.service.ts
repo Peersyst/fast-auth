@@ -1,9 +1,8 @@
-import { ApiResponse, Client, ClientCreate, ClientUpdate, GetClients200ResponseOneOf1, ManagementClient } from "auth0";
-import { SyncedFields } from "@shared/modules/dapp";
+import { ApiResponse, Client, ClientCreate, ClientUpdate, ManagementClient } from "auth0";
 import { Auth0ManagementConfig } from "../../../../config/auth0.config";
-import { IAuth0ProvisionerService, ProvisioningError } from "../../interfaces/i-auth0-provisioner.service";
+import { DappClient, IAuth0ProvisionerService, ProvisioningError } from "../../interfaces/i-auth0-provisioner.service";
 import { Auth0Call, ProvisioningMetricsProvider } from "../../provisioning.metrics";
-import { Auth0CallError, classify } from "./auth0-management.error";
+import { classify } from "./auth0-management.error";
 
 export class Auth0ManagementService implements IAuth0ProvisionerService {
     private readonly client: ManagementClient;
@@ -27,44 +26,14 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
     }
 
     /**
-     * Pages through every client until one is tagged with the dApp and this environment.
-     * @param dappId The dApp.
-     * @returns The client id, or null when no managed client names the dApp.
-     */
-    async findClient(dappId: string): Promise<string | null> {
-        let from: string | undefined;
-        do {
-            // With `from` and `take` Auth0 pages by checkpoint and answers `{ clients, next }`, which no `getAll` overload returns.
-            const page = await this.send(
-                "list",
-                () =>
-                    this.client.clients.getAll({
-                        fields: "client_id,client_metadata",
-                        include_fields: true,
-                        take: 100,
-                        ...(from && { from }),
-                    }) as unknown as Promise<ApiResponse<GetClients200ResponseOneOf1>>,
-            );
-            const match = page.clients.find((client) => {
-                const tags = this.tagsOf(client);
-                return tags.managed && tags.dappId === dappId;
-            });
-            if (match) return match.client_id;
-            from = page.next;
-        } while (from);
-        return null;
-    }
-
-    /**
      * Creates the client from the template client's settings and the dApp's fields, then copies the template's connections.
-     * @param dappId The dApp.
-     * @param input The fields synced to Auth0.
+     * @param client The dApp and the fields synced to Auth0.
      * @returns The new client id.
      */
-    async createClient(dappId: string, input: SyncedFields): Promise<string> {
+    async create(client: DappClient): Promise<string> {
         const template = await this.send("get", () => this.client.clients.get({ client_id: this.management.templateClientId }));
         const wanted = await this.templateConnections();
-        const body = this.createBody(template, dappId, input);
+        const body = this.createBody(template, client);
         const created = await this.send("create", () => this.client.clients.create(body));
         const clientId = created.client_id;
         await this.syncConnections(clientId, wanted);
@@ -72,58 +41,14 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
     }
 
     /**
-     * Writes the dApp's fields to its client and resyncs the template's connections, after checking the client's tags.
-     * @param dappId The dApp.
-     * @param clientId The dApp's client.
-     * @param input The fields synced to Auth0.
+     * Writes the dApp's fields to its client and resyncs the template's connections.
+     * @param clientId The client to write.
+     * @param client The dApp and the fields synced to Auth0.
      */
-    async updateClient(dappId: string, clientId: string, input: SyncedFields): Promise<void> {
-        await this.readTagged(dappId, clientId);
+    async update(clientId: string, client: DappClient): Promise<void> {
         const wanted = await this.templateConnections();
-        await this.send("update", () => this.client.clients.update({ client_id: clientId }, this.dappFields(dappId, input)));
+        await this.send("update", () => this.client.clients.update({ client_id: clientId }, this.dappFields(client)));
         await this.syncConnections(clientId, wanted);
-    }
-
-    /**
-     * Deletes the client after checking its tags.
-     * @param dappId The dApp.
-     * @param clientId The dApp's client.
-     */
-    async deleteClient(dappId: string, clientId: string): Promise<void> {
-        try {
-            await this.readTagged(dappId, clientId);
-            await this.send("delete", () => this.client.clients.delete({ client_id: clientId }));
-        } catch (error) {
-            if (!(error instanceof Auth0CallError && error.outcome === "not_found")) throw error;
-        }
-    }
-
-    /**
-     * Throws a tag_mismatch unless the client is tagged with this dApp and this environment.
-     * @param dappId The dApp.
-     * @param clientId The client to check.
-     */
-    private async readTagged(dappId: string, clientId: string): Promise<void> {
-        const client = await this.send("get", () =>
-            this.client.clients.get({ client_id: clientId, fields: "client_id,client_metadata", include_fields: true }),
-        );
-        const tags = this.tagsOf(client);
-        if (tags.dappId !== dappId || !tags.managed) {
-            throw new ProvisioningError("tag_mismatch", `Auth0 client ${clientId} is not tagged with dApp ${dappId} for ${this.managedBy}`);
-        }
-    }
-
-    /**
-     * Reads the console's tags from a client's metadata.
-     * @param client The client.
-     * @returns The dApp it names, and whether this environment manages it.
-     */
-    private tagsOf(client: Pick<Client, "client_metadata">): { dappId: string | null; managed: boolean } {
-        const metadata: Record<string, unknown> = client.client_metadata ?? {};
-        return {
-            dappId: typeof metadata.console_dapp_id === "string" ? metadata.console_dapp_id : null,
-            managed: metadata.managed_by === this.managedBy,
-        };
     }
 
     /**
@@ -184,11 +109,10 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
     /**
      * Builds a create request from the template's settings plus the dApp's fields.
      * @param template The template client.
-     * @param dappId The dApp.
-     * @param input The fields synced to Auth0.
+     * @param client The dApp and the fields synced to Auth0.
      * @returns The create request body.
      */
-    private createBody(template: Client, dappId: string, input: SyncedFields): ClientCreate {
+    private createBody(template: Client, client: DappClient): ClientCreate {
         const { lifetime_in_seconds, alg, scopes } = template.jwt_configuration;
         return {
             app_type: "spa",
@@ -203,26 +127,25 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
             refresh_token: template.refresh_token,
             cross_origin_authentication: template.cross_origin_authentication,
             is_first_party: template.is_first_party,
-            ...this.dappFields(dappId, input),
+            ...this.dappFields(client),
         };
     }
 
     /**
      * Maps the dApp's fields and the console's tags to Auth0 client fields.
-     * @param dappId The dApp.
-     * @param input The fields synced to Auth0.
+     * @param client The dApp and the fields synced to Auth0.
      * @returns The client fields.
      */
-    private dappFields(dappId: string, input: SyncedFields): ClientCreate & ClientUpdate {
+    private dappFields(client: DappClient): ClientCreate & ClientUpdate {
         return {
-            name: input.name,
-            description: input.description,
-            logo_uri: input.logoUrl,
-            callbacks: input.callbackUrls,
-            allowed_logout_urls: input.logoutUrls,
-            web_origins: input.webOrigins,
-            allowed_origins: input.webOrigins,
-            client_metadata: { console_dapp_id: dappId, managed_by: this.managedBy, logo_uri: input.logoUrl },
+            name: client.name,
+            description: client.description,
+            logo_uri: client.logoUrl,
+            callbacks: client.callbackUrls,
+            allowed_logout_urls: client.logoutUrls,
+            web_origins: client.webOrigins,
+            allowed_origins: client.webOrigins,
+            client_metadata: { console_dapp_id: client.dappId, managed_by: this.managedBy, logo_uri: client.logoUrl },
         };
     }
 
@@ -247,7 +170,7 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
                     continue;
                 }
                 const transient = outcome === "failed" || outcome === "rate_limited";
-                throw new Auth0CallError(transient ? "failed" : "rejected", message, outcome);
+                throw new ProvisioningError(transient ? "failed" : "rejected", message);
             }
         }
     }
