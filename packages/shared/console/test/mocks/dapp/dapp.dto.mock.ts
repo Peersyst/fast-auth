@@ -17,5 +17,6 @@ export const DappMock = mockify<DappDto>({
     status: "pending",
     auth0ClientId: null,
     reviewedAt: null,
+    pendingChange: null,
     createdAt: "2026-10-01T10:00:00.000Z",
 });

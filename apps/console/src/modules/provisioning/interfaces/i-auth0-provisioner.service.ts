@@ -6,9 +6,10 @@ export type DappClient = SyncedFields & { dappId: string };
 export interface IAuth0ProvisionerService {
     /** Can create the client even when it throws. */
     create(client: DappClient): Promise<string>;
+    update(clientId: string, client: DappClient): Promise<void>;
 }
 
-export type ProvisioningErrorKind = "rejected" | "failed";
+export type ProvisioningErrorKind = "rejected" | "failed" | "tag_mismatch";
 
 export class ProvisioningError extends Error {
     constructor(

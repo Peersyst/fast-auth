@@ -6,7 +6,7 @@ import { Dapp } from "@database/console/entities";
 import { DappStatus } from "@shared/modules/dapp";
 import { ModuleMetrics } from "../common/metric/metric";
 
-export type TransitionAction = "create" | "autoApprove" | "approve" | "reject";
+export type TransitionAction = "create" | "autoApprove" | "update" | "approve" | "reject" | "approveChange" | "rejectChange";
 
 export enum DappMetric {
     TRANSITIONS = "console_transitions_total",

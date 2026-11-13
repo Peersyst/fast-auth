@@ -48,6 +48,17 @@ describe("Auth0ManagementService", () => {
         is_first_party: true,
     } as unknown as Client;
 
+    /**
+     * Builds a client whose metadata carries the console's tags.
+     * @param forDapp The dApp it names.
+     * @param managedBy The environment tag.
+     * @returns The client.
+     */
+    const tagged = (forDapp: string, managedBy = "console-test") => ({
+        client_id: clientId,
+        client_metadata: { console_dapp_id: forDapp, managed_by: managedBy },
+    });
+
     const clients = new ClientsMock();
     const connections = new ConnectionsMock();
     let provisioner: Auth0ManagementService;
@@ -88,6 +99,7 @@ describe("Auth0ManagementService", () => {
         }).compile();
         provisioner = module.get(AUTH0_PROVISIONER);
         enabledConnections({ "template-client": ["con_email", "con_google"] });
+        clients.update.mockResolvedValue({});
         connections.updateEnabledClients.mockResolvedValue({});
     });
 
@@ -150,6 +162,40 @@ describe("Auth0ManagementService", () => {
                 message: "Auth0 create answered 503: status 503",
             });
             expect(clients.create).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe("update", () => {
+        it("should check the tags, then send the dApp's fields and resync the connections", async () => {
+            clients.get.mockResolvedValueOnce({ data: tagged(dappId) });
+
+            await provisioner.update(clientId, input);
+
+            expect(clients.update).toHaveBeenCalledWith(
+                { client_id: clientId },
+                expect.objectContaining({ name: "Acme", web_origins: input.webOrigins }),
+            );
+            expect(connections.updateEnabledClients.mock.calls).toEqual([
+                [{ id: "con_email" }, [{ client_id: clientId, status: true }]],
+                [{ id: "con_google" }, [{ client_id: clientId, status: true }]],
+            ]);
+        });
+
+        it.each([
+            ["another dApp", tagged("another-dapp")],
+            ["another environment", tagged(dappId, "console-production")],
+            ["no tags", { client_id: clientId }],
+        ])("should refuse a client tagged for %s with tag_mismatch and change nothing", async (_case, client) => {
+            clients.get.mockResolvedValueOnce({ data: client });
+
+            await expect(provisioner.update(clientId, input)).rejects.toMatchObject({ kind: "tag_mismatch" });
+            expect(clients.update).not.toHaveBeenCalled();
+        });
+
+        it("should map a missing client to failed", async () => {
+            clients.get.mockRejectedValueOnce(apiError(404));
+
+            await expect(provisioner.update(clientId, input)).rejects.toMatchObject({ kind: "failed" });
         });
     });
 

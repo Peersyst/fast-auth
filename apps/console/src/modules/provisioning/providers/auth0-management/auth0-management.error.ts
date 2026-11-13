@@ -46,8 +46,7 @@ export function classify(op: Auth0Call, error: unknown, management: Auth0Managem
     const message = `Auth0 ${op} answered ${status}: ${error.message}`;
     if (status === 429) return { outcome: "rate_limited", retryAfterMs: retryAfterMs(error.headers, management), message };
     // A 401 or 403, or a 4xx the token endpoint answers in JSON, means the console's own credentials or scopes are wrong, and
-    // a 404 comes from a wrong template client id, a proxy, a wrong domain or a token endpoint that answered in HTML. A retry
-    // fixes neither.
+    // a 404 comes from a missing client, a proxy, a wrong domain or a token endpoint that answered in HTML. A retry fixes neither.
     if (status === 401 || status === 403 || status === 404 || (error instanceof AuthApiError && status < 500)) {
         return { outcome: "failed", retryAfterMs: null, message };
     }

@@ -2,6 +2,7 @@ import { HttpStatus } from "@nestjs/common";
 
 export enum DappErrorCode {
     DAPP_NOT_FOUND = "DAPP_NOT_FOUND",
+    DAPP_CHANGE_NOT_FOUND = "DAPP_CHANGE_NOT_FOUND",
     DAPP_ALREADY_EXISTS = "DAPP_ALREADY_EXISTS",
     INVALID_TRANSITION = "INVALID_TRANSITION",
 }
@@ -10,6 +11,10 @@ export const DappErrorBody: Record<DappErrorCode, { statusCode: HttpStatus; mess
     [DappErrorCode.DAPP_NOT_FOUND]: {
         statusCode: HttpStatus.NOT_FOUND,
         message: DappErrorCode.DAPP_NOT_FOUND,
+    },
+    [DappErrorCode.DAPP_CHANGE_NOT_FOUND]: {
+        statusCode: HttpStatus.NOT_FOUND,
+        message: DappErrorCode.DAPP_CHANGE_NOT_FOUND,
     },
     [DappErrorCode.DAPP_ALREADY_EXISTS]: {
         statusCode: HttpStatus.CONFLICT,

@@ -3,7 +3,7 @@ import { InjectMetric } from "@willsoto/nestjs-prometheus";
 import { Histogram } from "prom-client";
 import { ModuleMetrics } from "../common/metric/metric";
 
-export type Auth0Call = "get" | "create" | "list_connections" | "update_connection";
+export type Auth0Call = "get" | "create" | "update" | "list_connections" | "update_connection";
 
 export type Auth0Outcome = "success" | "rate_limited" | "rejected" | "failed";
 

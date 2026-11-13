@@ -1,6 +1,7 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { Dapp } from "@database/console/entities";
+import { Dapp, DappChange } from "@database/console/entities";
 import { DappStatus, MauBracket } from "@shared/modules/dapp";
+import { DappChangeDto } from "./dapp-change.dto";
 
 export class DappDto {
     @ApiProperty({ format: "uuid" })
@@ -47,15 +48,19 @@ export class DappDto {
     })
     reviewedAt: string | null;
 
+    @ApiProperty({ type: DappChangeDto, nullable: true, description: "The edit waiting for review. Null when there is none." })
+    pendingChange: DappChangeDto | null;
+
     @ApiProperty({ format: "date-time" })
     createdAt: string;
 
     /**
-     * Maps a dApp to its response, with dates as ISO strings.
+     * Maps a dApp and its pending change to its response, with dates as ISO strings.
      * @param dapp The dApp.
+     * @param pendingChange The dApp's pending change, if any.
      * @returns The response.
      */
-    static fromEntity(dapp: Dapp): DappDto {
+    static fromEntity(dapp: Dapp, pendingChange: DappChange | null): DappDto {
         return {
             id: dapp.id,
             ownerEmail: dapp.ownerEmail,
@@ -70,6 +75,7 @@ export class DappDto {
             status: dapp.status,
             auth0ClientId: dapp.auth0ClientId,
             reviewedAt: dapp.reviewedAt?.toISOString() ?? null,
+            pendingChange: pendingChange && DappChangeDto.fromEntity(pendingChange),
             createdAt: dapp.createdAt.toISOString(),
         };
     }

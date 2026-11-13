@@ -1,4 +1,4 @@
-import { ApiResponse, Client, ClientCreate, ManagementClient } from "auth0";
+import { ApiResponse, Client, ClientCreate, ClientUpdate, ManagementClient } from "auth0";
 import { Auth0ManagementConfig } from "../../../../config/auth0.config";
 import { DappClient, IAuth0ProvisionerService, ProvisioningError } from "../../interfaces/i-auth0-provisioner.service";
 import { Auth0Call, ProvisioningMetricsProvider } from "../../provisioning.metrics";
@@ -38,6 +38,46 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
         const clientId = created.client_id;
         await this.syncConnections(clientId, wanted);
         return clientId;
+    }
+
+    /**
+     * Writes the dApp's fields to its client and resyncs the template's connections, after checking the client's tags.
+     * @param clientId The client to write.
+     * @param client The dApp and the fields synced to Auth0.
+     */
+    async update(clientId: string, client: DappClient): Promise<void> {
+        await this.readTagged(client.dappId, clientId);
+        const wanted = await this.templateConnections();
+        await this.send("update", () => this.client.clients.update({ client_id: clientId }, this.dappFields(client)));
+        await this.syncConnections(clientId, wanted);
+    }
+
+    /**
+     * Throws a tag_mismatch unless the client is tagged with this dApp and this environment.
+     * @param dappId The dApp.
+     * @param clientId The client to check.
+     */
+    private async readTagged(dappId: string, clientId: string): Promise<void> {
+        const client = await this.send("get", () =>
+            this.client.clients.get({ client_id: clientId, fields: "client_id,client_metadata", include_fields: true }),
+        );
+        const tags = this.tagsOf(client);
+        if (tags.dappId !== dappId || !tags.managed) {
+            throw new ProvisioningError("tag_mismatch", `Auth0 client ${clientId} is not tagged with dApp ${dappId} for ${this.managedBy}`);
+        }
+    }
+
+    /**
+     * Reads the console's tags from a client's metadata.
+     * @param client The client.
+     * @returns The dApp it names, and whether this environment manages it.
+     */
+    private tagsOf(client: Pick<Client, "client_metadata">): { dappId: string | null; managed: boolean } {
+        const metadata: Record<string, unknown> = client.client_metadata ?? {};
+        return {
+            dappId: typeof metadata.console_dapp_id === "string" ? metadata.console_dapp_id : null,
+            managed: metadata.managed_by === this.managedBy,
+        };
     }
 
     /**
@@ -125,7 +165,7 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
      * @param client The dApp and the fields synced to Auth0.
      * @returns The client fields.
      */
-    private dappFields(client: DappClient): ClientCreate {
+    private dappFields(client: DappClient): ClientCreate & ClientUpdate {
         return {
             name: client.name,
             description: client.description,
