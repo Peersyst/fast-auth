@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { DappChangeDto } from './DappChangeDto';
 import type { DappStatus } from './DappStatus';
 import type { MauBracket } from './MauBracket';
 export type DappDto = {
@@ -24,6 +25,10 @@ export type DappDto = {
      * Null until an admin reviews the dApp.
      */
     reviewedAt: string | null;
+    /**
+     * The edit waiting for review. Null when there is none.
+     */
+    pendingChange: DappChangeDto | null;
     createdAt: string;
 };
 

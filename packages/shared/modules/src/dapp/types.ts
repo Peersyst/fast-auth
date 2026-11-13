@@ -16,6 +16,14 @@ export const MauBracket = {
 
 export type MauBracket = (typeof MauBracket)[keyof typeof MauBracket];
 
+export const DappChangeStatus = {
+    PENDING: "pending",
+    APPROVED: "approved",
+    REJECTED: "rejected",
+} as const;
+
+export type DappChangeStatus = (typeof DappChangeStatus)[keyof typeof DappChangeStatus];
+
 /** The fields that sync to the dApp's Auth0 client. */
 export interface SyncedFields {
     name: string;
@@ -26,10 +34,12 @@ export interface SyncedFields {
     webOrigins: string[];
 }
 
-/** The fields an owner submits. */
+/** The fields an owner submits. An approved dApp's owner changes them only through a reviewed change. */
 export interface DappFields extends SyncedFields {
     contactEmail: string;
     mauBracket: MauBracket;
 }
 
 export type DappField = keyof DappFields;
+
+export type FieldValue = string | string[];

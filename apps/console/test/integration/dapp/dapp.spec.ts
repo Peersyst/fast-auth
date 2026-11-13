@@ -3,16 +3,16 @@ import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { register } from "prom-client";
 import { DataSource } from "typeorm";
-import { Dapp } from "@database/console/entities";
-import { createDapp } from "@database/console/test/factories";
-import { DappStatus } from "@shared/modules/dapp";
+import { Dapp, DappChange } from "@database/console/entities";
+import { createDapp, createDappChange } from "@database/console/test/factories";
+import { DappChangeStatus, DappStatus, MauBracket } from "@shared/modules/dapp";
 import { DappModule } from "../../../src/modules/dapp/dapp.module";
 import { JWT_KEY_SET } from "../../../src/modules/auth/jwt-key-set";
 import { SLACK_NOTIFIER } from "../../../src/modules/notification/notification.tokens";
 import { AUTH0_PROVISIONER } from "../../../src/modules/provisioning/provisioning.tokens";
 import { adminBearer, bearer, testKeySet } from "../../mocks/auth/token.mock";
 import { ADMIN_EMAIL, testConfig } from "../../mocks/config/config.mock";
-import { dappForm, findDapp, transitionCounts } from "../../mocks/dapp/dapp.mock";
+import { dappForm, findChanges, findDapp, transitionCounts } from "../../mocks/dapp/dapp.mock";
 import { SlackNotifierMock } from "../../mocks/notification/slack-notifier.mock";
 import { FakeProvisionerMock } from "../../mocks/provisioning/fake-provisioner.mock";
 
@@ -63,6 +63,23 @@ describe("DappModule (integration)", () => {
         createDapp(dataSource.manager, { ...dappForm(), ownerEmail, ...overrides });
 
     /**
+     * Stores an approved dApp.
+     * @param overrides Fields to change.
+     * @returns The dApp.
+     */
+    const approvedDapp = (overrides: Partial<Dapp> = {}): Promise<Dapp> =>
+        pendingDapp({ status: DappStatus.APPROVED, auth0ClientId: "client_live", ...overrides });
+
+    /**
+     * Sends a PATCH to the dApp as the owner.
+     * @param id The dApp id.
+     * @param body The fields to change.
+     * @returns The pending request.
+     */
+    const patch = (id: string, body: Record<string, unknown>) =>
+        testApp.request.patch(`/dapp/${id}`).set("Authorization", owner).send(body);
+
+    /**
      * Lists dApps as the admin and keeps one column of each item.
      * @param query The query string.
      * @param column The column to keep.
@@ -84,6 +101,7 @@ describe("DappModule (integration)", () => {
                 status: "pending",
                 auth0ClientId: null,
                 reviewedAt: null,
+                pendingChange: null,
                 createdAt: expect.any(String),
             });
             expect(await findDapp(dataSource.manager, body.id)).toMatchObject({
@@ -185,6 +203,25 @@ describe("DappModule (integration)", () => {
             expect(await adminList("page=2&pageSize=2")).toEqual(["c@owners.test"]);
         });
 
+        it("should list each dApp with its own pending change", async () => {
+            const changed = await approvedDapp({ ownerEmail: "changed@owners.test", createdAt: new Date("2026-01-01T00:00:00Z") });
+            const pending = await createDappChange(dataSource.manager, { dappId: changed.id });
+            await createDappChange(dataSource.manager, { dappId: changed.id, status: DappChangeStatus.APPROVED, reviewedAt: new Date() });
+            await pendingDapp({ ownerEmail: "pending@owners.test", createdAt: new Date("2026-01-02T00:00:00Z") });
+
+            const { body } = await testApp.request.get("/dapp").set("Authorization", admin).expect(200);
+
+            expect(
+                body.items.map((item: { ownerEmail: string; pendingChange: { id: string } | null }) => [
+                    item.ownerEmail,
+                    item.pendingChange?.id ?? null,
+                ]),
+            ).toEqual([
+                ["changed@owners.test", pending.id],
+                ["pending@owners.test", null],
+            ]);
+        });
+
         it.each([
             "page=0",
             "pageSize=0",
@@ -216,6 +253,7 @@ describe("DappModule (integration)", () => {
                         status: "pending",
                         auth0ClientId: null,
                         reviewedAt: null,
+                        pendingChange: null,
                         createdAt: own.createdAt.toISOString(),
                     },
                 ],
@@ -264,19 +302,25 @@ describe("DappModule (integration)", () => {
                 status: "rejected",
                 auth0ClientId: null,
                 reviewedAt: "2026-01-05T00:00:00.000Z",
+                pendingChange: null,
                 createdAt: dapp.createdAt.toISOString(),
             });
         });
 
-        it("should answer the owner their own dApp, matching the email in any case", async () => {
-            const dapp = await pendingDapp();
+        it("should answer the owner their own dApp with its pending change, matching the email in any case", async () => {
+            const dapp = await approvedDapp();
+            const change = await createDappChange(dataSource.manager, { dappId: dapp.id });
 
             const { body } = await testApp.request
                 .get(`/dapp/${dapp.id}`)
                 .set("Authorization", await bearer("BOB@Owners.TEST"))
                 .expect(200);
 
-            expect(body).toMatchObject({ id: dapp.id, ownerEmail });
+            expect(body).toMatchObject({
+                id: dapp.id,
+                ownerEmail,
+                pendingChange: expect.objectContaining({ id: change.id, name: "Acme Pay" }),
+            });
         });
 
         it("should answer 404 DAPP_NOT_FOUND for another owner's dApp and for an unknown id", async () => {
@@ -292,6 +336,146 @@ describe("DappModule (integration)", () => {
 
         it("should answer 400 for an id that is not a uuid", async () => {
             await testApp.request.get("/dapp/not-a-uuid").set("Authorization", admin).expect(400);
+        });
+    });
+
+    describe("PATCH /dapp/:id", () => {
+        it("should edit a pending dApp in place, record no change and alert nobody", async () => {
+            const dapp = await createDapp(dataSource.manager, { ...dappForm(), ownerEmail });
+
+            const { body } = await patch(dapp.id, { name: "Acme Pay", contactEmail: "ops@acme.xyz" }).expect(200);
+
+            expect(body).toMatchObject({ name: "Acme Pay", contactEmail: "ops@acme.xyz", status: "pending", pendingChange: null });
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ name: "Acme Pay", contactEmail: "ops@acme.xyz" });
+            expect(await dataSource.manager.count(DappChange)).toBe(0);
+            expect(slack.notify).not.toHaveBeenCalled();
+        });
+
+        it("should record an approved dApp's edit as a pending change of only the changed fields, keep the live values and alert the admins", async () => {
+            const dapp = await approvedDapp();
+
+            const { body } = await patch(dapp.id, {
+                name: "Acme Pay",
+                description: dappForm().description,
+                mauBracket: MauBracket.GT_25K,
+            }).expect(200);
+
+            expect(body).toMatchObject({ name: "Acme Wallet", mauBracket: "lt1k", status: "approved" });
+            expect(body.pendingChange).toEqual({
+                id: expect.any(String),
+                name: "Acme Pay",
+                description: null,
+                logoUrl: null,
+                mauBracket: "gt25k",
+                callbackUrls: null,
+                logoutUrls: null,
+                webOrigins: null,
+                contactEmail: null,
+                createdAt: expect.any(String),
+            });
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ name: "Acme Wallet", mauBracket: "lt1k" });
+            expect(await findChanges(dataSource.manager, dapp.id)).toEqual([
+                expect.objectContaining({ status: "pending", reviewedAt: null, name: "Acme Pay", mauBracket: "gt25k", description: null }),
+            ]);
+            expect(slack.notify).toHaveBeenCalledWith({
+                kind: "change_requested",
+                dapp: expect.objectContaining({ id: dapp.id }),
+                change: { name: "Acme Pay", mauBracket: "gt25k" },
+            });
+            expect(provisioner.calls).toEqual([]);
+            expect(await transitionCounts()).toEqual({ "update success": 1 });
+        });
+
+        it("should replace the pending change with the new edit and keep the reviewed ones", async () => {
+            const dapp = await approvedDapp();
+            const reviewed = await createDappChange(dataSource.manager, {
+                dappId: dapp.id,
+                status: DappChangeStatus.REJECTED,
+                reviewedAt: new Date(),
+            });
+            const first = (await patch(dapp.id, { name: "Acme Pay" }).expect(200)).body.pendingChange;
+
+            const { body } = await patch(dapp.id, { contactEmail: "ops@acme.xyz" }).expect(200);
+
+            expect(body.pendingChange).toEqual(expect.objectContaining({ name: null, contactEmail: "ops@acme.xyz" }));
+            expect(body.pendingChange.id).not.toBe(first.id);
+            expect((await dataSource.manager.find(DappChange, { order: { createdAt: "ASC" } })).map((change) => change.id)).toEqual([
+                reviewed.id,
+                body.pendingChange.id,
+            ]);
+            expect(slack.notify).toHaveBeenCalledTimes(2);
+        });
+
+        it("should answer only the pending change", async () => {
+            const dapp = await approvedDapp();
+            await createDappChange(dataSource.manager, { dappId: dapp.id, status: DappChangeStatus.APPROVED, reviewedAt: new Date() });
+            const pending = await createDappChange(dataSource.manager, { dappId: dapp.id, name: "Acme Next" });
+
+            const { body } = await patch(dapp.id, {}).expect(200);
+
+            expect(body.pendingChange).toEqual(expect.objectContaining({ id: pending.id, name: "Acme Next" }));
+        });
+
+        it("should record nothing and alert nobody for an edit equal to the live values, lists compared as sets", async () => {
+            const dapp = await approvedDapp({ callbackUrls: ["https://acme.xyz/callback", "https://acme.xyz/silent"] });
+
+            const { body } = await patch(dapp.id, {
+                name: "Acme Wallet",
+                callbackUrls: ["https://acme.xyz/silent", "https://ACME.xyz/callback"],
+            }).expect(200);
+
+            expect(body).toMatchObject({ id: dapp.id, pendingChange: null });
+            expect(await dataSource.manager.count(DappChange)).toBe(0);
+            expect(slack.notify).not.toHaveBeenCalled();
+        });
+
+        it("should answer 404 DAPP_NOT_FOUND for another owner's dApp and for an unknown id, and change nothing", async () => {
+            const dapp = await createDapp(dataSource.manager, { ownerEmail });
+            const stranger = await bearer("stranger@owners.test");
+
+            const { body } = await testApp.request
+                .patch(`/dapp/${dapp.id}`)
+                .set("Authorization", stranger)
+                .send({ name: "Hijacked" })
+                .expect(404);
+            await patch("00000000-0000-4000-8000-000000000000", { name: "Ghost" }).expect(404);
+
+            expect(body).toEqual({ statusCode: 404, message: "DAPP_NOT_FOUND" });
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ name: dapp.name });
+        });
+
+        it("should find the owner's dApp by email in any case", async () => {
+            const dapp = await createDapp(dataSource.manager, { ownerEmail });
+
+            await testApp.request
+                .patch(`/dapp/${dapp.id}`)
+                .set("Authorization", await bearer("BOB@Owners.TEST"))
+                .send({ name: "Acme Pay" })
+                .expect(200);
+        });
+
+        it("should answer 409 INVALID_TRANSITION for a rejected dApp", async () => {
+            const dapp = await createDapp(dataSource.manager, { ownerEmail, status: DappStatus.REJECTED });
+
+            const { body } = await patch(dapp.id, { name: "Acme Pay" }).expect(409);
+
+            expect(body).toEqual({ statusCode: 409, message: "INVALID_TRANSITION" });
+        });
+
+        it.each<[string, Record<string, unknown>]>([
+            ["a null field", { name: null }],
+            ["an invalid field", { webOrigins: ["https://acme.xyz/app"] }],
+            ["an unknown field", { status: "approved" }],
+        ])("should refuse %s with 400 and change nothing", async (_case, body) => {
+            const dapp = await approvedDapp();
+
+            await patch(dapp.id, body).expect(400);
+
+            expect(await dataSource.manager.count(DappChange)).toBe(0);
+        });
+
+        it("should answer 400 for an id that is not a uuid", async () => {
+            await patch("not-a-uuid", { name: "Acme Pay" }).expect(400);
         });
     });
 });

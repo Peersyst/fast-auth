@@ -1,6 +1,6 @@
 # Console
 
-NestJS service for the NEAR Auth Console. A dApp team submits its app. An admin approves or rejects it, unless auto-approval approved it. The console creates the team's Auth0 client on approval. It is configured only by environment variables and serves its routes under `/api/console`.
+NestJS service for the NEAR Auth Console. A dApp team submits its app and edits it. An admin approves or rejects each new dApp, unless auto-approval approved it, and each edit of an approved dApp. The console creates and updates the team's Auth0 client on approval. It is configured only by environment variables and serves its routes under `/api/console`.
 
 ## Getting Started
 
@@ -68,16 +68,17 @@ Every route is under `/api/console`. CORS allows only `PUBLIC_URL`, the web app'
 
 A business error answers `{ statusCode, message }`, where `message` is one of the codes below. The codes are in each module's `error/` folder, merged in `src/modules/common/exception/error-codes.ts`. `ErrorFilter` from `@backend/core` answers an OpenAPI validator refusal with its status and message. Any other error, such as a `ValidationPipe` refusal or an unexpected failure, gets Nest's default answer.
 
-| Code                  | Status | When                                                                                           |
-| --------------------- | ------ | ---------------------------------------------------------------------------------------------- |
-| `UNAUTHENTICATED`     | 401    | No token, another scheme than `Bearer`, or a token that fails verification or the claim checks |
-| `EMAIL_REQUIRED`      | 403    | The token has no email claim                                                                   |
-| `EMAIL_NOT_VERIFIED`  | 403    | The route needs a verified email and `email_verified` is not true                              |
-| `FORBIDDEN_ROLE`      | 403    | An admin route and a caller who is not an admin                                                |
-| `DAPP_NOT_FOUND`      | 404    | No dApp with that id, or one the caller neither owns nor may read as an admin                  |
-| `DAPP_ALREADY_EXISTS` | 409    | The email already owns a live dApp, including a race on the live-owner unique index            |
-| `INVALID_TRANSITION`  | 409    | The dApp's status does not allow the review                                                    |
-| `DAPP_CHANGED`        | 409    | Another request held the dApp's row past the lock timeout (`55P03`)                            |
+| Code                    | Status | When                                                                                           |
+| ----------------------- | ------ | ---------------------------------------------------------------------------------------------- |
+| `UNAUTHENTICATED`       | 401    | No token, another scheme than `Bearer`, or a token that fails verification or the claim checks |
+| `EMAIL_REQUIRED`        | 403    | The token has no email claim                                                                   |
+| `EMAIL_NOT_VERIFIED`    | 403    | The route needs a verified email and `email_verified` is not true                              |
+| `FORBIDDEN_ROLE`        | 403    | An admin route and a caller who is not an admin                                                |
+| `DAPP_NOT_FOUND`        | 404    | No dApp with that id, or one the caller neither owns nor may read as an admin                  |
+| `DAPP_CHANGE_NOT_FOUND` | 404    | The dApp has no pending change                                                                 |
+| `DAPP_ALREADY_EXISTS`   | 409    | The email already owns a live dApp, including a race on the live-owner unique index            |
+| `INVALID_TRANSITION`    | 409    | The dApp's status does not allow the edit or the review                                        |
+| `DAPP_CHANGED`          | 409    | Another request held the dApp's row past the lock timeout (`55P03`)                            |
 
 ### Authentication
 
@@ -107,17 +108,20 @@ Routes are guarded per controller with one of three decorators from `src/modules
 
 ### dApp routes
 
-The review routes, `POST /dapp/:id/approve` and `/reject`, are under `AdminAuthenticated()`, and the others under `Authenticated()`. An admin is a caller with the `admin` role.
+The review routes, `POST /dapp/:id/approve`, `/reject`, `/change/approve` and `/change/reject`, are under `AdminAuthenticated()`, and the others under `Authenticated()`. An admin is a caller with the `admin` role.
 
-| Route                    | Answer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /dapp`              | 200 `{ items, totalItems, currentPage, pages }`, the `Paginated` shape of `@backend/core/pagination`, holding `Dapp` items, oldest first. An admin gets one page of every dApp; anyone else gets their own, matched by email case-insensitively, as a list of 0 or 1 item. The query takes `page` (1 to 10000, default 1) and `pageSize` (1 to 100, default 20), and nothing else. |
-| `GET /dapp/:id`          | 200 `Dapp`. An admin can read any dApp, anyone else only their own. 404 `DAPP_NOT_FOUND` otherwise.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `POST /dapp`             | Body `CreateDappRequest`. 201 `Dapp` with status `pending`, and a Slack alert to the admins, or `approved` with its Auth0 client when auto-approval is on. 409 `DAPP_ALREADY_EXISTS` when the email already owns a live dApp. |
-| `POST /dapp/:id/approve` | Creates the pending dApp's Auth0 client and approves it. 200 `Dapp`. 409 `INVALID_TRANSITION` for a dApp that is not pending, and 500 when the Auth0 call fails, which leaves the dApp pending. |
-| `POST /dapp/:id/reject`  | Rejects a pending dApp. 200 `Dapp`. 409 `INVALID_TRANSITION` for a dApp that is not pending. |
+| Route                           | Answer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /dapp`                     | 200 `{ items, totalItems, currentPage, pages }`, the `Paginated` shape of `@backend/core/pagination`, holding `Dapp` items, oldest first. An admin gets one page of every dApp; anyone else gets their own, matched by email case-insensitively, as a list of 0 or 1 item. The query takes `page` (1 to 10000, default 1) and `pageSize` (1 to 100, default 20), and nothing else. |
+| `GET /dapp/:id`                 | 200 `Dapp`. An admin can read any dApp, anyone else only their own. 404 `DAPP_NOT_FOUND` otherwise.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `POST /dapp`                    | Body `CreateDappRequest`. 201 `Dapp` with status `pending`, and a Slack alert to the admins, or `approved` with its Auth0 client when auto-approval is on. 409 `DAPP_ALREADY_EXISTS` when the email already owns a live dApp. |
+| `PATCH /dapp/:id`               | Body `UpdateDappRequest`, any subset of the `CreateDappRequest` fields. A missing field is left as it is and a `null` one is refused. A pending dApp is edited in place. On an approved dApp, the fields that differ from the live ones become the dApp's pending change, replacing any earlier pending one in the same transaction, with a Slack alert to the admins, and the live fields stay as they are. An edit that changes nothing records nothing. 200 `Dapp`. 404 `DAPP_NOT_FOUND` for a dApp the caller does not own. 409 `INVALID_TRANSITION` for a rejected or removed dApp. |
+| `POST /dapp/:id/approve`        | Creates the pending dApp's Auth0 client and approves it. 200 `Dapp`. 409 `INVALID_TRANSITION` for a dApp that is not pending, and 500 when the Auth0 call fails, which leaves the dApp pending. |
+| `POST /dapp/:id/reject`         | Rejects a pending dApp. 200 `Dapp`. 409 `INVALID_TRANSITION` for a dApp that is not pending. |
+| `POST /dapp/:id/change/approve` | Applies the dApp's pending change to it, writing it to Auth0 first when a synced field changes, and approves the change. 200 `Dapp`. 404 `DAPP_NOT_FOUND` for an unknown dApp and `DAPP_CHANGE_NOT_FOUND` for a dApp with no pending change, and 500 when the Auth0 call fails, which leaves the dApp as it was and the change pending. |
+| `POST /dapp/:id/change/reject`  | Rejects the dApp's pending change and leaves the dApp as it is. 200 `Dapp`. 404 as for approving it. |
 
-`Dapp` is `{ id, ownerEmail, name, description, logoUrl, mauBracket, callbackUrls, logoutUrls, webOrigins, contactEmail, status, auth0ClientId, reviewedAt, createdAt }`. `reviewedAt` is when an admin approved or rejected the dApp, and `null` while it is pending. Dates are ISO strings.
+`Dapp` is `{ id, ownerEmail, name, description, logoUrl, mauBracket, callbackUrls, logoutUrls, webOrigins, contactEmail, status, auth0ClientId, reviewedAt, pendingChange, createdAt }`. `reviewedAt` is when an admin approved or rejected the dApp, and `null` while it is pending. `pendingChange` is the dApp's pending change, or `null` when there is none, as `{ id, name, description, logoUrl, mauBracket, callbackUrls, logoutUrls, webOrigins, contactEmail, createdAt }` with `null` for a field the change leaves as it is. Dates are ISO strings.
 
 `CreateDappRequest` fields follow the rules in `@shared/modules/dapp`:
 
@@ -131,44 +135,53 @@ The review routes, `POST /dapp/:id/approve` and `/reject`, are under `AdminAuthe
 
 ## dApp writes
 
-`src/modules/dapp/dapp.service.ts` holds one method per use case. `create` stores the dApp as `pending`, alerts the admins and, with auto-approval on, calls `approve` itself; the `dapp_owner_email_live` unique index, not the service, is what keeps one live dApp per owner email, and its violation becomes `DAPP_ALREADY_EXISTS`. `reject` sets the status. `approve` calls Auth0 and saves the client in one transaction, so a failed call leaves the dApp pending with no client and answers 500; the admin can approve again.
+`src/modules/dapp/dapp.service.ts` holds one method per use case. `create` stores the dApp as `pending`, alerts the admins and, with auto-approval on, calls `approve` itself; the `dapp_owner_email_live` unique index, not the service, is what keeps one live dApp per owner email, and its violation becomes `DAPP_ALREADY_EXISTS`. `reject` sets the status. `approve` calls Auth0 and saves the client in one transaction, so a failed call leaves the dApp pending with no client and answers 500; the admin can approve again. `update` edits a pending dApp in place, and stores an approved dApp's edit as a `dapp_change` row and alerts the admins. Lists compare as sets, so a reordered list is not a change. The diff is `changedFields` in `@shared/modules/dapp`. `approveChange` updates the Auth0 client when the change touches a synced field and applies the change in one transaction, so a failed call leaves the dApp and the change as they were and answers 500. `rejectChange` sets the change's status.
+
+Each edit of an approved dApp is its own `dapp_change` row. A row holds only the fields that differed from the live dApp when it was requested, the others `NULL`, and a status of `pending`, `approved` or `rejected`, with `reviewed_at` set once it is approved or rejected. Several rows can be pending at once. Deleting a dApp deletes its rows.
 
 ### Statuses
 
-| Record | From      | Action                               | To         |
-| ------ | --------- | ------------------------------------ | ---------- |
-| dApp   | (new)     | owner `POST /dapp`                   | `pending`  |
-| dApp   | `pending` | owner `POST /dapp`, auto-approval on | `approved` |
-| dApp   | `pending` | admin approve                        | `approved` |
-| dApp   | `pending` | admin reject                         | `rejected` |
+| Record | From       | Action                               | To         |
+| ------ | ---------- | ------------------------------------ | ---------- |
+| dApp   | (new)      | owner `POST /dapp`                   | `pending`  |
+| dApp   | `pending`  | owner `POST /dapp`, auto-approval on | `approved` |
+| dApp   | `pending`  | admin approve                        | `approved` |
+| dApp   | `pending`  | admin reject                         | `rejected` |
+| dApp   | `pending`  | owner edit                           | `pending`  |
+| dApp   | `approved` | owner edit                           | `approved` |
+| change | (new)      | owner edit of an `approved` dApp     | `pending`  |
+| change | `pending`  | admin approve                        | `approved` |
+| change | `pending`  | admin reject                         | `rejected` |
 
-Any other action answers `INVALID_TRANSITION`.
+Any other action answers `INVALID_TRANSITION`. An owner cannot edit or resubmit a `rejected` dApp. A dApp has at most one pending change, since a new edit replaces it. Approving it applies only the fields it holds.
 
 ## Auto-approval
 
 Auto-approval is on when `AUTO_APPROVAL_ENABLED` is `true` and off otherwise. The console reads it at startup, so changing it needs a restart. While it is on, `create` runs `approve` on the dApp it just stored, so the owner gets it `approved` with its Auth0 client. A failed Auth0 call answers 500 and leaves the dApp `pending`, where an admin can approve it again.
 
+Auto-approval never applies to edits. An edit of a pending dApp is applied in place, and every edit of an approved dApp waits for an admin.
+
 ## Provisioning
 
 `AUTH0_PROVISIONER` picks the adapter behind the `AUTH0_PROVISIONER` token of `src/modules/provisioning/provisioning.tokens.ts`. `management` (`providers/auth0-management/`) calls the Management API through the `auth0` SDK with the M2M credentials. `fake` (`providers/fake/`) keeps clients in memory.
 
-- Each client carries `client_metadata { console_dapp_id, managed_by: "console-<CONFIG_ENV>", logo_uri }`.
-- Create copies the template client `AUTH0_TEMPLATE_CLIENT_ID`: `app_type spa`, `token_endpoint_auth_method none`, its grant types, OIDC conformance, JWT lifetime, algorithm and scopes, refresh token, cross-origin authentication and first-party flag. It adds the dApp's name, description, logo, callbacks, logout URLs and web origins, which are also the allowed origins. Create then sets the client's enabled connections to exactly the template's. A template without enabled connections fails the call.
+- Each client carries `client_metadata { console_dapp_id, managed_by: "console-<CONFIG_ENV>", logo_uri }`. Update checks the tags first, and a mismatch is a `tag_mismatch`.
+- Create copies the template client `AUTH0_TEMPLATE_CLIENT_ID`: `app_type spa`, `token_endpoint_auth_method none`, its grant types, OIDC conformance, JWT lifetime, algorithm and scopes, refresh token, cross-origin authentication and first-party flag. It adds the dApp's name, description, logo, callbacks, logout URLs and web origins, which are also the allowed origins. Create and update then set the client's enabled connections to exactly the template's. A template without enabled connections fails the call.
 - A 429 is retried once after `Retry-After`, capped at `AUTH0_MGMT_MAX_RETRY_AFTER_MS`, or after `AUTH0_MGMT_RETRY_AFTER_MS` without one. A 5xx is retried once after `AUTH0_MGMT_RETRY_AFTER_MS`, except on create. A 401, a 403 or a token-endpoint 4xx fails without a retry, and any other 4xx is a refusal. `AUTH0_MGMT_TIMEOUT_MS` bounds each request, body included.
 
 ## Notifications
 
 The console notifies admins on Slack only, through `providers/slack/` behind the `SLACK_NOTIFIER` token of `src/modules/notification/notification.tokens.ts`. With `SLACK_WEBHOOK_URL` empty, no alert is sent.
 
-One alert goes out, on a new pending dApp, auto-approval on or off. Admin reviews send none. Links point at `/admin/dapps/<id>` under `PUBLIC_URL`.
+Alerts go out on a new pending dApp and on a new pending change, auto-approval on or off. Admin reviews and edits of a pending dApp send none. Links point at `/admin/dapps/<id>` under `PUBLIC_URL`.
 
-A Slack message carries the subject, the review link, and every field on one escaped line. Link unfurling is off. A Slack failure, including a non-2xx answer, is only logged.
+A Slack message carries the subject, the review link, and every field on one escaped line. A change marks each field it changes with the live value. Link unfurling is off. A Slack failure, including a non-2xx answer, is only logged.
 
 ## Metrics
 
 `PrometheusModule` serves `/api/console/metrics` on `APP_PORT`, with the default labels `app=console` and `environment=<CONFIG_ENV>`:
 
-- `console_transitions_total{action, result}` counts each use case that ran through, with `action` one of `create`, `approve` and `reject`, and `result` `success`. An auto-approved dApp counts one `create` and one `approve`. A refused or failed call counts nothing.
+- `console_transitions_total{action, result}` counts each use case that ran through, with `action` one of `create`, `update`, `approve`, `reject`, `approveChange` and `rejectChange`, and `result` `success`. An auto-approved dApp counts one `create` and one `approve`. A refused or failed call counts nothing.
 - `console_dapps{status}` counts the dApps per status on each scrape.
 - `console_auth0_request_duration_seconds{op, outcome}` times each Management API call.
 

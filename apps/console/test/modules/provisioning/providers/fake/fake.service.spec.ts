@@ -25,6 +25,14 @@ describe("FakeProvisionerService", () => {
         expect(provisioner.clients.get(clientId)).toEqual(client);
     });
 
+    it("should overwrite an updated client", async () => {
+        const clientId = await provisioner.create(client);
+
+        await provisioner.update(clientId, { ...client, name: "Acme 2" });
+
+        expect(provisioner.clients.get(clientId)).toEqual({ ...client, name: "Acme 2" });
+    });
+
     describe("FakeProvisionerMock", () => {
         const mock = new FakeProvisionerMock();
 

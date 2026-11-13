@@ -1,4 +1,4 @@
-import { Dapp } from "@database/console/entities";
+import { Dapp, DappChange } from "@database/console/entities";
 import { DappStatus, MauBracket } from "@shared/modules/dapp";
 import { mockify } from "@shared/test";
 import { register } from "prom-client";
@@ -48,6 +48,16 @@ export const dappForm = (overrides: Partial<CreateDappRequest> = {}): CreateDapp
  */
 export function findDapp(manager: EntityManager, id: string): Promise<Dapp> {
     return manager.findOneByOrFail(Dapp, { id });
+}
+
+/**
+ * Lists a dApp's changes, oldest first.
+ * @param manager The entity manager to read with.
+ * @param dappId The dApp id.
+ * @returns The changes.
+ */
+export function findChanges(manager: EntityManager, dappId: string): Promise<DappChange[]> {
+    return manager.find(DappChange, { where: { dappId }, order: { createdAt: "ASC" } });
 }
 
 /**

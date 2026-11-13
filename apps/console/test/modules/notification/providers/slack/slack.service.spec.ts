@@ -1,5 +1,6 @@
 import { createServer, Server } from "node:http";
 import { AddressInfo } from "node:net";
+import { MauBracket } from "@shared/modules/dapp";
 import { AdminAlertKind } from "../../../../../src/modules/notification/interfaces/i-slack-notifier.service";
 import { slackMessage, SlackService } from "../../../../../src/modules/notification/providers/slack/slack.service";
 import { DappMock } from "../../../../mocks/dapp/dapp.mock";
@@ -36,6 +37,18 @@ describe("SlackService", () => {
             );
 
             expect(text).toContain("*Description:* Fine *Contact:* &lt;!channel&gt;\n");
+        });
+
+        it("should mark each field a change request changes with the live value", () => {
+            const { text } = slackMessage(
+                { kind: AdminAlertKind.CHANGE_REQUESTED, dapp, change: { name: "New Acme", mauBracket: MauBracket.GT_25K } },
+                publicUrl,
+            );
+
+            expect(text).toContain("*A dApp change request to review*\nAcme &amp; Co has a change request that is waiting for review.\n");
+            expect(text).toContain("*Name (changed):* New Acme (was: Acme &amp; Co)\n");
+            expect(text).toContain("*Expected MAU (changed):* More than 25,000 (was: Less than 1,000)\n");
+            expect(text).toContain("*Contact:* dev@acme.example");
         });
     });
 

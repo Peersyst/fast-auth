@@ -1,4 +1,4 @@
-import { ApiResponse, Client, ClientCreate, ManagementClient } from "auth0";
+import { ApiResponse, Client, ClientCreate, ClientUpdate, ManagementClient } from "auth0";
 import { Auth0ManagementConfig } from "../../../../config/auth0.config";
 import { DappClient, IAuth0ProvisionerService, ProvisioningError } from "../../interfaces/i-auth0-provisioner.service";
 import { Auth0Call, ProvisioningMetricsProvider } from "../../provisioning.metrics";
@@ -38,6 +38,17 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
         const clientId = created.client_id;
         await this.syncConnections(clientId, wanted);
         return clientId;
+    }
+
+    /**
+     * Writes the dApp's fields to its client and resyncs the template's connections.
+     * @param clientId The client to write.
+     * @param client The dApp and the fields synced to Auth0.
+     */
+    async update(clientId: string, client: DappClient): Promise<void> {
+        const wanted = await this.templateConnections();
+        await this.send("update", () => this.client.clients.update({ client_id: clientId }, this.dappFields(client)));
+        await this.syncConnections(clientId, wanted);
     }
 
     /**
@@ -125,7 +136,7 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
      * @param client The dApp and the fields synced to Auth0.
      * @returns The client fields.
      */
-    private dappFields(client: DappClient): ClientCreate {
+    private dappFields(client: DappClient): ClientCreate & ClientUpdate {
         return {
             name: client.name,
             description: client.description,

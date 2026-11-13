@@ -77,6 +77,15 @@ export const $DappDto = {
             isNullable: true,
             format: 'date-time',
         },
+        pendingChange: {
+            type: 'all-of',
+            description: `The edit waiting for review. Null when there is none.`,
+            contains: [{
+                type: 'DappChangeDto',
+            }],
+            isRequired: true,
+            isNullable: true,
+        },
         createdAt: {
             type: 'string',
             isRequired: true,

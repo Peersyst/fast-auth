@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from "@nestjs/common";
 import { ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { Authenticated } from "../auth/decorator/authenticated.decorator";
 import { CurrentUser } from "../auth/decorator/current-user.decorator";
@@ -7,6 +7,7 @@ import { ApiErrorDecorators } from "../common/exception/error-response.decorator
 import { DappService } from "./dapp.service";
 import { CreateDappRequest } from "./requests/create-dapp.request";
 import { ListDappsRequest } from "./requests/list-dapps.request";
+import { UpdateDappRequest } from "./requests/update-dapp.request";
 import { DappDto } from "./dtos/dapp.dto";
 import { PaginatedDappsDto } from "./dtos/paginated-dapps.dto";
 
@@ -39,5 +40,15 @@ export class DappController {
     })
     create(@CurrentUser() user: SessionUser, @Body() request: CreateDappRequest): Promise<DappDto> {
         return this.dappService.create(user, request);
+    }
+
+    @Patch(":id")
+    @ApiOkResponse({
+        type: DappDto,
+        description:
+            "The dApp. A pending dApp is edited in place. An approved dApp shows the edit in `pendingChange` until it is reviewed.",
+    })
+    update(@CurrentUser() user: SessionUser, @Param("id", ParseUUIDPipe) id: string, @Body() request: UpdateDappRequest): Promise<DappDto> {
+        return this.dappService.update(user, id, request);
     }
 }

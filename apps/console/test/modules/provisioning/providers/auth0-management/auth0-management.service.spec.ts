@@ -88,6 +88,7 @@ describe("Auth0ManagementService", () => {
         }).compile();
         provisioner = module.get(AUTH0_PROVISIONER);
         enabledConnections({ "template-client": ["con_email", "con_google"] });
+        clients.update.mockResolvedValue({});
         connections.updateEnabledClients.mockResolvedValue({});
     });
 
@@ -150,6 +151,27 @@ describe("Auth0ManagementService", () => {
                 message: "Auth0 create answered 503: status 503",
             });
             expect(clients.create).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe("update", () => {
+        it("should send the dApp's fields and resync the connections", async () => {
+            await provisioner.update(clientId, input);
+
+            expect(clients.update).toHaveBeenCalledWith(
+                { client_id: clientId },
+                expect.objectContaining({ name: "Acme", web_origins: input.webOrigins }),
+            );
+            expect(connections.updateEnabledClients.mock.calls).toEqual([
+                [{ id: "con_email" }, [{ client_id: clientId, status: true }]],
+                [{ id: "con_google" }, [{ client_id: clientId, status: true }]],
+            ]);
+        });
+
+        it("should map a missing client to failed", async () => {
+            clients.update.mockRejectedValueOnce(apiError(404));
+
+            await expect(provisioner.update(clientId, input)).rejects.toMatchObject({ kind: "failed" });
         });
     });
 
