@@ -274,6 +274,21 @@ describe("dApp review (integration)", () => {
             },
         );
 
+        it.each([
+            ["a pending dApp", { status: DappStatus.PENDING, auth0ClientId: null }],
+            ["an approved dApp without an Auth0 client", { auth0ClientId: null }],
+        ])("should answer 409 INVALID_TRANSITION for %s without calling Auth0", async (_case, overrides) => {
+            const dapp = await approvedDapp(overrides);
+            const change = await createDappChange(dataSource.manager, { dappId: dapp.id, name: "Acme Pay" });
+
+            const { body } = await review(`${dapp.id}/change/approve`).expect(409);
+
+            expect(body).toEqual({ statusCode: 409, message: "INVALID_TRANSITION" });
+            expect(provisioner.calls).toEqual([]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ name: "Acme Wallet" });
+            expect(await findChanges(dataSource.manager, dapp.id)).toEqual([expect.objectContaining({ id: change.id, status: "pending" })]);
+        });
+
         it("should answer 404 for an unknown dApp and leave another dApp's pending change alone", async () => {
             const dapp = await approvedDapp();
             const other = await approvedDapp({ ownerEmail: "other@owners.test", auth0ClientId: "client_other" });

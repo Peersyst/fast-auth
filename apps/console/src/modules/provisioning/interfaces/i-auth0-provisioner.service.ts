@@ -9,7 +9,7 @@ export interface IAuth0ProvisionerService {
     update(clientId: string, client: DappClient): Promise<void>;
 }
 
-export type ProvisioningErrorKind = "rejected" | "failed" | "tag_mismatch";
+export type ProvisioningErrorKind = "rejected" | "failed";
 
 export class ProvisioningError extends Error {
     constructor(

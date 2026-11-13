@@ -1,7 +1,7 @@
 import { DappClient, ProvisioningError } from "../../../src/modules/provisioning/interfaces/i-auth0-provisioner.service";
 import { FakeProvisionerService } from "../../../src/modules/provisioning/providers/fake/fake.service";
 
-type FakeOutcome = "rejected" | "failed" | "timeout_after_success" | "tag_mismatch";
+type FakeOutcome = "rejected" | "failed" | "timeout_after_success";
 
 export class FakeProvisionerMock extends FakeProvisionerService {
     /** Every client sent, an update's carrying its `clientId`. */

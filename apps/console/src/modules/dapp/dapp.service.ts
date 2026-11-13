@@ -211,16 +211,19 @@ export class DappService {
     }
 
     /**
-     * Approves the dApp's pending change. Updates the dApp's Auth0 client when the change touches a synced field, and applies the
-     * change to the dApp. The transaction leaves the dApp and the change as they were when either step fails.
+     * Approves the dApp's pending change. Checks that the dApp is approved with an Auth0 client, updates that client when the change
+     * touches a synced field, and applies the change to the dApp. The transaction leaves the dApp and the change as they were when either step fails.
      * @param id The dApp id.
      * @returns The dApp with its pending change.
      */
     async approveChange(id: string): Promise<DappDto> {
         const { dapp, change } = await this.dataSource.transaction(async (manager) => {
             const { live, change } = await this.findPendingChange(manager, id);
+            if (live.status !== DappStatus.APPROVED || live.auth0ClientId === null) {
+                throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
+            }
             const changed = fieldsOf(change);
-            if (hasSyncedChange(changed)) await this.provisioner.update(live.auth0ClientId!, clientOf({ ...live, ...changed }));
+            if (hasSyncedChange(changed)) await this.provisioner.update(live.auth0ClientId, clientOf({ ...live, ...changed }));
             await manager.save(Object.assign(change, { status: DappChangeStatus.APPROVED, reviewedAt: new Date() }));
             return { dapp: await manager.save(Object.assign(live, changed)), change };
         });

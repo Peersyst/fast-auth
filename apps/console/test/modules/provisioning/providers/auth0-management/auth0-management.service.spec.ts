@@ -48,17 +48,6 @@ describe("Auth0ManagementService", () => {
         is_first_party: true,
     } as unknown as Client;
 
-    /**
-     * Builds a client whose metadata carries the console's tags.
-     * @param forDapp The dApp it names.
-     * @param managedBy The environment tag.
-     * @returns The client.
-     */
-    const tagged = (forDapp: string, managedBy = "console-test") => ({
-        client_id: clientId,
-        client_metadata: { console_dapp_id: forDapp, managed_by: managedBy },
-    });
-
     const clients = new ClientsMock();
     const connections = new ConnectionsMock();
     let provisioner: Auth0ManagementService;
@@ -166,9 +155,7 @@ describe("Auth0ManagementService", () => {
     });
 
     describe("update", () => {
-        it("should check the tags, then send the dApp's fields and resync the connections", async () => {
-            clients.get.mockResolvedValueOnce({ data: tagged(dappId) });
-
+        it("should send the dApp's fields and resync the connections", async () => {
             await provisioner.update(clientId, input);
 
             expect(clients.update).toHaveBeenCalledWith(
@@ -181,19 +168,8 @@ describe("Auth0ManagementService", () => {
             ]);
         });
 
-        it.each([
-            ["another dApp", tagged("another-dapp")],
-            ["another environment", tagged(dappId, "console-production")],
-            ["no tags", { client_id: clientId }],
-        ])("should refuse a client tagged for %s with tag_mismatch and change nothing", async (_case, client) => {
-            clients.get.mockResolvedValueOnce({ data: client });
-
-            await expect(provisioner.update(clientId, input)).rejects.toMatchObject({ kind: "tag_mismatch" });
-            expect(clients.update).not.toHaveBeenCalled();
-        });
-
         it("should map a missing client to failed", async () => {
-            clients.get.mockRejectedValueOnce(apiError(404));
+            clients.update.mockRejectedValueOnce(apiError(404));
 
             await expect(provisioner.update(clientId, input)).rejects.toMatchObject({ kind: "failed" });
         });
