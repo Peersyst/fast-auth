@@ -1,0 +1,1 @@
+export const SLACK_NOTIFIER = "SLACK_NOTIFIER";

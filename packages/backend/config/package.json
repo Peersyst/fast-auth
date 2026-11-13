@@ -16,7 +16,8 @@
         ".": "./src/index.ts"
     },
     "peerDependencies": {
-        "@aws-sdk/client-secrets-manager": "3.449.0"
+        "@aws-sdk/client-secrets-manager": "3.449.0",
+        "class-validator": "^0.14.0 || ^0.15.0"
     },
     "devDependencies": {
         "@aws-sdk/client-secrets-manager": "3.449.0",
@@ -24,6 +25,7 @@
         "@shared/tsconfig": "workspace:*",
         "@shared/tsup": "workspace:*",
         "@types/node": "latest",
+        "class-validator": "0.15.1",
         "typescript": "^5.7.3"
     }
 }

@@ -1,0 +1,11 @@
+{
+    "testEnvironment": "node",
+    "moduleFileExtensions": ["js", "ts"],
+    "rootDir": ".",
+    "testRegex": "integration/.*\\.spec\\.ts$",
+    "transform": {
+        "^.+\\.ts$": "ts-jest"
+    },
+    "globalSetup": "./integration/setup.ts",
+    "globalTeardown": "./integration/teardown.ts"
+}

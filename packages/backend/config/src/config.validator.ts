@@ -1,3 +1,5 @@
+import { isEmail, isFQDN } from "class-validator";
+
 /**
  * Validates a port.
  * @param port The port to validate.
@@ -16,4 +18,53 @@ export const validB64Key = (key: string): boolean => {
     } catch (_e) {
         return false;
     }
+};
+
+/**
+ * Validates a positive integer, such as a timeout or a count.
+ * @param value The value to validate.
+ * @returns True if the value is a positive integer.
+ */
+export const validPositiveInt = (value: number): boolean => Number.isInteger(value) && value > 0;
+
+/**
+ * Validates a set string.
+ * @param value The value to validate.
+ * @returns True if the value is a non-empty string.
+ */
+export const validRequired = (value: string | undefined): boolean => typeof value === "string" && value !== "";
+
+/**
+ * Validates a host name such as login.example.com, without scheme, port or path.
+ * @param value The value to validate.
+ * @returns True if the value is a host name.
+ */
+export const validHostName = (value: string | undefined): boolean => typeof value === "string" && isFQDN(value);
+
+/**
+ * Validates an email address.
+ * @param value The value to validate.
+ * @returns True if the value is an email address.
+ */
+export const validEmail = (value: string | undefined): boolean => typeof value === "string" && isEmail(value);
+
+/**
+ * Builds a validator that accepts only the given values.
+ * @param values The allowed values.
+ * @returns The validator.
+ */
+export const validOneOf =
+    <T>(values: readonly T[]) =>
+    (value: T): boolean =>
+        values.includes(value);
+
+/**
+ * Validates an http or https origin exactly as a browser sends it, so no trailing slash, path, query, fragment or credentials.
+ * @param value The value to validate.
+ * @returns True if the value is such an origin.
+ */
+export const validPublicUrl = (value: string | undefined): boolean => {
+    if (!value || !URL.canParse(value)) return false;
+    const url = new URL(value);
+    return ["http:", "https:"].includes(url.protocol) && url.origin === value;
 };

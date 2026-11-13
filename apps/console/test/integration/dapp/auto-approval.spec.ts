@@ -1,0 +1,143 @@
+import { closeTestApp, createTestApp, TestApp, truncateAll } from "@backend/test";
+import { ConfigModule } from "@nestjs/config";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { register } from "prom-client";
+import { DataSource } from "typeorm";
+import { Dapp } from "@database/console/entities";
+import { createDapp } from "@database/console/test/factories";
+import { DappStatus } from "@shared/modules/dapp";
+import { DappModule } from "../../../src/modules/dapp/dapp.module";
+import { JWT_KEY_SET } from "../../../src/modules/auth/jwt-key-set";
+import { SLACK_NOTIFIER } from "../../../src/modules/notification/notification.tokens";
+import { AUTH0_PROVISIONER } from "../../../src/modules/provisioning/provisioning.tokens";
+import { bearer, testKeySet } from "../../mocks/auth/token.mock";
+import { testConfig } from "../../mocks/config/config.mock";
+import { dappForm, findChanges, findDapp, transitionCounts } from "../../mocks/dapp/dapp.mock";
+import { SlackNotifierMock } from "../../mocks/notification/slack-notifier.mock";
+import { FakeProvisionerMock } from "../../mocks/provisioning/fake-provisioner.mock";
+
+describe("Auto-approval (integration)", () => {
+    const ownerEmail = "new@owners.test";
+    const provisioner = new FakeProvisionerMock();
+    const slack = new SlackNotifierMock();
+    let testApp: TestApp;
+    let dataSource: DataSource;
+    let owner: string;
+
+    beforeAll(async () => {
+        const config = testConfig();
+        testApp = await createTestApp({
+            imports: [
+                ConfigModule.forRoot({
+                    load: [() => ({ ...config, admin: { ...config.admin, autoApprovalEnabled: true } })],
+                    isGlobal: true,
+                }),
+                TypeOrmModule.forRoot(config.database),
+                DappModule,
+            ],
+            overrides: [
+                { provide: JWT_KEY_SET, useValue: await testKeySet() },
+                { provide: SLACK_NOTIFIER, useValue: slack },
+                { provide: AUTH0_PROVISIONER, useValue: provisioner },
+            ],
+        });
+        dataSource = testApp.module.get(DataSource);
+    });
+
+    afterAll(async () => {
+        await closeTestApp(testApp.app);
+    });
+
+    beforeEach(async () => {
+        await truncateAll(dataSource);
+        register.resetMetrics();
+        provisioner.reset();
+        slack.clearMocks();
+        owner = await bearer(ownerEmail);
+    });
+
+    /**
+     * Sends a PATCH to the dApp as the owner.
+     * @param id The dApp id.
+     * @param body The fields to change.
+     * @returns The pending request.
+     */
+    const patch = (id: string, body: Record<string, unknown>) =>
+        testApp.request.patch(`/dapp/${id}`).set("Authorization", owner).send(body);
+
+    describe("POST /dapp", () => {
+        it("should approve a new dApp with a new Auth0 client and alert the admins", async () => {
+            const { body } = await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(201);
+
+            expect(body).toMatchObject({
+                status: "approved",
+                auth0ClientId: expect.stringMatching(/^fake_/),
+                reviewedAt: expect.any(String),
+                pendingChange: null,
+            });
+            expect(provisioner.calls).toEqual([
+                {
+                    dappId: body.id,
+                    name: "Acme Wallet",
+                    description: "A wallet for NEAR.",
+                    logoUrl: "https://cdn.acme.xyz/logo.png",
+                    callbackUrls: ["https://acme.xyz/callback"],
+                    logoutUrls: [],
+                    webOrigins: ["https://acme.xyz"],
+                },
+            ]);
+            expect(await findDapp(dataSource.manager, body.id)).toMatchObject({
+                status: "approved",
+                auth0ClientId: body.auth0ClientId,
+                reviewedAt: new Date(body.reviewedAt),
+            });
+            expect(slack.notify).toHaveBeenCalledWith({ kind: "dapp_submitted", dapp: expect.objectContaining({ id: body.id }) });
+            expect(await transitionCounts()).toEqual({ "create success": 1, "approve success": 1 });
+        });
+
+        it("should leave the stored dApp pending for an admin when the Auth0 call fails", async () => {
+            provisioner.script("failed");
+
+            await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(500);
+
+            const [dapp] = await dataSource.manager.find(Dapp);
+            expect(dapp).toMatchObject({ ownerEmail, status: "pending", auth0ClientId: null, reviewedAt: null });
+            expect(slack.notify).toHaveBeenCalledWith({ kind: "dapp_submitted", dapp: expect.objectContaining({ id: dapp.id }) });
+            expect(await transitionCounts()).toEqual({ "create success": 1 });
+        });
+    });
+
+    describe("PATCH /dapp/:id", () => {
+        it("should still send an approved dApp's edit to review, calling no Auth0", async () => {
+            const dapp = await createDapp(dataSource.manager, {
+                ...dappForm(),
+                ownerEmail,
+                status: DappStatus.APPROVED,
+                auth0ClientId: "client_live",
+            });
+
+            const { body } = await patch(dapp.id, { name: "Acme Pay" }).expect(200);
+
+            expect(body).toMatchObject({ name: "Acme Wallet", pendingChange: expect.objectContaining({ name: "Acme Pay" }) });
+            expect(await findChanges(dataSource.manager, dapp.id)).toEqual([
+                expect.objectContaining({ status: "pending", reviewedAt: null, name: "Acme Pay" }),
+            ]);
+            expect(provisioner.calls).toEqual([]);
+            expect(slack.notify).toHaveBeenCalledWith({
+                kind: "change_requested",
+                dapp: expect.objectContaining({ id: dapp.id }),
+                change: { name: "Acme Pay" },
+            });
+            expect(await transitionCounts()).toEqual({ "update success": 1 });
+        });
+
+        it("should edit a pending dApp in place without calling Auth0", async () => {
+            const dapp = await createDapp(dataSource.manager, { ...dappForm(), ownerEmail });
+
+            const { body } = await patch(dapp.id, { name: "Acme Pay" }).expect(200);
+
+            expect(body).toMatchObject({ name: "Acme Pay", status: "pending" });
+            expect(provisioner.calls).toEqual([]);
+        });
+    });
+});

@@ -11,3 +11,6 @@ export * from "./with-retries";
 export * from "./detach";
 export * from "./cascade";
 export * from "./crypto";
+export * from "./is-plain-object";
+export * from "./deepmerge";
+export * from "./get-attribute";
