@@ -85,8 +85,7 @@ console:
         AUTH0_PROVISIONER: management
         AUTO_APPROVAL_ENABLED: "false"
         DB_PORT: "5432"
-        # Verifies the server against Node's built-in CAs, which cover RDS.
-        DB_SSL: "true"
+        DB_SSL: "false"
     secretProviderClass:
         objectName: "fast-auth/prod/console"
         objectAlias: fast-auth-prod-console
