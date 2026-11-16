@@ -1,134 +1,124 @@
-# fast-auth Terraform Infrastructure
+# fast-auth infrastructure
 
-Terraform project that deploys the **attester** and **custom-issuer-rotation** AWS Lambda functions along with all supporting resources.
+Terraform for what the NEAR Auth Console needs outside the cluster: its Secrets
+Manager secret and, in production, its Postgres database. The cluster side (the
+API and the web app) is the Helm chart in `infra/chart`.
 
-## Resources created
+Modules come from the private repository
+[`Peersyst/peersyst-infra`](https://github.com/Peersyst/peersyst-infra) under
+`tf-modules/*`, pinned to `main` over `git::ssh://`, so `terraform init` needs
+SSH access to it.
 
-| Resource | Description |
-|---|---|
-| **KMS keys** (x3) | RSA 2048 `SIGN_VERIFY` keys with aliases `custom-issuer-previous`, `custom-issuer-current`, `custom-issuer-next` |
-| **Secrets Manager** | Secret for attester configuration (NEAR keys, contract IDs, etc.) |
-| **IAM roles** | Attester role (KMS read-only + Secrets Manager read) and rotation role (KMS full management) |
-| **Lambda functions** | `attester` (Node.js 22) and `custom-issuer-rotation` (Python 3.12) |
-| **EventBridge rules** | Attester runs every 5 minutes; rotation runs every 90 days |
-| **CloudWatch log groups** | Log retention for both Lambdas (30 days) |
+This replaced the stack that deployed the attester and rotation lambdas and
+their KMS signing keys, destroyed in November 2026 along with the Sweat testnet
+integration that was the only thing signing through them. Its state object,
+`fast-auth/terraform.tfstate`, is still in the bucket and empty.
 
-## Project structure
+## Deploy / Destroy
 
-```
-infra/terraform/
-├── main.tf                       # Provider, backend, module invocations
-├── variables.tf                  # All input variables
-├── outputs.tf                    # Proxied outputs from the modules
-├── terraform.tfvars.example      # Example variable values
-├── .gitignore
-├── README.md
-└── modules/
-    ├── kms-signing-keys/         # Shared KMS keys and aliases
-    │   ├── main.tf
-    │   ├── variables.tf
-    │   └── outputs.tf
-    ├── attester/                 # Attester Lambda and supporting resources
-    │   ├── lambda.tf
-    │   ├── iam.tf
-    │   ├── secrets.tf
-    │   ├── eventbridge.tf
-    │   ├── variables.tf
-    │   └── outputs.tf
-    └── custom-issuer-rotation/   # Rotation Lambda and supporting resources
-        ├── lambda.tf
-        ├── iam.tf
-        ├── eventbridge.tf
-        ├── variables.tf
-        └── outputs.tf
-```
-
-## Prerequisites
-
-- Terraform >= 1.5
-- AWS CLI configured with appropriate credentials
-- An S3 bucket for the Terraform state backend
-- Lambda zip files built before running `terraform apply`:
+Run from this directory:
 
 ```bash
-# Attester (Node.js)
-cd apps/attester
-pnpm install && pnpm build:lambda
-# Produces: apps/attester/attester-lambda.zip
+make plan-staging
+make plan-production
 
-# Custom Issuer Rotation (Python)
-cd apps/custom-issuer-rotation
-zip custom-issuer-rotation-lambda.zip lambda.py
-# Produces: apps/custom-issuer-rotation/custom-issuer-rotation-lambda.zip
+make deploy-staging
+make deploy-production
+
+make destroy-staging
+make destroy-production
 ```
 
-## Deployment
+Each target selects its own workspace and backend key
+(`fast-auth-console-<env>-tfState`), so staging and production live in
+completely separate state files.
 
-### 1. Initialize Terraform
+## What it creates
+
+| File | Module | Resource |
+| --- | --- | --- |
+| `secrets.tf` | `peersyst-infra//tf-modules/secret` | Secret `fast-auth/<env>/console`. The module maps `production` to `prod`. |
+| `rds.tf` | `peersyst-infra//tf-modules/rds` | **Production only.** Postgres `fast-auth-production-console`, its subnet group and its security group. Staging reuses the shared `peersyst-dev` instance. |
+| `main.tf` | — | AWS provider, S3 backend, default tags. |
+
+There is no IRSA here. The console reads no AWS API at runtime: its
+configuration arrives as environment variables, which the Secrets Store CSI
+driver mounts using the namespace's shared
+`peersyst-secrets-iamserviceaccount`, the same one the relayer and the issuers
+use. That service account's policy already covers `fast-auth/*`, so a new
+secret under that prefix needs no IAM change.
+
+## Variables
+
+| Name | Default | Description |
+| --- | --- | --- |
+| `region` | `us-east-1` | AWS region. |
+| `environment` | — | `staging` or `production`. Passed from the Makefile. |
+| `project_name` | `fast-auth` | Project / repo name. First segment of the secret name. |
+| `eks_cluster_name` | `peersyst-dev` | Cluster the console runs on. The database takes its VPC, private subnets and security group from it. |
+| `db_instance_class` | `db.t4g.micro` | Production database instance class. |
+| `db_allocated_storage` | `20` | Production database storage, in GB. |
+
+## Steps Terraform does not do
+
+### 1. The secret value
+
+Terraform creates the secret, never its value: a value set here would sit in
+the state file in plaintext. Every key the chart lists under
+`console.secretProviderClass.secrets` has to be present, or the CSI driver
+refuses to mount and the pod never starts.
 
 ```bash
-cd infra/terraform
+cat > /tmp/console-staging.json <<'JSON'
+{
+  "AUTH0_LOGIN_DOMAIN": "login.testnet.fast-auth.com",
+  "AUTH0_CONSOLE_CLIENT_ID": "",
+  "AUTH0_MGMT_DOMAIN": "",
+  "AUTH0_M2M_CLIENT_ID": "",
+  "AUTH0_M2M_CLIENT_SECRET": "",
+  "AUTH0_TEMPLATE_CLIENT_ID": "",
+  "DB_HOST": "",
+  "DB_DATABASE": "console",
+  "DB_USER": "console",
+  "DB_PASSWORD": "",
+  "ADMIN_EMAILS": "someone@peersyst.com",
+  "SLACK_WEBHOOK_URL": ""
+}
+JSON
 
-terraform init \
-  -backend-config="bucket=YOUR_STATE_BUCKET" \
-  -backend-config="key=fast-auth/terraform.tfstate" \
-  -backend-config="region=us-east-1"
+aws secretsmanager put-secret-value \
+  --secret-id fast-auth/staging/console \
+  --secret-string file:///tmp/console-staging.json
 ```
 
-### 2. Create a tfvars file
+`SLACK_WEBHOOK_URL` may be empty, which turns the Slack alerts off; the key
+still has to exist. The settings that are not secret (`PUBLIC_URL`,
+`AUTH0_PROVISIONER`, `AUTO_APPROVAL_ENABLED`, `DB_PORT`, `DB_SSL`) live in the
+chart's values file instead, so a change to them is reviewed with the
+deployment.
 
-Copy the example and fill in your values:
+### 2. The staging database
 
-```bash
-cp terraform.tfvars.example terraform.tfvars
+Staging reuses the shared `peersyst-dev` Postgres, so its database and user are
+created by hand, once, from the rds-bastion:
+
+```sql
+CREATE DATABASE console;
+CREATE USER console WITH PASSWORD '<generated>';
+GRANT ALL PRIVILEGES ON DATABASE console TO console;
+\c console
+GRANT ALL ON SCHEMA public TO console;
 ```
 
-Edit `terraform.tfvars` — at minimum set `environment`. Sensitive values like `attester_secret_config` should be passed via CLI or a separate file:
+Then store the host, database, user and password in
+`fast-auth/staging/console`. The API creates its own tables: it runs the TypeORM
+migrations on startup.
 
-```bash
-terraform apply -var-file="terraform.tfvars" -var-file="secrets.tfvars"
-```
+### 3. The production database password
 
-### 3. Plan and apply
-
-```bash
-terraform plan -var-file="terraform.tfvars"
-terraform apply -var-file="terraform.tfvars"
-```
-
-## Updating Lambda code
-
-After code changes, rebuild the zip and update:
-
-```bash
-# Rebuild
-cd apps/attester && pnpm build:lambda
-# or
-cd apps/custom-issuer-rotation && pnpm build:lambda
-
-# Re-apply (Terraform detects the changed zip hash)
-cd infra/terraform
-terraform apply -var-file="terraform.tfvars"
-```
-
-## Multiple environments
-
-All resource names include the `environment` variable as a suffix, so staging and production can coexist in the same AWS account. Use separate `.tfvars` files or workspaces:
-
-```bash
-terraform workspace new staging
-terraform apply -var-file="staging.tfvars"
-
-terraform workspace new production
-terraform apply -var-file="production.tfvars"
-```
-
-## Outputs
-
-| Output | Description |
-|---|---|
-| `kms_signing_*_key_id` | Key IDs of the three KMS signing keys |
-| `attester_lambda_arn` / `name` | Attester Lambda ARN and function name |
-| `rotation_lambda_arn` / `name` | Rotation Lambda ARN and function name |
-| `attester_secret_arn` | Secrets Manager secret ARN |
-| `*_eventbridge_rule_arn` | EventBridge schedule rule ARNs |
+`tf-modules/rds` lets AWS create and keep the master password in its own
+managed secret, so Terraform never sees it. After the first apply, read
+`console_db_master_user_secret_arn` and copy the password into
+`fast-auth/prod/console` as `DB_PASSWORD`, along with the `console_db_address`
+as `DB_HOST` — or, better, create a dedicated role for the API and store that
+one instead of the master.

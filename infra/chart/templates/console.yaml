@@ -1,0 +1,126 @@
+{{- if .Values.console.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/port: {{ .Values.console.service.targetPort | quote }}
+    prometheus.io/scrape: "true"
+    prometheus.io/path: "/api/console/metrics"
+  name: console-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+  - name: api
+    port: {{ .Values.console.service.port }}
+    targetPort: {{ .Values.console.service.targetPort }}
+  selector:
+    app: console-{{ .Values.environment }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.console.deployment.name }}-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.console.deployment.name }}-{{ .Values.environment }}
+spec:
+  # The API runs the TypeORM migrations on startup, so it is deployed one pod at
+  # a time and never two versions at once.
+  replicas: {{ .Values.console.deployment.replicas }}
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ .Values.console.deployment.name }}-{{ .Values.environment }}
+  template:
+    metadata:
+      annotations:
+        timestamp: {{ .Values.timestamp }}
+      labels:
+        app: {{ .Values.console.deployment.name }}-{{ .Values.environment }}
+    spec:
+      serviceAccountName: peersyst-secrets-iamserviceaccount
+      volumes:
+      - name: console-secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: console-{{ .Values.environment }}-secrets
+      containers:
+      - name: console
+        image: ghcr.io/peersyst/fast-auth-console:{{ .Values.tagConsole }}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: {{ .Values.console.deployment.memoryRequest }}
+            cpu: {{ .Values.console.deployment.cpuRequest }}
+          limits:
+            memory: {{ .Values.console.deployment.memoryLimit }}
+            cpu: {{ .Values.console.deployment.cpuLimit }}
+        ports:
+        - containerPort: {{ .Values.console.deployment.port }}
+        livenessProbe:
+          httpGet:
+            path: /api/console/livez
+            port: {{ .Values.console.deployment.port }}
+          initialDelaySeconds: 30
+          timeoutSeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          # Answers only once the database does, so a pod whose migrations are
+          # still running never takes traffic.
+          httpGet:
+            path: /api/console/readyz
+            port: {{ .Values.console.deployment.port }}
+          initialDelaySeconds: 10
+          timeoutSeconds: 10
+          periodSeconds: 10
+          failureThreshold: 6
+        volumeMounts:
+        - name: console-secrets
+          mountPath: "/mnt/secrets"
+          readOnly: true
+        env:
+        - name: CONFIG_ENV
+          value: {{ .Values.environment }}
+        {{- range $k, $v := .Values.console.env }}
+        - name: {{ $k }}
+          value: {{ $v | quote }}
+        {{- end }}
+        {{- range $k, $v := .Values.console.secretProviderClass.secrets }}
+        - name: {{ $v }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Values.console.secretProviderClass.objectAlias }}
+              key: {{ $v }}
+        {{- end }}
+      imagePullSecrets:
+      - name: regcred
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: console-{{ .Values.environment }}-secrets
+  namespace: {{ $.Values.namespace }}
+spec:
+  provider: aws
+  parameters:
+    region: us-east-1
+    objects: |
+      - objectName: {{ $.Values.console.secretProviderClass.objectName }}
+        objectType: secretsmanager
+        jmesPath:
+        {{- range $k, $v := .Values.console.secretProviderClass.secrets }}
+          - path: {{ $v }}
+            objectAlias: {{ $k }}
+        {{- end }}
+  secretObjects:
+  - secretName: {{ $.Values.console.secretProviderClass.objectAlias }}
+    type: Opaque
+    data:
+    {{- range $k, $v := .Values.console.secretProviderClass.secrets }}
+    - objectName: {{ $k }}
+      key: {{ $v }}
+    {{- end }}
+{{- end }}

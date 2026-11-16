@@ -1,77 +1,40 @@
-variable "aws_region" {
-  description = "AWS region for all resources"
+# Default AWS Tags Variables (Do NOT fill here. They are passed from the Makefile. Check README.md)
+variable "region" {
+  description = "AWS region"
   type        = string
   default     = "us-east-1"
 }
 
 variable "environment" {
-  description = "Environment name (e.g. staging, production)"
+  description = "Default environment [staging|production]"
   type        = string
+
+  validation {
+    condition     = contains(["staging", "production"], var.environment)
+    error_message = "environment must be staging or production."
+  }
 }
 
-# --- Attester ---
-
-variable "attester_zip_path" {
-  description = "Path to the attester Lambda zip file (built via pnpm build:lambda)"
+variable "project_name" {
+  description = "Project name that needs to match the repository ej: fast-auth -> https://github.com/Peersyst/fast-auth"
   type        = string
-  default     = "../../apps/attester/attester-lambda.zip"
+  default     = "fast-auth"
 }
 
-variable "attester_schedule" {
-  description = "EventBridge schedule expression for the attester Lambda"
+variable "eks_cluster_name" {
+  description = "Name of the EKS cluster the console runs on. The database derives its VPC, private subnets and security group from it."
   type        = string
-  default     = "rate(5 minutes)"
+  default     = "peersyst-dev"
 }
 
-variable "attester_timeout" {
-  description = "Timeout in seconds for the attester Lambda"
-  type        = number
-  default     = 60
-}
-
-variable "attester_memory_size" {
-  description = "Memory in MB for the attester Lambda"
-  type        = number
-  default     = 256
-}
-
-variable "attester_secret_config" {
-  description = "JSON map of attester environment variables stored in Secrets Manager"
-  type        = map(string)
-  sensitive   = true
-  default     = {}
-}
-
-# --- Custom Issuer Rotation ---
-
-variable "rotation_zip_path" {
-  description = "Path to the custom-issuer-rotation Lambda zip file"
+variable "db_instance_class" {
+  description = "Instance class of the production database."
   type        = string
-  default     = "../../apps/custom-issuer-rotation/custom-issuer-rotation-lambda.zip"
+  default     = "db.t4g.micro"
 }
 
-variable "rotation_schedule" {
-  description = "EventBridge schedule expression for the rotation Lambda"
-  type        = string
-  default     = "rate(90 days)"
-}
-
-variable "rotation_timeout" {
-  description = "Timeout in seconds for the rotation Lambda"
+variable "db_allocated_storage" {
+  description = "Initial storage of the production database, in GB."
   type        = number
-  default     = 30
-}
-
-variable "rotation_memory_size" {
-  description = "Memory in MB for the rotation Lambda"
-  type        = number
-  default     = 128
-}
-
-# --- KMS ---
-
-variable "kms_key_deletion_window" {
-  description = "Number of days before a KMS key is deleted after being scheduled for deletion"
-  type        = number
-  default     = 7
+  default     = 20
 }

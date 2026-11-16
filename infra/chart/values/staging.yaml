@@ -27,8 +27,11 @@ relayer:
             nearGuardId: NEAR_GUARD_ID
             nearIssuer: NEAR_ISSUER
 
+# Retired with the Sweat testnet integration, the only thing that signed through
+# them. custom-issuer-go signs with the KMS keys in infra/terraform, so it comes
+# out of the cluster before that stack is destroyed.
 customIssuer:
-    enabled: true
+    enabled: false
     service:
         port: 3000
         targetPort: 3000
@@ -52,7 +55,7 @@ customIssuer:
             ignoreExpiration: IGNORE_EXPIRATION
 
 customIssuerGo:
-    enabled: true
+    enabled: false
     service:
         port: 3000
         targetPort: 3000
@@ -113,6 +116,68 @@ landing:
         memoryRequest: 256Mi
         cpuRequest: 100m
         memoryLimit: 256Mi
+        cpuLimit: 100m
+
+# Off until fast-auth/staging/console holds its value: without the secret the
+# CSI driver never mounts, the pod never turns ready and the whole release rolls
+# back, taking the rest of staging with it. Flip both to true once it is filled.
+console:
+    enabled: false
+    # The web app and the API share these hosts: the API answers under
+    # /api/console and every other path is the bundle, so the app calls its API
+    # on its own origin and nothing crosses an origin.
+    hosts:
+        - console-staging.aws.peersyst.tech
+    service:
+        port: 3000
+        targetPort: 3000
+    deployment:
+        name: console
+        # One pod: the API runs the database migrations on startup.
+        replicas: 1
+        port: 3000
+        memoryRequest: 256Mi
+        cpuRequest: 100m
+        memoryLimit: 512Mi
+        cpuLimit: 500m
+    # Settings that are not secret, kept here so a change is reviewed with the
+    # deployment. Everything under secretProviderClass lives in Secrets Manager.
+    env:
+        PUBLIC_URL: "https://console-staging.aws.peersyst.tech"
+        AUTH0_PROVISIONER: management
+        AUTO_APPROVAL_ENABLED: "false"
+        DB_PORT: "5432"
+        # Verifies the server against Node's built-in CAs, which cover RDS.
+        DB_SSL: "true"
+    secretProviderClass:
+        objectName: "fast-auth/staging/console"
+        objectAlias: fast-auth-staging-console
+        secrets:
+            auth0LoginDomain: AUTH0_LOGIN_DOMAIN
+            auth0ConsoleClientId: AUTH0_CONSOLE_CLIENT_ID
+            auth0MgmtDomain: AUTH0_MGMT_DOMAIN
+            auth0M2mClientId: AUTH0_M2M_CLIENT_ID
+            auth0M2mClientSecret: AUTH0_M2M_CLIENT_SECRET
+            auth0TemplateClientId: AUTH0_TEMPLATE_CLIENT_ID
+            dbHost: DB_HOST
+            dbDatabase: DB_DATABASE
+            dbUser: DB_USER
+            dbPassword: DB_PASSWORD
+            adminEmails: ADMIN_EMAILS
+            slackWebhookUrl: SLACK_WEBHOOK_URL
+
+consoleWeb:
+    enabled: false
+    service:
+        port: 80
+        targetPort: 80
+    deployment:
+        name: console-web
+        replicas: 1
+        port: 80
+        memoryRequest: 64Mi
+        cpuRequest: 50m
+        memoryLimit: 128Mi
         cpuLimit: 100m
 
 ingress:

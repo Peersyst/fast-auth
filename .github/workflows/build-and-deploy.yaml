@@ -73,7 +73,9 @@ jobs:
           target: release
           base_image: ${{ github.sha }}
 
-    build-console-web:
+    # Two images out of the same commit: Vite bakes each environment's settings
+    # into its own bundle, so staging and production cannot share one.
+    build-console-web-staging:
         needs: [build-base]
         uses: ./.github/workflows/build-console-web.yaml
         secrets: inherit
@@ -81,9 +83,20 @@ jobs:
           push: true
           target: release
           base_image: ${{ github.sha }}
+          environment: staging
+
+    build-console-web-production:
+        needs: [build-base]
+        uses: ./.github/workflows/build-console-web.yaml
+        secrets: inherit
+        with:
+          push: true
+          target: release
+          base_image: ${{ github.sha }}
+          environment: production
 
     deploy:
-        needs: [build-relayer, build-attester, build-custom-issuer, build-custom-issuer-go, build-landing]
+        needs: [build-relayer, build-attester, build-custom-issuer, build-custom-issuer-go, build-landing, build-console, build-console-web-staging]
         uses: ./.github/workflows/deploy.yaml
         secrets: inherit
         with:

@@ -1,49 +1,24 @@
-output "kms_signing_previous_key_id" {
-  description = "KMS key ID for signing-previous"
-  value       = module.kms_signing_keys.signing_previous_key_id
+output "console_secret_name" {
+  value       = module.console_secret.secret_name
+  description = "Secret holding the console API configuration. Use it as objectName in the chart's values."
 }
 
-output "kms_signing_current_key_id" {
-  description = "KMS key ID for signing-current"
-  value       = module.kms_signing_keys.signing_current_key_id
+output "console_secret_arn" {
+  value       = module.console_secret.secret_arn
+  description = "ARN of the console secret."
 }
 
-output "kms_signing_next_key_id" {
-  description = "KMS key ID for signing-next"
-  value       = module.kms_signing_keys.signing_next_key_id
+output "console_db_address" {
+  value       = try(module.console_db[0].db_instance_address, null)
+  description = "Hostname of the console database. Null in staging, which reuses the shared instance. Store it in the console secret as DB_HOST."
 }
 
-output "attester_lambda_arn" {
-  description = "ARN of the attester Lambda function"
-  value       = module.attester.lambda_arn
+output "console_db_port" {
+  value       = try(module.console_db[0].db_instance_port, null)
+  description = "Port of the console database. Null in staging."
 }
 
-output "attester_lambda_name" {
-  description = "Name of the attester Lambda function"
-  value       = module.attester.lambda_name
-}
-
-output "rotation_lambda_arn" {
-  description = "ARN of the custom-issuer-rotation Lambda function"
-  value       = module.custom_issuer_rotation.lambda_arn
-}
-
-output "rotation_lambda_name" {
-  description = "Name of the custom-issuer-rotation Lambda function"
-  value       = module.custom_issuer_rotation.lambda_name
-}
-
-output "attester_secret_arn" {
-  description = "ARN of the attester Secrets Manager secret"
-  value       = module.attester.secret_arn
-}
-
-output "attester_eventbridge_rule_arn" {
-  description = "ARN of the attester EventBridge schedule rule"
-  value       = module.attester.eventbridge_rule_arn
-}
-
-output "rotation_eventbridge_rule_arn" {
-  description = "ARN of the rotation EventBridge schedule rule"
-  value       = module.custom_issuer_rotation.eventbridge_rule_arn
+output "console_db_master_user_secret_arn" {
+  value       = try(module.console_db[0].master_user_secret_arn, null)
+  description = "AWS-managed secret holding the database master password. Null in staging."
 }

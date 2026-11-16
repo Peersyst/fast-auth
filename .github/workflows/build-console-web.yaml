@@ -12,12 +12,21 @@ on:
       base_image:
         required: true
         type: string
+      environment:
+        description: "Environment whose settings are baked into the bundle"
+        required: true
+        type: string
 
 jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Vite bakes the settings into the bundle, so each environment gets its own
+    # image and reads its own GitHub environment variables. A build that is not
+    # pushed only checks that the app compiles, so it takes no environment and
+    # none of its variables.
+    environment: ${{ inputs.push && inputs.environment || '' }}
     steps:
       # Checkout repository under $GITHUB_WORKSPACE path
       - name: Repository checkout
@@ -38,10 +47,11 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Configure tag name
+      # Configure tag name. The tag carries the environment, since the same
+      # commit produces one image per environment.
       - name: Sets env vars
         run: |
-          echo "DOCKER_IMAGE_NAME=ghcr.io/peersyst/${{ github.event.repository.name }}-console-web:${GITHUB_SHA:0:8}" >> $GITHUB_ENV
+          echo "DOCKER_IMAGE_NAME=ghcr.io/peersyst/${{ github.event.repository.name }}-console-web:${GITHUB_SHA:0:8}-${{ inputs.environment }}" >> $GITHUB_ENV
 
       # Build docker image
       - name: Build docker image

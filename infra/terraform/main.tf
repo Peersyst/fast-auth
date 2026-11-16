@@ -1,57 +1,36 @@
+# Infrastructure the NEAR Auth Console needs outside the cluster: its Secrets
+# Manager secret and, in production, its database.
+#
+# It follows the layout of Peersyst/peersyst-infra (see its AGENTS.md) and
+# sources that repository's modules over SSH, so `terraform init` needs access
+# to it. It is the only Terraform in this repository: the attester and rotation
+# lambdas that used to live here went away with the Sweat testnet integration
+# they served.
 terraform {
-  required_version = ">= 1.5"
-
+  required_version = ">= 1.3"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
   }
-
-  backend "s3" {}
+  backend "s3" {
+    bucket         = "peersyst-terraform-state"
+    region         = "us-east-1"
+    encrypt        = "true"
+    acl            = "bucket-owner-full-control"
+    dynamodb_table = "peersyst-terraform-lock"
+  }
 }
 
 provider "aws" {
-  region = var.aws_region
-}
-
-module "kms_signing_keys" {
-  source = "./modules/kms-signing-keys"
-
-  environment             = var.environment
-  kms_key_deletion_window = var.kms_key_deletion_window
-}
-
-module "attester" {
-  source = "./modules/attester"
-
-  environment = var.environment
-  aws_region  = var.aws_region
-
-  zip_path      = var.attester_zip_path
-  schedule      = var.attester_schedule
-  timeout       = var.attester_timeout
-  memory_size   = var.attester_memory_size
-  secret_config = var.attester_secret_config
-
-  kms_previous_alias_name = module.kms_signing_keys.signing_previous_alias_name
-  kms_current_alias_name  = module.kms_signing_keys.signing_current_alias_name
-  kms_next_alias_name     = module.kms_signing_keys.signing_next_alias_name
-}
-
-module "custom_issuer_rotation" {
-  source = "./modules/custom-issuer-rotation"
-
-  environment = var.environment
-
-  zip_path    = var.rotation_zip_path
-  schedule    = var.rotation_schedule
-  timeout     = var.rotation_timeout
-  memory_size = var.rotation_memory_size
-
-  kms_alias_names = [
-    module.kms_signing_keys.signing_previous_alias_name,
-    module.kms_signing_keys.signing_current_alias_name,
-    module.kms_signing_keys.signing_next_alias_name,
-  ]
+  region = var.region
+  default_tags {
+    tags = {
+      Region  = var.region
+      Env     = var.environment
+      Project = var.project_name
+      Cluster = var.eks_cluster_name
+    }
+  }
 }

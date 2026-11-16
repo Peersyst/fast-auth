@@ -1,0 +1,66 @@
+{{- if .Values.consoleWeb.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: console-web-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+  - name: web
+    port: {{ .Values.consoleWeb.service.port }}
+    targetPort: {{ .Values.consoleWeb.service.targetPort }}
+  selector:
+    app: console-web-{{ .Values.environment }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.consoleWeb.deployment.name }}-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.consoleWeb.deployment.name }}-{{ .Values.environment }}
+spec:
+  replicas: {{ .Values.consoleWeb.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.consoleWeb.deployment.name }}-{{ .Values.environment }}
+  template:
+    metadata:
+      annotations:
+        timestamp: {{ .Values.timestamp }}
+      labels:
+        app: {{ .Values.consoleWeb.deployment.name }}-{{ .Values.environment }}
+    spec:
+      containers:
+      # nginx serving the built bundle. Vite bakes the app's settings in at build
+      # time, so the image is per environment: its tag carries the environment
+      # the pipeline built it for and the container needs no variables.
+      - name: console-web
+        image: ghcr.io/peersyst/fast-auth-console-web:{{ .Values.tagConsoleWeb }}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: {{ .Values.consoleWeb.deployment.memoryRequest }}
+            cpu: {{ .Values.consoleWeb.deployment.cpuRequest }}
+          limits:
+            memory: {{ .Values.consoleWeb.deployment.memoryLimit }}
+            cpu: {{ .Values.consoleWeb.deployment.cpuLimit }}
+        ports:
+        - containerPort: {{ .Values.consoleWeb.deployment.port }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.consoleWeb.deployment.port }}
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.consoleWeb.deployment.port }}
+          initialDelaySeconds: 5
+          timeoutSeconds: 5
+          periodSeconds: 10
+      imagePullSecrets:
+      - name: regcred
+{{- end }}

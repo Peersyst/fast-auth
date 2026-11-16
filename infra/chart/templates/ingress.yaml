@@ -22,6 +22,19 @@ metadata:
     alb.ingress.kubernetes.io/actions.landing-{{ .Values.environment }}: >
       {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"landing-{{ .Values.environment }}","servicePort":"api","weight":20}]}}
     {{- end }}
+    {{- if .Values.console.enabled }}
+    alb.ingress.kubernetes.io/actions.console-{{ .Values.environment }}: >
+      {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"console-{{ .Values.environment }}","servicePort":"api","weight":20}]}}
+    # The console API serves its Prometheus metrics under its own prefix, which
+    # the rule below would otherwise publish with the rest of the API. Prometheus
+    # scrapes the pod directly, so the public host answers 403 instead.
+    alb.ingress.kubernetes.io/actions.console-metrics-{{ .Values.environment }}: >
+      {"type":"fixed-response","fixedResponseConfig":{"contentType":"text/plain","statusCode":"403","messageBody":"Forbidden"}}
+    {{- end }}
+    {{- if .Values.consoleWeb.enabled }}
+    alb.ingress.kubernetes.io/actions.console-web-{{ .Values.environment }}: >
+      {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"console-web-{{ .Values.environment }}","servicePort":"web","weight":20}]}}
+    {{- end }}
   name: {{ .Values.namespace }}-{{ .Values.environment }}
   namespace: {{ .Values.namespace }}
 spec:
@@ -68,5 +81,41 @@ spec:
                 name: landing-{{ .Values.environment }}
                 port:
                   name: use-annotation
+    {{- end }}
+    {{- if or .Values.console.enabled .Values.consoleWeb.enabled }}
+    # The console web app and its API share every host they answer on: the app
+    # calls /api/console on its own origin, so the bundle needs no backend URL
+    # and the API needs no cross-origin allowance. /api/console is listed before
+    # /, since the ALB matches the most specific rule.
+    {{- range $host := .Values.console.hosts }}
+    - host: {{ $host }}
+      http:
+        paths:
+          {{- if $.Values.console.enabled }}
+          - path: /api/console/metrics
+            pathType: Exact
+            backend:
+              service:
+                name: console-metrics-{{ $.Values.environment }}
+                port:
+                  name: use-annotation
+          - path: /api/console
+            pathType: Prefix
+            backend:
+              service:
+                name: console-{{ $.Values.environment }}
+                port:
+                  name: use-annotation
+          {{- end }}
+          {{- if $.Values.consoleWeb.enabled }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: console-web-{{ $.Values.environment }}
+                port:
+                  name: use-annotation
+          {{- end }}
+    {{- end }}
     {{- end }}
 {{- end }}

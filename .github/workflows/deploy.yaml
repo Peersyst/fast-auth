@@ -117,6 +117,8 @@ jobs:
           --set-string tagCustomIssuer="${{ env.TAG }}" \
           --set-string tagCustomIssuerGo="${{ env.TAG }}" \
           --set-string tagLanding="${{ env.TAG }}" \
+          --set-string tagConsole="${{ env.TAG }}" \
+          --set-string tagConsoleWeb="${{ env.TAG }}-${{ inputs.environment }}" \
           --debug
           
       # Send final Slack message if any previous step has failed

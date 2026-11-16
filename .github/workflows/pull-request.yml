@@ -79,3 +79,6 @@ jobs:
             target: integration
             push: false
             base_image: ${{ github.sha }}
+            # Names the image only: a build that is not pushed takes no GitHub
+            # environment and none of its variables.
+            environment: staging
