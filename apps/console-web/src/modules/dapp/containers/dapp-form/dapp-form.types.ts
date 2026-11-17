@@ -42,8 +42,18 @@ const URL_ERRORS = {
 } as const satisfies Record<UrlListField, string>;
 
 /**
+ * The error key of a URL that repeats an earlier one in its list, by list.
+ */
+const DUPLICATE_ERRORS = {
+    callbackUrls: "urlDuplicate",
+    logoutUrls: "urlDuplicate",
+    webOrigins: "webOriginDuplicate",
+} as const satisfies Record<UrlListField, string>;
+
+/**
  * Builds the schema of a URL list. The form holds it as rows of `{ value }`, as `useFieldArray` needs; the output is the
- * normalised list the API takes. The list's own rule is checked only once every row passes, so a bad row is reported once.
+ * normalised list the API takes. A valid row that normalises to an earlier row's URL is refused on its own, rather than
+ * dropped on save. The list's own rule is checked only once every row passes, so a bad row is reported once.
  * @param field The URL list field.
  * @returns The schema.
  */
@@ -51,6 +61,17 @@ function urlList(field: UrlListField) {
     const { isValid } = URL_LIST_RULES[field];
     return z
         .array(z.object({ value: z.string().refine(isValid, URL_ERRORS[field]) }))
+        .superRefine((rows, context) => {
+            const seen = new Set<string>();
+            rows.forEach((row, index) => {
+                if (!isValid(row.value)) return;
+                const url = normaliseUrl(row.value);
+                if (seen.has(url)) {
+                    context.addIssue({ code: z.ZodIssueCode.custom, path: [index, "value"], message: DUPLICATE_ERRORS[field] });
+                }
+                seen.add(url);
+            });
+        })
         .refine(
             (rows) =>
                 !rows.every((row) => isValid(row.value)) ||

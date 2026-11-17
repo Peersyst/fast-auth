@@ -19,3 +19,5 @@ export * from "./zap.icon";
 export * from "./chevron-right.icon";
 export * from "./search.icon";
 export * from "./server.icon";
+export * from "./sun.icon";
+export * from "./moon.icon";

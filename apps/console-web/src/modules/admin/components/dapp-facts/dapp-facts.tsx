@@ -2,6 +2,7 @@ import { Card, CardHeader } from "@frontend/design-system-react/card";
 import { useTranslate } from "@frontend/locale/react";
 import { DappDto } from "@shared/console";
 import { FieldList, FieldRow, Value, valueClassNames } from "../../../dapp/components/field-values/field-values";
+import { LogoPreview } from "../logo-preview/logo-preview";
 
 type FactCardProps = {
     title: string;
@@ -35,9 +36,7 @@ export function DappFacts({ dapp }: DappFactsProps): React.JSX.Element {
                     [
                         translate("dapp.fields.logoUrl"),
                         <div key="logo" className="flex min-w-0 items-center gap-3">
-                            <span className="flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px] border border-border bg-canvas text-faint [&_img]:size-full [&_img]:object-contain">
-                                <img src={dapp.logoUrl} alt={translate("admin.dapp.facts.logoAlt", { name: dapp.name })} />
-                            </span>
+                            <LogoPreview src={dapp.logoUrl} alt={translate("admin.dapp.facts.logoAlt", { name: dapp.name })} />
                             <code className={valueClassNames.code}>{dapp.logoUrl}</code>
                         </div>,
                     ],

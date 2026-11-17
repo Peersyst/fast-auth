@@ -74,6 +74,18 @@ describe("dappFormSchema", () => {
             ["webOrigins"],
             "Add 1 to 10 web origins, each an https origin on a public host, like https://app.example.com, with no path or trailing slash.",
         ],
+        [
+            "a callback URL that repeats an earlier one once normalised",
+            { callbackUrls: rows("https://app.acme.xyz/callback", "https://APP.acme.xyz/callback ") },
+            ["callbackUrls", 1, "value"],
+            "This URL is already in the list.",
+        ],
+        [
+            "a repeated web origin",
+            { webOrigins: rows("https://app.acme.xyz", "https://app.acme.xyz") },
+            ["webOrigins", 1, "value"],
+            "This origin is already in the list.",
+        ],
         ["a 255-character email", { contactEmail: `${"a".repeat(246)}@acme.xyz` }, ["contactEmail"], "Enter a valid email address."],
     ])("should refuse %s", (_, override, path, message) => {
         const result = dappFormSchema.safeParse({ ...VALID, ...override });
@@ -94,7 +106,7 @@ describe("dappFormSchema", () => {
             description: " A wallet. ",
             logoUrl: " https://CDN.Example.com/Logo.png ",
             mauBracket: "lt1k",
-            callbackUrls: rows("https://APP.example.com/cb", "https://app.example.com/cb "),
+            callbackUrls: rows("https://APP.example.com/cb", "https://app.example.com/silent "),
             logoutUrls: [],
             webOrigins: rows("HTTPS://App.Example.com"),
             contactEmail: " dev@acme.xyz ",
@@ -105,7 +117,7 @@ describe("dappFormSchema", () => {
             description: "A wallet.",
             logoUrl: "https://cdn.example.com/Logo.png",
             mauBracket: "lt1k",
-            callbackUrls: ["https://app.example.com/cb"],
+            callbackUrls: ["https://app.example.com/cb", "https://app.example.com/silent"],
             logoutUrls: [],
             webOrigins: ["https://app.example.com"],
             contactEmail: "dev@acme.xyz",

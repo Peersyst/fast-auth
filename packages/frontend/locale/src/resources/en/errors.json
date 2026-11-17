@@ -19,6 +19,8 @@
     "mauBracketRequired": "Choose how many monthly active users you expect.",
     "urlInvalid": "Enter an https URL on a public host, without a #fragment or credentials.",
     "webOriginInvalid": "Enter an https origin on a public host, like https://app.example.com, with no path or trailing slash.",
+    "urlDuplicate": "This URL is already in the list.",
+    "webOriginDuplicate": "This origin is already in the list.",
     "callbackUrlsInvalid": "Add {{min}} to {{max}} callback URLs, each an https URL on a public host, without a #fragment or credentials.",
     "logoutUrlsInvalid": "Add at most {{max}} logout URLs, each an https URL on a public host, without a #fragment or credentials.",
     "webOriginsInvalid": "Add {{min}} to {{max}} web origins, each an https origin on a public host, like https://app.example.com, with no path or trailing slash.",

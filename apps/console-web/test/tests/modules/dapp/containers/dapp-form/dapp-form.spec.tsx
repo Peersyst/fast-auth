@@ -3,7 +3,7 @@ import { DomainError } from "@frontend/core/domain/error";
 import { ConsoleDappErrors } from "@frontend/console-dapp/domain/errors";
 import { DappChangeMock, DappMock } from "@shared/console/test/mocks/dapp";
 import { DappForm } from "../../../../../../src/modules/dapp/containers/dapp-form/dapp-form";
-import { render, screen, within } from "../../../../../utils";
+import { fireEvent, render, screen, within } from "../../../../../utils";
 
 describe("DappForm", () => {
     const proposed = new DappChangeMock({
@@ -45,6 +45,64 @@ describe("DappForm", () => {
         expect(screen.getByLabelText("Expected monthly active users")).toHaveAccessibleDescription(
             expect.stringContaining("Choose how many monthly active users you expect."),
         );
+        expect(onSave).not.toHaveBeenCalled();
+    });
+
+    it("should explain a field once it loses focus, and update the message as it changes, before any submit", async () => {
+        const user = userEvent.setup();
+        render(<DappForm values={null} saveLabel="Submit for review" onSave={jest.fn()} onCancel={jest.fn()} />);
+        const logo = screen.getByLabelText("Application logo");
+
+        await user.type(logo, "http://cdn.acme.xyz/logo.png");
+        expect(logo).not.toHaveAccessibleDescription(expect.stringContaining("Enter an https URL"));
+
+        await user.tab();
+        expect(logo).toHaveAccessibleDescription(
+            expect.stringContaining("Enter an https URL on a public host, of at most 255 characters."),
+        );
+
+        await user.clear(logo);
+        await user.type(logo, "https://cdn.acme.xyz/logo.png");
+        expect(logo).not.toHaveAccessibleDescription(expect.stringContaining("Enter an https URL"));
+    });
+
+    it("should preview a valid logo URL, and warn when it does not load as an image", async () => {
+        const user = userEvent.setup();
+        render(<DappForm values={null} saveLabel="Submit for review" onSave={jest.fn()} onCancel={jest.fn()} />);
+
+        await user.type(screen.getByLabelText("Application logo"), "https://cdn.acme.xyz/logo.html");
+        const preview = await screen.findByRole("presentation");
+        expect(preview).toHaveAttribute("src", "https://cdn.acme.xyz/logo.html");
+
+        fireEvent.error(preview);
+
+        expect(
+            await screen.findByText("No image loaded from this URL. Check that it links straight to the image file."),
+        ).toBeInTheDocument();
+    });
+
+    it("should refuse a URL that repeats an earlier one in its list, until either changes", async () => {
+        const user = userEvent.setup();
+        const onSave = jest.fn();
+        render(<DappForm values={null} saveLabel="Submit for review" onSave={onSave} onCancel={jest.fn()} />);
+
+        await user.click(screen.getByRole("button", { name: "Add logout URL" }));
+        await user.type(screen.getByLabelText("Logout URL 1"), "https://app.acme.xyz/bye");
+        await user.click(screen.getByRole("button", { name: "Add logout URL" }));
+        await user.type(screen.getByLabelText("Logout URL 2"), "https://APP.acme.xyz/bye ");
+        await user.tab();
+
+        expect(screen.getByLabelText("Logout URL 2")).toHaveAccessibleDescription("This URL is already in the list.");
+        expect(screen.getByLabelText("Logout URL 1")).not.toHaveAccessibleDescription("This URL is already in the list.");
+
+        await user.type(screen.getByLabelText("Logout URL 1"), "-now");
+        expect(screen.getByLabelText("Logout URL 2")).not.toHaveAccessibleDescription("This URL is already in the list.");
+
+        await user.clear(screen.getByLabelText("Logout URL 1"));
+        await user.type(screen.getByLabelText("Logout URL 1"), "https://app.acme.xyz/bye");
+        await user.click(screen.getByRole("button", { name: "Submit for review" }));
+
+        expect(screen.getByLabelText("Logout URL 2")).toHaveAccessibleDescription("This URL is already in the list.");
         expect(onSave).not.toHaveBeenCalled();
     });
 
@@ -101,7 +159,7 @@ describe("DappForm", () => {
         await user.type(screen.getByLabelText("Application logo"), "https://CDN.acme.xyz/Logo.png");
         await user.type(screen.getByLabelText("Callback URL 1"), "https://APP.acme.xyz/callback");
         await user.click(screen.getByRole("button", { name: "Add callback URL" }));
-        await user.type(screen.getByLabelText("Callback URL 2"), "https://app.acme.xyz/callback");
+        await user.type(screen.getByLabelText("Callback URL 2"), "https://app.acme.xyz/silent");
         await user.type(screen.getByLabelText("Web origin 1"), "https://app.acme.xyz");
         await user.type(screen.getByLabelText("Primary contact email"), "dev@acme.xyz");
         await user.selectOptions(screen.getByLabelText("Expected monthly active users"), "Less than 1,000");
@@ -112,7 +170,7 @@ describe("DappForm", () => {
             description: "",
             logoUrl: "https://cdn.acme.xyz/Logo.png",
             mauBracket: "lt1k",
-            callbackUrls: ["https://app.acme.xyz/callback"],
+            callbackUrls: ["https://app.acme.xyz/callback", "https://app.acme.xyz/silent"],
             logoutUrls: [],
             webOrigins: ["https://app.acme.xyz"],
             contactEmail: "dev@acme.xyz",

@@ -22,7 +22,10 @@ describe("AppHeader", () => {
 
         const nav = await screen.findByRole("navigation", { name: "Main" });
         expect(within(nav).getByRole("link", { name: "My dApp" })).toHaveAttribute("href", "/");
-        expect(within(nav).getByRole("link", { name: "Docs" })).toHaveAttribute("href", "https://docs.auth.near.org");
+        const docs = within(nav).getByRole("link", { name: "Docs" });
+        expect(docs).toHaveAttribute("href", "https://docs.auth.near.org");
+        expect(docs).toHaveAttribute("target", "_blank");
+        expect(docs).toHaveAttribute("rel", "noopener noreferrer");
         expect(screen.getByText("owner@example.com")).toBeInTheDocument();
         expect(screen.getByRole("link", { name: "NEAR Auth console home" })).toHaveAttribute("href", "/");
     });

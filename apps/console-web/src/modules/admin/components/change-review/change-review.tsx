@@ -5,6 +5,7 @@ import { useTranslate } from "@frontend/locale/react";
 import { DappChangeDto, DappDto } from "@shared/console";
 import { formatDateTime } from "../../../common/utils/format";
 import { ChangeDiff, pendingChangeRows } from "../../../dapp/components/change-diff/change-diff";
+import { LogoPreview } from "../logo-preview/logo-preview";
 
 export type ChangeReviewProps = {
     dapp: DappDto;
@@ -31,12 +32,10 @@ export function ChangeReview({ dapp, change, onApprove, onReject }: ChangeReview
                 />
                 {change.logoUrl !== null && (
                     <figure className="m-0 flex items-center gap-3 text-sm text-ink-subtle">
-                        <span className="flex size-10 flex-none items-center justify-center overflow-hidden rounded-[10px] border border-border bg-canvas text-faint [&_img]:size-full [&_img]:object-contain">
-                            <img
-                                src={change.logoUrl}
-                                alt={translate("admin.dapp.changeReview.proposedLogoAlt", { name: change.name ?? dapp.name })}
-                            />
-                        </span>
+                        <LogoPreview
+                            src={change.logoUrl}
+                            alt={translate("admin.dapp.changeReview.proposedLogoAlt", { name: change.name ?? dapp.name })}
+                        />
                         <figcaption>{translate("admin.dapp.changeReview.proposedLogo")}</figcaption>
                     </figure>
                 )}

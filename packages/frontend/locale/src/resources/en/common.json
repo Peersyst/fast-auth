@@ -14,10 +14,8 @@
         "signOut": "Sign out"
     },
     "theme": {
-        "label": "Theme",
-        "system": "System",
-        "light": "Light",
-        "dark": "Dark"
+        "toDark": "Switch to dark theme",
+        "toLight": "Switch to light theme"
     },
     "signIn": {
         "title": "Sign in to manage your dApp",
@@ -275,7 +273,9 @@
         "logoUrl": {
             "label": "Application logo",
             "hint": "A square PNG or SVG (recommended 256×256 px) served over HTTPS.",
-            "placeholder": "https://app.example.com/logo.png"
+            "placeholder": "https://app.example.com/logo.png",
+            "preview": "Logo preview",
+            "notAnImage": "No image loaded from this URL. Check that it links straight to the image file."
         },
         "mauBracket": {
             "label": "Expected monthly active users",
