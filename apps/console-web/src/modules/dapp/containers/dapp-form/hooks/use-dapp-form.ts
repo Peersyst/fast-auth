@@ -35,7 +35,7 @@ function toFormInput(dapp: DappDto | null): DefaultValues<DappFormInput> {
 }
 
 /**
- * The dApp form hook.
+ * The dApp form hook. A field is checked once it loses focus, then on every change, so its message shows before submit.
  * @param dapp The dApp being edited, or `null` for a new one.
  * @returns The form, whose output is the request the API takes.
  */
@@ -43,5 +43,6 @@ export function useDappForm(dapp: DappDto | null): UseFormReturn<DappFormInput, 
     return useForm<DappFormInput, unknown, CreateDappRequest>({
         resolver: zodResolver(dappFormSchema),
         defaultValues: toFormInput(dapp),
+        mode: "onTouched",
     });
 }

@@ -55,9 +55,7 @@ export function UrlListField({ form, name, hint }: UrlListFieldProps): React.JSX
                     return (
                         <div key={row.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                             <input
-                                {...form.register(`${name}.${index}.value`, {
-                                    onChange: () => listError && form.clearErrors(name),
-                                })}
+                                {...form.register(`${name}.${index}.value`, { deps: name })}
                                 className={fieldClasses.control}
                                 type="url"
                                 placeholder={translate(`dappForm.${name}.placeholder`)}

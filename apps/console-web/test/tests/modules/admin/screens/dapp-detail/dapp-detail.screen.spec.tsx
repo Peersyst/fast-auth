@@ -58,6 +58,26 @@ describe("DappDetailScreen", () => {
         expect(screen.getByText("https://app.acme.xyz/callback")).toBeInTheDocument();
     });
 
+    it("should enlarge the logo while it is hovered, and open it in a new tab", async () => {
+        const user = userEvent.setup();
+        renderDetail(new DappMock());
+
+        const logo = await screen.findByRole("link", { name: "Logo of Acme Wallet" });
+        expect(logo).toHaveAttribute("href", "https://cdn.acme.xyz/logo.png");
+        expect(logo).toHaveAttribute("target", "_blank");
+        expect(screen.queryByTestId("logo-preview")).not.toBeInTheDocument();
+
+        await user.hover(logo);
+        expect(screen.getByTestId("logo-preview").querySelector("img")).toHaveAttribute("src", "https://cdn.acme.xyz/logo.png");
+
+        await user.keyboard("{Escape}");
+        expect(screen.queryByTestId("logo-preview")).not.toBeInTheDocument();
+
+        await user.hover(logo);
+        await user.unhover(logo);
+        expect(screen.queryByTestId("logo-preview")).not.toBeInTheDocument();
+    });
+
     it("should approve the dApp", async () => {
         const api = renderDetail(new DappMock(), { [`POST ${path}/approve`]: { body: new DappMock({ status: "approved" }) } });
 

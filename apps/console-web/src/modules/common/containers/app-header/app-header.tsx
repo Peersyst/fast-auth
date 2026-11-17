@@ -6,12 +6,9 @@ import { cn } from "@frontend/design-system-react/utils";
 import { useGetMe, useGetSession, useSignOut } from "@frontend/console-auth/ui/queries";
 import { useTranslate } from "@frontend/locale/react";
 import { config } from "../../../../config";
-import { ThemeSelect } from "../theme-select/theme-select";
+import { ThemeToggle } from "../theme-toggle/theme-toggle";
 
 const NAV_LINK = "flex items-center border-b-2 border-b-transparent text-ink-subtle no-underline hover:text-ink";
-
-const THEME_SELECT =
-    "inline-flex items-center gap-2 font-mono text-xs font-medium tracking-kicker text-ink-subtle uppercase [&_select]:min-h-8 [&_select]:rounded-[4px] [&_select]:border [&_select]:border-border-strong [&_select]:bg-surface [&_select]:px-2 [&_select]:py-0 [&_select]:text-ink [&_select]:[font:inherit] [&_select]:tracking-[inherit] [&_select]:[text-transform:inherit]";
 
 /**
  * The class name of a header link, underlined in the accent while its route is active.
@@ -65,14 +62,14 @@ export function AppHeader(): React.JSX.Element {
                             {translate("header.myDapp")}
                         </NavLink>
                     )}
-                    <a href={docsUrl} className={NAV_LINK}>
+                    <a href={docsUrl} className={NAV_LINK} target="_blank" rel="noopener noreferrer">
                         {translate("header.docs")}
                     </a>
                 </nav>
             )}
             <div className="flex-auto" />
             <div className="flex flex-wrap items-center gap-3">
-                <ThemeSelect className={THEME_SELECT} />
+                <ThemeToggle className="w-8 px-0" />
                 {signedIn && (
                     <>
                         {session.email && (

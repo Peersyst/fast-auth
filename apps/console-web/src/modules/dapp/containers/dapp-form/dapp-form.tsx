@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useWatch } from "react-hook-form";
 import { Trans } from "react-i18next";
 import { Button } from "@frontend/design-system-react/button";
 import { Callout } from "@frontend/design-system-react/callout";
@@ -12,6 +13,7 @@ import { DESCRIPTION_MAX_LENGTH, NAME_MAX_LENGTH } from "@shared/modules/dapp";
 import { useErrorMessage } from "../../../common/hooks/use-error-message";
 import { DAPP_FORM_ERROR_VALUES, DappFormField, DappFormProps, MAU_BRACKETS } from "./dapp-form.types";
 import { useDappForm } from "./hooks/use-dapp-form";
+import { LogoUrlPreview } from "./logo-url-preview/logo-url-preview";
 import { UrlListField } from "./url-list-field/url-list-field";
 
 const SECTION =
@@ -30,6 +32,7 @@ export function DappForm({ values, saveLabel, saveHint, onSave, onCancel, onRelo
     const form = useDappForm(values);
     const { register, formState } = form;
     const { errors } = formState;
+    const logoUrl = useWatch({ control: form.control, name: "logoUrl" });
     const [saveError, setSaveError] = useState<unknown>(null);
     const saveErrorMessage = useErrorMessage(saveError);
     const fieldError = (field: DappFormField): string | undefined => {
@@ -89,7 +92,15 @@ export function DappForm({ values, saveLabel, saveHint, onSave, onCancel, onRelo
                     error={fieldError("logoUrl")}
                 >
                     {(control) => (
-                        <input {...control} {...register("logoUrl")} type="url" placeholder={translate("dappForm.logoUrl.placeholder")} />
+                        <>
+                            <input
+                                {...control}
+                                {...register("logoUrl")}
+                                type="url"
+                                placeholder={translate("dappForm.logoUrl.placeholder")}
+                            />
+                            <LogoUrlPreview url={logoUrl} />
+                        </>
                     )}
                 </Field>
             </fieldset>

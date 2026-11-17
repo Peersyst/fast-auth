@@ -8,6 +8,12 @@
             "port": 5174
         },
         {
+            "name": "console-web",
+            "runtimeExecutable": "pnpm",
+            "runtimeArgs": ["--dir", "apps/console-web", "start"],
+            "port": 3001
+        },
+        {
             "name": "near-auth-docs",
             "runtimeExecutable": "bash",
             "runtimeArgs": ["-lc", "cd apps/docs && npx --yes mint@latest dev --port 3111"],
