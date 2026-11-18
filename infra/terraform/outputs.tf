@@ -22,3 +22,8 @@ output "console_db_master_user_secret_arn" {
   value       = try(module.console_db[0].master_user_secret_arn, null)
   description = "AWS-managed secret holding the database master password. Null in staging."
 }
+
+output "console_certificate_arn" {
+  value       = try(module.console_certificate[0].certificate_arn, null)
+  description = "Certificate for console.auth.near.org. Add it to ingress.certificate in the chart's production values. Null in staging."
+}
