@@ -1,0 +1,5 @@
+{
+    "auth0Url": "https://login.testnet.fast-auth.com",
+    "clientId": "u8233BcH8YndBCZTSN6BnYgHU3atEzJG",
+    "callbackUrl": "https://console-staging.aws.peersyst.tech/login/testnet/callback.html"
+}

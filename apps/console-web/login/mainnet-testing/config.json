@@ -1,0 +1,5 @@
+{
+    "auth0Url": "https://TO_REPLACE_WITH_MAINNET_TESTING_DOMAIN",
+    "clientId": "TO_REPLACE_WITH_MAINNET_TESTING_CLIENT",
+    "callbackUrl": "https://console-staging.aws.peersyst.tech/login/mainnet-testing/callback.html"
+}
