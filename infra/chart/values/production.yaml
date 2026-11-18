@@ -1,11 +1,9 @@
 environment: production
 namespace: fast-auth
 
-# Off: production has never had a release, so this would be the relayer's first
-# run on mainnet, signing with whatever fast-auth/prod/relayer holds. Turning it
-# on is its own decision, not a side effect of deploying the console.
+# Running since October 2025: deploy it with the tag it already runs, e21fff15.
 relayer:
-    enabled: false
+    enabled: true
     service:
         port: 3000
         targetPort: 3000
