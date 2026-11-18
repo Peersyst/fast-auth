@@ -209,6 +209,211 @@ describe("onExecutePostLogin — rendering", () => {
     });
 });
 
+describe("onExecutePostLogin — open client", () => {
+    const DAPP = "https://dapp.example";
+    const encodeState = (o, s = "wallet-state") => Buffer.from(JSON.stringify({ o, s })).toString("base64url");
+    const SIGNING_SCOPE = "openid transaction:sign";
+    const PKCE = { code_challenge: "lIXS0dr6H59gOSZmM7iyfEc0HzFJgI-BE4ctfEcyHKU", code_challenge_method: "S256" };
+
+    function openClientEvent(query, { openLogin = "true", audience = ONCHAIN_AUDIENCE } = {}) {
+        const event = makeEvent({ query, audience });
+        event.client = { ...event.client, metadata: { ...event.client.metadata, open_login: openLogin } };
+        return event;
+    }
+
+    function signInQuery(overrides = {}) {
+        return { state: encodeState(DAPP), scope: "openid", prompt: "login", response_type: "code", ...PKCE, ...overrides };
+    }
+
+    function signingQuery(overrides = {}) {
+        const { csv } = buildTransaction({ actions: [buildAction.transfer({ deposit: "1" })] });
+        return {
+            state: encodeState(DAPP),
+            scope: SIGNING_SCOPE,
+            audience: ONCHAIN_AUDIENCE,
+            response_type: "code",
+            transaction: csv,
+            ...PKCE,
+            ...overrides,
+        };
+    }
+
+    test("names the origin from state on the consent screen", async () => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(openClientEvent(signingQuery()), api);
+
+        expect(calls.deny).toEqual([]);
+        expect(calls.render.opts.fields.name).toBe("https://dapp.example");
+        expect(calls.render.opts.fields.imageUrl).toBe("");
+    });
+
+    test("keeps the client branding for a client without open_login set to the string true", async () => {
+        for (const openLogin of ["false", "TRUE", true]) {
+            const { api, calls } = makeApi();
+            await onExecutePostLogin(openClientEvent(signingQuery({ state: undefined }), { openLogin }), api);
+            expect(calls.deny).toEqual([]);
+            expect(calls.render.opts.fields.name).toBe("Test App");
+        }
+    });
+
+    test("denies a state that does not carry an exact https or local origin", async () => {
+        const states = [
+            undefined,
+            "not-base64-json",
+            encodeState("https://dapp.example/path"),
+            encodeState("javascript:alert(1)"),
+            encodeState("<b>dapp</b>"),
+            encodeState("ftp://dapp.example"),
+            Buffer.from(JSON.stringify({ s: "x" })).toString("base64url"),
+            Buffer.from(JSON.stringify({ o: DAPP })).toString("base64url"),
+            Buffer.from(JSON.stringify({ o: DAPP, s: { nested: true } })).toString("base64url"),
+            encodeState("https://dapp.example/"),
+            encodeState("https://DAPP.example"),
+            encodeState("https://good.example@evil.example"),
+            encodeState("https://trusted.com&sol;&quest;.evil.io"),
+            encodeState("https://trusted.com&#47;.evil.io"),
+            encodeState("https://dapp_example.com"),
+            [encodeState(DAPP), encodeState(DAPP)],
+            [...Buffer.from(JSON.stringify({ o: DAPP, s: "x" }))],
+            encodeState("http://dapp.example"),
+            encodeState("http://localhost.evil.example"),
+            encodeState("http://127.0.0.2"),
+        ];
+        for (const state of states) {
+            const { api, calls } = makeApi();
+            await onExecutePostLogin(openClientEvent(signingQuery({ state })), api);
+            expect(calls.deny).toEqual(["Invalid login state"]);
+            expect(calls.render).toBeNull();
+        }
+    });
+
+    test("accepts plain http on a local host only", async () => {
+        for (const origin of ["http://localhost:3000", "http://localhost", "http://127.0.0.1:5173"]) {
+            const { api, calls } = makeApi();
+            await onExecutePostLogin(openClientEvent(signingQuery({ state: encodeState(origin) })), api);
+            expect(calls.deny).toEqual([]);
+            expect(calls.render.opts.fields.name).toBe(origin);
+        }
+    });
+
+    test("denies a missing or repeated scope", async () => {
+        for (const scope of [undefined, ["openid", "openid"]]) {
+            const { api, calls } = makeApi();
+            await onExecutePostLogin(openClientEvent(signInQuery({ scope }), { audience: null }), api);
+            expect(calls.deny).toEqual(["Scope not allowed"]);
+        }
+    });
+
+    test("denies a request without S256 PKCE", async () => {
+        for (const pkce of [
+            { code_challenge: undefined },
+            { code_challenge: "" },
+            { code_challenge: "a".repeat(42) },
+            { code_challenge: "a".repeat(129) },
+            { code_challenge: `${"a".repeat(42)}+` },
+            { code_challenge: [PKCE.code_challenge, PKCE.code_challenge] },
+            { code_challenge_method: "plain" },
+            { code_challenge_method: undefined },
+        ]) {
+            const { api, calls } = makeApi();
+            await onExecutePostLogin(openClientEvent(signInQuery(pkce), { audience: null }), api);
+            expect(calls.deny).toEqual(["PKCE required"]);
+        }
+    });
+
+    test("accepts a 128 character code challenge", async () => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(openClientEvent(signInQuery({ code_challenge: "A-_z".repeat(32) }), { audience: null }), api);
+        expect(calls.deny).toEqual([]);
+    });
+
+    test("denies a response type other than code", async () => {
+        for (const response_type of [undefined, "token", "id_token", "code id_token", ["code", "code"]]) {
+            const { api, calls } = makeApi();
+            await onExecutePostLogin(openClientEvent(signInQuery({ response_type }), { audience: null }), api);
+            expect(calls.deny).toEqual(["Response type not allowed"]);
+        }
+    });
+
+    test("denies a response mode other than query", async () => {
+        for (const response_mode of ["web_message", "form_post", "fragment", ["query", "query"]]) {
+            const { api, calls } = makeApi();
+            await onExecutePostLogin(openClientEvent(signInQuery({ response_mode }), { audience: null }), api);
+            expect(calls.deny).toEqual(["Response mode not allowed"]);
+        }
+    });
+
+    test("allows the query response mode", async () => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(openClientEvent(signInQuery({ response_mode: "query" }), { audience: null }), api);
+        expect(calls.deny).toEqual([]);
+    });
+
+    test("denies a repeated prompt", async () => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(openClientEvent(signInQuery({ prompt: ["login", "login"] }), { audience: null }), api);
+        expect(calls.deny).toEqual(["Interactive login required"]);
+    });
+
+    test("allows a sign-in when the tenant applies another default audience", async () => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(openClientEvent(signInQuery(), { audience: "https://default.api" }), api);
+        expect(calls.deny).toEqual([]);
+    });
+
+    test("allows a sign-in that forces a fresh login with only openid", async () => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(openClientEvent(signInQuery(), { audience: null }), api);
+        expect(calls.deny).toEqual([]);
+    });
+
+    test("denies a sign-in that does not force a fresh login", async () => {
+        for (const prompt of [undefined, "none", "consent"]) {
+            const { api, calls } = makeApi();
+            await onExecutePostLogin(openClientEvent(signInQuery({ prompt }), { audience: null }), api);
+            expect(calls.deny).toEqual(["Interactive login required"]);
+        }
+    });
+
+    test("denies a signing param that skips the login screen without reaching the consent form", async () => {
+        const { csv } = buildTransaction({ actions: [buildAction.transfer({ deposit: "1" })] });
+        for (const param of [{ transaction: csv }, { nep413: "" }, { delegateAction: "1" }]) {
+            const { api, calls } = makeApi();
+            await onExecutePostLogin(openClientEvent(signInQuery({ prompt: undefined, ...param }), { audience: null }), api);
+            expect(calls.deny).toEqual(["Interactive login required"]);
+            expect(calls.render).toBeNull();
+        }
+    });
+
+    test("lets a signing request reach the consent form without prompt=login", async () => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(openClientEvent(signingQuery()), api);
+        expect(calls.deny).toEqual([]);
+        expect(calls.render).not.toBeNull();
+    });
+
+    test("denies a silent signing request", async () => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(openClientEvent(signingQuery({ prompt: "none" })), api);
+        expect(calls.deny).toEqual(["Interactive login required"]);
+        expect(calls.render).toBeNull();
+    });
+
+    test("denies profile scopes so no site collects email or name", async () => {
+        for (const scope of ["openid profile", "openid email", "openid offline_access"]) {
+            const { api, calls } = makeApi();
+            await onExecutePostLogin(openClientEvent(signInQuery({ scope }), { audience: null }), api);
+            expect(calls.deny).toEqual(["Scope not allowed"]);
+        }
+    });
+
+    test("denies an audience other than the signing one", async () => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(openClientEvent(signInQuery({ audience: "https://other.api" }), { audience: "https://other.api" }), api);
+        expect(calls.deny).toEqual(["Audience not allowed"]);
+    });
+});
+
 describe("onExecutePostLogin — refusals", () => {
     const encodings = [
         ["a truncated payload", (bytes) => bytes.slice(0, 10).join(",")],

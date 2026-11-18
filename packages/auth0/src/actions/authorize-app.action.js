@@ -277,6 +277,35 @@ const SIGNING_REQUESTS = [
     },
 ];
 
+const OPEN_CLIENT_SCOPES = new Set(["openid", "transaction:sign"]);
+const PKCE_CHALLENGE = /^[A-Za-z0-9_-]{43,128}$/;
+// Stricter than a valid URL host: the origin is the name on the consent screen, rendered as rich text.
+const ORIGIN_HOST = /^[a-z0-9.-]+$/;
+// Plain http can be altered on the network, and the callback posts tokens to the origin, so only a local page may use it.
+const LOCAL_HOSTS = ["localhost", "127.0.0.1"];
+
+/**
+ * Reads the dapp origin from the open client's `state`, base64url JSON `{ o: origin, s: wallet state }`.
+ * @param {unknown} state
+ * @returns {string | null} The origin, or null unless it is an exact https origin, or an http one on a local host, with a plain host next to a string wallet state.
+ */
+function parseDappOrigin(state) {
+    // Buffer.from reads an array as bytes, so a repeated `state` could decode to an origin of its own.
+    if (typeof state !== "string") return null;
+    try {
+        const { o, s } = JSON.parse(Buffer.from(state, "base64url").toString("utf8"));
+        const url = new URL(o);
+        return (url.protocol === "https:" || (url.protocol === "http:" && LOCAL_HOSTS.includes(url.hostname))) &&
+            url.origin === o &&
+            ORIGIN_HOST.test(url.hostname) &&
+            typeof s === "string"
+            ? o
+            : null;
+    } catch {
+        return null;
+    }
+}
+
 // HANDLERS
 
 /**
@@ -290,6 +319,48 @@ exports.onExecutePostLogin = async (event, api) => {
     const query = event.request.query;
     const isOnchainAudience = event.resource_server?.identifier === onchainAudience;
     const request = SIGNING_REQUESTS.find(({ key }) => key in query);
+
+    // The open client serves any site. Its callback posts the code, or the tokens it redeems, to the origin inside `state`,
+    // so naming that same origin on the consent screen makes the name and the code's destination agree.
+    const isOpenClient = event.client.metadata?.open_login === "true";
+    let dappOrigin;
+    if (isOpenClient) {
+        dappOrigin = parseDappOrigin(query.state);
+        if (!dappOrigin) {
+            return api.access.deny("Invalid login state");
+        }
+        // Repeated params arrive as arrays, so anything but a single string is refused.
+        if (typeof query.scope !== "string" || query.scope.split(" ").some((scope) => scope && !OPEN_CLIENT_SCOPES.has(scope))) {
+            return api.access.deny("Scope not allowed");
+        }
+        // A code from this open client is only useful with the PKCE verifier of whoever started the flow, even if a log records it.
+        if (
+            typeof query.code_challenge !== "string" ||
+            !PKCE_CHALLENGE.test(query.code_challenge) ||
+            query.code_challenge_method !== "S256"
+        ) {
+            return api.access.deny("PKCE required");
+        }
+        // The callback page only reads the query, and any other response would skip it.
+        if (query.response_type !== "code") {
+            return api.access.deny("Response type not allowed");
+        }
+        if (query.response_mode !== undefined && query.response_mode !== "query") {
+            return api.access.deny("Response mode not allowed");
+        }
+        if (query.audience !== undefined && (typeof query.audience !== "string" || !isOnchainAudience)) {
+            return api.access.deny("Audience not allowed");
+        }
+        if (query.prompt !== undefined && typeof query.prompt !== "string") {
+            return api.access.deny("Interactive login required");
+        }
+        const prompt = (query.prompt ?? "").split(" ");
+        // Without this, any site could learn who is signed in without the user doing anything. Only a request that goes on
+        // to the consent form may skip the login screen, since that form is the user's own action.
+        if (prompt.includes("none") || (!(request && isOnchainAudience) && !prompt.includes("login"))) {
+            return api.access.deny("Interactive login required");
+        }
+    }
 
     if (isOnchainAudience && !request) {
         return api.access.deny("Signing audience requested without signing payload");
@@ -320,10 +391,9 @@ exports.onExecutePostLogin = async (event, api) => {
     api.accessToken.removeScope("email");
     api.accessToken.removeScope("offline_access");
 
-    const branding = {
-        imageUrl: event.client.metadata?.logo_uri ?? "",
-        name: event.client.name,
-    };
+    const branding = isOpenClient
+        ? { imageUrl: "", name: dappOrigin }
+        : { imageUrl: event.client.metadata?.logo_uri ?? "", name: event.client.name };
 
     let values;
     let decoded;
