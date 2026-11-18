@@ -4,7 +4,7 @@ description: "Full reference for the JavascriptProvider — Auth0 login and sign
 icon: "code"
 ---
 
-`@fast-auth-near/javascript-provider` is the web provider for NEAR Auth. It wraps Auth0's single-page-app client to authenticate users and request signatures over their NEAR account, then hands those requests to a NEAR Auth SDK to submit on-chain. It exposes a single class, `JavascriptProvider`, which implements the shared `IFastAuthProvider` interface.
+`@fast-auth-near/javascript-provider` is the web provider for NEAR Auth. It wraps Auth0's single-page-app client to authenticate users and request signatures over their NEAR account, then hands those requests to a NEAR Auth SDK to submit on-chain. Its class `JavascriptProvider` implements the shared `IFastAuthProvider` interface. For the open testing tenants it also exposes [`JavascriptTestingProvider`](#testing-tenants).
 
 A provider on its own only handles the Auth0 side — login, logout, and building the signature request. You inject it into a `FastAuthClient` from the [Browser SDK](/sdks/browser-sdk) or the [React SDK](/sdks/react-sdk), which take care of key derivation, on-chain verification, and MPC signing.
 
@@ -328,9 +328,81 @@ console.log(signatureRequest.guardId);
 
 ---
 
+## Testing tenants
+
+`JavascriptTestingProvider` signs users in through the open testing tenants, `testnet` and `mainnet-testing`. You do not register an Auth0 application, so you pass no `clientId`.
+
+```ts
+import { JavascriptTestingProvider } from "@fast-auth-near/javascript-provider";
+
+const provider = new JavascriptTestingProvider({ tenant: "testnet" });
+```
+
+It implements `IFastAuthProvider`, so you inject it into a `FastAuthClient` like `JavascriptProvider`.
+
+<Warning>
+  The testing tenants are a testing environment. No security guarantees are made. Do not use them for real funds.
+</Warning>
+
+### Differences from `JavascriptProvider`
+
+| | `JavascriptTestingProvider` | `JavascriptProvider` |
+| --- | --- | --- |
+| Configuration | `{ tenant }`. No Auth0 application. | `{ network, clientId }`. Your own Auth0 application. |
+| Login | Popup only. `login()` takes no options and always asks the user to authenticate. | Popup or redirect. Reuses the Auth0 session unless `forceSelectAccount` is set. |
+| Session | Tokens in memory. A page reload logs the user out. | Tokens in memory too, so a reload also loses them. The Auth0 session stays, so the next `login()` can pass without credentials. |
+| `logout()` | Clears the tokens in memory. The Auth0 session stays. | Clears the tokens and sends the page to Auth0 to end the session. |
+| Signature approved by another user | Rejected with `SIGNING_USER_MISMATCH`. | Accepted. That user becomes the signed in one. |
+| Approved payload | Checked against the payload you sent. A difference throws `SIGNING_PAYLOAD_MISMATCH`. | Not checked by the provider. |
+| Errors | `JavascriptProviderError` with the codes [below](#error-handling). | `USER_NOT_LOGGED_IN`, plus the Auth0 library's own error classes, such as `PopupCancelledError`. |
+
+### Signing without a login
+
+A signature request does not need a login first. With nobody signed in, the user who approves the request becomes the signed in user. Once a user is signed in, an approval by another user throws `SIGNING_USER_MISMATCH` and keeps the signed in user. Call `login()` again to switch user.
+
+If your dApp needs a specific user, call `login()` before requesting a signature. `FastAuthClient.getSigner()` already requires a signed in user.
+
+### Behaviour to expect
+
+- Login and signature requests open a popup on the testing login page, so call them from a user gesture such as a button click.
+- Serve your dApp over `https`, or from `localhost` or `127.0.0.1` during development. The login page refuses any other origin, and the request then ends when the user closes the popup.
+- The login page redeems the authorization code and posts the tokens to your page. Auth0 only lets a registered origin read the token response, and your dApp is not registered.
+- A failure the login page reports back, such as a rejected request or a failed token exchange, throws `AUTHORIZATION_FAILED`. If the page only shows a message, the request ends when the user closes the popup.
+- Signature requests take only the payload: `{ transaction }`, `{ delegateAction }` or the NEP-413 fields.
+- The constructor throws `TESTING_TENANT_NOT_CONFIGURED` while the tenant is not provisioned.
+- A failed or cancelled signature request clears the previous one, so `getSignatureRequest()` throws `SIGNATURE_REQUEST_NOT_FOUND` until the next approval.
+- There is no timeout. A request ends when the login page answers or the user closes the popup, which throws `POPUP_CLOSED`.
+- A browser allows one popup per user gesture. A second request from the same click throws `POPUP_BLOCKED`.
+- `isLoggedIn()` turns false when the ID token expires. Call `login()` again.
+
+### Moving to production
+
+Change the import and the constructor. Both classes implement `IFastAuthProvider`, so your calls stay as they are. The differences above still apply.
+
+```ts
+import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
+
+const provider = new JavascriptProvider({ network: "mainnet", clientId: "your-auth0-client-id" });
+```
+
+The issuer domain is part of the account path, so accounts on `mainnet-testing` are not mainnet accounts.
+
+---
+
 ## Error handling
 
-The provider throws `JavascriptProviderError` for provider-level failures. Today it carries a single code, `USER_NOT_LOGGED_IN`, thrown by `getPath()` (and internally when reading the user's subject) if no user is authenticated.
+The provider throws `JavascriptProviderError` for provider-level failures. `JavascriptProvider` throws `USER_NOT_LOGGED_IN`. `JavascriptTestingProvider` throws every code below.
+
+| Code | Meaning |
+| --- | --- |
+| `USER_NOT_LOGGED_IN` | An operation needed an authenticated user but none was present. |
+| `TESTING_TENANT_NOT_CONFIGURED` | The testing tenant is not provisioned yet. |
+| `POPUP_BLOCKED` | The browser blocked the login popup. Call from a user gesture. |
+| `POPUP_CLOSED` | The user closed the popup before the login page answered. |
+| `AUTHORIZATION_FAILED` | The login page reported a failure, such as a rejected request or a failed token exchange. |
+| `SIGNATURE_REQUEST_NOT_FOUND` | No signing approval is held. Request a signature first. |
+| `SIGNING_USER_MISMATCH` | Another user than the one signed in approved the signature request. |
+| `SIGNING_PAYLOAD_MISMATCH` | The approval is not for the payload that was sent. |
 
 ```ts
 import {

@@ -1,7 +1,7 @@
 import { Transaction } from "near-api-js/lib/transaction";
 import { DelegateAction } from "@near-js/transactions";
 import { PopupLoginOptions, RedirectLoginOptions } from "@auth0/auth0-spa-js";
-import { FastAuthNetwork, SignMessageParams } from "@shared/core";
+import { FastAuthNetwork, FastAuthTestingTenant, SignMessageParams } from "@shared/core";
 
 export type { FastAuthNetwork } from "@shared/core";
 
@@ -56,3 +56,15 @@ export type JavascriptRequestSignatureLoginOptions = JavascriptBaseRequestSignat
     (Omit<RedirectLoginOptions, "authorizationParams"> | Omit<PopupLoginOptions, "authorizationParams">);
 
 export type JavascriptRequestMessageSignatureOptions = JavascriptRequestSignatureLoginOptions & SignMessageParams;
+
+export type JavascriptTestingProviderOptions = {
+    tenant: FastAuthTestingTenant;
+};
+
+export type JavascriptTestingRequestTransactionSignatureOptions = {
+    transaction: Transaction;
+};
+
+export type JavascriptTestingRequestDelegateActionSignatureOptions = {
+    delegateAction: DelegateAction;
+};

@@ -205,6 +205,26 @@ The shape of each entry is `FastAuthAuth0NetworkDefaults`:
   These are the same values documented on the [testnet](/resources/testnet) and [mainnet](/resources/mainnet) resource pages. Read them from `FAST_AUTH_AUTH0_DEFAULTS` instead of hard-coding strings so a network switch stays a one-line change.
 </Tip>
 
+### `FastAuthTestingTenant`
+
+```ts
+type FastAuthTestingTenant = "testnet" | "mainnet-testing";
+```
+
+The open testing Auth0 tenants. Any dApp may use them without registering an Auth0 application.
+
+### `FAST_AUTH_TESTING_TENANTS`
+
+A `Record<FastAuthTestingTenant, FastAuthTestingTenantConfig>` that [`JavascriptTestingProvider`](/sdks/javascript-provider#testing-tenants) reads:
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `domain` | `string` | The Auth0 tenant domain. It is the token issuer, so it is part of the account path. |
+| `signingAudience` | `string` | The audience embedded in signing JWTs. |
+| `loginUrl` | `string` | The login page the provider opens in a popup. |
+
+A value that starts with `TO_REPLACE` marks a tenant that is not provisioned yet.
+
 ---
 
 ## Building a custom provider
