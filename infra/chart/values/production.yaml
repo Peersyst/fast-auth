@@ -1,8 +1,11 @@
 environment: production
 namespace: fast-auth
 
+# Off: production has never had a release, so this would be the relayer's first
+# run on mainnet, signing with whatever fast-auth/prod/relayer holds. Turning it
+# on is its own decision, not a side effect of deploying the console.
 relayer:
-    enabled: true
+    enabled: false
     service:
         port: 3000
         targetPort: 3000
@@ -38,8 +41,12 @@ customIssuerGo:
 attester:
     enabled: false
 
+# Off: the chart publishes auth.near.org from whichever release has the landing
+# on, and that is the staging release today. Enabling it here would put a second
+# rule for the same host into the shared ALB group and hand the public domain to
+# a pod that has never served it. Move it deliberately, on its own deployment.
 landing:
-    enabled: true
+    enabled: false
     metricsUrl: "https://fast-auth-indexer-api-api-production.up.railway.app/api/public/metrics"
     service:
         port: 3000

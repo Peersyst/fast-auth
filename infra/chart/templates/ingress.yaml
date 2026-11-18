@@ -40,6 +40,9 @@ metadata:
 spec:
   ingressClassName: alb
   rules:
+    # Only when something still answers on it: a host whose every component is
+    # off would render an empty paths list, which the API server rejects.
+    {{- if or .Values.relayer.enabled .Values.customIssuerGo.enabled .Values.landing.enabled }}
     - host: fast-auth-{{ .Values.environment }}.aws.peersyst.tech
       http:
         paths:
@@ -70,6 +73,7 @@ spec:
                 port:
                   name: use-annotation
           {{- end }}
+    {{- end }}
     {{- if .Values.landing.enabled }}
     - host: auth.near.org
       http:

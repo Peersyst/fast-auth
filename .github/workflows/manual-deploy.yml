@@ -20,6 +20,10 @@ on:
         description: "Custom Issuer Go Tag image to deploy"
         required: true
         type: string
+      landing-tag:
+        description: "Landing Tag image to deploy"
+        required: true
+        type: string
       console-tag:
         description: "Console API Tag image to deploy"
         required: true
@@ -96,8 +100,10 @@ jobs:
       - name: Configure aws credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::291847425310:role/gitHubDeploymentsRole
-          role-session-name: deploymentsRole
+          # The project's own role, the one deploy.yaml uses and the one that
+          # carries the fast-auth secrets policy and the namespace binding.
+          role-to-assume: arn:aws:iam::291847425310:role/gitHubDeploymentsRoleFastAuth
+          role-session-name: deploymentsRoleFastAuth
           role-duration-seconds: 900
           aws-region: us-east-1
 
@@ -130,7 +136,7 @@ jobs:
           envsubst < Chart.yaml > Chart-0.yaml
           mv Chart-0.yaml Chart.yaml
           kubectl config use-context peersyst-privatenet
-          helm -n fast-auth upgrade ${{ github.event.inputs.environment }} ./ --install --atomic --wait --timeout 301s --values values/${{ github.event.inputs.environment }}.yaml --set-string timestamp=${NOW} --set-string tagRelayer=${{ github.event.inputs.relayer-tag }} --set-string tagAttester=${{ github.event.inputs.attester-tag }} --set-string tagCustomIssuer=${{ github.event.inputs.custom-issuer-tag }} --set-string tagCustomIssuerGo=${{ github.event.inputs.custom-issuer-go-tag }} --set-string tagConsole=${{ github.event.inputs.console-tag }} --set-string tagConsoleWeb=${{ github.event.inputs.console-web-tag }} --debug
+          helm -n fast-auth upgrade ${{ github.event.inputs.environment }} ./ --install --atomic --wait --timeout 301s --values values/${{ github.event.inputs.environment }}.yaml --set-string timestamp=${NOW} --set-string tagRelayer=${{ github.event.inputs.relayer-tag }} --set-string tagAttester=${{ github.event.inputs.attester-tag }} --set-string tagCustomIssuer=${{ github.event.inputs.custom-issuer-tag }} --set-string tagCustomIssuerGo=${{ github.event.inputs.custom-issuer-go-tag }} --set-string tagLanding=${{ github.event.inputs.landing-tag }} --set-string tagConsole=${{ github.event.inputs.console-tag }} --set-string tagConsoleWeb=${{ github.event.inputs.console-web-tag }} --debug
 
       # Send Slack message if any previous step has failed in this job
       - name: 📬 Failure job notification
