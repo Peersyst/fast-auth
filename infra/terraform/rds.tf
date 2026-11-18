@@ -23,4 +23,20 @@ module "console_db" {
 
   db_name  = "console"
   username = "console"
+
+  parameter_group_name = aws_db_parameter_group.console[0].name
+}
+
+# Postgres 18's default group refuses plaintext connections. Attaching it needs one reboot.
+resource "aws_db_parameter_group" "console" {
+  count = var.environment == "production" ? 1 : 0
+
+  name   = "${var.project_name}-${var.environment}-console"
+  family = "postgres18"
+
+  parameter {
+    name         = "rds.force_ssl"
+    value        = "0"
+    apply_method = "immediate"
+  }
 }
