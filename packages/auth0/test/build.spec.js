@@ -9,6 +9,8 @@ const path = require("path");
 const os = require("os");
 
 const buildModule = require("../src/forms/build.js");
+// jsdom ships with jest-environment-jsdom and is not a direct dependency of this package.
+const { JSDOM } = require(require.resolve("jsdom", { paths: [require.resolve("jest-environment-jsdom")] }));
 
 describe("readHelpersPreamble", () => {
     test("contains the __auth0FormHelpers declaration", () => {
@@ -141,4 +143,75 @@ describe("readComponent (isolated)", () => {
         expect(typeof factory).toBe("function");
         expect(factory().helpers.tag).toBe("helpers");
     });
+});
+
+describe("testing banner variant", () => {
+    const BANNER_TEXT = "This is a testing environment. No security guarantees are made. Do not use it for real funds.";
+    const readForm = (file) => JSON.parse(fs.readFileSync(file, "utf8"));
+    const outPath = (form, testing) => {
+        const out = testing ? buildModule.testingOutName(form.out) : form.out;
+        return path.join(buildModule.FORMS_DIR, form.name, out);
+    };
+
+    beforeAll(() => {
+        const preamble = buildModule.readHelpersPreamble();
+        for (const form of buildModule.FORMS) {
+            buildModule.buildForm(form, preamble);
+            buildModule.buildForm(form, preamble, { testing: true });
+        }
+    });
+
+    test.each(buildModule.FORMS.map((f) => [f.name, f]))(
+        "%s testing form has the banner as the first block of every step",
+        (_name, form) => {
+            const steps = readForm(outPath(form, true)).form.nodes.filter((n) => n.type === "STEP");
+            expect(steps.length).toBeGreaterThan(0);
+            for (const step of steps) {
+                const first = step.config.components[0];
+                expect(first.type).toBe("CUSTOM");
+                expect(first.config.code).toContain(BANNER_TEXT);
+                expect(first.config.css).toContain(".testing-banner");
+            }
+        },
+    );
+
+    test.each(buildModule.FORMS.map((f) => [f.name, f]))(
+        "%s testing form keeps every production component after the banner",
+        (_name, form) => {
+            const prod = readForm(outPath(form, false)).form.nodes.filter((n) => n.type === "STEP");
+            const testing = readForm(outPath(form, true)).form.nodes.filter((n) => n.type === "STEP");
+            expect(testing.map((s) => s.config.components.slice(1))).toEqual(prod.map((s) => s.config.components));
+        },
+    );
+
+    test.each(buildModule.FORMS.map((f) => [f.name, f]))("%s production form does not contain the banner", (_name, form) => {
+        const raw = fs.readFileSync(outPath(form, false), "utf8");
+        expect(raw).not.toContain(BANNER_TEXT);
+        expect(raw).not.toContain("testing_banner");
+        expect(raw).not.toContain("testing-banner");
+    });
+
+    test.each(buildModule.FORMS.map((f) => [f.name, f]))(
+        "%s testing banner renders its text as a visible element when evaluated like Auth0",
+        (_name, form) => {
+            const steps = readForm(outPath(form, true)).form.nodes.filter((n) => n.type === "STEP");
+            for (const step of steps) {
+                const { code, css } = step.config.components[0].config;
+                const { window } = new JSDOM("<!DOCTYPE html><body></body>", { runScripts: "outside-only" });
+                const factory = new window.Function("return " + code)();
+                const el = factory({}).init();
+                expect(el).toBeInstanceOf(window.HTMLElement);
+                expect(el.tagName).toBe("DIV");
+                expect(el.getAttribute("role")).toBe("note");
+                expect(el.textContent).toBe(BANNER_TEXT);
+                expect(el.classList.contains("testing-banner")).toBe(true);
+
+                const rule = css.match(/\.testing-banner\s*\{([^}]*)\}/);
+                expect(rule).not.toBeNull();
+                expect(rule[1]).not.toMatch(/display\s*:\s*none/);
+                expect(rule[1]).not.toMatch(/visibility\s*:\s*hidden/);
+                expect(rule[1]).not.toMatch(/opacity\s*:\s*0\s*(;|$)/);
+            }
+        },
+    );
 });

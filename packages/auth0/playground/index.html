@@ -7,6 +7,7 @@
          transaction/ and delegate_action/ details CSS are identical, so one covers both. -->
     <link rel="stylesheet" href="../src/forms/transaction/details/index.css" />
     <link rel="stylesheet" href="../src/forms/shared/decision/index.css" />
+    <link rel="stylesheet" href="../src/forms/shared/banner/index.css" />
     <!-- Playground chrome (toolbar, cards, debug). Must load AFTER so its layout wraps
          the production block without overriding the block's own styles. -->
     <link rel="stylesheet" href="playground.css" />
@@ -26,6 +27,10 @@
             <input type="checkbox" id="fuzz-toggle" />
             fuzz payloads
         </label>
+        <label>
+            <input type="checkbox" id="testing-toggle" />
+            testing variant (banner)
+        </label>
         <div class="spacer"></div>
         <button id="refresh" class="primary" type="button">re-render</button>
     </header>
@@ -38,6 +43,7 @@
     <script src="../src/forms/transaction/details/index.js"></script>
     <script src="../src/forms/delegate_action/details/index.js"></script>
     <script src="../src/forms/shared/decision/index.js"></script>
+    <script src="../src/forms/shared/banner/index.js"></script>
 
     <!-- Playground scaffolding -->
     <script src="payloads.js"></script>
