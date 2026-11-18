@@ -45,7 +45,7 @@ spec:
             secretProviderClass: relayer-{{ .Values.environment }}-secrets
       containers:
       - name: relayer
-        image: ghcr.io/peersyst/fast-auth-relayer:{{ .Values.tagRelayer }}
+        image: {{ .Values.relayer.image | default "ghcr.io/peersyst/fast-auth-relayer" }}:{{ .Values.tagRelayer }}
         imagePullPolicy: Always
         resources:
           requests:

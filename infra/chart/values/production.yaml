@@ -4,6 +4,8 @@ namespace: fast-auth
 # Running since October 2025: deploy it with the tag it already runs, e21fff15.
 relayer:
     enabled: true
+    # Still on Docker Hub: e21fff15 was never pushed to ghcr.
+    image: peersyst/fast-auth-relayer
     service:
         port: 3000
         targetPort: 3000
