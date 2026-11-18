@@ -47,7 +47,7 @@ export const FAQ_ITEMS: ReadonlyArray<FaqItem> = [
   },
   {
     q: "How do I go live on mainnet?",
-    a: "Build on testnet first — no approval required, free credentials. When you're ready for production, submit your application (name, description, expected volume, use case, contact) to the NEAR Auth team. Once approved, you receive production Auth0 credentials (domain, clientId, audience) and access to the mainnet NEAR Auth contracts. Mainnet usage is whitelisted to keep the shared infrastructure healthy.",
+    a: "Build on testnet first — no approval required, free credentials. When you're ready for production, register your dApp in the NEAR Auth Console at console.auth.near.org: name, description, logo, expected volume, the domains it signs in from, and a contact email. The NEAR Auth team reviews it, and once it is approved the console issues your own Auth0 clientId and your dApp reaches the mainnet NEAR Auth contracts. Mainnet access is gated to keep the shared infrastructure healthy.",
   },
   {
     q: "Can I self-host?",
