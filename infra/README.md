@@ -81,14 +81,21 @@ applications:
   `CONSOLE_WEB_AUTH0_CLIENT_ID`.
 - **A machine-to-machine application**, authorized for the Management API with
   exactly the scopes the console uses: `read:clients`, `create:clients`,
-  `update:clients`, `read:connections` and `update:connections`. It provisions
+  `update:clients`, `read:connections`, `update:connections`,
+  `read:client_grants` and `create:client_grants`. It provisions
   no client secrets, so it needs no `read:client_keys`. Its credentials are
   `AUTH0_M2M_CLIENT_ID` and `AUTH0_M2M_CLIENT_SECRET`. The console caches the
   M2M token until it expires, so restart it after changing a grant or a scope.
 - **A template application**, `AUTH0_TEMPLATE_CLIENT_ID`. Every client the
-  console provisions for a dApp is created from this one's settings and its
-  enabled connections. It must have at least one connection enabled, or
-  provisioning fails with `The template client ... has no enabled connections`.
+  console provisions for a dApp is created from this one's settings, its
+  enabled connections and its user grants. It must have at least one connection
+  enabled, or provisioning fails with
+  `The template client ... has no enabled connections`. It must also have a
+  user grant on the signing API with `transaction:sign`:
+  `auth0.jwt.fast-auth.testnet` in staging, `auth0.jwt.fast-auth.near` in
+  production. The console copies the user grants it finds without checking
+  their audiences or scopes. It only refuses a template that has none, with
+  `The template client ... has no user grants`.
 
 `AUTH0_MGMT_DOMAIN` is the tenant's own domain (`<tenant>.<region>.auth0.com`),
 which is not the same as `AUTH0_LOGIN_DOMAIN`, the custom domain users sign in

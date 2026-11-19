@@ -1,4 +1,5 @@
 import { closeTestApp, createTestApp, TestApp, truncateAll } from "@backend/test";
+import { Logger } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { register } from "prom-client";
@@ -56,6 +57,10 @@ describe("Auto-approval (integration)", () => {
         owner = await bearer(ownerEmail);
     });
 
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
     /**
      * Sends a PATCH to the dApp as the owner.
      * @param id The dApp id.
@@ -85,6 +90,16 @@ describe("Auto-approval (integration)", () => {
                     logoutUrls: [],
                     webOrigins: ["https://acme.xyz"],
                 },
+                {
+                    dappId: body.id,
+                    clientId: body.auth0ClientId,
+                    name: "Acme Wallet",
+                    description: "A wallet for NEAR.",
+                    logoUrl: "https://cdn.acme.xyz/logo.png",
+                    callbackUrls: ["https://acme.xyz/callback"],
+                    logoutUrls: [],
+                    webOrigins: ["https://acme.xyz"],
+                },
             ]);
             expect(await findDapp(dataSource.manager, body.id)).toMatchObject({
                 status: "approved",
@@ -95,12 +110,15 @@ describe("Auto-approval (integration)", () => {
             expect(await transitionCounts()).toEqual({ "create success": 1, "approve success": 1 });
         });
 
-        it("should leave the stored dApp pending for an admin when the Auth0 call fails", async () => {
+        it("should answer 201 with the stored dApp pending for an admin and log a warning when the Auth0 call fails", async () => {
             provisioner.script("failed");
+            const warn = jest.spyOn(Logger.prototype, "warn").mockImplementation();
 
-            await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(500);
+            const { body } = await testApp.request.post("/dapp").set("Authorization", owner).send(dappForm()).expect(201);
 
             const [dapp] = await dataSource.manager.find(Dapp);
+            expect(body).toMatchObject({ id: dapp.id, status: "pending", auth0ClientId: null, reviewedAt: null, pendingChange: null });
+            expect(warn.mock.calls).toEqual([[`Auto-approval of dApp ${dapp.id} failed: Fake create: scripted failed`]]);
             expect(dapp).toMatchObject({ ownerEmail, status: "pending", auth0ClientId: null, reviewedAt: null });
             expect(slack.notify).toHaveBeenCalledWith({ kind: "dapp_submitted", dapp: expect.objectContaining({ id: dapp.id }) });
             expect(await transitionCounts()).toEqual({ "create success": 1 });

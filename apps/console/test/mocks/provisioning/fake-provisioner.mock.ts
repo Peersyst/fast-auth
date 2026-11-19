@@ -1,15 +1,17 @@
 import { DappClient, ProvisioningError } from "../../../src/modules/provisioning/interfaces/i-auth0-provisioner.service";
 import { FakeProvisionerService } from "../../../src/modules/provisioning/providers/fake/fake.service";
 
-type FakeOutcome = "rejected" | "failed" | "timeout_after_success";
+type FakeOutcome = "success" | "rejected" | "failed" | "timeout_after_success";
+type FakeOp = "create" | "update";
 
 export class FakeProvisionerMock extends FakeProvisionerService {
     /** Every client sent, an update's carrying its `clientId`. */
     readonly calls: (DappClient & { clientId?: string })[] = [];
     private readonly outcomes: FakeOutcome[] = [];
+    private readonly interruptions = new Map<FakeOp, () => Promise<unknown>>();
 
     /**
-     * Queues an outcome for the next create or update.
+     * Queues an outcome for the next call.
      * @param outcome The outcome that call gets.
      * @returns This provisioner, for chaining.
      */
@@ -19,12 +21,22 @@ export class FakeProvisionerMock extends FakeProvisionerService {
     }
 
     /**
-     * Forgets every call, client and queued outcome.
+     * Runs another request in the middle of the next call of an operation, before that call takes effect.
+     * @param op The operation to interrupt.
+     * @param run The request to run.
+     */
+    during(op: FakeOp, run: () => Promise<unknown>): void {
+        this.interruptions.set(op, run);
+    }
+
+    /**
+     * Forgets every call, client, queued outcome and interruption.
      */
     reset(): void {
         this.calls.length = 0;
         this.clients.clear();
         this.outcomes.length = 0;
+        this.interruptions.clear();
     }
 
     /**
@@ -48,14 +60,19 @@ export class FakeProvisionerMock extends FakeProvisionerService {
     }
 
     /**
-     * Runs a call, unless the next scripted outcome fails it before or after it takes effect.
+     * Runs a call, after any interruption of it, unless the next scripted outcome fails it before or after it takes effect.
      * @param op The operation, for the message.
      * @param call The call.
      * @returns What the call returns.
      */
-    private async scripted<T>(op: "create" | "update", call: () => Promise<T>): Promise<T> {
+    private async scripted<T>(op: FakeOp, call: () => Promise<T>): Promise<T> {
         const outcome = this.outcomes.shift();
-        if (outcome !== undefined && outcome !== "timeout_after_success") {
+        const interruption = this.interruptions.get(op);
+        if (interruption) {
+            this.interruptions.delete(op);
+            await interruption();
+        }
+        if (outcome === "rejected" || outcome === "failed") {
             throw new ProvisioningError(outcome, `Fake ${op}: scripted ${outcome}`);
         }
         const result = await call();

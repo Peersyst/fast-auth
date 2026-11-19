@@ -4,8 +4,12 @@ import { SyncedFields } from "@shared/modules/dapp";
 export type DappClient = SyncedFields & { dappId: string };
 
 export interface IAuth0ProvisionerService {
-    /** Can create the client even when it throws. */
+    /** Checks that the template has connections and user grants, then creates the client only. `update` configures it. */
     create(client: DappClient): Promise<string>;
+    /**
+     * Configures the client: writes the dApp's fields, sets its connections to exactly the template's and creates the
+     * template's user grants it lacks. Safe to repeat.
+     */
     update(clientId: string, client: DappClient): Promise<void>;
 }
 

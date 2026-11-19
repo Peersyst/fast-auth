@@ -73,7 +73,8 @@ export class DappDto {
             webOrigins: dapp.webOrigins,
             contactEmail: dapp.contactEmail,
             status: dapp.status,
-            auth0ClientId: dapp.auth0ClientId,
+            // A client stored by an approval that has not finished is not configured yet, so nobody gets it.
+            auth0ClientId: dapp.status === DappStatus.APPROVED ? dapp.auth0ClientId : null,
             reviewedAt: dapp.reviewedAt?.toISOString() ?? null,
             pendingChange: pendingChange && DappChangeDto.fromEntity(pendingChange),
             createdAt: dapp.createdAt.toISOString(),

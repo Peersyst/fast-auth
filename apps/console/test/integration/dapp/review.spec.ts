@@ -1,9 +1,10 @@
 import { closeTestApp, createTestApp, TestApp, truncateAll } from "@backend/test";
+import { Logger } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { register } from "prom-client";
-import { DataSource } from "typeorm";
-import { Dapp } from "@database/console/entities";
+import { DataSource, EntityManager, EntityTarget } from "typeorm";
+import { Dapp, DappChange } from "@database/console/entities";
 import { createDapp, createDappChange } from "@database/console/test/factories";
 import { DappChangeStatus, DappStatus, MauBracket } from "@shared/modules/dapp";
 import { DappModule } from "../../../src/modules/dapp/dapp.module";
@@ -24,6 +25,7 @@ describe("dApp review (integration)", () => {
     let testApp: TestApp;
     let dataSource: DataSource;
     let admin: string;
+    let owner: string;
 
     beforeAll(async () => {
         testApp = await createTestApp({
@@ -51,6 +53,11 @@ describe("dApp review (integration)", () => {
         provisioner.reset();
         slack.clearMocks();
         admin = await adminBearer();
+        owner = await bearer(ownerEmail);
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
     });
 
     /**
@@ -87,8 +94,36 @@ describe("dApp review (integration)", () => {
      */
     const review = (path: string) => testApp.request.post(`/dapp/${path}`).set("Authorization", admin);
 
+    /**
+     * Sends a PATCH to the dApp as its owner.
+     * @param id The dApp id.
+     * @param body The fields to change.
+     * @returns The pending request.
+     */
+    const patch = (id: string, body: Record<string, unknown>) =>
+        testApp.request.patch(`/dapp/${id}`).set("Authorization", owner).send(body);
+
+    /**
+     * Runs another request after the next read of an entity answers, so it changes the row before the request that read it writes.
+     * @param run The request to run.
+     * @param entity The entity whose read triggers it. Defaults to the dApp.
+     */
+    const duringNextRead = (run: () => Promise<unknown>, entity: EntityTarget<unknown> = Dapp): void => {
+        const { manager } = dataSource;
+        const read = EntityManager.prototype.findOneBy.bind(manager);
+        let pending = true;
+        jest.spyOn(manager, "findOneBy").mockImplementation(async (...args: Parameters<typeof read>) => {
+            const row = await read(...args);
+            if (pending && args[0] === entity) {
+                pending = false;
+                await run();
+            }
+            return row;
+        });
+    };
+
     describe("POST /dapp/:id/approve", () => {
-        it("should create the Auth0 client and approve the dApp", async () => {
+        it("should create the Auth0 client, configure it with the dApp's fields and approve the dApp", async () => {
             const dapp = await pendingDapp();
 
             const { body } = await review(`${dapp.id}/approve`).expect(200);
@@ -113,6 +148,16 @@ describe("dApp review (integration)", () => {
                     logoutUrls: [],
                     webOrigins: ["https://acme.xyz"],
                 },
+                {
+                    dappId: dapp.id,
+                    clientId: body.auth0ClientId,
+                    name: "Acme Wallet",
+                    description: "A wallet for NEAR.",
+                    logoUrl: "https://cdn.acme.xyz/logo.png",
+                    callbackUrls: ["https://acme.xyz/callback"],
+                    logoutUrls: [],
+                    webOrigins: ["https://acme.xyz"],
+                },
             ]);
             expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
                 status: "approved",
@@ -123,7 +168,7 @@ describe("dApp review (integration)", () => {
             expect(await transitionCounts()).toEqual({ "approve success": 1 });
         });
 
-        it("should leave the dApp pending when the Auth0 call fails", async () => {
+        it("should leave the dApp pending without a client when creating the Auth0 client fails", async () => {
             const dapp = await pendingDapp();
             provisioner.script("failed");
 
@@ -134,6 +179,69 @@ describe("dApp review (integration)", () => {
                 auth0ClientId: null,
                 reviewedAt: null,
             });
+            expect(provisioner.clients.size).toBe(0);
+        });
+
+        it("should leave the dApp pending with its new client stored when configuring it fails", async () => {
+            const dapp = await pendingDapp();
+            provisioner.script("success").script("failed");
+
+            await review(`${dapp.id}/approve`).expect(500);
+
+            const [clientId] = provisioner.clients.keys();
+            expect(clientId).toMatch(/^fake_/);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
+                status: "pending",
+                auth0ClientId: clientId,
+                reviewedAt: null,
+            });
+        });
+
+        it("should log the new client as a possible orphan and leave the dApp pending when storing it fails", async () => {
+            const dapp = await pendingDapp();
+            const warn = jest.spyOn(Logger.prototype, "warn").mockImplementation();
+            jest.spyOn(dataSource.manager, "update").mockRejectedValueOnce(new Error("connection lost"));
+
+            await review(`${dapp.id}/approve`).expect(500);
+
+            const [clientId] = provisioner.clients.keys();
+            expect(clientId).toMatch(/^fake_/);
+            expect(warn.mock.calls).toEqual([[`Auth0 client ${clientId} of dApp ${dapp.id} may be an orphan: storing it failed`]]);
+            expect(provisioner.calls.map((call) => call.clientId)).toEqual([undefined]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
+                status: "pending",
+                auth0ClientId: null,
+                reviewedAt: null,
+            });
+        });
+
+        it("should reuse the stored client when an approval that failed after creating it is retried", async () => {
+            const dapp = await pendingDapp();
+            provisioner.script("success").script("failed");
+            await review(`${dapp.id}/approve`).expect(500);
+            const [clientId] = provisioner.clients.keys();
+
+            const { body } = await review(`${dapp.id}/approve`).expect(200);
+
+            expect(body).toMatchObject({ status: "approved", auth0ClientId: clientId });
+            expect(provisioner.calls.map((call) => call.clientId)).toEqual([undefined, clientId, clientId]);
+            expect([...provisioner.clients.keys()]).toEqual([clientId]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
+                status: "approved",
+                auth0ClientId: clientId,
+                reviewedAt: new Date(body.reviewedAt),
+            });
+            expect(await transitionCounts()).toEqual({ "approve success": 1 });
+        });
+
+        it("should configure the stored client with the dApp's current fields", async () => {
+            const dapp = await pendingDapp({ auth0ClientId: "client_half", name: "Acme Pay" });
+
+            const { body } = await review(`${dapp.id}/approve`).expect(200);
+
+            expect(body).toMatchObject({ status: "approved", auth0ClientId: "client_half", name: "Acme Pay" });
+            expect(provisioner.clients.get("client_half")).toMatchObject({ dappId: dapp.id, name: "Acme Pay" });
+            expect(provisioner.calls.map((call) => call.clientId)).toEqual(["client_half"]);
         });
 
         it.each([DappStatus.APPROVED, DappStatus.REJECTED])("should answer 409 INVALID_TRANSITION for a %s dApp", async (status) => {
@@ -176,6 +284,16 @@ describe("dApp review (integration)", () => {
             expect(provisioner.calls).toEqual([]);
             expect(slack.notify).not.toHaveBeenCalled();
             expect(await transitionCounts()).toEqual({ "reject success": 1 });
+        });
+
+        it("should reject a dApp whose approval failed after creating its client, keeping the client stored but unseen", async () => {
+            const dapp = await pendingDapp({ auth0ClientId: "client_half" });
+
+            const { body } = await review(`${dapp.id}/reject`).expect(200);
+
+            expect(body).toMatchObject({ status: "rejected", auth0ClientId: null });
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "rejected", auth0ClientId: "client_half" });
+            expect(provisioner.calls).toEqual([]);
         });
 
         it("should answer 409 INVALID_TRANSITION for an approved dApp and 404 DAPP_NOT_FOUND for an unknown id", async () => {
@@ -230,7 +348,7 @@ describe("dApp review (integration)", () => {
             expect(await transitionCounts()).toEqual({ "approveChange success": 1 });
         });
 
-        it("should apply a contact email and MAU change without calling Auth0", async () => {
+        it("should update the Auth0 client for a contact email and MAU change, so it gets the grants it lacks", async () => {
             const dapp = await approvedDapp();
             await createDappChange(dataSource.manager, {
                 dappId: dapp.id,
@@ -242,7 +360,7 @@ describe("dApp review (integration)", () => {
             const { body } = await review(`${dapp.id}/change/approve`).expect(200);
 
             expect(body).toMatchObject({ name: "Acme Wallet", contactEmail: "ops@acme.xyz", mauBracket: "gt25k", pendingChange: null });
-            expect(provisioner.calls).toEqual([]);
+            expect(provisioner.calls).toEqual([expect.objectContaining({ dappId: dapp.id, clientId: "client_live", name: "Acme Wallet" })]);
             expect(await findChanges(dataSource.manager, dapp.id)).toEqual([expect.objectContaining({ status: "approved" })]);
         });
 
@@ -258,6 +376,19 @@ describe("dApp review (integration)", () => {
                 expect.objectContaining({ id: change.id, status: "pending", reviewedAt: null }),
             ]);
             expect(provisioner.clients.get("client_live")).toMatchObject({ name: "Acme Wallet" });
+        });
+
+        it("should open its transaction only after the Auth0 call answers", async () => {
+            const dapp = await approvedDapp();
+            await createDappChange(dataSource.manager, { dappId: dapp.id, name: "Acme Pay" });
+            const transaction = jest.spyOn(dataSource, "transaction");
+            let openedBeforeAuth0 = -1;
+            provisioner.during("update", async () => (openedBeforeAuth0 = transaction.mock.calls.length));
+
+            await review(`${dapp.id}/change/approve`).expect(200);
+
+            expect(openedBeforeAuth0).toBe(0);
+            expect(transaction).toHaveBeenCalledTimes(1);
         });
 
         it.each([DappChangeStatus.APPROVED, DappChangeStatus.REJECTED])(
@@ -330,6 +461,230 @@ describe("dApp review (integration)", () => {
 
             expect(body).toEqual({ statusCode: 404, message: "DAPP_CHANGE_NOT_FOUND" });
             expect(await findChanges(dataSource.manager, other.id)).toEqual([expect.objectContaining({ status: "pending" })]);
+        });
+    });
+
+    describe("requests that overlap", () => {
+        it("should keep the client a failed approval stored when an owner edit that read the dApp before it writes after it", async () => {
+            const dapp = await pendingDapp();
+            duringNextRead(async () => {
+                provisioner.script("success").script("failed");
+                await review(`${dapp.id}/approve`).expect(500);
+            });
+            await patch(dapp.id, { name: "Acme Pay" }).expect(200);
+            const [clientId] = provisioner.clients.keys();
+            const { body } = await review(`${dapp.id}/approve`).expect(200);
+
+            expect(body).toMatchObject({ status: "approved", auth0ClientId: clientId, name: "Acme Pay" });
+            expect(provisioner.calls.map((call) => [call.clientId, call.name])).toEqual([
+                [undefined, "Acme Wallet"],
+                [clientId, "Acme Wallet"],
+                [clientId, "Acme Pay"],
+            ]);
+            expect([...provisioner.clients.keys()]).toEqual([clientId]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
+                status: "approved",
+                auth0ClientId: clientId,
+                name: "Acme Pay",
+            });
+        });
+
+        it("should answer 409 INVALID_TRANSITION to an owner edit that read the dApp pending and writes after its rejection", async () => {
+            const dapp = await pendingDapp();
+            duringNextRead(() => review(`${dapp.id}/reject`).expect(200));
+            const { status, body } = await patch(dapp.id, { name: "Acme Pay" });
+
+            expect({ status, body }).toEqual({ status: 409, body: { statusCode: 409, message: "INVALID_TRANSITION" } });
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "rejected", name: "Acme Wallet" });
+        });
+
+        it("should answer 409 INVALID_TRANSITION to a rejection that read the dApp pending and writes after its approval", async () => {
+            const dapp = await pendingDapp();
+            duringNextRead(() => review(`${dapp.id}/approve`).expect(200));
+            const { status, body } = await review(`${dapp.id}/reject`);
+
+            expect({ status, body }).toEqual({ status: 409, body: { statusCode: 409, message: "INVALID_TRANSITION" } });
+            const [clientId] = provisioner.clients.keys();
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "approved", auth0ClientId: clientId });
+            expect(await transitionCounts()).toEqual({ "approve success": 1 });
+        });
+
+        it("should answer 409 INVALID_TRANSITION to a change rejection that read the change pending and writes after its approval", async () => {
+            const dapp = await approvedDapp();
+            const change = await createDappChange(dataSource.manager, { dappId: dapp.id, name: "Acme Pay" });
+            duringNextRead(() => review(`${dapp.id}/change/approve`).expect(200), DappChange);
+            const { status, body } = await review(`${dapp.id}/change/reject`);
+
+            expect({ status, body }).toEqual({ status: 409, body: { statusCode: 409, message: "INVALID_TRANSITION" } });
+            expect(await findChanges(dataSource.manager, dapp.id)).toEqual([
+                expect.objectContaining({ id: change.id, status: "approved" }),
+            ]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ name: "Acme Pay" });
+            expect(await transitionCounts()).toEqual({ "approveChange success": 1 });
+        });
+
+        it("should answer 409 INVALID_TRANSITION to a change approval whose change is rejected while it updates Auth0, which keeps the rejected fields", async () => {
+            const dapp = await approvedDapp();
+            const change = await createDappChange(dataSource.manager, { dappId: dapp.id, name: "Acme Pay" });
+            provisioner.during("update", () => review(`${dapp.id}/change/reject`).expect(200));
+            const { status, body } = await review(`${dapp.id}/change/approve`);
+
+            expect({ status, body }).toEqual({ status: 409, body: { statusCode: 409, message: "INVALID_TRANSITION" } });
+            expect(await findChanges(dataSource.manager, dapp.id)).toEqual([
+                expect.objectContaining({ id: change.id, status: "rejected" }),
+            ]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ name: "Acme Wallet" });
+            expect(provisioner.clients.get("client_live")).toMatchObject({ name: "Acme Pay" });
+            expect(await transitionCounts()).toEqual({ "rejectChange success": 1 });
+        });
+
+        it("should answer 409 INVALID_TRANSITION to a change approval whose change an owner edit replaces while it updates Auth0, which keeps the replaced fields", async () => {
+            const dapp = await approvedDapp();
+            const change = await createDappChange(dataSource.manager, { dappId: dapp.id, name: "Acme Pay" });
+            provisioner.during("update", () => patch(dapp.id, { name: "Acme Cash" }).expect(200));
+            const { status, body } = await review(`${dapp.id}/change/approve`);
+
+            expect({ status, body }).toEqual({ status: 409, body: { statusCode: 409, message: "INVALID_TRANSITION" } });
+            const changes = await findChanges(dataSource.manager, dapp.id);
+            expect(changes).toEqual([expect.objectContaining({ name: "Acme Cash", status: "pending" })]);
+            expect(changes[0].id).not.toBe(change.id);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ name: "Acme Wallet" });
+            expect(provisioner.clients.get("client_live")).toMatchObject({ name: "Acme Pay" });
+            expect(await transitionCounts()).toEqual({ "update success": 1 });
+        });
+
+        it("should answer 409 INVALID_TRANSITION to a change approval whose change another approval approves while it updates Auth0", async () => {
+            const dapp = await approvedDapp();
+            const change = await createDappChange(dataSource.manager, { dappId: dapp.id, name: "Acme Pay" });
+            provisioner.during("update", () => review(`${dapp.id}/change/approve`).expect(200));
+            const { status, body } = await review(`${dapp.id}/change/approve`);
+
+            expect({ status, body }).toEqual({ status: 409, body: { statusCode: 409, message: "INVALID_TRANSITION" } });
+            expect(await findChanges(dataSource.manager, dapp.id)).toEqual([
+                expect.objectContaining({ id: change.id, status: "approved" }),
+            ]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ name: "Acme Pay" });
+            expect(provisioner.calls.map((call) => [call.clientId, call.name])).toEqual([
+                ["client_live", "Acme Pay"],
+                ["client_live", "Acme Pay"],
+            ]);
+            expect(await transitionCounts()).toEqual({ "approveChange success": 1 });
+        });
+
+        it("should leave the dApp rejected and log the new client when a rejection lands while the approval creates it", async () => {
+            const dapp = await pendingDapp();
+            const warn = jest.spyOn(Logger.prototype, "warn").mockImplementation();
+            let rejection!: { body: { reviewedAt: string } };
+            provisioner.during("create", async () => (rejection = await review(`${dapp.id}/reject`).expect(200)));
+            const { status, body } = await review(`${dapp.id}/approve`);
+
+            expect({ status, body }).toEqual({ status: 409, body: { statusCode: 409, message: "INVALID_TRANSITION" } });
+            const [clientId] = provisioner.clients.keys();
+            expect(clientId).toMatch(/^fake_/);
+            expect(warn.mock.calls).toEqual([[`Auth0 client ${clientId} of dApp ${dapp.id} is an orphan: the dApp is rejected`]]);
+            expect(provisioner.calls.map((call) => call.clientId)).toEqual([undefined]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
+                status: "rejected",
+                auth0ClientId: null,
+                reviewedAt: new Date(rejection.body.reviewedAt),
+            });
+            expect(await transitionCounts()).toEqual({ "reject success": 1 });
+        });
+
+        it("should leave the dApp rejected with its client stored when a rejection lands while the approval configures it", async () => {
+            const dapp = await pendingDapp();
+            let rejection!: { body: { reviewedAt: string } };
+            provisioner.during("update", async () => (rejection = await review(`${dapp.id}/reject`).expect(200)));
+            const { status, body } = await review(`${dapp.id}/approve`);
+
+            expect({ status, body }).toEqual({ status: 409, body: { statusCode: 409, message: "INVALID_TRANSITION" } });
+            const [clientId] = provisioner.clients.keys();
+            expect(clientId).toMatch(/^fake_/);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
+                status: "rejected",
+                auth0ClientId: clientId,
+                reviewedAt: new Date(rejection.body.reviewedAt),
+            });
+            expect(await transitionCounts()).toEqual({ "reject success": 1 });
+        });
+
+        it("should send Auth0 and keep the fields of an owner edit that lands while the approval creates the client", async () => {
+            const dapp = await pendingDapp();
+            provisioner.during("create", () => patch(dapp.id, { name: "Acme Pay", webOrigins: ["https://pay.acme.xyz"] }).expect(200));
+            const { status, body } = await review(`${dapp.id}/approve`);
+
+            expect(status).toBe(200);
+            expect(body).toMatchObject({ status: "approved", name: "Acme Pay", webOrigins: ["https://pay.acme.xyz"] });
+            expect(provisioner.calls.map((call) => [call.clientId, call.name, call.webOrigins])).toEqual([
+                [undefined, "Acme Wallet", ["https://acme.xyz"]],
+                [body.auth0ClientId, "Acme Pay", ["https://pay.acme.xyz"]],
+            ]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
+                status: "approved",
+                auth0ClientId: body.auth0ClientId,
+                name: "Acme Pay",
+                webOrigins: ["https://pay.acme.xyz"],
+            });
+        });
+
+        it.each<[string, Partial<Dapp>, Record<string, unknown>]>([
+            ["a text field", {}, { name: "Acme Pay" }],
+            ["a list that grows", {}, { webOrigins: ["https://acme.xyz", "https://pay.acme.xyz"] }],
+            ["a list that shrinks", { webOrigins: ["https://acme.xyz", "https://pay.acme.xyz"] }, { webOrigins: ["https://acme.xyz"] }],
+            ["a list from empty", {}, { logoutUrls: ["https://acme.xyz/bye"] }],
+            ["a list down to empty", { logoutUrls: ["https://acme.xyz/bye"] }, { logoutUrls: [] }],
+        ])(
+            "should answer 409 INVALID_TRANSITION to an approval when an owner edit of %s lands while it configures the client, and send the edit when approved again",
+            async (_case, stored, edit) => {
+                const dapp = await pendingDapp(stored);
+                provisioner.during("update", () => patch(dapp.id, edit).expect(200));
+                const { status, body } = await review(`${dapp.id}/approve`);
+
+                expect({ status, body }).toEqual({ status: 409, body: { statusCode: 409, message: "INVALID_TRANSITION" } });
+                const [clientId] = provisioner.clients.keys();
+                expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
+                    ...edit,
+                    status: "pending",
+                    auth0ClientId: clientId,
+                    reviewedAt: null,
+                });
+                expect(await transitionCounts()).toEqual({ "update success": 1 });
+
+                const retried = await review(`${dapp.id}/approve`).expect(200);
+
+                expect(retried.body).toMatchObject({ ...edit, status: "approved", auth0ClientId: clientId });
+                expect(provisioner.clients.get(clientId)).toMatchObject(edit);
+                expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ ...edit, status: "approved" });
+            },
+        );
+
+        it("should approve when an owner edit of a field Auth0 does not get lands while the approval configures the client", async () => {
+            const dapp = await pendingDapp();
+            provisioner.during("update", () => patch(dapp.id, { contactEmail: "ops@acme.xyz" }).expect(200));
+            const { status, body } = await review(`${dapp.id}/approve`);
+
+            expect(status).toBe(200);
+            expect(body).toMatchObject({ status: "approved", contactEmail: "ops@acme.xyz" });
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "approved", contactEmail: "ops@acme.xyz" });
+        });
+
+        it("should approve with the client another approval stored first and log its own as an orphan", async () => {
+            const dapp = await pendingDapp();
+            const warn = jest.spyOn(Logger.prototype, "warn").mockImplementation();
+            provisioner.script("success").script("success").script("failed");
+            provisioner.during("create", () => review(`${dapp.id}/approve`).expect(500));
+            const { status, body } = await review(`${dapp.id}/approve`);
+            const [storedId] = provisioner.clients.keys();
+
+            expect(status).toBe(200);
+            expect(body).toMatchObject({ status: "approved", auth0ClientId: storedId });
+            const [, orphanId] = provisioner.clients.keys();
+            expect(orphanId).toMatch(/^fake_/);
+            expect(warn.mock.calls).toEqual([
+                [`Auth0 client ${orphanId} of dApp ${dapp.id} is an orphan: the dApp already has the client ${storedId}`],
+            ]);
+            expect(provisioner.calls.map((call) => call.clientId)).toEqual([undefined, undefined, storedId, storedId]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "approved", auth0ClientId: storedId });
         });
     });
 

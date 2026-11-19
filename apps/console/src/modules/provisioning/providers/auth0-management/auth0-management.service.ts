@@ -1,4 +1,4 @@
-import { ApiResponse, Client, ClientCreate, ClientUpdate, ManagementClient } from "auth0";
+import { ApiResponse, Client, ClientCreate, ClientGrant, ClientUpdate, ManagementApiError, ManagementClient } from "auth0";
 import { Auth0ManagementConfig } from "../../../../config/auth0.config";
 import { DappClient, IAuth0ProvisionerService, ProvisioningError } from "../../interfaces/i-auth0-provisioner.service";
 import { Auth0Call, ProvisioningMetricsProvider } from "../../provisioning.metrics";
@@ -26,29 +26,57 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
     }
 
     /**
-     * Creates the client from the template client's settings and the dApp's fields, then copies the template's connections.
+     * Creates the client from the template client's settings and the dApp's fields. Refuses a template without enabled
+     * connections or user grants before creating anything, since `update` could not configure the client from it.
      * @param client The dApp and the fields synced to Auth0.
      * @returns The new client id.
      */
     async create(client: DappClient): Promise<string> {
         const template = await this.send("get", () => this.client.clients.get({ client_id: this.management.templateClientId }));
-        const wanted = await this.templateConnections();
+        await this.templateConnections();
+        await this.templateGrants();
         const body = this.createBody(template, client);
         const created = await this.send("create", () => this.client.clients.create(body));
-        const clientId = created.client_id;
-        await this.syncConnections(clientId, wanted);
-        return clientId;
+        return created.client_id;
     }
 
     /**
-     * Writes the dApp's fields to its client and resyncs the template's connections.
+     * Configures the client. Writes the dApp's fields, sets its connections to exactly the template's and creates the
+     * template's user grants it lacks. A repeated call only fills in what an earlier one left out. Refuses a template without
+     * enabled connections or user grants before writing anything.
      * @param clientId The client to write.
      * @param client The dApp and the fields synced to Auth0.
      */
     async update(clientId: string, client: DappClient): Promise<void> {
-        const wanted = await this.templateConnections();
+        const connections = await this.templateConnections();
+        const grants = await this.templateGrants();
         await this.send("update", () => this.client.clients.update({ client_id: clientId }, this.dappFields(client)));
-        await this.syncConnections(clientId, wanted);
+        await this.syncConnections(clientId, connections);
+        await this.copyGrants(clientId, grants);
+    }
+
+    /**
+     * Creates the template's user grants whose audience the client lacks, each with the template's scopes. A grant the client
+     * already has stays as it is, so a repeated call only fills in what an earlier one left out. A grant Auth0 answers 409 to
+     * counts as one the client already has.
+     * @param clientId The client to grant.
+     * @param wanted The template's user grants.
+     */
+    private async copyGrants(clientId: string, wanted: Pick<ClientGrant, "audience" | "scope">[]): Promise<void> {
+        const granted = new Set((await this.userGrants(clientId)).map(({ audience }) => audience));
+        for (const { audience, scope } of wanted) {
+            if (granted.has(audience)) continue;
+            await this.send("create_grant", () =>
+                this.client.clientGrants
+                    .create({ client_id: clientId, audience, scope, subject_type: "user" })
+                    // A 409 says the client has a grant for the audience: the first attempt of a retried call landed, or
+                    // another approval made it since the list above.
+                    .catch((error: unknown) => {
+                        if (error instanceof ManagementApiError && error.statusCode === 409) return { data: undefined };
+                        throw error;
+                    }),
+            );
+        }
     }
 
     /**
@@ -62,6 +90,43 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
         if (connections.size === 0)
             throw new ProvisioningError("failed", `The template client ${templateClientId} has no enabled connections`);
         return connections;
+    }
+
+    /**
+     * Reads the template client's user grants, and throws when there are none.
+     * @returns The audience and scopes of each grant.
+     */
+    private async templateGrants(): Promise<Pick<ClientGrant, "audience" | "scope">[]> {
+        const { templateClientId } = this.management;
+        const grants = await this.userGrants(templateClientId);
+        // A client without user grants gets no token for the signing APIs, so its dApp could not sign. Refuse before changing anything.
+        if (grants.length === 0) throw new ProvisioningError("failed", `The template client ${templateClientId} has no user grants`);
+        return grants;
+    }
+
+    /**
+     * Pages through a client's user grants.
+     * @param clientId The client.
+     * @returns The audience and scopes of each grant.
+     */
+    private async userGrants(clientId: string): Promise<Pick<ClientGrant, "audience" | "scope">[]> {
+        const grants: Pick<ClientGrant, "audience" | "scope">[] = [];
+        let total = 0;
+        for (let page = 0; page === 0 || grants.length < total; page++) {
+            const result = await this.send("list_grants", () =>
+                this.client.clientGrants.getAll({
+                    client_id: clientId,
+                    subject_type: "user",
+                    per_page: 50,
+                    page,
+                    include_totals: true,
+                }),
+            );
+            if (result.client_grants.length === 0) break;
+            for (const { audience, scope } of result.client_grants) grants.push({ audience, scope });
+            total = result.total;
+        }
+        return grants;
     }
 
     /**
@@ -155,7 +220,7 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
      * @param call The SDK call.
      * @returns The response data.
      */
-    private async send<T>(op: Auth0Call, call: () => Promise<ApiResponse<T>>): Promise<T> {
+    private async send<T>(op: Auth0Call, call: () => Promise<Pick<ApiResponse<T>, "data">>): Promise<T> {
         for (let attempt = 1; ; attempt++) {
             const done = this.metrics.startAuth0Request(op);
             try {
