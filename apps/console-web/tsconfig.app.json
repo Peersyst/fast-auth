@@ -6,6 +6,6 @@
         "useDefineForClassFields": true,
         "types": ["node", "vite/client", "jest", "@testing-library/jest-dom"]
     },
-    "include": ["src", "test"],
+    "include": ["src", "test", "login", "vite-plugins"],
     "exclude": ["dist"]
 }

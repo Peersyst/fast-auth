@@ -10,6 +10,7 @@
     const fuzzToggle = document.getElementById("fuzz-toggle");
     const refreshBtn = document.getElementById("refresh");
     const modeFilter = document.getElementById("mode-filter");
+    const testingToggle = document.getElementById("testing-toggle");
 
     const FORMS = [
         {
@@ -44,6 +45,11 @@
 
         const body = document.createElement("div");
         body.className = "card-body";
+
+        // Same position as in *_form.testing.json: first block of the step.
+        if (testingToggle.checked) {
+            body.appendChild(window.AuthorizeAppTestingBanner(window.createMockContext({})).init());
+        }
 
         let payload;
         let rendered;
@@ -109,5 +115,6 @@
     refreshBtn.addEventListener("click", render);
     fuzzToggle.addEventListener("change", render);
     modeFilter.addEventListener("change", render);
+    testingToggle.addEventListener("change", render);
     render();
 })();

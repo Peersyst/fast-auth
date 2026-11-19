@@ -20,6 +20,11 @@
  * trailing `if (typeof module !== "undefined") { module.exports = ... }` block is a no-op
  * in the Auth0 runtime (no CommonJS) and is left in place for simplicity.
  *
+ * Every form is built twice. `<form>_form.json` is the production form. `<form>_form.testing.json`
+ * is the same form with the testing banner (shared/banner) as the first block of every step. It is
+ * meant only for the open testing tenants and must never be imported into a production tenant.
+ * Both are always written so the testing files cannot go stale next to the production ones.
+ *
  * Usage: node packages/auth0/src/forms/build.js
  */
 
@@ -28,6 +33,15 @@ const path = require("path");
 
 const FORMS_DIR = __dirname;
 const HELPERS_PATH = path.join(FORMS_DIR, "shared", "helpers", "index.js");
+
+const TESTING_BANNER = {
+    $source: "shared/banner",
+    category: "FIELD",
+    type: "CUSTOM",
+    required: false,
+    sensitive: false,
+    config: { schema: {}, code: "", css: "", params: {} },
+};
 
 const FORMS = [
     { name: "transaction", base: "transaction_form_base.json", out: "transaction_form.json" },
@@ -94,12 +108,26 @@ function injectComponents(template, formDir, helpersPreamble) {
     return template;
 }
 
-function buildForm({ name, base, out }, helpersPreamble) {
+function testingOutName(out) {
+    return out.replace(/\.json$/, ".testing.json");
+}
+
+function addTestingBanner(template) {
+    for (const node of template.form.nodes) {
+        if (node.type !== "STEP") continue;
+        node.config.components.unshift({ ...structuredClone(TESTING_BANNER), id: `testing_banner_${node.id}` });
+    }
+    template.form.name = `${template.form.name} (testing)`;
+    return template;
+}
+
+function buildForm({ name, base, out }, helpersPreamble, { testing = false } = {}) {
     const formDir = path.join(FORMS_DIR, name);
     const basePath = path.join(formDir, base);
-    const outPath = path.join(formDir, out);
+    const outPath = path.join(formDir, testing ? testingOutName(out) : out);
 
     const template = JSON.parse(fs.readFileSync(basePath, "utf8"));
+    if (testing) addTestingBanner(template);
     const built = injectComponents(template, formDir, helpersPreamble);
 
     fs.writeFileSync(outPath, JSON.stringify(built, null, 2) + "\n");
@@ -110,6 +138,7 @@ function main() {
     const helpersPreamble = readHelpersPreamble();
     for (const form of FORMS) {
         buildForm(form, helpersPreamble);
+        buildForm(form, helpersPreamble, { testing: true });
     }
 }
 
@@ -124,6 +153,7 @@ module.exports = {
     readComponent,
     injectComponents,
     buildForm,
+    testingOutName,
     FORMS,
     FORMS_DIR,
     HELPERS_PATH,

@@ -43,3 +43,6 @@ fast-auth-.json
 
 .env
 **/dist
+
+# Built by packages/auth0 `pnpm build`, for the testing tenants only.
+packages/auth0/src/forms/**/*_form.testing.json

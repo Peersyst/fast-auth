@@ -70,6 +70,18 @@ const provider = new JavascriptProvider({
   This `clientId` is shared across testnet apps and is intended for development only. Provision your own Auth0 credentials before moving to [mainnet](/resources/mainnet).
 </Info>
 
+### Without an Auth0 application
+
+A dApp can also use the open testing tenant, which needs no Auth0 application and no `clientId`. See [Testing tenants](/sdks/javascript-provider#testing-tenants) for how it differs.
+
+```ts
+import { JavascriptTestingProvider } from "@fast-auth-near/javascript-provider";
+
+const provider = new JavascriptTestingProvider({ tenant: "testnet" });
+```
+
+Both paths use the same Auth0 domain on testnet, so a user gets the same account on either.
+
 ---
 
 ## Wire it up
