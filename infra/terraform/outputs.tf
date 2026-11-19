@@ -32,8 +32,3 @@ output "sandbox_broker_certificate_arn" {
   value       = try(module.sandbox_broker_certificate[0].certificate_arn, null)
   description = "Certificate for sandbox.auth.near.org. Add it to ingress.certificate in the chart's staging values. Null in production."
 }
-
-output "sandbox_broker_secret_name" {
-  value       = try(module.sandbox_broker_secret[0].secret_name, null)
-  description = "Secret holding the sandbox broker's Auth0 client. Null in production."
-}

@@ -1,6 +1,6 @@
 # Infrastructure the NEAR Auth Console needs outside the cluster: its Secrets
 # Manager secret and, in production, its database. On staging, also the sandbox
-# broker's secret and certificate.
+# broker's certificate.
 #
 # It follows the layout of Peersyst/peersyst-infra (see its AGENTS.md) and
 # sources that repository's modules over SSH, so `terraform init` needs access

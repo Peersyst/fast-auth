@@ -32,14 +32,6 @@ spec:
       labels:
         app: sandbox-broker-{{ .Values.environment }}
     spec:
-      serviceAccountName: peersyst-secrets-iamserviceaccount
-      volumes:
-      - name: sandbox-broker-secrets
-        csi:
-          driver: secrets-store.csi.k8s.io
-          readOnly: true
-          volumeAttributes:
-            secretProviderClass: sandbox-broker-{{ .Values.environment }}-secrets
       containers:
       - name: sandbox-broker
         image: ghcr.io/peersyst/fast-auth-sandbox-broker:{{ .Values.tagSandboxBroker }}
@@ -63,46 +55,11 @@ spec:
             port: {{ .Values.sandboxBroker.service.targetPort }}
           initialDelaySeconds: 30
           periodSeconds: 30
-        volumeMounts:
-        - name: sandbox-broker-secrets
-          mountPath: "/mnt/secrets"
-          readOnly: true
         env:
         - name: CONFIG_ENV
           value: {{ .Values.environment }}
-        {{- range $k, $v := .Values.sandboxBroker.secretProviderClass.secrets }}
-        - name: {{ $v }}
-          valueFrom:
-            secretKeyRef:
-              name: {{ $.Values.sandboxBroker.secretProviderClass.objectAlias }}
-              key: {{ $v }}
-        {{- end }}
+        - name: AUTH0_CLIENT_ID
+          value: {{ .Values.sandboxBroker.clientId | quote }}
       imagePullSecrets:
       - name: regcred
----
-apiVersion: secrets-store.csi.x-k8s.io/v1
-kind: SecretProviderClass
-metadata:
-  name: sandbox-broker-{{ .Values.environment }}-secrets
-  namespace: {{ $.Values.namespace }}
-spec:
-  provider: aws
-  parameters:
-    region: us-east-1
-    objects: |
-      - objectName: {{ $.Values.sandboxBroker.secretProviderClass.objectName }}
-        objectType: secretsmanager
-        jmesPath:
-        {{- range $k, $v := .Values.sandboxBroker.secretProviderClass.secrets }}
-          - path: {{ $v }}
-            objectAlias: {{ $k }}
-        {{- end }}
-  secretObjects:
-  - secretName: {{ $.Values.sandboxBroker.secretProviderClass.objectAlias }}
-    type: Opaque
-    data:
-    {{- range $k, $v := .Values.sandboxBroker.secretProviderClass.secrets }}
-    - objectName: {{ $k }}
-      key: {{ $v }}
-    {{- end }}
 {{- end }}
