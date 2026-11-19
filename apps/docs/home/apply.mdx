@@ -14,13 +14,12 @@ Going live on **mainnet requires approval**. You register your app in the [NEAR 
 
 ## What approval grants you
 
-On **mainnet**, each approved app gets its **own** Auth0 `clientId`, with the domains you registered as its callback URLs and web origins, plus access to the mainnet NEAR Auth contract at `fast-auth.near`.
+On **mainnet**, each approved app gets its **own** Auth0 `clientId`, with the domains you registered as its callback URLs and web origins. It can request signing tokens, so your users can sign mainnet transactions.
 
 | Item | What you receive |
 |------|------------------|
 | **Auth0 credentials** | Your own production `clientId`. The `domain` and `signingAudience` are the mainnet network's defaults |
-| **Contract access** | Access to the mainnet NEAR Auth contract at `fast-auth.near` |
-| **Deployment guidance** | Support for taking your integration to production |
+| **Integration snippet** | The provider config for your app, ready to paste |
 
 ---
 
@@ -36,7 +35,7 @@ On **mainnet**, each approved app gets its **own** Auth0 `clientId`, with the do
 
 <Steps>
   <Step title="Sign in to the console" icon="log-in">
-    Open [console.auth.near.org](https://console.auth.near.org) and sign in. Your app is registered under the email you sign in with, which has to be verified.
+    Open [console.auth.near.org](https://console.auth.near.org) and sign in. Your app is registered under the email you sign in with, which has to be verified. Each email can have one app at a time, a rejected one included, so sign in with a different email for each app.
   </Step>
   <Step title="Register your app" icon="send">
     Fill in the form with your app's details. See [what to prepare](#what-to-prepare) below so you can do it in one pass.
@@ -48,8 +47,7 @@ On **mainnet**, each approved app gets its **own** Auth0 `clientId`, with the do
     Once approved, the console creates your Auth0 application and shows you everything you need to go live:
 
     - **Your production `clientId`**, with the callback URLs, logout URLs and web origins you registered.
-    - **Access to the mainnet NEAR Auth contract** at `fast-auth.near`.
-    - **Guidance for production deployment.**
+    - **A config snippet** to paste into your provider setup.
   </Step>
 </Steps>
 
@@ -71,8 +69,8 @@ Have these details ready before you open the console so you can submit in a sing
   The name NEAR Auth displays to your users during login and when they approve a transaction. Use the public-facing name you want people to recognize — e.g. *Acme Wallet*.
 </ParamField>
 
-<ParamField body="Application description" required>
-  A short summary of what your application does. It appears next to your name on the NEAR Auth login and transaction-approval screens, so write it for end users. One or two sentences.
+<ParamField body="Application description">
+  *Optional.* A short summary of what your application does. It appears next to your name on the NEAR Auth login screen, so write it for end users. One or two sentences.
 </ParamField>
 
 <ParamField body="Application logo" required>
@@ -80,7 +78,7 @@ Have these details ready before you open the console so you can submit in a sing
 </ParamField>
 
 <ParamField body="Expected monthly active users" required>
-  Your best estimate of monthly active users (MAU). This lets us provision capacity and set appropriate rate limits for your app. Choose one bracket: **Less than 1,000**, **1,000–10,000**, **10,000–25,000**, or **more than 25,000**.
+  Your best estimate of monthly active users (MAU). This helps us plan capacity as your app grows. Choose one bracket: **Less than 1,000**, **1,000–10,000**, **10,000–25,000**, or **more than 25,000**.
 </ParamField>
 
 <ParamField body="Callback URLs" required>
@@ -96,7 +94,7 @@ Have these details ready before you open the console so you can submit in a sing
 </ParamField>
 
 <ParamField body="Primary contact email address" required>
-  A monitored email for the person we should contact about your application: approval, credential delivery, quota changes, and security notices. Example: `dev@example.com`.
+  A monitored email for the person we should contact about your application, for example with questions during review or with security notices. The console does not email you when your app is approved or rejected, so check its status there. Example: `dev@example.com`.
 </ParamField>
 
 <Note>
@@ -119,8 +117,7 @@ import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
 const provider = new JavascriptProvider({
   network: "mainnet",
   clientId: "<your-auth0-client-id>",
-  // domain and signingAudience default from the mainnet network,
-  // override them only if your production credentials differ.
+  // domain and signingAudience come from the mainnet network defaults.
 });
 ```
 
@@ -136,7 +133,7 @@ const client = new FastAuthClient(provider, connection, {
 ```
 
 <Warning>
-  Production requires your own approved credentials. Only a `clientId` issued through the console authenticates against the mainnet NEAR Auth contract.
+  Production requires your own approved credentials. There is no shared mainnet `clientId`, so use the one the console issues you.
 </Warning>
 
 ---

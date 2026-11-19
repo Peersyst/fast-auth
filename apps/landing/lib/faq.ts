@@ -31,7 +31,7 @@ export const FAQ_ITEMS: ReadonlyArray<FaqItem> = [
   },
   {
     q: "What does Auth0 have to do with it?",
-    a: "Auth0 is the identity layer. Each NEAR Auth-integrated dApp gets its own approved Auth0 credentials (domain, clientId, audience), but the user's `sub` claim deterministically derives the same MPC-controlled NEAR account across every dApp that uses the Auth0 guard — so the same login reaches the same wallet.",
+    a: "Auth0 is the identity layer. Each mainnet dApp gets its own approved Auth0 `clientId` on the shared NEAR Auth tenant (testnet dApps share one), but the user's `sub` claim deterministically derives the same MPC-controlled NEAR account across every dApp that uses the Auth0 guard — so the same login reaches the same wallet.",
   },
   {
     q: "Where is the user's key stored?",
@@ -47,7 +47,7 @@ export const FAQ_ITEMS: ReadonlyArray<FaqItem> = [
   },
   {
     q: "How do I go live on mainnet?",
-    a: "Build on testnet first — no approval required, free credentials. When you're ready for production, register your dApp in the NEAR Auth Console at console.auth.near.org: name, description, logo, expected volume, the domains it signs in from, and a contact email. The NEAR Auth team reviews it, and once it is approved the console issues your own Auth0 clientId and your dApp reaches the mainnet NEAR Auth contracts. Mainnet access is gated to keep the shared infrastructure healthy.",
+    a: "Build on testnet first — no approval required, free credentials. When you're ready for production, register your dApp in the NEAR Auth Console at console.auth.near.org: name, description, logo, expected volume, the domains it signs in from, and a contact email. The NEAR Auth team reviews it, and once it is approved the console issues your own Auth0 clientId, so your users can sign mainnet transactions. Mainnet access is gated to keep the shared infrastructure healthy.",
   },
   {
     q: "Can I self-host?",
