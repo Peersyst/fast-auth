@@ -9,9 +9,11 @@
     const root = document.getElementById("cards");
     const fuzzToggle = document.getElementById("fuzz-toggle");
     const sandboxToggle = document.getElementById("sandbox-toggle");
-    // A stand-in: the real text is SANDBOX_NOTICE in the action, which the browser cannot load.
+    // A copy of SANDBOX_NOTICE in the action, which the browser cannot load.
     const SANDBOX_NOTICE_PREVIEW =
-        "Sandbox: a testing environment with no security guarantees. Do not use it for real funds. (Preview text: the action holds the real one.)";
+        "⚠️ Sandbox: a testing environment with no security guarantees. Do not use it for real funds. " +
+        "If the testnet MPC changes its root key, access to the accounts it signs for, mainnet ones included, is lost. " +
+        "Use it at your own risk.";
     const refreshBtn = document.getElementById("refresh");
     const modeFilter = document.getElementById("mode-filter");
 
