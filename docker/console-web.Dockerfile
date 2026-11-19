@@ -30,7 +30,7 @@ WORKDIR /project/apps/console-web
 RUN pnpm build
 
 
-FROM nginx:1.29.3-alpine as release
+FROM nginx:1.30.7-alpine as release
 COPY --from=integration /project/apps/console-web/dist /usr/share/nginx/html/
 # The Content-Security-Policy lets the app call BACKEND_URL. The Auth0 SDK calls and frames AUTH0_LOGIN_DOMAIN, and its sign-in popup needs an opener that survives the
 # cross-origin navigation. Both are filled in at build time from the same build arguments as the bundle.
