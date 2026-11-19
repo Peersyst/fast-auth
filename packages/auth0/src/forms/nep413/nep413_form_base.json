@@ -17,6 +17,22 @@
         "config": {
           "components": [
             {
+              "$source": "shared/notice",
+              "id": "custom_notice_msg",
+              "category": "FIELD",
+              "type": "CUSTOM",
+              "required": false,
+              "sensitive": false,
+              "config": {
+                "schema": {},
+                "code": "",
+                "css": "",
+                "params": {
+                  "text": "{{ fields.notice }}"
+                }
+              }
+            },
+            {
               "$source": "shared/image",
               "id": "custom_msg_img",
               "category": "FIELD",
@@ -89,7 +105,8 @@
         { "key": "callbackUrl" },
         { "key": "name" },
         { "key": "imageUrl" },
-        { "key": "decision" }
+        { "key": "decision" },
+        { "key": "notice" }
       ],
       "next_node": "step_msg1",
       "coordinates": {
