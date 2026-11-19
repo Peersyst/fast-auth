@@ -29,21 +29,25 @@ type SignaturePayload = { transaction: number[] } | { delegateAction: number[] }
 export class JavascriptProvider implements IFastAuthProvider {
     private readonly options: JavascriptProviderOptions & {
         domain: string;
+        issuer: string;
         signingAudience: string;
     };
     private client: Auth0Client;
 
     constructor(options: JavascriptProviderOptions) {
         const defaults = FAST_AUTH_AUTH0_DEFAULTS[options.network];
+        const domain = options.domain ?? defaults.domain;
         this.options = {
             network: options.network,
             clientId: options.clientId,
-            domain: options.domain ?? defaults.domain,
+            domain,
+            issuer: options.issuer ?? domain,
             signingAudience: options.signingAudience ?? defaults.signingAudience,
         };
         this.client = new Auth0Client({
             domain: this.options.domain,
             clientId: this.options.clientId,
+            ...(options.issuer && { issuer: options.issuer }),
             authorizationParams: {},
         });
     }
@@ -161,7 +165,7 @@ export class JavascriptProvider implements IFastAuthProvider {
      */
     async getPath(): Promise<string> {
         const { userId } = await this.getUserId();
-        return `jwt#https://${this.options.domain}/#${userId}`;
+        return `jwt#https://${this.options.issuer}/#${userId}`;
     }
 
     /**
@@ -232,7 +236,7 @@ export class JavascriptProvider implements IFastAuthProvider {
         });
         const decoded = jwt_decode<{ fatxn: Uint8Array }>(token);
         const signatureRequest = {
-            guardId: `jwt#https://${this.options.domain}/`,
+            guardId: `jwt#https://${this.options.issuer}/`,
             verifyPayload: token,
             signPayload: decoded["fatxn"] as Uint8Array,
         };

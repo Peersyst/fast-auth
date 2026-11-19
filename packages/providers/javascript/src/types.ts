@@ -9,6 +9,11 @@ export type JavascriptProviderOptions = {
     network: FastAuthNetwork;
     clientId: string;
     domain?: string;
+    /**
+     * The Auth0 tenant that issues the tokens, when `domain` is not that tenant, as with the NEAR Auth sandbox, whose
+     * broker answers on its own domain. Defaults to `domain`.
+     */
+    issuer?: string;
     signingAudience?: string;
 };
 
