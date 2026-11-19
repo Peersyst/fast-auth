@@ -7,7 +7,7 @@ icon: "globe"
 NEAR Auth runs on two networks: **testnet** for building and **mainnet** for production. Every value on this page is network-specific — swap the whole set together when you move an app from testnet to mainnet. Testnet uses shared credentials you can copy today; mainnet requires an [approved application](/home/apply).
 
 <Note>
-  Start on testnet with the values below — no sign-off needed. When you're ready to launch, [apply for production access](/home/apply) to get your own mainnet Auth0 `clientId`.
+  Start on testnet with the values below — no sign-off needed. When you're ready to launch, [register your app in the NEAR Auth Console](/home/apply) to get your own mainnet Auth0 `clientId`.
 </Note>
 
 ---
@@ -31,7 +31,7 @@ Every setting your app needs, per network. The NEAR values feed `near-api-js` an
 </Info>
 
 <Warning>
-  There is no shared mainnet `clientId`. The testnet `clientId` above is a public, shared demo credential — never point a production app at it. Your mainnet `clientId` comes from your own approved application. [Apply for production access →](/home/apply)
+  There is no shared mainnet `clientId`. The testnet `clientId` above is a public, shared demo credential — never point a production app at it. Your mainnet `clientId` comes from your own approved application. [Register your app in the console →](/home/apply)
 </Warning>
 
 ---
@@ -157,7 +157,7 @@ const client = new FastAuthClient(provider, connection, {
   <Card title="Testnet reference" icon="globe" href="/resources/testnet" horizontal arrow>
     The same lookup for the testnet environment.
   </Card>
-  <Card title="Apply for production" icon="rocket" href="/home/apply" horizontal arrow>
+  <Card title="Get mainnet access" icon="rocket" href="/home/apply" horizontal arrow>
     Get your own mainnet Auth0 credentials.
   </Card>
 </CardGroup>

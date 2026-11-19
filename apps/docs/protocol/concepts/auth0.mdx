@@ -130,11 +130,11 @@ new JavascriptProvider({
 - **`domain`** is the Auth0 tenant that issues tokens.
 - **`signingAudience`** is the Auth0 API audience used specifically for **signature requests**. It is what routes a signing JWT to the Auth0 Guard: the audience value is the guard's on-chain account id, and the guard verifies that its own account appears in the token's `aud` claim.
 
-If you leave `domain` and `signingAudience` unset, NEAR Auth fills them in from `FAST_AUTH_AUTH0_DEFAULTS` for your network:
+If you leave `domain` and `signingAudience` unset, NEAR Auth fills them in from `FAST_AUTH_AUTH0_DEFAULTS` for your network. The defaults carry no `clientId`, so you always pass your own. On testnet you can pass the shared application's id below:
 
-| Network | `domain` | `signingAudience` | `clientId` |
+| Network | `domain` | `signingAudience` | Shared `clientId` |
 | --- | --- | --- | --- |
-| **mainnet** | `login.auth.near.org` | `auth0.jwt.fast-auth.near` | `dsurLc47fOcWme5PkYeClBvuW0tYrmgW` |
+| **mainnet** | `login.auth.near.org` | `auth0.jwt.fast-auth.near` | None. [Register your app](/home/apply) |
 | **testnet** | `login.testnet.fast-auth.com` | `auth0.jwt.fast-auth.testnet` | `np8paqIpMWmNbzT4xAvOOapZBjsOpptl` |
 
 <Note>

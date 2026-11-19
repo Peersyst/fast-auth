@@ -10,7 +10,7 @@ export default function FooterCTA({ docsHref, applyHref }: Props) {
           Ship the wallet your users<br />won't realize they're using.
         </h2>
         <p>
-          Build on testnet today — no approval needed. When you're ready for production, submit your application to get whitelisted Auth0 credentials and mainnet access.
+          Build on testnet today — no approval needed. When you're ready for production, register your dApp in the console to get your own Auth0 credentials and mainnet access.
         </p>
         <div className="footerCTAButtons">
           <a href={docsHref} className="btn btn--primary">

@@ -7,7 +7,7 @@ icon: "server"
 The addresses below are the live NEAR Auth deployment on **NEAR testnet**. Use them for development and integration testing — testnet needs no approval, and you can point your SDK at these contracts today with the shared credentials on this page.
 
 <Note>
-  Testnet requires no sign-off. When you're ready to go live, review the [mainnet contracts](/resources/mainnet) and [apply for production access](/home/apply).
+  Testnet requires no sign-off. When you're ready to go live, review the [mainnet contracts](/resources/mainnet) and [register your app in the NEAR Auth Console](/home/apply).
 </Note>
 
 ---
@@ -49,7 +49,7 @@ const { connection } = await connect({
 
 ## Auth0 credentials
 
-Testnet ships with a shared Auth0 client so you can start authenticating users without registering your own tenant. The JavaScript provider fills in the domain and signing audience from the `testnet` network, so `clientId` is the only value you need to supply.
+Testnet ships with a shared Auth0 client so you can start authenticating users without registering your app. The JavaScript provider fills in the domain and signing audience from the `testnet` network, so `clientId` is the only value you need to supply.
 
 | Setting | Value |
 |---------|-------|
@@ -67,7 +67,7 @@ const provider = new JavascriptProvider({
 ```
 
 <Info>
-  This `clientId` is shared across testnet apps and is intended for development only. Provision your own Auth0 credentials before moving to [mainnet](/resources/mainnet).
+  This `clientId` is shared across testnet apps and is intended for development only. Before moving to [mainnet](/resources/mainnet), [register your app in the NEAR Auth Console](/home/apply) to get your own `clientId`.
 </Info>
 
 ---

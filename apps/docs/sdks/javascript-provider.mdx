@@ -57,7 +57,7 @@ const provider = new JavascriptProvider({
 ```
 
 <Note>
-  The client IDs above and below are the shared NEAR Auth testnet and mainnet Auth0 applications. You can build against testnet immediately; when you're ready for production, [apply for mainnet access](/home/apply).
+  The client ID in these examples is the shared NEAR Auth **testnet** application, so you can start building right away. There is no shared mainnet client ID: when you're ready for production, [register your app in the NEAR Auth Console](/home/apply) to get your own.
 </Note>
 
 ### Constructor options
@@ -79,7 +79,7 @@ When you omit `domain` and `signingAudience`, the provider fills them from the n
 
 | Network | `domain` | `signingAudience` | Shared `clientId` |
 | --- | --- | --- | --- |
-| `mainnet` | `login.auth.near.org` | `auth0.jwt.fast-auth.near` | `dsurLc47fOcWme5PkYeClBvuW0tYrmgW` |
+| `mainnet` | `login.auth.near.org` | `auth0.jwt.fast-auth.near` | None. [Register your app](/home/apply) |
 | `testnet` | `login.testnet.fast-auth.com` | `auth0.jwt.fast-auth.testnet` | `np8paqIpMWmNbzT4xAvOOapZBjsOpptl` |
 
 <Tip>
