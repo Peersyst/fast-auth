@@ -15,7 +15,7 @@ new Auth0Client({
 | Endpoint | |
 | --- | --- |
 | `GET /authorize` | Starts the broker's own sign-in with Auth0. It passes on the dApp's `scope`, `audience`, `nonce` and signing payload, and forces the login screen when there is nothing to sign. |
-| `GET /callback` | Redeems Auth0's code with the client secret and hands the dApp a one-time code of its own: by redirect, or by `postMessage` for popups. |
+| `GET /callback` | Redeems Auth0's code with the broker's own PKCE verifier and hands the dApp a one-time code of its own: by redirect, or by `postMessage` for popups. |
 | `POST /oauth/token` | Redeems that code for Auth0's tokens, if the dApp's PKCE verifier matches. |
 | `GET /v2/logout` | Sends the user back to `returnTo`. |
 
@@ -23,14 +23,14 @@ Sign-ins and codes live in memory for 10 minutes, on a single replica.
 
 ## The Auth0 client
 
-A Regular Web Application on the sandbox tenant with:
+A Single Page Application on the sandbox tenant, with no secret like every other client:
 
-- **Grant types:** only Authorization Code.
+- **Token endpoint authentication:** None. The broker redeems codes with PKCE.
 - **Allowed Callback URLs:** `https://sandbox.auth.near.org/callback`, plus `http://localhost:3000/callback` to run it locally.
 - **Name:** something like "A sandbox app". The consent screen shows this client's name for every dApp.
 - **Access:** authorized on the signing API.
 
-Its id and secret are `AUTH0_CLIENT_ID` and `AUTH0_CLIENT_SECRET`. Everything else is a default in `src/config`.
+Its id is `AUTH0_CLIENT_ID`. Everything else is a default in `src/config`.
 
 ## Running it
 
