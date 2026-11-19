@@ -20,7 +20,7 @@ The forms are the same on every tenant: the notice block renders nothing when th
 
 ## The sandbox
 
-The sandbox tenant is the testnet one, `login.testnet.fast-auth.com`. Any dApp signs users in on it through the sandbox broker, which uses one Auth0 client for all of them. That client has `broker: "true"` in its metadata, and the broker passes the dApp's origin to `/authorize` as `dapp_origin`. The consent screen shows that origin as the app's name, so the action refuses a broker login without a valid one.
+The sandbox tenant is the testnet one, `login.testnet.fast-auth.com`. Any dApp signs users in on it through the sandbox broker, which uses one Auth0 client for all of them, so the consent screen names that client, not the dApp. Name it for what it is, such as "A sandbox app", and give it no logo: the screen reads "A sandbox app wants to sign a Transaction".
 
 The login page shows the notice too. Set the template with a Management API token that has `update:branding`:
 

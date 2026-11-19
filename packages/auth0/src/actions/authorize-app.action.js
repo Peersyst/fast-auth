@@ -286,48 +286,6 @@ const SANDBOX_NOTICE =
     "If the testnet MPC changes its root key, access to the accounts it signs for, mainnet ones included, is lost. " +
     "Use it at your own risk.";
 
-// Stricter than a valid URL host: the origin is the name on the consent screen, which renders it inside rich text.
-const ORIGIN_HOSTNAME = /^[a-z0-9.-]+$/;
-// Plain http can be tampered with on the way, so only a page on the developer's own machine may use it.
-const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1"]);
-const MAX_ORIGIN_LENGTH = 255;
-
-/**
- * Reads the dApp origin the sandbox broker passes as `dapp_origin`.
- *
- * @param {unknown} value - The query param. A repeated param arrives as an array.
- * @returns {string | null} The origin, or null unless it is an exact https origin, or an http one on a local host.
- */
-function parseDappOrigin(value) {
-    if (typeof value !== "string" || value.length > MAX_ORIGIN_LENGTH) return null;
-    let url;
-    try {
-        url = new URL(value);
-    } catch (_) {
-        return null;
-    }
-    const secure = url.protocol === "https:" || (url.protocol === "http:" && LOCAL_HOSTNAMES.has(url.hostname));
-    return secure && url.origin === value && ORIGIN_HOSTNAME.test(url.hostname) ? value : null;
-}
-
-/**
- * The name and logo the consent screen shows for the app asking to sign.
- *
- * The sandbox broker signs every dApp in through one client, so that client's name says nothing about who
- * is asking. It passes the dApp's origin instead, the same origin it hands the tokens to.
- *
- * @param {object} client - The Auth0 client of the login.
- * @param {object} query - The authorize request's query params.
- * @returns {{ imageUrl: string, name: string } | null} The branding, or null when the broker sent no valid origin.
- */
-function brandingFor(client, query) {
-    if (client.metadata?.broker !== "true") {
-        return { imageUrl: client.metadata?.logo_uri ?? "", name: client.name };
-    }
-    const origin = parseDappOrigin(query.dapp_origin);
-    return origin && { imageUrl: "", name: origin };
-}
-
 // HANDLERS
 
 /**
@@ -371,10 +329,10 @@ exports.onExecutePostLogin = async (event, api) => {
     api.accessToken.removeScope("email");
     api.accessToken.removeScope("offline_access");
 
-    const branding = brandingFor(event.client, query);
-    if (!branding) {
-        return api.access.deny("Invalid dApp origin");
-    }
+    const branding = {
+        imageUrl: event.client.metadata?.logo_uri ?? "",
+        name: event.client.name,
+    };
     // Every form renders the notice as its first block, and renders nothing when it is empty.
     const notice = event.secrets.SANDBOX === "true" ? SANDBOX_NOTICE : "";
 
