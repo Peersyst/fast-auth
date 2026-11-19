@@ -1,0 +1,108 @@
+{{- if .Values.sandboxBroker.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: sandbox-broker-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+  - name: api
+    port: {{ .Values.sandboxBroker.service.port }}
+    targetPort: {{ .Values.sandboxBroker.service.targetPort }}
+  selector:
+    app: sandbox-broker-{{ .Values.environment }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sandbox-broker-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: sandbox-broker-{{ .Values.environment }}
+spec:
+  # Sign-ins in progress live in the pod's memory, so there is one.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sandbox-broker-{{ .Values.environment }}
+  template:
+    metadata:
+      annotations:
+        timestamp: {{ .Values.timestamp }}
+      labels:
+        app: sandbox-broker-{{ .Values.environment }}
+    spec:
+      serviceAccountName: peersyst-secrets-iamserviceaccount
+      volumes:
+      - name: sandbox-broker-secrets
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: sandbox-broker-{{ .Values.environment }}-secrets
+      containers:
+      - name: sandbox-broker
+        image: ghcr.io/peersyst/fast-auth-sandbox-broker:{{ .Values.tagSandboxBroker }}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: {{ .Values.sandboxBroker.deployment.memoryRequest }}
+            cpu: {{ .Values.sandboxBroker.deployment.cpuRequest }}
+          limits:
+            memory: {{ .Values.sandboxBroker.deployment.memoryLimit }}
+            cpu: {{ .Values.sandboxBroker.deployment.cpuLimit }}
+        ports:
+        - containerPort: {{ .Values.sandboxBroker.service.targetPort }}
+        # The broker depends on nothing it could check, so an open port is enough.
+        readinessProbe:
+          tcpSocket:
+            port: {{ .Values.sandboxBroker.service.targetPort }}
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: {{ .Values.sandboxBroker.service.targetPort }}
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        volumeMounts:
+        - name: sandbox-broker-secrets
+          mountPath: "/mnt/secrets"
+          readOnly: true
+        env:
+        - name: CONFIG_ENV
+          value: {{ .Values.environment }}
+        {{- range $k, $v := .Values.sandboxBroker.secretProviderClass.secrets }}
+        - name: {{ $v }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ $.Values.sandboxBroker.secretProviderClass.objectAlias }}
+              key: {{ $v }}
+        {{- end }}
+      imagePullSecrets:
+      - name: regcred
+---
+apiVersion: secrets-store.csi.x-k8s.io/v1
+kind: SecretProviderClass
+metadata:
+  name: sandbox-broker-{{ .Values.environment }}-secrets
+  namespace: {{ $.Values.namespace }}
+spec:
+  provider: aws
+  parameters:
+    region: us-east-1
+    objects: |
+      - objectName: {{ $.Values.sandboxBroker.secretProviderClass.objectName }}
+        objectType: secretsmanager
+        jmesPath:
+        {{- range $k, $v := .Values.sandboxBroker.secretProviderClass.secrets }}
+          - path: {{ $v }}
+            objectAlias: {{ $k }}
+        {{- end }}
+  secretObjects:
+  - secretName: {{ $.Values.sandboxBroker.secretProviderClass.objectAlias }}
+    type: Opaque
+    data:
+    {{- range $k, $v := .Values.sandboxBroker.secretProviderClass.secrets }}
+    - objectName: {{ $k }}
+      key: {{ $v }}
+    {{- end }}
+{{- end }}

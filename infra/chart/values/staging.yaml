@@ -179,6 +179,25 @@ consoleWeb:
         memoryLimit: 128Mi
         cpuLimit: 100m
 
+# Off until fast-auth/staging/sandbox-broker holds the broker's Auth0 client and
+# ingress.certificate covers sandbox.auth.near.org (infra/README.md).
+sandboxBroker:
+    enabled: false
+    service:
+        port: 3000
+        targetPort: 3000
+    deployment:
+        memoryRequest: 128Mi
+        cpuRequest: 50m
+        memoryLimit: 256Mi
+        cpuLimit: 200m
+    secretProviderClass:
+        objectName: "fast-auth/staging/sandbox-broker"
+        objectAlias: fast-auth-staging-sandbox-broker
+        secrets:
+            auth0ClientId: AUTH0_CLIENT_ID
+            auth0ClientSecret: AUTH0_CLIENT_SECRET
+
 ingress:
     enabled: true
     certificate: "arn:aws:acm:us-east-1:291847425310:certificate/b183b365-4363-4245-9966-7e990bf7b3d4,arn:aws:acm:us-east-1:291847425310:certificate/98ea271d-f264-4788-b668-db3f52f8e2c5"

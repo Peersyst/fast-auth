@@ -71,6 +71,15 @@ jobs:
             push: false
             base_image: ${{ github.sha }}
 
+    build-sandbox-broker:
+        needs: [build-base]
+        uses: ./.github/workflows/build-sandbox-broker.yaml
+        secrets: inherit
+        with:
+            target: integration
+            push: false
+            base_image: ${{ github.sha }}
+
     build-console-web:
         needs: [build-base]
         uses: ./.github/workflows/build-console-web.yaml
