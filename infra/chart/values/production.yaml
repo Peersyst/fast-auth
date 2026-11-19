@@ -124,6 +124,10 @@ consoleWeb:
         memoryLimit: 128Mi
         cpuLimit: 100m
 
+# The sandbox runs on staging only.
+sandboxBroker:
+    enabled: false
+
 ingress:
     enabled: true
     certificate: "arn:aws:acm:us-east-1:291847425310:certificate/b183b365-4363-4245-9966-7e990bf7b3d4,arn:aws:acm:us-east-1:291847425310:certificate/3446ab94-39e4-4efe-8b54-e09e15ede9d2,arn:aws:acm:us-east-1:291847425310:certificate/d457cb6d-0b18-438c-b9c2-dda94b78fabf"
