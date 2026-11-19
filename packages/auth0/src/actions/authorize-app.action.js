@@ -282,9 +282,7 @@ const SIGNING_REQUESTS = [
 // Shown on every consent screen of a tenant whose SANDBOX secret is "true". The login page template
 // (src/universal-login/sandbox.liquid) carries the same text, and a test keeps the two in step.
 const SANDBOX_NOTICE =
-    "⚠️ Sandbox: a testing environment with no security guarantees. Do not use it for real funds. " +
-    "If the testnet MPC changes its root key, access to the accounts it signs for, mainnet ones included, is lost. " +
-    "Use it at your own risk.";
+    "⚠️ Sandbox: a testing environment with no security guarantees. Do not use it for real funds. Use it at your own risk.";
 
 // HANDLERS
 

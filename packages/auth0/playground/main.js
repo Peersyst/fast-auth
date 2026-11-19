@@ -11,9 +11,7 @@
     const sandboxToggle = document.getElementById("sandbox-toggle");
     // A copy of SANDBOX_NOTICE in the action, which the browser cannot load.
     const SANDBOX_NOTICE_PREVIEW =
-        "⚠️ Sandbox: a testing environment with no security guarantees. Do not use it for real funds. " +
-        "If the testnet MPC changes its root key, access to the accounts it signs for, mainnet ones included, is lost. " +
-        "Use it at your own risk.";
+        "⚠️ Sandbox: a testing environment with no security guarantees. Do not use it for real funds. Use it at your own risk.";
     const refreshBtn = document.getElementById("refresh");
     const modeFilter = document.getElementById("mode-filter");
 
