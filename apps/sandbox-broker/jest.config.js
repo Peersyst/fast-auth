@@ -1,20 +1,6 @@
-const createJestConfig = require("@shared/jest-config");
-
-const config = {
+module.exports = {
     testEnvironment: "node",
-    moduleFileExtensions: ["js", "ts"],
-    rootDir: ".",
     testRegex: ".*\\.spec\\.ts$",
-    transform: {
-        "^.+\\.(ts|js)$": "ts-jest",
-    },
-    collectCoverageFrom: ["./src/modules/**/*.ts", "!./src/modules/**/*.module.ts"],
-    coverageThreshold: {
-        global: {
-            branches: 0,
-            statements: 0,
-        },
-    },
+    transform: { "^.+\\.ts$": "ts-jest" },
+    setupFiles: ["<rootDir>/test/env.ts"],
 };
-
-module.exports = createJestConfig(config);

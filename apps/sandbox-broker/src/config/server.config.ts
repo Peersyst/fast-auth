@@ -1,9 +1,8 @@
 import { buildConfig, validPort, validPublicUrl } from "@backend/config";
 
 export interface ServerConfig {
-    name: string;
     port: number;
-    /** The broker's own origin. Auth0 sends users back to its `/callback`, and dApps set it as their Auth0 domain. */
+    /** The broker's own origin. Auth0 sends users back to its /callback. */
     publicUrl: string;
 }
 
@@ -14,13 +13,12 @@ export interface ServerConfig {
 export default (): ServerConfig => {
     return buildConfig<ServerConfig>(
         {
-            name: "sandbox-broker",
-            port: process.env.APP_PORT ? parseInt(process.env.APP_PORT) : 3000,
-            publicUrl: process.env.PUBLIC_URL!,
+            port: 3000,
+            publicUrl: {
+                default: "https://sandbox.auth.near.org",
+                development: "http://localhost:3000",
+            },
         },
-        {
-            port: validPort,
-            publicUrl: validPublicUrl,
-        },
+        { port: validPort, publicUrl: validPublicUrl },
     );
 };

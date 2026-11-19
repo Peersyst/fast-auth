@@ -1,121 +1,67 @@
-import { Body, Controller, Get, HttpCode, Options, Post, Query, Req, Res, UseFilters } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import type { CookieOptions, Request, Response } from "express";
-import { BrokerConfig } from "../../config/broker.config";
-import { BrokerErrorFilter } from "./broker-error.filter";
+import { Body, Controller, Get, HttpCode, Post, Query, Redirect, Res } from "@nestjs/common";
+import type { Response } from "express";
 import { BrokerService } from "./broker.service";
-import type { Query as QueryParams, TokenSet } from "./broker.types";
-import { deliver, readCookie, renderPage } from "./responses";
+import { AuthorizeRequest } from "./requests/authorize.request";
+import { CallbackRequest } from "./requests/callback.request";
+import { LogoutRequest } from "./requests/logout.request";
+import { TokenRequest } from "./requests/token.request";
 
-// One cookie per sign-in, so that two sign-ins in the same browser do not overwrite each other. `__Host-` keeps a
-// sibling domain from setting it, and SameSite=Lax still sends it on Auth0's redirect back to the callback.
-const FLOW_COOKIE_PREFIX = "__Host-flow-";
-const LOGOUT_COOKIE = "__Host-logout";
-
-/**
- * The part of Auth0's API that `auth0-spa-js` calls, so that a dApp uses the broker by setting it as its Auth0 domain.
- */
+/** The part of Auth0's API that auth0-spa-js calls, so a dApp uses the broker as its Auth0 domain. */
 @Controller()
-@UseFilters(BrokerErrorFilter)
 export class BrokerController {
-    private readonly cookieOptions: CookieOptions;
-
-    constructor(
-        private readonly broker: BrokerService,
-        config: ConfigService,
-    ) {
-        const { flowTtlMs } = config.getOrThrow<BrokerConfig>("broker");
-        this.cookieOptions = { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: flowTtlMs };
-    }
+    constructor(private readonly broker: BrokerService) {}
 
     /**
-     * Starts a sign-in: ties it to this browser and sends the user on to Auth0.
-     * @param query The dApp's authorize request.
-     * @param res The response.
+     * Starts a dApp's sign-in.
+     * @param request The authorize request.
+     * @returns The Auth0 URL to redirect to.
      */
     @Get("authorize")
-    authorize(@Query() query: QueryParams, @Res() res: Response): void {
-        const { authorizeUrl, flowId, binding } = this.broker.startSignIn(query);
-        res.cookie(FLOW_COOKIE_PREFIX + flowId, binding, this.cookieOptions);
-        res.redirect(302, authorizeUrl);
+    @Redirect()
+    authorize(@Query() request: AuthorizeRequest): { url: string } {
+        return { url: this.broker.authorizeUrl(request) };
     }
 
     /**
-     * Where Auth0 sends the user back. Answers the dApp with a code of the broker's, or with Auth0's error.
-     * @param query Auth0's callback params.
-     * @param req The request.
+     * Where Auth0 sends the user back. Answers the dApp by redirect, or by postMessage to a popup's opener.
+     * @param request Auth0's callback.
      * @param res The response.
      */
     @Get("callback")
-    async callback(@Query() query: QueryParams, @Req() req: Request, @Res() res: Response): Promise<void> {
-        const cookie = FLOW_COOKIE_PREFIX + (typeof query.state === "string" ? query.state : "");
-        const binding = readCookie(req, cookie);
-        res.clearCookie(cookie, { ...this.cookieOptions, maxAge: undefined });
-        const { dapp, params } = await this.broker.finishSignIn(query, binding);
-        deliver(res, dapp, params);
+    async callback(@Query() request: CallbackRequest, @Res() res: Response): Promise<void> {
+        const { flow, params } = await this.broker.finish(request);
+        const response = { ...params, state: flow.state };
+        if (flow.responseMode === "web_message") {
+            // Only the dApp's origin can read the message. `<` is escaped so that the dApp's state cannot end the script.
+            const message = JSON.stringify({ type: "authorization_response", response }).replace(/</g, "\\u003c");
+            const origin = JSON.stringify(new URL(flow.redirectUri).origin);
+            res.send(`<script>window.opener.postMessage(${message}, ${origin});</script>`);
+        } else {
+            const url = new URL(flow.redirectUri);
+            for (const [name, value] of Object.entries(response)) url.searchParams.set(name, value);
+            res.redirect(url.toString());
+        }
     }
 
     /**
-     * Lets any dApp's page call the token endpoint. Only the dApp that holds the code and its verifier gets anything.
-     * @param req The request.
-     * @param res The response.
-     */
-    @Options("oauth/token")
-    tokenPreflight(@Req() req: Request, @Res() res: Response): void {
-        allowOrigin(req, res);
-        res.setHeader("Access-Control-Allow-Methods", "POST");
-        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Auth0-Client");
-        res.setHeader("Access-Control-Max-Age", "600");
-        res.status(204).end();
-    }
-
-    /**
-     * Redeems a code the broker handed the dApp.
-     * @param body The token request, form encoded or JSON.
-     * @param req The request.
-     * @param res The response.
+     * Redeems the broker's code for Auth0's tokens.
+     * @param request The token request.
      * @returns Auth0's tokens.
      */
     @Post("oauth/token")
     @HttpCode(200)
-    token(@Body() body: QueryParams | undefined, @Req() req: Request, @Res({ passthrough: true }) res: Response): TokenSet {
-        allowOrigin(req, res);
-        return this.broker.redeem(body ?? {}, req.headers.origin);
+    token(@Body() request: TokenRequest): unknown {
+        return this.broker.redeem(request);
     }
 
     /**
-     * Signs the user out of the sandbox tenant, then back to the dApp's returnTo.
-     * @param query The dApp's logout request.
+     * Signs the user out. Every login asks them to sign in again, so this only sends them back to the dApp.
+     * @param request The logout request.
      * @param res The response.
      */
     @Get("v2/logout")
-    logout(@Query() query: QueryParams, @Res() res: Response): void {
-        const { logoutUrl, returnTo } = this.broker.logout(query);
-        if (returnTo) res.cookie(LOGOUT_COOKIE, returnTo, this.cookieOptions);
-        else res.clearCookie(LOGOUT_COOKIE, { ...this.cookieOptions, maxAge: undefined });
-        res.redirect(302, logoutUrl);
+    logout(@Query() request: LogoutRequest, @Res() res: Response): void {
+        if (request.returnTo) res.redirect(request.returnTo);
+        else res.send("You are signed out.");
     }
-
-    /**
-     * Where Auth0 sends the user back after signing them out.
-     * @param req The request.
-     * @param res The response.
-     */
-    @Get("logout/callback")
-    loggedOut(@Req() req: Request, @Res() res: Response): void {
-        const returnTo = this.broker.returnAfterLogout(readCookie(req, LOGOUT_COOKIE));
-        res.clearCookie(LOGOUT_COOKIE, { ...this.cookieOptions, maxAge: undefined });
-        if (returnTo) res.redirect(302, returnTo);
-        else renderPage(res, 200, "You are signed out of the NEAR Auth sandbox.");
-    }
-}
-
-/**
- * Lets the calling page read the response, whatever its origin.
- * @param req The request.
- * @param res The response.
- */
-function allowOrigin(req: Request, res: Response): void {
-    res.setHeader("Vary", "Origin");
-    if (req.headers.origin) res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
 }
