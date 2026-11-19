@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="{{ locale }}">
+  <head>
+    {%- auth0:head -%}
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        margin: 0;
+      }
+
+      .environment-notice {
+        box-sizing: border-box;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #b45309;
+        background-color: #fff4cc;
+        color: #3f4246;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-size: 0.875rem;
+        font-weight: 600;
+        line-height: 1.4;
+        text-align: center;
+        overflow-wrap: anywhere;
+      }
+
+      .widget {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="environment-notice" role="note">Sandbox: a testing environment with no security guarantees. Do not use it for real funds. If the testnet MPC changes its root key, access to the accounts it signs for, mainnet ones included, is lost. Use it at your own risk.</div>
+    <main class="widget">
+      {%- auth0:widget -%}
+    </main>
+  </body>
+</html>

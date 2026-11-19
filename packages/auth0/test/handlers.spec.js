@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-const { onExecutePostLogin, onContinuePostLogin, SCHEMA } = require("../src/actions/authorize-app.action.js");
+const { onExecutePostLogin, onContinuePostLogin, SCHEMA, SANDBOX_NOTICE } = require("../src/actions/authorize-app.action.js");
 const { serialize } = require("borsh");
 const { buildTransaction, buildDelegateAction, buildAction, ALL_ACTION_TYPES, DELEGATE_ACTION_TYPES } = require("./fixtures/builders.js");
 
@@ -37,17 +37,21 @@ function makeApi() {
     return { api, calls };
 }
 
-function makeEvent({ query = {}, audience = ONCHAIN_AUDIENCE } = {}) {
+const TEST_CLIENT = { name: "Test App", metadata: { logo_uri: "https://logo.example/x.png" } };
+const BROKER_CLIENT = { name: "Sandbox broker", metadata: { broker: "true", logo_uri: "https://logo.example/broker.png" } };
+
+function makeEvent({ query = {}, audience = ONCHAIN_AUDIENCE, secrets = {}, client = TEST_CLIENT } = {}) {
     return {
         secrets: {
             ONCHAIN_AUDIENCE,
             TRANSACTION_FORM: "modal_tx",
             DELEGATE_ACTION_FORM: "modal_delegate",
             NEP413_FORM: "modal_nep413",
+            ...secrets,
         },
         request: { query },
         resource_server: { identifier: audience },
-        client: { name: "Test App", metadata: { logo_uri: "https://logo.example/x.png" } },
+        client,
     };
 }
 
@@ -151,6 +155,7 @@ describe("onExecutePostLogin — rendering", () => {
         expect(calls.render.opts.fields).toEqual({
             name: "Test App",
             imageUrl: "https://logo.example/x.png",
+            notice: "",
             message: "héllo 👋\nworld",
             recipient: "example.near",
             callbackUrl: "https://example.com/cb",
@@ -206,6 +211,74 @@ describe("onExecutePostLogin — rendering", () => {
         expect(calls.deny).toEqual([]);
         expect(calls.render.modalId).toBe(kind(winner).modalId);
         expect(calls.customClaims.fatxn).toEqual(payloads[winner]);
+    });
+});
+
+describe("onExecutePostLogin — sandbox", () => {
+    const signingQuery = (extra = {}) => ({ transaction: buildTransaction().csv, ...extra });
+
+    test.each(KINDS.map((k) => k.key))("shows the sandbox notice on the %s form when SANDBOX is true", async (key) => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(makeEvent({ query: { [key]: kind(key).bytes().join(",") }, secrets: { SANDBOX: "true" } }), api);
+
+        expect(calls.deny).toEqual([]);
+        expect(calls.render.opts.fields.notice).toBe(SANDBOX_NOTICE);
+    });
+
+    test.each([[undefined], ["false"], ["TRUE"], [""]])("leaves the notice empty when SANDBOX is %j", async (value) => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(makeEvent({ query: signingQuery(), secrets: { SANDBOX: value } }), api);
+
+        expect(calls.render.opts.fields.notice).toBe("");
+    });
+
+    test.each(["https://my-dapp.vercel.app", "https://xn--bcher-kva.example:8443", "http://localhost:5173", "http://127.0.0.1:3000"])(
+        "names the broker's dApp by its origin %s, without a logo",
+        async (origin) => {
+            const { api, calls } = makeApi();
+            await onExecutePostLogin(makeEvent({ query: signingQuery({ dapp_origin: origin }), client: BROKER_CLIENT }), api);
+
+            expect(calls.deny).toEqual([]);
+            expect(calls.render.opts.fields).toEqual(expect.objectContaining({ name: origin, imageUrl: "" }));
+            expect(calls.customClaims.fatxn).toBeDefined();
+        },
+    );
+
+    test.each([
+        ["missing", undefined],
+        ["repeated", ["https://a.example", "https://b.example"]],
+        ["empty", ""],
+        ["plain http on a public host", "http://my-dapp.example"],
+        ["carrying a path", "https://my-dapp.example/app"],
+        ["with a trailing slash", "https://my-dapp.example/"],
+        ["upper case", "https://My-Dapp.example"],
+        ["carrying credentials", "https://user@my-dapp.example"],
+        ["carrying markup", "https://<b>x</b>.example"],
+        ["not a web origin", "javascript:alert(1)"],
+        ["an IPv6 host", "http://[::1]:3000"],
+        ["too long", `https://${"a".repeat(250)}.example`],
+    ])("refuses a broker login whose dApp origin is %s", async (_, origin) => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(makeEvent({ query: signingQuery({ dapp_origin: origin }), client: BROKER_CLIENT }), api);
+
+        expect(calls.deny).toEqual(["Invalid dApp origin"]);
+        expect(calls.render).toBeNull();
+        expect(calls.customClaims.fatxn).toBeUndefined();
+    });
+
+    test("lets a broker login without a signing payload through, since no consent screen names the dApp", async () => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(makeEvent({ query: {}, audience: "https://other.example", client: BROKER_CLIENT }), api);
+
+        expect(calls.deny).toEqual([]);
+        expect(calls.render).toBeNull();
+    });
+
+    test("ignores dapp_origin from any client but the broker", async () => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(makeEvent({ query: signingQuery({ dapp_origin: "https://phishing.example" }) }), api);
+
+        expect(calls.render.opts.fields).toEqual(expect.objectContaining({ name: "Test App", imageUrl: "https://logo.example/x.png" }));
     });
 });
 
