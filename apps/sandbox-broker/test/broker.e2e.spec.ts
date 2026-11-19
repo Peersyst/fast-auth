@@ -88,6 +88,8 @@ describe("sandbox broker", () => {
             response_type: "code",
             redirect_uri: "https://sandbox.auth.near.org/callback",
             state: expect.any(String),
+            code_challenge: expect.any(String),
+            code_challenge_method: "S256",
             nonce: "dapp-nonce",
             scope: "openid profile email",
             prompt: "login",
@@ -96,9 +98,16 @@ describe("sandbox broker", () => {
         const back = new URL((await callback(auth0)).headers.location);
         expect(back.origin + back.pathname).toBe(`${DAPP}/callback`);
         expect(back.searchParams.get("state")).toBe("dapp-state");
-        expect(JSON.parse(fetchMock.mock.calls[0][1]!.body as string)).toEqual(
-            expect.objectContaining({ code: "auth0-code", client_secret: "broker-secret" }),
-        );
+        // The broker's client has no secret: its own PKCE verifier redeems Auth0's code.
+        const exchange = JSON.parse(fetchMock.mock.calls[0][1]!.body as string);
+        expect(exchange).toEqual({
+            grant_type: "authorization_code",
+            client_id: "broker-client",
+            code: "auth0-code",
+            code_verifier: expect.any(String),
+            redirect_uri: "https://sandbox.auth.near.org/callback",
+        });
+        expect(createHash("sha256").update(exchange.code_verifier).digest("base64url")).toBe(auth0.searchParams.get("code_challenge"));
 
         const res = await token(back.searchParams.get("code")!);
         expect(res.status).toBe(200);

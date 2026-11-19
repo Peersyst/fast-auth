@@ -12,9 +12,18 @@ export interface Flow {
     state: string;
     responseMode: "query" | "web_message";
     codeChallenge: string;
+    /** The broker's own PKCE verifier. Its client has no secret, so this is what redeems Auth0's code. */
+    verifier: string;
 }
 
 const TTL_MS = 10 * 60 * 1000;
+
+/**
+ * Derives a PKCE S256 challenge.
+ * @param verifier The verifier.
+ * @returns The challenge.
+ */
+const s256 = (verifier: string): string => createHash("sha256").update(verifier).digest("base64url");
 
 /**
  * Signs any dApp in on the sandbox tenant through the broker's one Auth0 client. To the dApp the broker is an Auth0
@@ -40,12 +49,21 @@ export class BrokerService {
     authorizeUrl(request: AuthorizeRequest): string {
         if (request.client_id !== this.auth0.clientId) throw new BadRequestException("Unknown client_id");
         const { client_id, redirect_uri, state, code_challenge, response_mode, ...forward } = request;
-        const flow: Flow = { redirectUri: redirect_uri, state, responseMode: response_mode ?? "query", codeChallenge: code_challenge };
+        const verifier = randomBytes(32).toString("base64url");
+        const flow: Flow = {
+            redirectUri: redirect_uri,
+            state,
+            responseMode: response_mode ?? "query",
+            codeChallenge: code_challenge,
+            verifier,
+        };
         const params = new URLSearchParams({
             client_id,
             response_type: "code",
             redirect_uri: this.callbackUrl,
             state: this.keep(this.flows, flow),
+            code_challenge: s256(verifier),
+            code_challenge_method: "S256",
         });
         for (const [name, value] of Object.entries(forward)) if (value !== undefined) params.set(name, value);
         // A sign-in that only identifies the user always shows the login screen, so that no site learns who the user is
@@ -55,7 +73,7 @@ export class BrokerService {
     }
 
     /**
-     * Finishes a sign-in when Auth0 sends the user back, redeeming Auth0's code with the client secret.
+     * Finishes a sign-in when Auth0 sends the user back, redeeming Auth0's code with the broker's PKCE verifier.
      * @param request Auth0's callback.
      * @returns The sign-in, and what to send its dApp: a code of the broker's, or Auth0's error.
      */
@@ -71,8 +89,8 @@ export class BrokerService {
             body: JSON.stringify({
                 grant_type: "authorization_code",
                 client_id: this.auth0.clientId,
-                client_secret: this.auth0.clientSecret,
                 code: request.code,
+                code_verifier: flow.verifier,
                 redirect_uri: this.callbackUrl,
             }),
         });
@@ -87,8 +105,7 @@ export class BrokerService {
      */
     redeem(request: TokenRequest): unknown {
         const issued = this.take(this.codes, request.code);
-        const challenge = createHash("sha256").update(request.code_verifier).digest("base64url");
-        if (!issued || issued.flow.redirectUri !== request.redirect_uri || issued.flow.codeChallenge !== challenge) {
+        if (!issued || issued.flow.redirectUri !== request.redirect_uri || issued.flow.codeChallenge !== s256(request.code_verifier)) {
             throw new BadRequestException({ error: "invalid_grant", error_description: "Invalid code" });
         }
         return issued.tokens;
