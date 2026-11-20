@@ -9,4 +9,5 @@ export const ConsoleAdminApiMock = createMock<IConsoleAdminApi>({
     reject: new MethodMock("mockResolvedValue", new DappMock({ status: "rejected" })),
     approveChange: new MethodMock("mockResolvedValue", new DappMock({ status: "approved" })),
     rejectChange: new MethodMock("mockResolvedValue", new DappMock({ status: "approved" })),
+    delete: new MethodMock("mockResolvedValue", undefined),
 });

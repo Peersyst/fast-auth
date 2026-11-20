@@ -96,6 +96,55 @@ describe("DappDetailScreen", () => {
         await waitFor(() => expect(api.sent(`POST ${path}/reject`)).toHaveLength(1));
     });
 
+    it("should delete the dApp, saying its Auth0 client stays, then go back to the list it was opened from, reloaded", async () => {
+        const other = new DappMock({ id: "5b1c2d3e-0000-4000-8000-000000000002", name: "Beta Bridge" });
+        let items = [new DappMock(), other];
+        const api = mockApi({
+            "GET /api/console/dapp": () => ({ body: { items, totalItems: 20 + items.length, currentPage: 2, pages: 2 } }),
+            [`GET ${path}`]: { body: new DappMock({ status: "approved", auth0ClientId: "client-abc" }) },
+            [`DELETE ${path}`]: () => {
+                items = [other];
+                return { status: 204 };
+            },
+        });
+        const router = renderApp(
+            [
+                { path: "/admin/dapps", element: <DappsListScreen /> },
+                { path: "/admin/dapps/:id", element: <DappDetailScreen /> },
+            ],
+            "/admin/dapps?page=2",
+        );
+        await userEvent.click(await screen.findByRole("link", { name: "Acme Wallet" }));
+
+        const dialog = await openDialog("Delete");
+        expect(dialog).toHaveAccessibleName("Delete Acme Wallet?");
+        expect(dialog).toHaveAccessibleDescription(
+            "This deletes the dApp and its changes from the console. Its Auth0 client is not removed.",
+        );
+        await userEvent.click(within(dialog).getByRole("button", { name: "Delete dApp" }));
+
+        await waitFor(() => expect(router.state.location.pathname).toBe("/admin/dapps"));
+        expect(router.state.location.search).toBe("?page=2");
+        expect(api.sent(`DELETE ${path}`)).toHaveLength(1);
+        expect(api.sent(`GET ${path}`)).toHaveLength(1);
+        await waitFor(() => expect(api.sent("GET /api/console/dapp")).toHaveLength(2));
+        expect(await screen.findByText("Showing 1 of 21 dApps · page 2 of 2")).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "Beta Bridge" })).toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: "Acme Wallet" })).not.toBeInTheDocument();
+    });
+
+    it("should report a refused deletion in the dialog and load the dApp again", async () => {
+        const api = renderDetail(new DappMock(), { [`DELETE ${path}`]: apiError(404, "DAPP_NOT_FOUND") });
+
+        const dialog = await openDialog("Delete");
+        await userEvent.click(within(dialog).getByRole("button", { name: "Delete dApp" }));
+
+        expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+            "Not doneThis dApp no longer exists. Reload to see the current state.",
+        );
+        await waitFor(() => expect(api.sent(`GET ${path}`)).toHaveLength(2));
+    });
+
     it("should review a pending change from the fields it sets", async () => {
         const dapp = new DappMock({ status: "approved", auth0ClientId: "client-abc", pendingChange });
         const api = renderDetail(dapp, {
@@ -205,15 +254,15 @@ describe("DappDetailScreen", () => {
     });
 
     it.each([
-        ["pending", new DappMock(), ["Approve", "Reject"]],
-        ["approved", new DappMock({ status: "approved", auth0ClientId: "abcDEF123" }), ["Copy"]],
+        ["pending", new DappMock(), ["Approve", "Reject", "Delete"]],
+        ["approved", new DappMock({ status: "approved", auth0ClientId: "abcDEF123" }), ["Delete", "Copy"]],
         [
             "approved with a pending change",
             new DappMock({ status: "approved", auth0ClientId: "abcDEF123", pendingChange }),
-            ["Approve change", "Reject change", "Copy"],
+            ["Delete", "Approve change", "Reject change", "Copy"],
         ],
-        ["rejected", new DappMock({ status: "rejected" }), []],
-        ["removed", new DappMock({ status: "removed", auth0ClientId: "abcDEF123" }), []],
+        ["rejected", new DappMock({ status: "rejected" }), ["Delete"]],
+        ["removed", new DappMock({ status: "removed", auth0ClientId: "abcDEF123" }), ["Delete"]],
     ])("should offer only the actions a %s dApp allows", async (_status, dapp, buttons) => {
         renderDetail(dapp);
 

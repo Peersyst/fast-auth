@@ -25,4 +25,8 @@ export interface IConsoleAdminApi {
      * Rejects an approved dApp's change under review.
      */
     rejectChange(id: string): Promise<DappDto>;
+    /**
+     * Deletes a dApp.
+     */
+    delete(id: string): Promise<void>;
 }

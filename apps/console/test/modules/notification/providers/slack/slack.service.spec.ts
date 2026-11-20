@@ -1,6 +1,7 @@
 import { createServer, Server } from "node:http";
 import { AddressInfo } from "node:net";
 import { MauBracket } from "@shared/modules/dapp";
+import { Role } from "../../../../../src/modules/auth/types/session-user";
 import { AdminAlertKind } from "../../../../../src/modules/notification/interfaces/i-slack-notifier.service";
 import { slackMessage, SlackService } from "../../../../../src/modules/notification/providers/slack/slack.service";
 import { DappMock } from "../../../../mocks/dapp/dapp.mock";
@@ -49,6 +50,35 @@ describe("SlackService", () => {
             expect(text).toContain("*Name (changed):* New Acme (was: Acme &amp; Co)\n");
             expect(text).toContain("*Expected MAU (changed):* More than 25,000 (was: Less than 1,000)\n");
             expect(text).toContain("*Contact:* dev@acme.example");
+        });
+
+        it("should tell the admins to delete the Auth0 client of a deleted dApp by hand, with no review link", () => {
+            expect(
+                slackMessage(
+                    { kind: AdminAlertKind.DAPP_DELETED, dapp: new DappMock({ auth0ClientId: "client_live" }), deletedBy: Role.USER },
+                    publicUrl,
+                ),
+            ).toEqual({
+                text: [
+                    "*A dApp was deleted*",
+                    "Acme &amp; Co (`6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b`) was deleted by its owner.",
+                    "Its Auth0 client `client_live` was kept. Delete it in Auth0 by hand.",
+                ].join("\n"),
+                unfurl_links: false,
+                unfurl_media: false,
+            });
+        });
+
+        it("should say a deleted dApp has no stored Auth0 client, and name an admin who deleted it", () => {
+            const { text } = slackMessage({ kind: AdminAlertKind.DAPP_DELETED, dapp, deletedBy: Role.ADMIN }, publicUrl);
+
+            expect(text).toBe(
+                [
+                    "*A dApp was deleted*",
+                    "Acme &amp; Co (`6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b`) was deleted by an admin.",
+                    "No Auth0 client is stored for it. If an approval was running, the console log names the client it created.",
+                ].join("\n"),
+            );
         });
     });
 

@@ -5,3 +5,4 @@ export * from "./use-approve-dapp";
 export * from "./use-reject-dapp";
 export * from "./use-approve-change";
 export * from "./use-reject-change";
+export * from "./use-delete-dapp";

@@ -38,4 +38,9 @@ export interface IConsoleAdminController {
      * @returns The dApp without the change.
      */
     rejectChange(id: string): Promise<DappDto>;
+    /**
+     * Deletes a dApp in any status with its changes, leaving its Auth0 client as it is.
+     * @param id The dApp's id.
+     */
+    deleteDapp(id: string): Promise<void>;
 }

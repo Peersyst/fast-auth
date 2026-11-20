@@ -149,6 +149,24 @@ describe("Auto-approval (integration)", () => {
             expect(await transitionCounts()).toEqual({ "update success": 1 });
         });
 
+        it("should leave a rejected dApp's resubmission pending for an admin without calling Auth0", async () => {
+            const dapp = await createDapp(dataSource.manager, {
+                ...dappForm(),
+                ownerEmail,
+                status: DappStatus.REJECTED,
+                reviewedAt: new Date("2026-01-02T00:00:00Z"),
+            });
+
+            const { body } = await patch(dapp.id, { name: "Acme Pay" }).expect(200);
+
+            const stored = { name: "Acme Pay", status: "pending", auth0ClientId: null, reviewedAt: null };
+            expect(body).toMatchObject({ ...stored, id: dapp.id, pendingChange: null });
+            expect(provisioner.calls).toEqual([]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject(stored);
+            expect(slack.notify.mock.calls).toEqual([[{ kind: "dapp_submitted", dapp: expect.objectContaining({ id: dapp.id }) }]]);
+            expect(await transitionCounts()).toEqual({ "update success": 1 });
+        });
+
         it("should edit a pending dApp in place without calling Auth0", async () => {
             const dapp = await createDapp(dataSource.manager, { ...dappForm(), ownerEmail });
 

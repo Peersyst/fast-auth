@@ -9,4 +9,5 @@ export const ConsoleAdminControllerMock = createMock<IConsoleAdminController>({
     rejectDapp: new MethodMock("mockResolvedValue", new DappMock({ status: "rejected" })),
     approveChange: new MethodMock("mockResolvedValue", new DappMock({ status: "approved" })),
     rejectChange: new MethodMock("mockResolvedValue", new DappMock({ status: "approved" })),
+    deleteDapp: new MethodMock("mockResolvedValue", undefined),
 });
