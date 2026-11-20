@@ -6,6 +6,7 @@ import { DappClient, ProvisioningError } from "../../../../../src/modules/provis
 import { Auth0ManagementService } from "../../../../../src/modules/provisioning/providers/auth0-management/auth0-management.service";
 import { ProvisioningModule } from "../../../../../src/modules/provisioning/provisioning.module";
 import { AUTH0_PROVISIONER } from "../../../../../src/modules/provisioning/provisioning.tokens";
+import { ClientGrantsMock } from "../../../../mocks/auth0/client-grants.mock";
 import { ClientsMock } from "../../../../mocks/auth0/clients.mock";
 import { ConnectionsMock } from "../../../../mocks/auth0/connections.mock";
 import { configStubModule, createConfigServiceMock, testConfig } from "../../../../mocks/config/config.mock";
@@ -50,6 +51,7 @@ describe("Auth0ManagementService", () => {
 
     const clients = new ClientsMock();
     const connections = new ConnectionsMock();
+    const clientGrants = new ClientGrantsMock();
     let provisioner: Auth0ManagementService;
 
     /**
@@ -62,11 +64,27 @@ describe("Auth0ManagementService", () => {
         );
     };
 
+    /**
+     * Makes every client answer the given user grants, in pages of at most `limit`.
+     * @param byClient The grants' audiences and scopes by client id.
+     * @param limit The most grants a page carries.
+     */
+    const userGrants = (byClient: Record<string, { audience: string; scope: string[] }[]>, limit = 50): void => {
+        clientGrants.getAll.mockImplementation(({ client_id, page }: { client_id: string; page: number }) => {
+            const grants = byClient[client_id] ?? [];
+            const start = page * limit;
+            return Promise.resolve({
+                data: { start, limit, total: grants.length, client_grants: grants.slice(start, start + limit) },
+            });
+        });
+    };
+
     beforeEach(async () => {
         clients.clearMocks();
         connections.clearMocks();
+        clientGrants.clearMocks();
         register.resetMetrics();
-        (ManagementClient as unknown as jest.Mock).mockImplementation(() => ({ clients, connections }));
+        (ManagementClient as unknown as jest.Mock).mockImplementation(() => ({ clients, connections, clientGrants }));
         const { auth0 } = testConfig();
         const configService = createConfigServiceMock({
             auth0: {
@@ -90,6 +108,8 @@ describe("Auth0ManagementService", () => {
         enabledConnections({ "template-client": ["con_email", "con_google"] });
         clients.update.mockResolvedValue({});
         connections.updateEnabledClients.mockResolvedValue({});
+        userGrants({ "template-client": [{ audience: "auth0.jwt.fast-auth.near", scope: ["transaction:sign"] }] });
+        clientGrants.create.mockResolvedValue({});
     });
 
     describe("create", () => {
@@ -119,17 +139,15 @@ describe("Auth0ManagementService", () => {
             });
         });
 
-        it("should leave the new client with exactly the template's connections", async () => {
+        it("should only create the client, leaving its connections and grants to update", async () => {
             clients.get.mockResolvedValueOnce({ data: template });
             clients.create.mockResolvedValueOnce({ data: { client_id: clientId } });
-            enabledConnections({ "template-client": ["con_email", "con_google"], [clientId]: ["con_email", "con_github"] });
 
-            await provisioner.create(input);
+            await expect(provisioner.create(input)).resolves.toBe(clientId);
 
-            expect(connections.updateEnabledClients.mock.calls).toEqual([
-                [{ id: "con_google" }, [{ client_id: clientId, status: true }]],
-                [{ id: "con_github" }, [{ client_id: clientId, status: false }]],
-            ]);
+            expect(clients.create).toHaveBeenCalledTimes(1);
+            expect(connections.updateEnabledClients.mock.calls).toEqual([]);
+            expect(clientGrants.create.mock.calls).toEqual([]);
         });
 
         it("should create nothing from a template without enabled connections, which would switch off every login", async () => {
@@ -138,6 +156,16 @@ describe("Auth0ManagementService", () => {
 
             await expect(provisioner.create(input)).rejects.toEqual(
                 new ProvisioningError("failed", "The template client template-client has no enabled connections"),
+            );
+            expect(clients.create).not.toHaveBeenCalled();
+        });
+
+        it("should create nothing from a template without user grants, which would leave the dApp unable to sign", async () => {
+            clients.get.mockResolvedValueOnce({ data: template });
+            userGrants({});
+
+            await expect(provisioner.create(input)).rejects.toEqual(
+                new ProvisioningError("failed", "The template client template-client has no user grants"),
             );
             expect(clients.create).not.toHaveBeenCalled();
         });
@@ -168,10 +196,174 @@ describe("Auth0ManagementService", () => {
             ]);
         });
 
+        it("should leave the client with exactly the template's connections", async () => {
+            enabledConnections({ "template-client": ["con_email", "con_google"], [clientId]: ["con_email", "con_github"] });
+
+            await provisioner.update(clientId, input);
+
+            expect(connections.updateEnabledClients.mock.calls).toEqual([
+                [{ id: "con_google" }, [{ client_id: clientId, status: true }]],
+                [{ id: "con_github" }, [{ client_id: clientId, status: false }]],
+            ]);
+        });
+
         it("should map a missing client to failed", async () => {
             clients.update.mockRejectedValueOnce(apiError(404));
 
             await expect(provisioner.update(clientId, input)).rejects.toMatchObject({ kind: "failed" });
+        });
+
+        it("should copy every user grant of the template to a client without grants, with its audience and scopes", async () => {
+            userGrants({
+                "template-client": [
+                    { audience: "auth0.jwt.fast-auth.near", scope: ["transaction:sign"] },
+                    { audience: "https://api.auth.near.org", scope: [] },
+                ],
+            });
+
+            await provisioner.update(clientId, input);
+
+            expect(clientGrants.getAll.mock.calls).toEqual([
+                [{ client_id: "template-client", subject_type: "user", per_page: 50, page: 0, include_totals: true }],
+                [{ client_id: clientId, subject_type: "user", per_page: 50, page: 0, include_totals: true }],
+            ]);
+            expect(clientGrants.create.mock.calls).toEqual([
+                [{ client_id: clientId, audience: "auth0.jwt.fast-auth.near", scope: ["transaction:sign"], subject_type: "user" }],
+                [{ client_id: clientId, audience: "https://api.auth.near.org", scope: [], subject_type: "user" }],
+            ]);
+        });
+
+        it("should create only the grants whose audience the client lacks, and leave its other grants as they are", async () => {
+            userGrants({
+                "template-client": [
+                    { audience: "auth0.jwt.fast-auth.near", scope: ["transaction:sign"] },
+                    { audience: "https://api.auth.near.org", scope: [] },
+                ],
+                [clientId]: [{ audience: "auth0.jwt.fast-auth.near", scope: [] }],
+            });
+
+            await provisioner.update(clientId, input);
+
+            expect(clientGrants.create.mock.calls).toEqual([
+                [{ client_id: clientId, audience: "https://api.auth.near.org", scope: [], subject_type: "user" }],
+            ]);
+        });
+
+        it("should create nothing for a client that has every audience of the template", async () => {
+            userGrants({
+                "template-client": [{ audience: "auth0.jwt.fast-auth.near", scope: ["transaction:sign"] }],
+                [clientId]: [{ audience: "auth0.jwt.fast-auth.near", scope: ["transaction:sign"] }],
+            });
+
+            await provisioner.update(clientId, input);
+
+            expect(clientGrants.create.mock.calls).toEqual([]);
+            expect(clientGrants.getAll).toHaveBeenCalledTimes(2);
+        });
+
+        it("should read the user grants of every page, the template's and the client's", async () => {
+            userGrants(
+                {
+                    "template-client": [
+                        { audience: "auth0.jwt.fast-auth.near", scope: ["transaction:sign"] },
+                        { audience: "https://api.auth.near.org", scope: [] },
+                        { audience: "https://third.example", scope: ["read"] },
+                    ],
+                    [clientId]: [
+                        { audience: "https://other.example", scope: [] },
+                        { audience: "https://api.auth.near.org", scope: [] },
+                    ],
+                },
+                1,
+            );
+
+            await provisioner.update(clientId, input);
+
+            expect(clientGrants.create.mock.calls).toEqual([
+                [{ client_id: clientId, audience: "auth0.jwt.fast-auth.near", scope: ["transaction:sign"], subject_type: "user" }],
+                [{ client_id: clientId, audience: "https://third.example", scope: ["read"], subject_type: "user" }],
+            ]);
+        });
+
+        it("should change nothing on the client from a template without user grants", async () => {
+            userGrants({});
+
+            await expect(provisioner.update(clientId, input)).rejects.toEqual(
+                new ProvisioningError("failed", "The template client template-client has no user grants"),
+            );
+            expect(clients.update).not.toHaveBeenCalled();
+            expect(connections.updateEnabledClients).not.toHaveBeenCalled();
+            expect(clientGrants.create.mock.calls).toEqual([]);
+        });
+
+        it("should change nothing on the client from a template without enabled connections", async () => {
+            enabledConnections({});
+
+            await expect(provisioner.update(clientId, input)).rejects.toEqual(
+                new ProvisioningError("failed", "The template client template-client has no enabled connections"),
+            );
+            expect(clients.update).not.toHaveBeenCalled();
+            expect(connections.updateEnabledClients).not.toHaveBeenCalled();
+            expect(clientGrants.create.mock.calls).toEqual([]);
+        });
+
+        it("should retry a grant list that answered 5xx once and copy the grants", async () => {
+            clientGrants.getAll.mockRejectedValueOnce(apiError(502));
+
+            await provisioner.update(clientId, input);
+
+            expect(clientGrants.getAll).toHaveBeenCalledTimes(3);
+            expect(clientGrants.create.mock.calls).toEqual([
+                [{ client_id: clientId, audience: "auth0.jwt.fast-auth.near", scope: ["transaction:sign"], subject_type: "user" }],
+            ]);
+        });
+
+        it("should retry a rate limited grant once and map a second 429 to failed, as it is transient", async () => {
+            clientGrants.create.mockRejectedValue(apiError(429, { "retry-after": "60" }));
+
+            await expect(provisioner.update(clientId, input)).rejects.toMatchObject({
+                kind: "failed",
+                message: "Auth0 create_grant answered 429: status 429",
+            });
+            expect(clientGrants.create).toHaveBeenCalledTimes(2);
+        });
+
+        it("should take a 409 on a grant as the grant existing, as when the first attempt of a retried one landed, and create the next", async () => {
+            userGrants({
+                "template-client": [
+                    { audience: "auth0.jwt.fast-auth.near", scope: ["transaction:sign"] },
+                    { audience: "https://api.auth.near.org", scope: [] },
+                ],
+            });
+            clientGrants.create.mockRejectedValueOnce(apiError(502)).mockRejectedValueOnce(apiError(409));
+
+            await provisioner.update(clientId, input);
+
+            expect(clientGrants.create.mock.calls).toEqual([
+                [{ client_id: clientId, audience: "auth0.jwt.fast-auth.near", scope: ["transaction:sign"], subject_type: "user" }],
+                [{ client_id: clientId, audience: "auth0.jwt.fast-auth.near", scope: ["transaction:sign"], subject_type: "user" }],
+                [{ client_id: clientId, audience: "https://api.auth.near.org", scope: [], subject_type: "user" }],
+            ]);
+        });
+
+        it("should map another 4xx on a grant to rejected without retrying it", async () => {
+            clientGrants.create.mockRejectedValueOnce(apiError(400));
+
+            await expect(provisioner.update(clientId, input)).rejects.toMatchObject({
+                kind: "rejected",
+                message: "Auth0 create_grant answered 400: status 400",
+            });
+            expect(clientGrants.create).toHaveBeenCalledTimes(1);
+        });
+
+        it("should not retry a grant for a missing client and map it to failed", async () => {
+            clientGrants.create.mockRejectedValueOnce(apiError(404));
+
+            await expect(provisioner.update(clientId, input)).rejects.toMatchObject({
+                kind: "failed",
+                message: "Auth0 create_grant answered 404: status 404",
+            });
+            expect(clientGrants.create).toHaveBeenCalledTimes(1);
         });
     });
 
