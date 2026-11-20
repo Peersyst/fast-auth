@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from "@nestjs/common";
-import { ApiCreatedResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
+import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Query } from "@nestjs/common";
+import { ApiCreatedResponse, ApiNoContentResponse, ApiOkResponse, ApiTags } from "@nestjs/swagger";
 import { Authenticated } from "../auth/decorator/authenticated.decorator";
 import { CurrentUser } from "../auth/decorator/current-user.decorator";
 import type { SessionUser } from "../auth/types/session-user";
@@ -46,9 +46,19 @@ export class DappController {
     @ApiOkResponse({
         type: DappDto,
         description:
-            "The dApp. A pending dApp is edited in place. An approved dApp shows the edit in `pendingChange` until it is reviewed.",
+            "The dApp. A pending dApp is edited in place. An approved dApp shows the edit in `pendingChange` until it is reviewed. A rejected dApp is edited in place and goes back to pending.",
     })
     update(@CurrentUser() user: SessionUser, @Param("id", ParseUUIDPipe) id: string, @Body() request: UpdateDappRequest): Promise<DappDto> {
         return this.dappService.update(user, id, request);
+    }
+
+    @Delete(":id")
+    @HttpCode(HttpStatus.NO_CONTENT)
+    @ApiNoContentResponse({
+        description:
+            "The dApp and its changes are deleted. An admin can delete any dApp, anyone else only their own. Its Auth0 client is kept, and the admins are alerted to delete it by hand.",
+    })
+    delete(@CurrentUser() user: SessionUser, @Param("id", ParseUUIDPipe) id: string): Promise<void> {
+        return this.dappService.delete(user, id);
     }
 }

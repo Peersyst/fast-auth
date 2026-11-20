@@ -36,4 +36,13 @@ export class ConsoleDappController implements IConsoleDappController {
     async editDapp({ id, request }: EditDappParams): Promise<DappDto> {
         return this.consoleDappApi.update(id, request);
     }
+
+    /**
+     * @inheritdoc
+     */
+    @DefaultError(ConsoleDappErrors.CONSOLE_UNREACHABLE)
+    @ApiErrors(CONSOLE_DAPP_API_ERRORS)
+    async deleteDapp(id: string): Promise<void> {
+        return this.consoleDappApi.delete(id);
+    }
 }

@@ -13,4 +13,8 @@ export interface IConsoleDappApi {
      * Saves the owner's edit of their dApp.
      */
     update(id: string, requestBody: UpdateDappRequest): Promise<DappDto>;
+    /**
+     * Deletes the owner's dApp.
+     */
+    delete(id: string): Promise<void>;
 }

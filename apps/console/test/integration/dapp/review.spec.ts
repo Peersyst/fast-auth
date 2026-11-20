@@ -122,6 +122,60 @@ describe("dApp review (integration)", () => {
         });
     };
 
+    /**
+     * Tells whether Postgres reports a request of this database waiting on a lock.
+     * @returns Whether one waits.
+     */
+    const someRequestWaitsOnALock = async (): Promise<boolean> => {
+        const waiting: unknown[] = await dataSource.query(
+            "SELECT 1 FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'",
+        );
+        return waiting.length > 0;
+    };
+
+    /**
+     * Starts another request when the next write of an entity is about to run. The write goes on once Postgres reports that
+     * request waiting on a lock, or once it answers without having waited, and fails when neither happens in time.
+     * @param run The request to start.
+     * @param write The write that triggers it. Defaults to a delete.
+     * @param entity The entity whose write triggers it. Defaults to any.
+     * @returns What the request answers, and whether it waited on a lock.
+     */
+    const duringNextWrite = <T>(
+        run: () => PromiseLike<T>,
+        write: "delete" | "update" = "delete",
+        entity?: EntityTarget<unknown>,
+    ): Promise<{ response: T; waited: boolean }> =>
+        new Promise((started, failed) => {
+            const original = EntityManager.prototype[write] as (...args: unknown[]) => Promise<never>;
+            let pending = true;
+            jest.spyOn(EntityManager.prototype, write).mockImplementation(async function (this: EntityManager, ...args: unknown[]) {
+                if (!pending || (entity !== undefined && args[0] !== entity)) return original.apply(this, args);
+                pending = false;
+                let answered = false;
+                const answer = Promise.resolve(run()).finally(() => (answered = true));
+                const deadline = Date.now() + 5000;
+                let waited = false;
+                while (!answered && !(waited = await someRequestWaitsOnALock())) {
+                    if (Date.now() > deadline) {
+                        const error = new Error("The other request neither waited on a lock nor answered in 5 s");
+                        failed(error);
+                        throw error;
+                    }
+                    await new Promise((resolve) => setTimeout(resolve, 10));
+                }
+                started(answer.then((response) => ({ response, waited })));
+                return original.apply(this, args);
+            });
+        });
+
+    /**
+     * Sends a DELETE to the dApp as the admin.
+     * @param id The dApp id.
+     * @returns The pending request.
+     */
+    const remove = (id: string) => testApp.request.delete(`/dapp/${id}`).set("Authorization", admin);
+
     describe("POST /dapp/:id/approve", () => {
         it("should create the Auth0 client, configure it with the dApp's fields and approve the dApp", async () => {
             const dapp = await pendingDapp();
@@ -694,6 +748,237 @@ describe("dApp review (integration)", () => {
             ]);
             expect(provisioner.calls.map((call) => call.clientId)).toEqual([undefined, undefined, storedId, storedId]);
             expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "approved", auth0ClientId: storedId });
+        });
+
+        it("should answer 404 DAPP_NOT_FOUND and log the new client as an orphan when the dApp is deleted while the approval creates it", async () => {
+            const dapp = await pendingDapp();
+            const warn = jest.spyOn(Logger.prototype, "warn").mockImplementation();
+            provisioner.during("create", () => remove(dapp.id).expect(204));
+            const { status, body } = await review(`${dapp.id}/approve`);
+
+            expect({ status, body }).toEqual({ status: 404, body: { statusCode: 404, message: "DAPP_NOT_FOUND" } });
+            const [clientId] = provisioner.clients.keys();
+            expect(clientId).toMatch(/^fake_/);
+            expect(warn.mock.calls).toEqual([[`Auth0 client ${clientId} of dApp ${dapp.id} is an orphan: the dApp is deleted`]]);
+            expect(slack.notify).toHaveBeenCalledWith({
+                kind: "dapp_deleted",
+                dapp: expect.objectContaining({ id: dapp.id, auth0ClientId: null }),
+                deletedBy: "admin",
+            });
+            expect(await dataSource.manager.countBy(Dapp, { id: dapp.id })).toBe(0);
+            expect(await transitionCounts()).toEqual({ "delete success": 1 });
+        });
+
+        it("should alert the client stored when the dApp is deleted, logging as an orphan the one an approval creates meanwhile", async () => {
+            const dapp = await pendingDapp();
+            const warn = jest.spyOn(Logger.prototype, "warn").mockImplementation();
+            const approval = duringNextWrite(() => review(`${dapp.id}/approve`));
+            await remove(dapp.id).expect(204);
+            const { response, waited } = await approval;
+
+            expect(waited).toBe(true);
+            expect({ status: response.status, body: response.body }).toEqual({
+                status: 404,
+                body: { statusCode: 404, message: "DAPP_NOT_FOUND" },
+            });
+            const [clientId] = provisioner.clients.keys();
+            expect(warn.mock.calls).toEqual([[`Auth0 client ${clientId} of dApp ${dapp.id} is an orphan: the dApp is deleted`]]);
+            expect(slack.notify).toHaveBeenCalledTimes(1);
+            expect(slack.notify).toHaveBeenCalledWith({
+                kind: "dapp_deleted",
+                dapp: expect.objectContaining({ id: dapp.id, auth0ClientId: null }),
+                deletedBy: "admin",
+            });
+        });
+
+        it("should answer one of two overlapping deletes 204 and alert once, and the other 404 DAPP_NOT_FOUND", async () => {
+            const dapp = await pendingDapp();
+            const second = duringNextWrite(() => remove(dapp.id));
+            const first = await remove(dapp.id);
+            const { response, waited } = await second;
+
+            expect(waited).toBe(true);
+            expect([first.status, response.status]).toEqual([204, 404]);
+            expect(slack.notify).toHaveBeenCalledTimes(1);
+            expect(await transitionCounts()).toEqual({ "delete success": 1 });
+        });
+
+        it("should answer 404 DAPP_NOT_FOUND to an approval whose dApp is deleted while it configures the client, which the alert names", async () => {
+            const dapp = await pendingDapp();
+            provisioner.during("update", () => remove(dapp.id).expect(204));
+            const { status, body } = await review(`${dapp.id}/approve`);
+
+            expect({ status, body }).toEqual({ status: 404, body: { statusCode: 404, message: "DAPP_NOT_FOUND" } });
+            const [clientId] = provisioner.clients.keys();
+            expect(slack.notify).toHaveBeenCalledWith({
+                kind: "dapp_deleted",
+                dapp: expect.objectContaining({ id: dapp.id, auth0ClientId: clientId }),
+                deletedBy: "admin",
+            });
+            expect(await transitionCounts()).toEqual({ "delete success": 1 });
+        });
+
+        it("should answer 404 DAPP_NOT_FOUND to a rejection and an owner edit that read the dApp pending and write after its deletion", async () => {
+            const rejected = await pendingDapp();
+            duringNextRead(() => remove(rejected.id).expect(204));
+            const rejection = await review(`${rejected.id}/reject`);
+            const edited = await pendingDapp();
+            duringNextRead(() => remove(edited.id).expect(204));
+            const edit = await patch(edited.id, { name: "Acme Pay" });
+
+            expect([rejection, edit].map(({ status, body }) => ({ status, body }))).toEqual([
+                { status: 404, body: { statusCode: 404, message: "DAPP_NOT_FOUND" } },
+                { status: 404, body: { statusCode: 404, message: "DAPP_NOT_FOUND" } },
+            ]);
+            expect(await transitionCounts()).toEqual({ "delete success": 2 });
+        });
+
+        it("should answer 404 DAPP_NOT_FOUND to a change approval whose dApp is deleted while it updates Auth0", async () => {
+            const dapp = await approvedDapp();
+            await createDappChange(dataSource.manager, { dappId: dapp.id, name: "Acme Pay" });
+            provisioner.during("update", () => remove(dapp.id).expect(204));
+            const { status, body } = await review(`${dapp.id}/change/approve`);
+
+            expect({ status, body }).toEqual({ status: 404, body: { statusCode: 404, message: "DAPP_NOT_FOUND" } });
+            expect(await dataSource.manager.countBy(Dapp, { id: dapp.id })).toBe(0);
+            expect(await transitionCounts()).toEqual({ "delete success": 1 });
+        });
+
+        it("should apply the change and then delete the dApp when a delete starts while a change approval writes", async () => {
+            const dapp = await approvedDapp();
+            await createDappChange(dataSource.manager, { dappId: dapp.id, name: "Acme Pay" });
+            const deletion = duringNextWrite(() => remove(dapp.id), "update", Dapp);
+            const { status, body } = await review(`${dapp.id}/change/approve`);
+            const { response, waited } = await deletion;
+
+            expect(waited).toBe(true);
+            expect({ status, name: body.name, deleted: response.status }).toEqual({ status: 200, name: "Acme Pay", deleted: 204 });
+            expect(await dataSource.manager.countBy(Dapp, { id: dapp.id })).toBe(0);
+            expect(await transitionCounts()).toEqual({ "approveChange success": 1, "delete success": 1 });
+        });
+
+        it("should answer 404 DAPP_NOT_FOUND to an owner edit that read the dApp approved and writes after its deletion", async () => {
+            const dapp = await approvedDapp();
+            duringNextRead(() => remove(dapp.id).expect(204));
+            const { status, body } = await patch(dapp.id, { name: "Acme Pay" });
+
+            expect({ status, body }).toEqual({ status: 404, body: { statusCode: 404, message: "DAPP_NOT_FOUND" } });
+            expect(slack.notify.mock.calls.map(([alert]) => alert.kind)).toEqual(["dapp_deleted"]);
+            expect(await transitionCounts()).toEqual({ "delete success": 1 });
+        });
+
+        it("should store the change and then delete the dApp when a delete starts while an owner edit replaces the pending change", async () => {
+            const dapp = await approvedDapp();
+            await createDappChange(dataSource.manager, { dappId: dapp.id, name: "Acme Pay" });
+            const deletion = duringNextWrite(() => remove(dapp.id));
+            const { status, body } = await patch(dapp.id, { name: "Acme Cash" });
+            const { response, waited } = await deletion;
+
+            expect(waited).toBe(true);
+            expect({ status, change: body.pendingChange?.name, deleted: response.status }).toEqual({
+                status: 200,
+                change: "Acme Cash",
+                deleted: 204,
+            });
+            expect(await dataSource.manager.countBy(Dapp, { id: dapp.id })).toBe(0);
+            expect(await findChanges(dataSource.manager, dapp.id)).toEqual([]);
+        });
+
+        it("should compare an owner edit with the live values a change approval applied after the edit read the dApp", async () => {
+            const dapp = await approvedDapp();
+            await createDappChange(dataSource.manager, { dappId: dapp.id, name: "Acme Pay" });
+            duringNextRead(() => review(`${dapp.id}/change/approve`).expect(200));
+            const { status, body } = await patch(dapp.id, { name: "Acme Wallet", description: "Fresh description" });
+
+            expect({ status, name: body.name, description: body.description }).toEqual({
+                status: 200,
+                name: "Acme Pay",
+                description: "A wallet for NEAR.",
+            });
+            expect(body.pendingChange).toMatchObject({ name: "Acme Wallet", description: "Fresh description" });
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ name: "Acme Pay", description: "A wallet for NEAR." });
+            expect(
+                (await findChanges(dataSource.manager, dapp.id)).map(({ status, name, description }) => ({ status, name, description })),
+            ).toEqual([
+                { status: "approved", name: "Acme Pay", description: null },
+                { status: "pending", name: "Acme Wallet", description: "Fresh description" },
+            ]);
+            expect(slack.notify.mock.calls.map(([alert]) => alert)).toEqual([
+                expect.objectContaining({
+                    kind: "change_requested",
+                    change: { name: "Acme Wallet", description: "Fresh description" },
+                }),
+            ]);
+        });
+
+        it("should store as a change the values an owner edit puts back when a change approval replaced them after the edit read the dApp", async () => {
+            const dapp = await approvedDapp();
+            await createDappChange(dataSource.manager, { dappId: dapp.id, name: "Acme Pay" });
+            duringNextRead(() => review(`${dapp.id}/change/approve`).expect(200));
+            const { status, body } = await patch(dapp.id, { name: "Acme Wallet" });
+
+            expect({ status, name: body.name, change: body.pendingChange?.name }).toEqual({
+                status: 200,
+                name: "Acme Pay",
+                change: "Acme Wallet",
+            });
+            expect((await findChanges(dataSource.manager, dapp.id)).map(({ status, name }) => ({ status, name }))).toEqual([
+                { status: "approved", name: "Acme Pay" },
+                { status: "pending", name: "Acme Wallet" },
+            ]);
+        });
+
+        it("should make the second of two overlapping owner edits wait for the first and replace its pending change", async () => {
+            const dapp = await approvedDapp();
+            const second = duringNextWrite(() => patch(dapp.id, { description: "Second description" }));
+            const first = await patch(dapp.id, { name: "Acme Pay" });
+            const { response, waited } = await second;
+
+            expect(waited).toBe(true);
+            expect({ first: first.status, second: response.status }).toEqual({ first: 200, second: 200 });
+            expect(
+                (await findChanges(dataSource.manager, dapp.id)).map(({ status, name, description }) => ({ status, name, description })),
+            ).toEqual([{ status: "pending", name: null, description: "Second description" }]);
+        });
+
+        it("should answer 404 DAPP_NOT_FOUND to a change rejection that read the change pending and writes after the dApp's deletion", async () => {
+            const dapp = await approvedDapp();
+            await createDappChange(dataSource.manager, { dappId: dapp.id, name: "Acme Pay" });
+            duringNextRead(() => remove(dapp.id).expect(204), DappChange);
+            const { status, body } = await review(`${dapp.id}/change/reject`);
+
+            expect({ status, body }).toEqual({ status: 404, body: { statusCode: 404, message: "DAPP_NOT_FOUND" } });
+            expect(await transitionCounts()).toEqual({ "delete success": 1 });
+        });
+
+        it("should answer 404 DAPP_NOT_FOUND to a resubmission that read the dApp rejected and writes after its deletion, leaving it deleted", async () => {
+            const dapp = await pendingDapp({ status: DappStatus.REJECTED, reviewedAt: new Date("2026-01-02T00:00:00Z") });
+            duringNextRead(() => remove(dapp.id).expect(204));
+            const { status, body } = await patch(dapp.id, { name: "Acme Pay" });
+
+            expect({ status, body }).toEqual({ status: 404, body: { statusCode: 404, message: "DAPP_NOT_FOUND" } });
+            expect(await dataSource.manager.countBy(Dapp, { id: dapp.id })).toBe(0);
+            expect(slack.notify.mock.calls.map(([alert]) => alert.kind)).toEqual(["dapp_deleted"]);
+            expect(await transitionCounts()).toEqual({ "delete success": 1 });
+        });
+
+        it("should answer 409 INVALID_TRANSITION to a resubmission that read the dApp rejected and writes after another resubmission", async () => {
+            const dapp = await pendingDapp({ status: DappStatus.REJECTED, reviewedAt: new Date("2026-01-02T00:00:00Z") });
+            let second!: { status: number; body: unknown };
+            duringNextRead(async () => {
+                const { status, body } = await patch(dapp.id, { name: "Acme Pay" });
+                second = { status, body };
+            });
+            const first = await patch(dapp.id, { name: "Acme Cash" });
+
+            expect({ status: first.status, body: first.body }).toEqual({
+                status: 409,
+                body: { statusCode: 409, message: "INVALID_TRANSITION" },
+            });
+            expect(second.status).toBe(200);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "pending", name: "Acme Pay", reviewedAt: null });
+            expect(slack.notify.mock.calls.map(([alert]) => alert.kind)).toEqual(["dapp_submitted"]);
+            expect(await transitionCounts()).toEqual({ "update success": 1 });
         });
     });
 

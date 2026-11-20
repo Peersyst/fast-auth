@@ -11,6 +11,7 @@ export function RejectedStatus(): React.JSX.Element {
                 </span>
                 <div className="flex min-w-0 flex-col gap-1.5 text-danger-ink wrap-anywhere">
                     <p className="text-md font-semibold">{translate("myDapp.rejected.title")}</p>
+                    <p className="text-base">{translate("myDapp.rejected.description")}</p>
                 </div>
             </div>
         </section>

@@ -1,4 +1,5 @@
 import { DappField, DappFields, FIELD_LABELS, MAU_LABELS } from "@shared/modules/dapp";
+import { Role } from "../../../auth/types/session-user";
 import { AdminAlertKind, ISlackNotifierService, SlackAlert } from "../../interfaces/i-slack-notifier.service";
 import { SlackWebhookPayload } from "./slack.types";
 
@@ -16,7 +17,10 @@ function escapeMrkdwn(value: string): string {
         .replaceAll(">", "&gt;");
 }
 
-const ADMIN_ALERTS: Record<AdminAlertKind, { subject: string; body: string }> = {
+type DeletedAlert = Extract<SlackAlert, { kind: AdminAlertKind.DAPP_DELETED }>;
+type ReviewAlert = Exclude<SlackAlert, DeletedAlert>;
+
+const ADMIN_ALERTS: Record<ReviewAlert["kind"], { subject: string; body: string }> = {
     [AdminAlertKind.DAPP_SUBMITTED]: { subject: "New dApp submission to review", body: "was submitted and is waiting for review." },
     [AdminAlertKind.CHANGE_REQUESTED]: {
         subject: "A dApp change request to review",
@@ -36,12 +40,12 @@ const FIELD_LINES: Record<DappField, (fields: DappFields) => string> = {
 };
 
 /**
- * Builds the webhook payload for an alert, with every dApp field and, for a change, its new values next to the live ones.
+ * Builds the lines of an alert to review, with every dApp field and, for a change, its new values next to the live ones.
  * @param alert The alert.
  * @param publicUrl The console's public URL, for the review link.
- * @returns The webhook payload, with link previews off.
+ * @returns The lines of the message.
  */
-export function slackMessage(alert: SlackAlert, publicUrl: string): SlackWebhookPayload {
+function reviewLines(alert: ReviewAlert, publicUrl: string): string[] {
     const { dapp } = alert;
     const copy = ADMIN_ALERTS[alert.kind];
     const url = `${publicUrl}/admin/dapps/${encodeURIComponent(dapp.id)}`;
@@ -51,11 +55,33 @@ export function slackMessage(alert: SlackAlert, publicUrl: string): SlackWebhook
         const label = FIELD_LABELS[field as DappField];
         return field in change ? `*${label} (changed):* ${format(after)} (was: ${format(dapp)})` : `*${label}:* ${format(after)}`;
     });
-    return {
-        text: [`*${copy.subject}*`, `${escapeMrkdwn(dapp.name)} ${copy.body}`, `<${url}|Review it in the console>`, ...fields].join("\n"),
-        unfurl_links: false,
-        unfurl_media: false,
-    };
+    return [`*${copy.subject}*`, `${escapeMrkdwn(dapp.name)} ${copy.body}`, `<${url}|Review it in the console>`, ...fields];
+}
+
+/**
+ * Builds the lines of a deletion alert: the dApp, who deleted it, and the Auth0 client the console left for an admin to delete.
+ * @param alert The alert.
+ * @returns The lines of the message.
+ */
+function deletedLines({ dapp, deletedBy }: DeletedAlert): string[] {
+    return [
+        "*A dApp was deleted*",
+        `${escapeMrkdwn(dapp.name)} (\`${dapp.id}\`) was deleted by ${deletedBy === Role.ADMIN ? "an admin" : "its owner"}.`,
+        dapp.auth0ClientId === null
+            ? "No Auth0 client is stored for it. If an approval was running, the console log names the client it created."
+            : `Its Auth0 client \`${escapeMrkdwn(dapp.auth0ClientId)}\` was kept. Delete it in Auth0 by hand.`,
+    ];
+}
+
+/**
+ * Builds the webhook payload for an alert.
+ * @param alert The alert.
+ * @param publicUrl The console's public URL, for the review link.
+ * @returns The webhook payload, with link previews off.
+ */
+export function slackMessage(alert: SlackAlert, publicUrl: string): SlackWebhookPayload {
+    const lines = alert.kind === AdminAlertKind.DAPP_DELETED ? deletedLines(alert) : reviewLines(alert, publicUrl);
+    return { text: lines.join("\n"), unfurl_links: false, unfurl_media: false };
 }
 
 export class SlackService implements ISlackNotifierService {

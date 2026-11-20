@@ -64,4 +64,13 @@ export class ConsoleAdminController implements IConsoleAdminController {
     async rejectChange(id: string): Promise<DappDto> {
         return this.consoleAdminApi.rejectChange(id);
     }
+
+    /**
+     * @inheritdoc
+     */
+    @DefaultError(ConsoleAdminErrors.CONSOLE_UNREACHABLE)
+    @ApiErrors(CONSOLE_ADMIN_API_ERRORS)
+    async deleteDapp(id: string): Promise<void> {
+        return this.consoleAdminApi.delete(id);
+    }
 }
