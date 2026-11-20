@@ -64,19 +64,21 @@ function clientOf(dapp: Dapp): DappClient {
 }
 
 /**
- * Matches the dApps that still hold the fields a client was sent. An owner edit landing during the Auth0 call then
+ * Matches the dApps that still hold every field an approval read. An owner edit landing during the Auth0 call then
  * cannot be approved unreviewed. Lists compare as sets because TypeORM's find options cannot express array equality.
- * @param client The client, as sent to Auth0.
+ * @param dapp The dApp, as the approval read it.
  * @returns The condition.
  */
-function holding(client: DappClient): FindOptionsWhere<Dapp> {
+function holding(dapp: Dapp): FindOptionsWhere<Dapp> {
     return {
-        name: client.name,
-        description: client.description,
-        logoUrl: client.logoUrl,
-        callbackUrls: And(ArrayContains(client.callbackUrls), ArrayContainedBy(client.callbackUrls)),
-        logoutUrls: And(ArrayContains(client.logoutUrls), ArrayContainedBy(client.logoutUrls)),
-        webOrigins: And(ArrayContains(client.webOrigins), ArrayContainedBy(client.webOrigins)),
+        name: dapp.name,
+        description: dapp.description,
+        logoUrl: dapp.logoUrl,
+        contactEmail: dapp.contactEmail,
+        mauBracket: dapp.mauBracket,
+        callbackUrls: And(ArrayContains(dapp.callbackUrls), ArrayContainedBy(dapp.callbackUrls)),
+        logoutUrls: And(ArrayContains(dapp.logoutUrls), ArrayContainedBy(dapp.logoutUrls)),
+        webOrigins: And(ArrayContains(dapp.webOrigins), ArrayContainedBy(dapp.webOrigins)),
     };
 }
 
@@ -212,9 +214,8 @@ export class DappService {
         const found = await this.findPending(manager, id);
         const { pending, clientId } =
             found.auth0ClientId === null ? await this.createClient(manager, found) : { pending: found, clientId: found.auth0ClientId };
-        const client = clientOf(pending);
-        await this.provisioner.update(clientId, client);
-        const dapp = await this.writePending(manager, id, { status: DappStatus.APPROVED, reviewedAt: new Date() }, holding(client));
+        await this.provisioner.update(clientId, clientOf(pending));
+        const dapp = await this.writePending(manager, id, { status: DappStatus.APPROVED, reviewedAt: new Date() }, holding(pending));
         this.logger.log(`Approved dApp ${dapp.id} with Auth0 client ${dapp.auth0ClientId}`);
         this.metrics.countTransition("approve", "success");
         return DappDto.fromEntity(dapp, null);

@@ -658,15 +658,24 @@ describe("dApp review (integration)", () => {
             },
         );
 
-        it("should approve when an owner edit of a field Auth0 does not get lands while the approval configures the client", async () => {
-            const dapp = await pendingDapp();
-            provisioner.during("update", () => patch(dapp.id, { contactEmail: "ops@acme.xyz" }).expect(200));
-            const { status, body } = await review(`${dapp.id}/approve`);
+        it.each<[string, Partial<Dapp>]>([
+            ["the contact email", { contactEmail: "ops@acme.xyz" }],
+            ["the MAU bracket", { mauBracket: MauBracket.GT_25K }],
+        ])(
+            "should answer 409 INVALID_TRANSITION to an approval when an owner edit of %s, which Auth0 does not get, lands while it configures the client",
+            async (_case, edit) => {
+                const dapp = await pendingDapp();
+                provisioner.during("update", () => patch(dapp.id, edit).expect(200));
+                const { status, body } = await review(`${dapp.id}/approve`);
 
-            expect(status).toBe(200);
-            expect(body).toMatchObject({ status: "approved", contactEmail: "ops@acme.xyz" });
-            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "approved", contactEmail: "ops@acme.xyz" });
-        });
+                expect({ status, body }).toEqual({ status: 409, body: { statusCode: 409, message: "INVALID_TRANSITION" } });
+                expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ ...edit, status: "pending", reviewedAt: null });
+
+                const retried = await review(`${dapp.id}/approve`).expect(200);
+
+                expect(retried.body).toMatchObject({ ...edit, status: "approved" });
+            },
+        );
 
         it("should approve with the client another approval stored first and log its own as an orphan", async () => {
             const dapp = await pendingDapp();
