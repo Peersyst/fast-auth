@@ -259,6 +259,65 @@ describe("dApp review (integration)", () => {
 
             expect(body).toEqual({ statusCode: 404, message: "DAPP_NOT_FOUND" });
         });
+
+        it("should answer 409 ORIGIN_TAKEN to a dApp that lists a web origin an approved dApp has, leaving it pending and Auth0 untouched", async () => {
+            await pendingDapp({
+                ownerEmail: "first@owners.test",
+                status: DappStatus.APPROVED,
+                auth0ClientId: "client_first",
+                webOrigins: ["https://acme.xyz", "https://shared.xyz"],
+            });
+            const dapp = await pendingDapp({ webOrigins: ["https://pay.xyz", "https://shared.xyz"] });
+
+            const { status, body } = await review(`${dapp.id}/approve`);
+
+            expect({ status, body }).toEqual({ status: 409, body: { statusCode: 409, message: "ORIGIN_TAKEN" } });
+            expect(provisioner.calls).toEqual([]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "pending", auth0ClientId: null });
+        });
+
+        it.each<[string, Partial<Dapp>]>([
+            ["pending with a client", { status: DappStatus.PENDING, auth0ClientId: "client_first" }],
+            ["rejected with a client", { status: DappStatus.REJECTED, auth0ClientId: "client_first" }],
+            ["removed with a client", { status: DappStatus.REMOVED, auth0ClientId: "client_first" }],
+            ["approved but without a client", { status: DappStatus.APPROVED, auth0ClientId: null }],
+        ])("should approve a dApp whose web origin another dApp lists that is %s", async (_case, other) => {
+            await pendingDapp({ ownerEmail: "first@owners.test", ...other });
+            const dapp = await pendingDapp();
+
+            const { body } = await review(`${dapp.id}/approve`).expect(200);
+
+            expect(body).toMatchObject({ status: "approved", webOrigins: ["https://acme.xyz"] });
+        });
+
+        it("should approve a dApp whose web origin an approved dApp lists only in a pending change", async () => {
+            const first = await pendingDapp({
+                ownerEmail: "first@owners.test",
+                status: DappStatus.APPROVED,
+                auth0ClientId: "client_first",
+                webOrigins: ["https://first.xyz"],
+            });
+            await createDappChange(dataSource.manager, { dappId: first.id, webOrigins: ["https://acme.xyz"] });
+            const dapp = await pendingDapp();
+
+            const { body } = await review(`${dapp.id}/approve`).expect(200);
+
+            expect(body).toMatchObject({ status: "approved" });
+        });
+
+        it("should approve an unrelated dApp while another approved dApp lists different origins", async () => {
+            await pendingDapp({
+                ownerEmail: "first@owners.test",
+                status: DappStatus.APPROVED,
+                auth0ClientId: "client_first",
+                webOrigins: ["https://first.xyz"],
+            });
+            const dapp = await pendingDapp();
+
+            const { body } = await review(`${dapp.id}/approve`).expect(200);
+
+            expect(body).toMatchObject({ status: "approved", webOrigins: ["https://acme.xyz"] });
+        });
     });
 
     describe("POST /dapp/:id/reject", () => {
@@ -432,6 +491,42 @@ describe("dApp review (integration)", () => {
             expect(noChange.body).toEqual({ statusCode: 404, message: "DAPP_CHANGE_NOT_FOUND" });
             expect(await findChanges(dataSource.manager, other.id)).toEqual([expect.objectContaining({ status: "pending" })]);
             expect(provisioner.calls).toEqual([]);
+        });
+
+        it("should answer 409 ORIGIN_TAKEN to a change that adds a web origin another approved dApp has, leaving the change pending and Auth0 untouched", async () => {
+            const dapp = await approvedDapp();
+            await pendingDapp({
+                ownerEmail: "first@owners.test",
+                status: DappStatus.APPROVED,
+                auth0ClientId: "client_first",
+                webOrigins: ["https://shared.xyz"],
+            });
+            const change = await createDappChange(dataSource.manager, {
+                dappId: dapp.id,
+                webOrigins: ["https://acme.xyz", "https://shared.xyz"],
+            });
+
+            const { status, body } = await review(`${dapp.id}/change/approve`);
+
+            expect({ status, body }).toEqual({ status: 409, body: { statusCode: 409, message: "ORIGIN_TAKEN" } });
+            expect(provisioner.calls).toEqual([]);
+            expect(await findChanges(dataSource.manager, dapp.id)).toEqual([expect.objectContaining({ id: change.id, status: "pending" })]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ webOrigins: ["https://acme.xyz"] });
+        });
+
+        it("should approve a change that adds a free web origin, and one that keeps a web origin the dApp already shares with another", async () => {
+            const dapp = await approvedDapp();
+            await pendingDapp({
+                ownerEmail: "first@owners.test",
+                status: DappStatus.APPROVED,
+                auth0ClientId: "client_first",
+                webOrigins: ["https://acme.xyz"],
+            });
+            await createDappChange(dataSource.manager, { dappId: dapp.id, webOrigins: ["https://acme.xyz", "https://pay.xyz"] });
+
+            const { body } = await review(`${dapp.id}/change/approve`).expect(200);
+
+            expect(body).toMatchObject({ webOrigins: ["https://acme.xyz", "https://pay.xyz"], pendingChange: null });
         });
     });
 
@@ -624,6 +719,26 @@ describe("dApp review (integration)", () => {
                 auth0ClientId: body.auth0ClientId,
                 name: "Acme Pay",
                 webOrigins: ["https://pay.acme.xyz"],
+            });
+        });
+
+        it("should answer 409 ORIGIN_TAKEN when an owner edit that lands while the approval creates the client adds an approved dApp's web origin, leaving it pending with its client", async () => {
+            await pendingDapp({
+                ownerEmail: "first@owners.test",
+                status: DappStatus.APPROVED,
+                auth0ClientId: "client_first",
+                webOrigins: ["https://first.xyz"],
+            });
+            const dapp = await pendingDapp();
+            provisioner.during("create", () => patch(dapp.id, { webOrigins: ["https://acme.xyz", "https://first.xyz"] }).expect(200));
+            const { status, body } = await review(`${dapp.id}/approve`);
+
+            expect({ status, body }).toEqual({ status: 409, body: { statusCode: 409, message: "ORIGIN_TAKEN" } });
+            expect(provisioner.calls.map((call) => [call.clientId, call.webOrigins])).toEqual([[undefined, ["https://acme.xyz"]]]);
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({
+                status: "pending",
+                auth0ClientId: expect.any(String),
+                webOrigins: ["https://acme.xyz", "https://first.xyz"],
             });
         });
 

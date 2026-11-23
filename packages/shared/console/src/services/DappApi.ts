@@ -3,6 +3,7 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { CreateDappRequest } from '../models/CreateDappRequest';
+import type { DappClientDto } from '../models/DappClientDto';
 import type { DappDto } from '../models/DappDto';
 import type { PaginatedDappsDto } from '../models/PaginatedDappsDto';
 import type { UpdateDappRequest } from '../models/UpdateDappRequest';
@@ -10,6 +11,22 @@ import type { CancelablePromise } from '../core/CancelablePromise';
 import { OpenAPI } from '../core/OpenAPI';
 import { request as __request } from '../core/request';
 export class DappApi {
+    /**
+     * @param origin The dApp's web origin, as a browser writes it: scheme, host and port, with no path.
+     * @returns DappClientDto The Auth0 client of the oldest approved dApp that lists the origin as a web origin. 404 when there is none.
+     * @throws ApiError
+     */
+    public static findClient(
+        origin: string,
+    ): CancelablePromise<DappClientDto> {
+        return __request(OpenAPI, {
+            method: 'GET',
+            url: '/api/console/dapp/client',
+            query: {
+                'origin': origin,
+            },
+        });
+    }
     /**
      * @param page
      * @param pageSize

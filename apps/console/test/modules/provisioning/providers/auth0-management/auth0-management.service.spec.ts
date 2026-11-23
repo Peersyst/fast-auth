@@ -131,12 +131,25 @@ describe("Auth0ManagementService", () => {
                 name: "Acme",
                 description: "Acme wallet",
                 logo_uri: "https://acme.example/logo.png",
-                callbacks: ["https://acme.example/callback"],
+                callbacks: ["https://acme.example/callback", "https://acme.example", "https://staging.acme.example"],
                 allowed_logout_urls: ["https://acme.example"],
                 web_origins: ["https://acme.example", "https://staging.acme.example"],
                 allowed_origins: ["https://acme.example", "https://staging.acme.example"],
                 client_metadata: { console_dapp_id: dappId, managed_by: "console-test", logo_uri: "https://acme.example/logo.png" },
             });
+        });
+
+        it("should add the web origins to the callbacks without repeating one that is already a callback", async () => {
+            clients.get.mockResolvedValueOnce({ data: template });
+            clients.create.mockResolvedValueOnce({ data: { client_id: clientId } });
+
+            await provisioner.create({ ...input, callbackUrls: ["https://acme.example", "https://acme.example/callback"] });
+
+            expect(clients.create.mock.calls[0][0].callbacks).toEqual([
+                "https://acme.example",
+                "https://acme.example/callback",
+                "https://staging.acme.example",
+            ]);
         });
 
         it("should only create the client, leaving its connections and grants to update", async () => {

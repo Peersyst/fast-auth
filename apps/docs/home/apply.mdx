@@ -85,7 +85,7 @@ Have these details ready before you open the form so you can submit in a single 
 </ParamField>
 
 <ParamField body="Whitelisted Web Origin" required>
-  The origin — scheme + domain, no path — where your app is served and from which it calls NEAR Auth. Used to authorize your domain and enforce CORS, so only your app can start the auth flow. Must be HTTPS. Example: `https://app.example.com`.
+  The origin — scheme + domain, no path — where your app is served and from which it calls NEAR Auth. Used to authorize your domain and enforce CORS, so only your app can start the auth flow. Each web origin is also allowed as a callback URL, so a dApp that logs in through [NEAR Connect](https://github.com/azbang/near-connect) needs no extra callback URL for it. Must be HTTPS. Example: `https://app.example.com`.
 </ParamField>
 
 <ParamField body="Primary contact email address" required>

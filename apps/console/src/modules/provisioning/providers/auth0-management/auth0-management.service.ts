@@ -206,7 +206,8 @@ export class Auth0ManagementService implements IAuth0ProvisionerService {
             name: client.name,
             description: client.description,
             logo_uri: client.logoUrl,
-            callbacks: client.callbackUrls,
+            // NEAR Connect logs a dApp in with its bare origin as redirect_uri, so the origins are callbacks too.
+            callbacks: [...new Set([...client.callbackUrls, ...client.webOrigins])],
             allowed_logout_urls: client.logoutUrls,
             web_origins: client.webOrigins,
             allowed_origins: client.webOrigins,

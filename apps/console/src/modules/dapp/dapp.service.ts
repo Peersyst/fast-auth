@@ -1,7 +1,19 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectDataSource } from "@nestjs/typeorm";
-import { And, ArrayContainedBy, ArrayContains, DataSource, EntityManager, FindOptionsWhere, In, IsNull, QueryFailedError } from "typeorm";
+import {
+    And,
+    ArrayContainedBy,
+    ArrayContains,
+    ArrayOverlap,
+    DataSource,
+    EntityManager,
+    FindOptionsWhere,
+    In,
+    IsNull,
+    Not,
+    QueryFailedError,
+} from "typeorm";
 import { Dapp, DappChange, OWNER_EMAIL_LIVE_INDEX } from "@database/console/entities";
 import { changedFields, DAPP_FIELDS, DappChangeStatus, DappField, DappFields, DappStatus, FieldValue } from "@shared/modules/dapp";
 import { Role, SessionUser } from "../auth/types/session-user";
@@ -17,6 +29,7 @@ import { DappErrorCode } from "./error/dapp.error-codes";
 import { CreateDappRequest } from "./requests/create-dapp.request";
 import { UpdateDappRequest } from "./requests/update-dapp.request";
 import { DEFAULT_PAGE_SIZE, ListDappsRequest } from "./requests/list-dapps.request";
+import { DappClientDto } from "./dtos/dapp-client.dto";
 import { DappDto } from "./dtos/dapp.dto";
 import { PaginatedDappsDto } from "./dtos/paginated-dapps.dto";
 
@@ -130,6 +143,21 @@ export class DappService {
     }
 
     /**
+     * Finds the Auth0 client of the dApp that lists the origin among its live web origins, not among a pending change's. Only an
+     * approved dApp with a client counts. When several list it, the oldest wins.
+     * @param origin The origin, normalised as the stored web origins are.
+     * @returns The client.
+     */
+    async findClientByOrigin(origin: string): Promise<DappClientDto> {
+        const dapp = await this.dataSource.manager.findOne(Dapp, {
+            where: { status: DappStatus.APPROVED, auth0ClientId: Not(IsNull()), webOrigins: ArrayContains([origin]) },
+            order: { createdAt: "ASC", id: "ASC" },
+        });
+        if (dapp === null) throw new BusinessException(DappErrorCode.DAPP_NOT_FOUND);
+        return { clientId: dapp.auth0ClientId! };
+    }
+
+    /**
      * Stores the caller's dApp as pending and alerts the admins, then approves it when auto-approval is on. An approval that
      * fails is logged and the owner still gets the stored dApp, pending for an admin. An owner may only have one dApp.
      * @param user The owner.
@@ -206,14 +234,18 @@ export class DappService {
      * its owner submitted. A step that fails leaves the dApp pending with its client stored, so approving it again reuses
      * that client instead of creating a second one. The approval only lands on a dApp that is still pending and still holds
      * the fields Auth0 got, so a rejection that came first stays and an owner edit that came first is not approved unsent.
+     * A dApp that lists a web origin another approved dApp already has is refused before anything is created, and again
+     * after the client is created, since an owner edit made meanwhile is what gets approved.
      * @param id The dApp id.
      * @returns The dApp.
      */
     async approve(id: string): Promise<DappDto> {
         const { manager } = this.dataSource;
         const found = await this.findPending(manager, id);
+        await this.assertOriginsFree(manager, found.id, found.webOrigins);
         const { pending, clientId } =
             found.auth0ClientId === null ? await this.createClient(manager, found) : { pending: found, clientId: found.auth0ClientId };
+        if (pending !== found) await this.assertOriginsFree(manager, pending.id, pending.webOrigins);
         await this.provisioner.update(clientId, clientOf(pending));
         const dapp = await this.writePending(manager, id, { status: DappStatus.APPROVED, reviewedAt: new Date() }, holding(pending));
         this.logger.log(`Approved dApp ${dapp.id} with Auth0 client ${dapp.auth0ClientId}`);
@@ -240,7 +272,8 @@ export class DappService {
      * creates the template's user grants it lacks, and applies the change to the dApp. The approval only lands on a change that
      * is still pending, so a rejection, an owner edit that replaced it or another approval that came first stays. The
      * transaction opens after the Auth0 call, so it holds no connection while Auth0 answers, and leaves the dApp and the change
-     * as they were when a step fails, but not the Auth0 client.
+     * as they were when a step fails. The Auth0 client keeps the change's fields then.
+     * A change that adds a web origin another approved dApp already has is refused before Auth0 is called.
      * @param id The dApp id.
      * @returns The dApp with its pending change.
      */
@@ -250,6 +283,11 @@ export class DappService {
             throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
         }
         const changed = fieldsOf(change);
+        await this.assertOriginsFree(
+            this.dataSource.manager,
+            live.id,
+            (changed.webOrigins ?? []).filter((origin) => !live.webOrigins.includes(origin)),
+        );
         await this.provisioner.update(live.auth0ClientId, clientOf({ ...live, ...changed }));
         const dapp = await this.dataSource.transaction(async (manager) => {
             const approved = await manager.update(
@@ -354,6 +392,25 @@ export class DappService {
             `Auth0 client ${created} of dApp ${found.id} is an orphan: the dApp already has the client ${pending.auth0ClientId}`,
         );
         return { pending, clientId: pending.auth0ClientId };
+    }
+
+    /**
+     * Refuses web origins that another approved dApp with a client already lists live. The lookup by origin answers with one
+     * client, so two dApps sharing an origin would leave one of them signing in through the other's client. It reads before the
+     * approval writes, so two approvals that overlap can still both land, and the lookup then answers with the older dApp.
+     * @param manager The entity manager to read with.
+     * @param id The id of the dApp that lists the origins, which does not count against itself.
+     * @param webOrigins The origins to check.
+     */
+    private async assertOriginsFree(manager: EntityManager, id: string, webOrigins: string[]): Promise<void> {
+        if (webOrigins.length === 0) return;
+        const taken = await manager.existsBy(Dapp, {
+            id: Not(id),
+            status: DappStatus.APPROVED,
+            auth0ClientId: Not(IsNull()),
+            webOrigins: ArrayOverlap(webOrigins),
+        });
+        if (taken) throw new BusinessException(DappErrorCode.ORIGIN_TAKEN);
     }
 
     /**
