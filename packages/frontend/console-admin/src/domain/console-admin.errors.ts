@@ -1,6 +1,7 @@
 export enum ConsoleAdminErrors {
     DAPP_NOT_FOUND = "dappNotFound",
     INVALID_TRANSITION = "invalidTransition",
+    ORIGIN_TAKEN = "originTaken",
     NO_PENDING_CHANGE = "noPendingChange",
     SESSION_EXPIRED = "sessionExpired",
     EMAIL_REQUIRED = "emailRequired",
@@ -16,6 +17,7 @@ export enum ConsoleAdminErrors {
 export const CONSOLE_ADMIN_API_ERRORS: Record<string, ConsoleAdminErrors> = {
     DAPP_NOT_FOUND: ConsoleAdminErrors.DAPP_NOT_FOUND,
     INVALID_TRANSITION: ConsoleAdminErrors.INVALID_TRANSITION,
+    ORIGIN_TAKEN: ConsoleAdminErrors.ORIGIN_TAKEN,
     DAPP_CHANGE_NOT_FOUND: ConsoleAdminErrors.NO_PENDING_CHANGE,
     UNAUTHENTICATED: ConsoleAdminErrors.SESSION_EXPIRED,
     EMAIL_REQUIRED: ConsoleAdminErrors.EMAIL_REQUIRED,

@@ -1,17 +1,19 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@frontend/design-system-react/button";
 import { Callout } from "@frontend/design-system-react/callout";
-import { CheckCircleIcon, CheckIcon, ChevronRightIcon, XCircleIcon } from "@frontend/design-system-react/icons";
+import { CheckCircleIcon, CheckIcon, ChevronRightIcon, TrashIcon, XCircleIcon } from "@frontend/design-system-react/icons";
 import { PageTitle } from "@frontend/design-system-react/page-title";
 import {
     consoleAdminQueryKeys,
     useApproveChange,
     useApproveDapp,
+    useDeleteDapp,
     useRejectChange,
     useRejectDapp,
 } from "@frontend/console-admin/ui/queries";
+import { consoleDappQueryKeys } from "@frontend/console-dapp/ui/queries";
 import { useTranslate } from "@frontend/locale/react";
 import { DappDto } from "@shared/console";
 import { ConfirmDialog } from "../../../common/containers/confirm-dialog/confirm-dialog";
@@ -26,7 +28,7 @@ import { DappRecord } from "../../components/dapp-record/dapp-record";
 
 const DIALOG_NOTE = "text-sm text-ink-subtle";
 
-type ActionKind = "approve" | "reject" | "approveChange" | "rejectChange";
+type ActionKind = "approve" | "reject" | "approveChange" | "rejectChange" | "delete";
 
 export type AdminDappViewProps = {
     dapp: DappDto;
@@ -39,18 +41,25 @@ export type AdminDappViewProps = {
 export function AdminDappView({ dapp, listPath }: AdminDappViewProps): React.JSX.Element {
     const translate = useTranslate();
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const [action, setAction] = useState<ActionKind | null>(null);
     const mutations = {
         approve: useApproveDapp(),
         reject: useRejectDapp(),
         approveChange: useApproveChange(),
         rejectChange: useRejectChange(),
+        delete: useDeleteDapp(),
     };
     const run = action && mutations[action];
     const runError = useErrorMessage(run?.error);
     const { heading, focusHeadingAfterRender } = useHeadingFocus(false);
 
     const reload = (): Promise<void> => queryClient.refetchQueries({ queryKey: consoleAdminQueryKeys.detail(dapp.id) });
+    // The deleted dApp may be the one the admin's own page has cached. Marking it stale would still show it while it refetches.
+    const afterDelete = (): void => {
+        queryClient.removeQueries({ queryKey: consoleDappQueryKeys.myDapp() });
+        void navigate(listPath);
+    };
     const close = (): void => {
         setAction(null);
         run?.reset();
@@ -105,17 +114,23 @@ export function AdminDappView({ dapp, listPath }: AdminDappViewProps): React.JSX
                         {translate("admin.dapp.submitted", { date: formatDateTime(dapp.createdAt) })} {dapp.ownerEmail}
                     </span>
                 </div>
-                {dapp.status === "pending" && (
-                    <div className="flex flex-wrap gap-2">
-                        <Button onClick={() => setAction("approve")}>
-                            <CheckIcon size={16} />
-                            {translate("admin.dapp.approve")}
-                        </Button>
-                        <Button variant="danger" onClick={() => setAction("reject")}>
-                            {translate("admin.dapp.reject")}
-                        </Button>
-                    </div>
-                )}
+                <div className="flex flex-wrap gap-2">
+                    {dapp.status === "pending" && (
+                        <>
+                            <Button onClick={() => setAction("approve")}>
+                                <CheckIcon size={16} />
+                                {translate("admin.dapp.approve")}
+                            </Button>
+                            <Button variant="danger" onClick={() => setAction("reject")}>
+                                {translate("admin.dapp.reject")}
+                            </Button>
+                        </>
+                    )}
+                    <Button variant="danger" onClick={() => setAction("delete")}>
+                        <TrashIcon />
+                        {translate("admin.dapp.delete")}
+                    </Button>
+                </div>
             </div>
 
             <div className="flex flex-wrap items-start gap-6">
@@ -196,6 +211,19 @@ export function AdminDappView({ dapp, listPath }: AdminDappViewProps): React.JSX
                 destructive
                 loading={loading}
                 onConfirm={() => mutations.rejectChange.mutate(dapp.id, settle)}
+            >
+                {failure}
+            </ConfirmDialog>
+            <ConfirmDialog
+                open={action === "delete"}
+                onClose={close}
+                title={translate("admin.dapp.deleteDialog.title", { name: dapp.name })}
+                description={translate("admin.dapp.deleteDialog.description")}
+                icon={<TrashIcon size={20} />}
+                confirmLabel={translate("admin.dapp.deleteDialog.confirm")}
+                destructive
+                loading={loading}
+                onConfirm={() => mutations.delete.mutate(dapp.id, { onSuccess: afterDelete, onError: settle.onError })}
             >
                 {failure}
             </ConfirmDialog>

@@ -1,7 +1,8 @@
 import { createServer, Server } from "node:http";
 import { AddressInfo } from "node:net";
-import { MauBracket } from "@shared/modules/dapp";
-import { AdminAlertKind } from "../../../../../src/modules/notification/interfaces/i-slack-notifier.service";
+import { DappStatus, MauBracket } from "@shared/modules/dapp";
+import { Role } from "../../../../../src/modules/auth/types/session-user";
+import { AdminAlertKind, OrphanReason } from "../../../../../src/modules/notification/interfaces/i-slack-notifier.service";
 import { slackMessage, SlackService } from "../../../../../src/modules/notification/providers/slack/slack.service";
 import { DappMock } from "../../../../mocks/dapp/dapp.mock";
 
@@ -49,6 +50,95 @@ describe("SlackService", () => {
             expect(text).toContain("*Name (changed):* New Acme (was: Acme &amp; Co)\n");
             expect(text).toContain("*Expected MAU (changed):* More than 25,000 (was: Less than 1,000)\n");
             expect(text).toContain("*Contact:* dev@acme.example");
+        });
+
+        it("should tell the admins to delete the Auth0 client of a deleted dApp by hand, with no review link", () => {
+            expect(
+                slackMessage(
+                    { kind: AdminAlertKind.DAPP_DELETED, dapp: new DappMock({ auth0ClientId: "client_live" }), deletedBy: Role.USER },
+                    publicUrl,
+                ),
+            ).toEqual({
+                text: [
+                    "*A dApp was deleted*",
+                    "Acme &amp; Co (`6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b`), owned by owner@acme.example, was deleted by its owner.",
+                    "Its Auth0 client `client_live` was kept. Delete it in Auth0 by hand.",
+                ].join("\n"),
+                unfurl_links: false,
+                unfurl_media: false,
+            });
+        });
+
+        it("should escape the owner email of a deleted dApp", () => {
+            const { text } = slackMessage(
+                { kind: AdminAlertKind.DAPP_DELETED, dapp: new DappMock({ ownerEmail: "<!channel>&@acme.example" }), deletedBy: Role.USER },
+                publicUrl,
+            );
+
+            expect(text.split("\n")[1]).toBe(
+                "Acme &amp; Co (`6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b`), owned by &lt;!channel&gt;&amp;@acme.example, was deleted by its owner.",
+            );
+        });
+
+        it("should say a deleted dApp has no stored Auth0 client, and name an admin who deleted it", () => {
+            const { text } = slackMessage({ kind: AdminAlertKind.DAPP_DELETED, dapp, deletedBy: Role.ADMIN }, publicUrl);
+
+            expect(text).toBe(
+                [
+                    "*A dApp was deleted*",
+                    "Acme &amp; Co (`6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b`), owned by owner@acme.example, was deleted by an admin.",
+                    "No Auth0 client is stored for it. If an approval was running, another alert names the client it created.",
+                ].join("\n"),
+            );
+        });
+
+        it("should tell the admins to delete by hand the Auth0 client an approval created for a dApp deleted meanwhile", () => {
+            expect(
+                slackMessage(
+                    { kind: AdminAlertKind.CLIENT_ORPHANED, dapp, clientId: "client_<orphan>", reason: OrphanReason.DAPP_DELETED },
+                    publicUrl,
+                ),
+            ).toEqual({
+                text: [
+                    "*An Auth0 client was left without a dApp*",
+                    "Acme &amp; Co (`6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b`) was deleted while an approval created its Auth0 client.",
+                    "No dApp holds the client `client_&lt;orphan&gt;`. Delete it in Auth0 by hand.",
+                ].join("\n"),
+                unfurl_links: false,
+                unfurl_media: false,
+            });
+        });
+
+        it("should say the dApp was reviewed, and its status now, when that orphaned the Auth0 client an approval created", () => {
+            const rejected = new DappMock({ status: DappStatus.REJECTED });
+            const { text } = slackMessage(
+                { kind: AdminAlertKind.CLIENT_ORPHANED, dapp: rejected, clientId: "client_orphan", reason: OrphanReason.DAPP_REVIEWED },
+                publicUrl,
+            );
+
+            expect(text).toBe(
+                [
+                    "*An Auth0 client was left without a dApp*",
+                    "Acme &amp; Co (`6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b`) was reviewed while an approval created its Auth0 client, and is now rejected.",
+                    "No dApp holds the client `client_orphan`. Delete it in Auth0 by hand.",
+                ].join("\n"),
+            );
+        });
+
+        it("should say another approval gave the dApp its client when that orphaned the Auth0 client an approval created", () => {
+            const held = new DappMock({ auth0ClientId: "client_live" });
+            const { text } = slackMessage(
+                { kind: AdminAlertKind.CLIENT_ORPHANED, dapp: held, clientId: "client_orphan", reason: OrphanReason.CLIENT_REPLACED },
+                publicUrl,
+            );
+
+            expect(text).toBe(
+                [
+                    "*An Auth0 client was left without a dApp*",
+                    "Acme &amp; Co (`6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b`) got its Auth0 client from another approval while this one created a second one.",
+                    "No dApp holds the client `client_orphan`. Delete it in Auth0 by hand.",
+                ].join("\n"),
+            );
         });
     });
 

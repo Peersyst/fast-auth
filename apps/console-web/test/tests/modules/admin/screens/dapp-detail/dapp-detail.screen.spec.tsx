@@ -4,7 +4,8 @@ import { DAPP_ID_MOCK as DAPP_ID, DappChangeMock, DappMock } from "@shared/conso
 import { DappDto } from "@shared/console";
 import { DappDetailScreen } from "../../../../../../src/modules/admin/screens/dapp-detail/dapp-detail.screen";
 import { DappsListScreen } from "../../../../../../src/modules/admin/screens/dapps-list/dapps-list.screen";
-import { apiError, mockApi, MockRoutes, refocus, renderRoutes, screen, waitFor, within } from "../../../../../utils";
+import { MyDappScreen } from "../../../../../../src/modules/dapp/screens/my-dapp/my-dapp.screen";
+import { act, apiError, mockApi, MockRoutes, refocus, renderRoutes, screen, waitFor, within } from "../../../../../utils";
 
 describe("DappDetailScreen", () => {
     const admin = { email: "admin@near.org", role: "admin", emailVerified: true } as const;
@@ -96,6 +97,162 @@ describe("DappDetailScreen", () => {
         await waitFor(() => expect(api.sent(`POST ${path}/reject`)).toHaveLength(1));
     });
 
+    it("should delete the dApp, saying its Auth0 client stays, then go back to the list it was opened from, reloaded", async () => {
+        const other = new DappMock({ id: "5b1c2d3e-0000-4000-8000-000000000002", name: "Beta Bridge" });
+        let items = [new DappMock(), other];
+        const api = mockApi({
+            "GET /api/console/dapp": () => ({ body: { items, totalItems: 20 + items.length, currentPage: 2, pages: 2 } }),
+            [`GET ${path}`]: { body: new DappMock({ status: "approved", auth0ClientId: "client-abc" }) },
+            [`DELETE ${path}`]: () => {
+                items = [other];
+                return { status: 204 };
+            },
+        });
+        const router = renderApp(
+            [
+                { path: "/admin/dapps", element: <DappsListScreen /> },
+                { path: "/admin/dapps/:id", element: <DappDetailScreen /> },
+            ],
+            "/admin/dapps?page=2",
+        );
+        await userEvent.click(await screen.findByRole("link", { name: "Acme Wallet" }));
+
+        const dialog = await openDialog("Delete");
+        expect(dialog).toHaveAccessibleName("Delete Acme Wallet?");
+        expect(dialog).toHaveAccessibleDescription(
+            "This deletes the dApp and its changes from the console. If it is approved, sign-in through NEAR Connect stops right away. Its Auth0 client is not removed.",
+        );
+        await userEvent.click(within(dialog).getByRole("button", { name: "Delete dApp" }));
+
+        await waitFor(() => expect(router.state.location.pathname).toBe("/admin/dapps"));
+        expect(router.state.location.search).toBe("?page=2");
+        expect(api.sent(`DELETE ${path}`)).toHaveLength(1);
+        expect(api.sent(`GET ${path}`)).toHaveLength(1);
+        await waitFor(() => expect(api.sent("GET /api/console/dapp")).toHaveLength(2));
+        expect(await screen.findByText("Showing 1 of 21 dApps · page 2 of 2")).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "Beta Bridge" })).toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: "Acme Wallet" })).not.toBeInTheDocument();
+    });
+
+    it("should not show the deleted dApp in the list from the cache while the list loads again", async () => {
+        const other = new DappMock({ id: "5b1c2d3e-0000-4000-8000-000000000002", name: "Beta Bridge" });
+        let items = [new DappMock(), other];
+        let held: Promise<void> = Promise.resolve();
+        mockApi({
+            "GET /api/console/dapp": async () => {
+                await held;
+                return { body: { items, totalItems: items.length, currentPage: 1, pages: 1 } };
+            },
+            [`GET ${path}`]: { body: new DappMock() },
+            [`DELETE ${path}`]: () => {
+                items = [other];
+                return { status: 204 };
+            },
+        });
+        const router = renderApp(
+            [
+                { path: "/admin/dapps", element: <DappsListScreen /> },
+                { path: "/admin/dapps/:id", element: <DappDetailScreen /> },
+            ],
+            "/admin/dapps",
+        );
+        await userEvent.click(await screen.findByRole("link", { name: "Acme Wallet" }));
+        let release!: () => void;
+        held = new Promise((resolve) => (release = resolve));
+
+        const dialog = await openDialog("Delete");
+        await userEvent.click(within(dialog).getByRole("button", { name: "Delete dApp" }));
+        await waitFor(() => expect(router.state.location.pathname).toBe("/admin/dapps"));
+
+        expect(screen.queryByRole("link", { name: "Acme Wallet" })).not.toBeInTheDocument();
+        release();
+        expect(await screen.findByRole("link", { name: "Beta Bridge" })).toBeInTheDocument();
+        expect(screen.queryByRole("link", { name: "Acme Wallet" })).not.toBeInTheDocument();
+    });
+
+    it("should not show the deleted dApp as the admin's own while their page loads again", async () => {
+        let items = [new DappMock()];
+        let held: Promise<void> = Promise.resolve();
+        mockApi({
+            "GET /api/console/dapp": async () => {
+                await held;
+                return { body: { items, totalItems: items.length, currentPage: 1, pages: items.length } };
+            },
+            [`GET ${path}`]: { body: new DappMock() },
+            [`DELETE ${path}`]: () => {
+                items = [];
+                return { status: 204 };
+            },
+        });
+        const router = renderApp(
+            [
+                { path: "/", element: <MyDappScreen /> },
+                { path: "/admin/dapps", element: <DappsListScreen /> },
+                { path: "/admin/dapps/:id", element: <DappDetailScreen /> },
+            ],
+            "/",
+        );
+        expect(await screen.findByRole("heading", { level: 1, name: "Acme Wallet" })).toBeInTheDocument();
+        await act(() => router.navigate(`/admin/dapps/${DAPP_ID}`));
+        const dialog = await openDialog("Delete");
+        await userEvent.click(within(dialog).getByRole("button", { name: "Delete dApp" }));
+        await waitFor(() => expect(router.state.location.pathname).toBe("/admin/dapps"));
+
+        let release!: () => void;
+        held = new Promise((resolve) => (release = resolve));
+        await act(() => router.navigate("/"));
+
+        expect(screen.queryByRole("heading", { level: 1, name: "Acme Wallet" })).not.toBeInTheDocument();
+        release();
+        expect(await screen.findByRole("heading", { name: "You haven't registered a dApp yet" })).toBeInTheDocument();
+    });
+
+    it("should not show the deleted dApp from the cache when its page is opened again", async () => {
+        let deleted = false;
+        let held: Promise<void> = Promise.resolve();
+        mockApi({
+            "GET /api/console/dapp": { body: { items: [], totalItems: 0, currentPage: 1, pages: 0 } },
+            [`GET ${path}`]: async () => {
+                await held;
+                return deleted ? apiError(404, "DAPP_NOT_FOUND") : { body: new DappMock() };
+            },
+            [`DELETE ${path}`]: () => {
+                deleted = true;
+                return { status: 204 };
+            },
+        });
+        const router = renderApp(
+            [
+                { path: "/admin/dapps", element: <DappsListScreen /> },
+                { path: "/admin/dapps/:id", element: <DappDetailScreen /> },
+            ],
+            `/admin/dapps/${DAPP_ID}`,
+        );
+        const dialog = await openDialog("Delete");
+        await userEvent.click(within(dialog).getByRole("button", { name: "Delete dApp" }));
+        await waitFor(() => expect(router.state.location.pathname).toBe("/admin/dapps"));
+
+        let release!: () => void;
+        held = new Promise((resolve) => (release = resolve));
+        await act(() => router.navigate(`/admin/dapps/${DAPP_ID}`));
+
+        expect(screen.queryByRole("heading", { name: "Acme Wallet" })).not.toBeInTheDocument();
+        release();
+        expect(await screen.findByRole("heading", { name: "dApp not found" })).toBeInTheDocument();
+    });
+
+    it("should report a refused deletion in the dialog and load the dApp again", async () => {
+        const api = renderDetail(new DappMock(), { [`DELETE ${path}`]: apiError(404, "DAPP_NOT_FOUND") });
+
+        const dialog = await openDialog("Delete");
+        await userEvent.click(within(dialog).getByRole("button", { name: "Delete dApp" }));
+
+        expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+            "Not doneThis dApp no longer exists. Reload to see the current state.",
+        );
+        await waitFor(() => expect(api.sent(`GET ${path}`)).toHaveLength(2));
+    });
+
     it("should review a pending change from the fields it sets", async () => {
         const dapp = new DappMock({ status: "approved", auth0ClientId: "client-abc", pendingChange });
         const api = renderDetail(dapp, {
@@ -140,6 +297,30 @@ describe("DappDetailScreen", () => {
         answer();
         expect(await within(dialog).findByRole("alert")).toHaveTextContent(
             "Not doneThat action is not possible in the dApp's current state. Reload to see it.",
+        );
+    });
+
+    it("should say that a web origin is already used when approving the dApp is refused", async () => {
+        const api = renderDetail(new DappMock(), { [`POST ${path}/approve`]: apiError(409, "ORIGIN_TAKEN") });
+
+        const dialog = await openDialog("Approve");
+        await userEvent.click(within(dialog).getByRole("button", { name: "Approve and provision" }));
+
+        expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+            "Not doneA web origin of this dApp is already used by another approved dApp. Reject it, or ask the owner to change the origin.",
+        );
+        await waitFor(() => expect(api.sent(`GET ${path}`)).toHaveLength(2));
+    });
+
+    it("should say that a web origin is already used when approving the change is refused", async () => {
+        const dapp = new DappMock({ status: "approved", auth0ClientId: "client-abc", pendingChange });
+        renderDetail(dapp, { [`POST ${path}/change/approve`]: apiError(409, "ORIGIN_TAKEN") });
+
+        const dialog = await openDialog("Approve change");
+        await userEvent.click(within(dialog).getByRole("button", { name: "Approve change" }));
+
+        expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+            "Not doneA web origin of this dApp is already used by another approved dApp. Reject it, or ask the owner to change the origin.",
         );
     });
 
@@ -205,15 +386,15 @@ describe("DappDetailScreen", () => {
     });
 
     it.each([
-        ["pending", new DappMock(), ["Approve", "Reject"]],
-        ["approved", new DappMock({ status: "approved", auth0ClientId: "abcDEF123" }), ["Copy"]],
+        ["pending", new DappMock(), ["Approve", "Reject", "Delete"]],
+        ["approved", new DappMock({ status: "approved", auth0ClientId: "abcDEF123" }), ["Delete", "Copy"]],
         [
             "approved with a pending change",
             new DappMock({ status: "approved", auth0ClientId: "abcDEF123", pendingChange }),
-            ["Approve change", "Reject change", "Copy"],
+            ["Delete", "Approve change", "Reject change", "Copy"],
         ],
-        ["rejected", new DappMock({ status: "rejected" }), []],
-        ["removed", new DappMock({ status: "removed", auth0ClientId: "abcDEF123" }), []],
+        ["rejected", new DappMock({ status: "rejected" }), ["Delete"]],
+        ["removed", new DappMock({ status: "removed", auth0ClientId: "abcDEF123" }), ["Delete"]],
     ])("should offer only the actions a %s dApp allows", async (_status, dapp, buttons) => {
         renderDetail(dapp);
 

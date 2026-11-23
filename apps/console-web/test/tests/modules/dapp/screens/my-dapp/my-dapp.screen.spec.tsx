@@ -1,7 +1,7 @@
 import userEvent, { UserEvent } from "@testing-library/user-event";
 import { DAPP_ID_MOCK, DappChangeMock, DappMock } from "@shared/console/test/mocks/dapp";
 import { MyDappScreen } from "../../../../../../src/modules/dapp/screens/my-dapp/my-dapp.screen";
-import { apiError, mockApi, mockNearNetwork, MockRoutes, refocus, renderRoutes, screen, within } from "../../../../../utils";
+import { act, apiError, mockApi, mockNearNetwork, MockRoutes, refocus, renderRoutes, screen, waitFor, within } from "../../../../../utils";
 
 /**
  * Renders the page with the console answering from the given routes.
@@ -29,6 +29,7 @@ async function fillValidForm(user: UserEvent): Promise<void> {
 
 describe("MyDappScreen", () => {
     const patchDapp = `PATCH /api/console/dapp/${DAPP_ID_MOCK}`;
+    const deleteDapp = `DELETE /api/console/dapp/${DAPP_ID_MOCK}`;
 
     const change = new DappChangeMock({
         callbackUrls: ["https://app.acme.xyz/callback", "https://app.acme.xyz/silent"],
@@ -214,11 +215,33 @@ describe("MyDappScreen", () => {
         expect(api.sent(patchDapp)[0]?.body).toMatchObject({ contactEmail: "ops@acme.xyz" });
     });
 
-    it("should show a rejection with no way to edit the dApp", async () => {
+    it("should show a rejection with its way back to review", async () => {
         renderPage({ "GET /api/console/dapp": myDapps({ status: "rejected" }) });
 
         expect(await screen.findByText("Your application was not approved")).toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+        expect(screen.getByText("Edit the details below and save to submit it for review again.")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+    });
+
+    it("should send a rejected dApp's edit back to review and show it as pending", async () => {
+        const user = userEvent.setup();
+        const api = renderPage({
+            "GET /api/console/dapp": myDapps({ status: "rejected" }),
+            [patchDapp]: { body: new DappMock({ description: "The wallet." }) },
+        });
+
+        await user.click(await screen.findByRole("button", { name: "Edit" }));
+        expect(
+            screen.getByText("Your dApp was not approved. Saving your edits sends it back to the NEAR Auth team for review."),
+        ).toBeInTheDocument();
+        await user.clear(screen.getByLabelText("Application description"));
+        await user.type(screen.getByLabelText("Application description"), "The wallet.");
+        await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+        expect(await screen.findByText("The NEAR Auth team is reviewing your application.")).toBeInTheDocument();
+        expect(screen.getByText("Pending")).toBeInTheDocument();
+        expect(screen.queryByText("Your application was not approved")).not.toBeInTheDocument();
+        expect(api.sent(patchDapp)[0]?.body).toMatchObject({ description: "The wallet." });
     });
 
     it("should keep the edit form and its edits when a background refetch fails", async () => {
@@ -255,6 +278,22 @@ describe("MyDappScreen", () => {
         expect(screen.queryByLabelText("Application name")).not.toBeInTheDocument();
     });
 
+    it("should offer to register again when the dApp was deleted while being edited", async () => {
+        const user = userEvent.setup();
+        const routes: MockRoutes = {
+            "GET /api/console/dapp": myDapps(),
+            [patchDapp]: apiError(404, "DAPP_NOT_FOUND"),
+        };
+        renderPage(routes);
+
+        await user.click(await screen.findByRole("button", { name: "Edit" }));
+        routes["GET /api/console/dapp"] = myDapps(null);
+        await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+        expect(await screen.findByRole("heading", { name: "You haven't registered a dApp yet" })).toBeInTheDocument();
+        expect(screen.queryByLabelText("Application name")).not.toBeInTheDocument();
+    });
+
     it("should move focus to the title when switching between the details and the form", async () => {
         const user = userEvent.setup();
         renderPage({ "GET /api/console/dapp": myDapps() });
@@ -263,6 +302,79 @@ describe("MyDappScreen", () => {
         expect(screen.getByRole("heading", { name: "Acme Wallet", level: 1 })).toHaveFocus();
         await user.click(screen.getByRole("button", { name: "Back to My dApp" }));
         expect(screen.getByRole("heading", { name: "Acme Wallet", level: 1 })).toHaveFocus();
+    });
+
+    it.each([
+        ["pending", {}],
+        ["approved", { status: "approved", auth0ClientId: "client-abc", pendingChange: change }],
+        ["rejected", { status: "rejected" }],
+    ] as const)("should delete a %s dApp once confirmed and offer to register again", async (_status, overrides) => {
+        const user = userEvent.setup();
+        const api = renderPage({ "GET /api/console/dapp": myDapps(overrides), [deleteDapp]: { status: 204 } });
+
+        await user.click(await screen.findByRole("button", { name: "Delete dApp" }));
+        const dialog = screen.getByRole("dialog");
+        expect(dialog).toHaveAccessibleName("Delete Acme Wallet?");
+        await user.click(within(dialog).getByRole("button", { name: "Delete dApp" }));
+
+        expect(await screen.findByRole("heading", { name: "You haven't registered a dApp yet" })).toHaveFocus();
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        expect(api.sent(deleteDapp)).toHaveLength(1);
+        expect(api.sent("GET /api/console/dapp")).toHaveLength(1);
+    });
+
+    it("should not bring the dApp back when a load that began before the deletion answers after it", async () => {
+        const user = userEvent.setup();
+        let gate: Promise<void> = Promise.resolve();
+        const api = renderPage({
+            "GET /api/console/dapp": async () => {
+                await gate;
+                return myDapps();
+            },
+            [deleteDapp]: { status: 204 },
+        });
+        await user.click(await screen.findByRole("button", { name: "Delete dApp" }));
+        const dialog = screen.getByRole("dialog");
+        let release!: () => void;
+        gate = new Promise((resolve) => (release = resolve));
+        refocus();
+        await waitFor(() => expect(api.sent("GET /api/console/dapp")).toHaveLength(2));
+        await user.click(within(dialog).getByRole("button", { name: "Delete dApp" }));
+        expect(await screen.findByRole("heading", { name: "You haven't registered a dApp yet" })).toBeInTheDocument();
+
+        await act(async () => {
+            release();
+            await new Promise((resolve) => setTimeout(resolve, 50));
+        });
+
+        expect(screen.getByRole("heading", { name: "You haven't registered a dApp yet" })).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { level: 1, name: "Acme Wallet" })).not.toBeInTheDocument();
+    });
+
+    it("should keep the dApp when the deletion is cancelled", async () => {
+        const user = userEvent.setup();
+        const api = renderPage({ "GET /api/console/dapp": myDapps() });
+
+        await user.click(await screen.findByRole("button", { name: "Delete dApp" }));
+        await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Acme Wallet", level: 1 })).toBeInTheDocument();
+        expect(api.sent(deleteDapp)).toHaveLength(0);
+    });
+
+    it("should report a refused deletion in the dialog and load the dApp again", async () => {
+        const user = userEvent.setup();
+        const api = renderPage({ "GET /api/console/dapp": myDapps(), [deleteDapp]: apiError(500, "Internal server error") });
+
+        await user.click(await screen.findByRole("button", { name: "Delete dApp" }));
+        const dialog = screen.getByRole("dialog");
+        await user.click(within(dialog).getByRole("button", { name: "Delete dApp" }));
+
+        expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+            "Not deletedSomething went wrong on our side. Try again in a moment.",
+        );
+        await waitFor(() => expect(api.sent("GET /api/console/dapp")).toHaveLength(2));
     });
 
     it("should load the dApp once when the page opens", async () => {

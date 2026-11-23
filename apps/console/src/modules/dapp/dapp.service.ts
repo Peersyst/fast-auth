@@ -18,7 +18,7 @@ import { Dapp, DappChange, OWNER_EMAIL_LIVE_INDEX } from "@database/console/enti
 import { changedFields, DAPP_FIELDS, DappChangeStatus, DappField, DappFields, DappStatus, FieldValue } from "@shared/modules/dapp";
 import { Role, SessionUser } from "../auth/types/session-user";
 import { BusinessException } from "../common/exception/business.exception";
-import { AdminAlertKind, SlackAlert } from "../notification/interfaces/i-slack-notifier.service";
+import { AdminAlertKind, OrphanReason, SlackAlert } from "../notification/interfaces/i-slack-notifier.service";
 import type { ISlackNotifierService } from "../notification/interfaces/i-slack-notifier.service";
 import { SLACK_NOTIFIER } from "../notification/notification.tokens";
 import { DappClient } from "../provisioning/interfaces/i-auth0-provisioner.service";
@@ -188,7 +188,10 @@ export class DappService {
      * Edits the caller's dApp. A pending dApp changes in place, as long as it is still pending when the edit is written. An
      * approved dApp keeps its fields: the edit is stored as a pending change of the fields it changes, replacing the dApp's
      * earlier pending change in one transaction, and the admins are alerted, whether auto-approval is on or not. An edit that
-     * sets fields, all to the dApp's live values, deletes the pending change instead and alerts nobody.
+     * sets fields, all to the dApp's live values, deletes the pending change instead and alerts nobody. That transaction
+     * locks the dApp and reads it again, so the edit is compared with any change approved since the first read. A rejected dApp
+     * changes in place, even when nothing changed, as long as it is still rejected when the edit is written, and goes back to
+     * pending for an admin to review, whether auto-approval is on or not, and the admins are alerted.
      * @param user The owner.
      * @param id The dApp id.
      * @param request The fields to change.
@@ -202,26 +205,41 @@ export class DappService {
         let dapp = live;
         switch (live.status) {
             case DappStatus.PENDING:
-                if (Object.keys(changed).length > 0) dapp = await this.writePending(manager, live.id, changed);
+                if (Object.keys(changed).length > 0) dapp = await this.writeWhile(manager, live.id, DappStatus.PENDING, changed);
                 this.logger.log(`Updated pending dApp ${live.id}`);
                 break;
             case DappStatus.APPROVED: {
-                if (Object.keys(changed).length === 0) {
-                    if (DAPP_FIELDS.every((field) => request[field] === undefined)) break;
-                    const { affected } = await manager.delete(DappChange, { dappId: live.id, status: DappChangeStatus.PENDING });
-                    if (affected) this.logger.log(`Deleted the pending change of dApp ${live.id}: its owner put the live values back`);
+                if (DAPP_FIELDS.every((field) => request[field] === undefined)) break;
+                const edit = await this.dataSource.transaction(async (transaction) => {
+                    const locked = await this.lock(transaction, live.id);
+                    const change = changedFields(locked, request);
+                    const { affected } = await transaction.delete(DappChange, { dappId: locked.id, status: DappChangeStatus.PENDING });
+                    const stored =
+                        Object.keys(change).length === 0
+                            ? null
+                            : await transaction.save(
+                                  transaction.create(DappChange, { ...change, dappId: locked.id, status: DappChangeStatus.PENDING }),
+                              );
+                    return { locked, change, deleted: affected, stored };
+                });
+                dapp = edit.locked;
+                if (edit.stored === null) {
+                    if (edit.deleted) this.logger.log(`Deleted the pending change of dApp ${dapp.id}: its owner put the live values back`);
                     break;
                 }
-                const change = await this.dataSource.transaction(async (transaction) => {
-                    await transaction.delete(DappChange, { dappId: live.id, status: DappChangeStatus.PENDING });
-                    return transaction.save(
-                        transaction.create(DappChange, { ...changed, dappId: live.id, status: DappChangeStatus.PENDING }),
-                    );
-                });
-                this.logger.log(`Stored pending change ${change.id} of dApp ${live.id}, replacing any earlier one`);
-                await this.alertAdmins({ kind: AdminAlertKind.CHANGE_REQUESTED, dapp: live, change: changed });
+                this.logger.log(`Stored pending change ${edit.stored.id} of dApp ${dapp.id}, replacing any earlier one`);
+                await this.alertAdmins({ kind: AdminAlertKind.CHANGE_REQUESTED, dapp, change: edit.change });
                 break;
             }
+            case DappStatus.REJECTED:
+                dapp = await this.writeWhile(manager, live.id, DappStatus.REJECTED, {
+                    ...changed,
+                    status: DappStatus.PENDING,
+                    reviewedAt: null,
+                });
+                this.logger.log(`Resubmitted rejected dApp ${live.id}`);
+                await this.alertAdmins({ kind: AdminAlertKind.DAPP_SUBMITTED, dapp });
+                break;
             default:
                 throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
         }
@@ -233,9 +251,9 @@ export class DappService {
      * Approves a pending dApp. Creates its Auth0 client and stores it on the dApp before configuring it with the fields
      * its owner submitted. A step that fails leaves the dApp pending with its client stored, so approving it again reuses
      * that client instead of creating a second one. The approval only lands on a dApp that is still pending and still holds
-     * the fields Auth0 got, so a rejection that came first stays and an owner edit that came first is not approved unsent.
-     * A dApp that lists a web origin another approved dApp already has is refused before anything is created, and again
-     * after the client is created, since an owner edit made meanwhile is what gets approved.
+     * the fields Auth0 got, so a rejection that came first stays, unless the dApp was resubmitted unchanged since, and an owner
+     * edit that came first is not approved unsent. A dApp that lists a web origin another approved dApp already has is refused
+     * before anything is created, and again after the client is created, since an owner edit made meanwhile is what gets approved.
      * @param id The dApp id.
      * @returns The dApp.
      */
@@ -247,7 +265,13 @@ export class DappService {
             found.auth0ClientId === null ? await this.createClient(manager, found) : { pending: found, clientId: found.auth0ClientId };
         if (pending !== found) await this.assertOriginsFree(manager, pending.id, pending.webOrigins);
         await this.provisioner.update(clientId, clientOf(pending));
-        const dapp = await this.writePending(manager, id, { status: DappStatus.APPROVED, reviewedAt: new Date() }, holding(pending));
+        const dapp = await this.writeWhile(
+            manager,
+            id,
+            DappStatus.PENDING,
+            { status: DappStatus.APPROVED, reviewedAt: new Date() },
+            holding(pending),
+        );
         this.logger.log(`Approved dApp ${dapp.id} with Auth0 client ${dapp.auth0ClientId}`);
         this.metrics.countTransition("approve", "success");
         return DappDto.fromEntity(dapp, null);
@@ -261,7 +285,7 @@ export class DappService {
     async reject(id: string): Promise<DappDto> {
         const { manager } = this.dataSource;
         await this.findPending(manager, id);
-        const dapp = await this.writePending(manager, id, { status: DappStatus.REJECTED, reviewedAt: new Date() });
+        const dapp = await this.writeWhile(manager, id, DappStatus.PENDING, { status: DappStatus.REJECTED, reviewedAt: new Date() });
         this.logger.log(`Rejected dApp ${dapp.id}`);
         this.metrics.countTransition("reject", "success");
         return DappDto.fromEntity(dapp, null);
@@ -290,6 +314,7 @@ export class DappService {
         );
         await this.provisioner.update(live.auth0ClientId, clientOf({ ...live, ...changed }));
         const dapp = await this.dataSource.transaction(async (manager) => {
+            await this.lock(manager, live.id);
             const approved = await manager.update(
                 DappChange,
                 { id: change.id, status: DappChangeStatus.PENDING },
@@ -306,7 +331,7 @@ export class DappService {
 
     /**
      * Rejects the dApp's pending change, leaving the dApp as it is. The rejection only lands on a change that is still pending,
-     * so an approval that came first stays.
+     * so an approval that came first stays, and a dApp deleted meanwhile answers as not found.
      * @param id The dApp id.
      * @returns The dApp with its pending change.
      */
@@ -318,10 +343,35 @@ export class DappService {
             { id: change.id, status: DappChangeStatus.PENDING },
             { status: DappChangeStatus.REJECTED, reviewedAt: new Date() },
         );
-        if (affected === 0) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
+        if (affected === 0) {
+            if ((await manager.findOneBy(Dapp, { id })) === null) throw new BusinessException(DappErrorCode.DAPP_NOT_FOUND);
+            throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
+        }
         this.logger.log(`Rejected change ${change.id} of dApp ${live.id}`);
         this.metrics.countTransition("rejectChange", "success");
         return DappDto.fromEntity(live, await this.pendingChangeOf(manager, live.id));
+    }
+
+    /**
+     * Deletes a dApp in any status, with its changes, and alerts the admins. An admin can delete any dApp, anyone else only their
+     * own. The dApp's Auth0 client, if any, is left for an admin to delete by hand. The dApp stays locked until it is deleted,
+     * so an approval cannot store a client the alert misses, and of two deletes at once only one finds the dApp.
+     * @param user The caller.
+     * @param id The dApp id.
+     */
+    async delete(user: SessionUser, id: string): Promise<void> {
+        const dapp = await this.dataSource.transaction(async (manager) => {
+            const found = await manager.findOne(Dapp, {
+                where: user.role === Role.ADMIN ? { id } : { id, ownerEmail: user.email },
+                lock: { mode: "pessimistic_write" },
+            });
+            if (found === null) throw new BusinessException(DappErrorCode.DAPP_NOT_FOUND);
+            await manager.delete(Dapp, { id: found.id });
+            return found;
+        });
+        this.logger.log(`Deleted dApp ${dapp.id}${dapp.auth0ClientId === null ? "" : `, keeping Auth0 client ${dapp.auth0ClientId}`}`);
+        this.metrics.countTransition("delete", "success");
+        await this.alertAdmins({ kind: AdminAlertKind.DAPP_DELETED, dapp, deletedBy: user.role });
     }
 
     /**
@@ -338,29 +388,48 @@ export class DappService {
     }
 
     /**
-     * Writes columns of a dApp only while it is pending. A request that read the dApp earlier writes just these columns, so
-     * it neither undoes a review that landed since nor puts back the values it read.
+     * Locks a dApp until the transaction ends. Every transaction that writes a dApp's changes locks the dApp first, as a
+     * delete does, so the two wait for each other instead of deadlocking.
+     * @param manager The entity manager of the transaction.
+     * @param id The dApp id.
+     * @returns The dApp as stored now.
+     */
+    private async lock(manager: EntityManager, id: string): Promise<Dapp> {
+        const dapp = await manager.findOne(Dapp, { where: { id }, lock: { mode: "pessimistic_write" } });
+        if (dapp === null) throw new BusinessException(DappErrorCode.DAPP_NOT_FOUND);
+        return dapp;
+    }
+
+    /**
+     * Writes columns of a dApp only while it has the status the request read. A request that read the dApp earlier writes just
+     * these columns, so it neither undoes a review or resubmission that landed since nor puts back the values it read, nor
+     * writes a dApp deleted since.
      * @param manager The entity manager to write with.
      * @param id The dApp id.
+     * @param status The status the dApp must still have.
      * @param columns The columns to write.
      * @param unchanged What else the dApp must still match for the write to land.
      * @returns The dApp as stored after the write.
      */
-    private async writePending(
+    private async writeWhile(
         manager: EntityManager,
         id: string,
+        status: DappStatus,
         columns: Partial<Dapp>,
         unchanged: FindOptionsWhere<Dapp> = {},
     ): Promise<Dapp> {
-        const { affected } = await manager.update(Dapp, { ...unchanged, id, status: DappStatus.PENDING }, columns);
+        const { affected } = await manager.update(Dapp, { ...unchanged, id, status }, columns);
+        const dapp = await manager.findOneBy(Dapp, { id });
+        if (dapp === null) throw new BusinessException(DappErrorCode.DAPP_NOT_FOUND);
         if (affected === 0) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
-        return manager.findOneByOrFail(Dapp, { id });
+        return dapp;
     }
 
     /**
-     * Creates the Auth0 client of a pending dApp and stores it on the dApp. A dApp that got a client or was reviewed while
-     * Auth0 created this one keeps what it has, and the new client is logged as an orphan. So is one the database failed to
-     * store, before the failure is thrown again.
+     * Creates the Auth0 client of a pending dApp and stores it on the dApp. A dApp that got another client, was reviewed or was
+     * deleted while Auth0 created this one keeps what it has, and the new client is logged as an orphan and sent to the admins
+     * with the reason. A dApp deleted once its client is stored answers not found with no orphan alert, since the deletion
+     * alert names that client. One the database failed to store is only logged, before the failure is thrown again.
      * @param manager The entity manager to read and write with.
      * @param found The pending dApp, read before the client exists.
      * @returns The dApp as stored now, with any edit that landed meanwhile, and its client.
@@ -368,30 +437,35 @@ export class DappService {
     private async createClient(manager: EntityManager, found: Dapp): Promise<{ pending: Dapp; clientId: string }> {
         const created = await this.provisioner.create(clientOf(found));
         let affected: number | undefined;
-        let pending: Dapp;
+        let pending: Dapp | null;
         try {
             ({ affected } = await manager.update(
                 Dapp,
                 { id: found.id, status: DappStatus.PENDING, auth0ClientId: IsNull() },
                 { auth0ClientId: created },
             ));
-            pending = await manager.findOneByOrFail(Dapp, { id: found.id });
+            pending = await manager.findOneBy(Dapp, { id: found.id });
         } catch (error) {
             this.logger.warn(`Auth0 client ${created} of dApp ${found.id} may be an orphan: storing it failed`);
             throw error;
         }
         if (affected === 1) {
+            if (pending === null) throw new BusinessException(DappErrorCode.DAPP_NOT_FOUND);
             this.logger.log(`Created Auth0 client ${created} for pending dApp ${found.id}`);
             return { pending, clientId: created };
         }
-        if (pending.status !== DappStatus.PENDING || pending.auth0ClientId === null) {
-            this.logger.warn(`Auth0 client ${created} of dApp ${found.id} is an orphan: the dApp is ${pending.status}`);
-            throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
-        }
-        this.logger.warn(
-            `Auth0 client ${created} of dApp ${found.id} is an orphan: the dApp already has the client ${pending.auth0ClientId}`,
-        );
-        return { pending, clientId: pending.auth0ClientId };
+        const kept = pending?.status === DappStatus.PENDING ? pending.auth0ClientId : null;
+        const { reason, detail } =
+            pending === null
+                ? { reason: OrphanReason.DAPP_DELETED, detail: "the dApp is deleted" }
+                : kept === null
+                  ? { reason: OrphanReason.DAPP_REVIEWED, detail: `the dApp is ${pending.status}` }
+                  : { reason: OrphanReason.CLIENT_REPLACED, detail: `the dApp already has the client ${kept}` };
+        this.logger.warn(`Auth0 client ${created} of dApp ${found.id} is an orphan: ${detail}`);
+        await this.alertAdmins({ kind: AdminAlertKind.CLIENT_ORPHANED, dapp: pending ?? found, clientId: created, reason });
+        if (pending === null) throw new BusinessException(DappErrorCode.DAPP_NOT_FOUND);
+        if (kept === null) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
+        return { pending, clientId: kept };
     }
 
     /**
@@ -438,14 +512,19 @@ export class DappService {
     }
 
     /**
-     * Alerts the admins of a new dApp or change, logging instead of throwing when Slack fails, so the owner's write still succeeds.
+     * Alerts the admins of a new, changed or deleted dApp, or of a client left without one. A Slack failure is logged instead
+     * of thrown, so the write still succeeds, and the log names the Auth0 client the lost alert left for an admin to delete.
      * @param alert The alert.
      */
     private async alertAdmins(alert: SlackAlert): Promise<void> {
         try {
             await this.slack.notify(alert);
         } catch (error) {
-            this.logger.warn(`Slack alert for dApp ${alert.dapp.id} failed: ${error instanceof Error ? error.name : typeof error}`);
+            let clientId: string | null = null;
+            if (alert.kind === AdminAlertKind.DAPP_DELETED) clientId = alert.dapp.auth0ClientId;
+            if (alert.kind === AdminAlertKind.CLIENT_ORPHANED) clientId = alert.clientId;
+            const left = clientId === null ? "" : `. Delete Auth0 client ${clientId} by hand`;
+            this.logger.warn(`Slack alert for dApp ${alert.dapp.id} failed: ${error instanceof Error ? error.name : typeof error}${left}`);
         }
     }
 }

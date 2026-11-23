@@ -80,7 +80,7 @@ export class DappApi {
     /**
      * @param id
      * @param requestBody
-     * @returns DappDto The dApp. A pending dApp is edited in place. An approved dApp shows the edit in `pendingChange` until it is reviewed.
+     * @returns DappDto The dApp. A pending dApp is edited in place. An approved dApp shows the edit in `pendingChange` until it is reviewed. A rejected dApp is edited in place and goes back to pending.
      * @throws ApiError
      */
     public static update(
@@ -95,6 +95,22 @@ export class DappApi {
             },
             body: requestBody,
             mediaType: 'application/json',
+        });
+    }
+    /**
+     * @param id
+     * @returns void
+     * @throws ApiError
+     */
+    public static delete(
+        id: string,
+    ): CancelablePromise<void> {
+        return __request(OpenAPI, {
+            method: 'DELETE',
+            url: '/api/console/dapp/{id}',
+            path: {
+                'id': id,
+            },
         });
     }
     /**

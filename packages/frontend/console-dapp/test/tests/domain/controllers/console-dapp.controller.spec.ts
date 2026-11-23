@@ -103,4 +103,22 @@ describe("ConsoleDappController", () => {
             await expect(controller.editDapp({ id: DAPP_ID_MOCK, request: fields })).rejects.toEqual(new DomainError(error));
         });
     });
+
+    describe("deleteDapp", () => {
+        it("should delete the dApp", async () => {
+            await expect(controller.deleteDapp(DAPP_ID_MOCK)).resolves.toBeUndefined();
+            expect(consoleDappApiMock.delete).toHaveBeenCalledWith(DAPP_ID_MOCK);
+        });
+
+        it.each([
+            [404, "DAPP_NOT_FOUND", ConsoleDappErrors.DAPP_NOT_FOUND],
+            [401, "UNAUTHENTICATED", ConsoleDappErrors.SESSION_EXPIRED],
+            [404, "not found", ConsoleDappErrors.SERVER_ERROR],
+            [500, "Internal server error", ConsoleDappErrors.SERVER_ERROR],
+        ])("should report a %i %s as %s", async (status, code, error) => {
+            consoleDappApiMock.delete.mockRejectedValueOnce(createApiErrorMock(status, code));
+
+            await expect(controller.deleteDapp(DAPP_ID_MOCK)).rejects.toEqual(new DomainError(error));
+        });
+    });
 });

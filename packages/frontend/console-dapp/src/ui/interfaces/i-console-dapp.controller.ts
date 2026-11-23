@@ -19,10 +19,16 @@ export interface IConsoleDappController {
      */
     submitDapp(fields: CreateDappRequest): Promise<DappDto>;
     /**
-     * Saves an edit of the owner's dApp. A pending dApp changes in place, and an approved one gets the edit as its change under review.
+     * Saves an edit of the owner's dApp. A pending dApp changes in place, a rejected one changes in place and goes back to pending, and an approved one gets the edit as its change under review.
      * @param params The dApp's id and the edit.
-     * @throws `DomainError(INVALID_TRANSITION)` when the dApp was rejected.
+     * @throws `DomainError(INVALID_TRANSITION)` when a review or another resubmission lands while the edit runs.
      * @returns The dApp after the edit.
      */
     editDapp(params: EditDappParams): Promise<DappDto>;
+    /**
+     * Deletes the owner's dApp in any status. Its Auth0 client, if any, stays as it is.
+     * @param id The dApp's id.
+     * @throws `DomainError(DAPP_NOT_FOUND)` when the dApp is already gone.
+     */
+    deleteDapp(id: string): Promise<void>;
 }

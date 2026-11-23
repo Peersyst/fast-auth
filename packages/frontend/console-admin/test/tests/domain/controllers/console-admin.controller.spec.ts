@@ -68,9 +68,21 @@ describe("ConsoleAdminController", () => {
             expect(consoleAdminApiMock.rejectChange).toHaveBeenCalledWith(DAPP_ID_MOCK);
         });
 
+        it("should delete the dApp", async () => {
+            await expect(controller.deleteDapp(DAPP_ID_MOCK)).resolves.toBeUndefined();
+            expect(consoleAdminApiMock.delete).toHaveBeenCalledWith(DAPP_ID_MOCK);
+        });
+
+        it("should report a dApp that was already deleted", async () => {
+            consoleAdminApiMock.delete.mockRejectedValueOnce(createApiErrorMock(404, "DAPP_NOT_FOUND"));
+
+            await expect(controller.deleteDapp(DAPP_ID_MOCK)).rejects.toEqual(new DomainError(ConsoleAdminErrors.DAPP_NOT_FOUND));
+        });
+
         it.each([
             [404, "DAPP_NOT_FOUND", ConsoleAdminErrors.DAPP_NOT_FOUND],
             [409, "INVALID_TRANSITION", ConsoleAdminErrors.INVALID_TRANSITION],
+            [409, "ORIGIN_TAKEN", ConsoleAdminErrors.ORIGIN_TAKEN],
             [500, "Internal server error", ConsoleAdminErrors.SERVER_ERROR],
         ])("should report a %i %s as %s", async (status, code, error) => {
             consoleAdminApiMock.approve.mockRejectedValueOnce(createApiErrorMock(status, code));
@@ -82,6 +94,12 @@ describe("ConsoleAdminController", () => {
             consoleAdminApiMock.approveChange.mockRejectedValueOnce(createApiErrorMock(404, "DAPP_CHANGE_NOT_FOUND"));
 
             await expect(controller.approveChange(DAPP_ID_MOCK)).rejects.toEqual(new DomainError(ConsoleAdminErrors.NO_PENDING_CHANGE));
+        });
+
+        it("should report a change that adds a web origin another approved dApp has", async () => {
+            consoleAdminApiMock.approveChange.mockRejectedValueOnce(createApiErrorMock(409, "ORIGIN_TAKEN"));
+
+            await expect(controller.approveChange(DAPP_ID_MOCK)).rejects.toEqual(new DomainError(ConsoleAdminErrors.ORIGIN_TAKEN));
         });
 
         it.each([

@@ -1,5 +1,6 @@
 import { DappField, DappFields, FIELD_LABELS, MAU_LABELS } from "@shared/modules/dapp";
-import { AdminAlertKind, ISlackNotifierService, SlackAlert } from "../../interfaces/i-slack-notifier.service";
+import { Role } from "../../../auth/types/session-user";
+import { AdminAlertKind, ISlackNotifierService, OrphanReason, SlackAlert } from "../../interfaces/i-slack-notifier.service";
 import { SlackWebhookPayload } from "./slack.types";
 
 /**
@@ -16,7 +17,11 @@ function escapeMrkdwn(value: string): string {
         .replaceAll(">", "&gt;");
 }
 
-const ADMIN_ALERTS: Record<AdminAlertKind, { subject: string; body: string }> = {
+type DeletedAlert = Extract<SlackAlert, { kind: AdminAlertKind.DAPP_DELETED }>;
+type OrphanedAlert = Extract<SlackAlert, { kind: AdminAlertKind.CLIENT_ORPHANED }>;
+type ReviewAlert = Exclude<SlackAlert, DeletedAlert | OrphanedAlert>;
+
+const ADMIN_ALERTS: Record<ReviewAlert["kind"], { subject: string; body: string }> = {
     [AdminAlertKind.DAPP_SUBMITTED]: { subject: "New dApp submission to review", body: "was submitted and is waiting for review." },
     [AdminAlertKind.CHANGE_REQUESTED]: {
         subject: "A dApp change request to review",
@@ -36,12 +41,12 @@ const FIELD_LINES: Record<DappField, (fields: DappFields) => string> = {
 };
 
 /**
- * Builds the webhook payload for an alert, with every dApp field and, for a change, its new values next to the live ones.
+ * Builds the lines of an alert to review, with every dApp field and, for a change, its new values next to the live ones.
  * @param alert The alert.
  * @param publicUrl The console's public URL, for the review link.
- * @returns The webhook payload, with link previews off.
+ * @returns The lines of the message.
  */
-export function slackMessage(alert: SlackAlert, publicUrl: string): SlackWebhookPayload {
+function reviewLines(alert: ReviewAlert, publicUrl: string): string[] {
     const { dapp } = alert;
     const copy = ADMIN_ALERTS[alert.kind];
     const url = `${publicUrl}/admin/dapps/${encodeURIComponent(dapp.id)}`;
@@ -51,11 +56,69 @@ export function slackMessage(alert: SlackAlert, publicUrl: string): SlackWebhook
         const label = FIELD_LABELS[field as DappField];
         return field in change ? `*${label} (changed):* ${format(after)} (was: ${format(dapp)})` : `*${label}:* ${format(after)}`;
     });
-    return {
-        text: [`*${copy.subject}*`, `${escapeMrkdwn(dapp.name)} ${copy.body}`, `<${url}|Review it in the console>`, ...fields].join("\n"),
-        unfurl_links: false,
-        unfurl_media: false,
-    };
+    return [`*${copy.subject}*`, `${escapeMrkdwn(dapp.name)} ${copy.body}`, `<${url}|Review it in the console>`, ...fields];
+}
+
+/**
+ * Builds the lines of a deletion alert: the dApp, its owner, who deleted it, and the Auth0 client the console left for an admin to delete.
+ * @param alert The alert.
+ * @returns The lines of the message.
+ */
+function deletedLines({ dapp, deletedBy }: DeletedAlert): string[] {
+    return [
+        "*A dApp was deleted*",
+        `${escapeMrkdwn(dapp.name)} (\`${dapp.id}\`), owned by ${escapeMrkdwn(dapp.ownerEmail)}, was deleted by ${deletedBy === Role.ADMIN ? "an admin" : "its owner"}.`,
+        dapp.auth0ClientId === null
+            ? "No Auth0 client is stored for it. If an approval was running, another alert names the client it created."
+            : `Its Auth0 client \`${escapeMrkdwn(dapp.auth0ClientId)}\` was kept. Delete it in Auth0 by hand.`,
+    ];
+}
+
+const ORPHAN_REASONS: Record<OrphanReason, (dapp: OrphanedAlert["dapp"]) => string> = {
+    [OrphanReason.DAPP_DELETED]: () => "was deleted while an approval created its Auth0 client.",
+    [OrphanReason.DAPP_REVIEWED]: (dapp) => `was reviewed while an approval created its Auth0 client, and is now ${dapp.status}.`,
+    [OrphanReason.CLIENT_REPLACED]: () => "got its Auth0 client from another approval while this one created a second one.",
+};
+
+/**
+ * Builds the lines of an orphaned client alert: the dApp, why it lacks the Auth0 client an approval created, and that client.
+ * @param alert The alert.
+ * @returns The lines of the message.
+ */
+function orphanedLines({ dapp, clientId, reason }: OrphanedAlert): string[] {
+    return [
+        "*An Auth0 client was left without a dApp*",
+        `${escapeMrkdwn(dapp.name)} (\`${dapp.id}\`) ${ORPHAN_REASONS[reason](dapp)}`,
+        `No dApp holds the client \`${escapeMrkdwn(clientId)}\`. Delete it in Auth0 by hand.`,
+    ];
+}
+
+/**
+ * Builds the lines of an alert.
+ * @param alert The alert.
+ * @param publicUrl The console's public URL, for the review link.
+ * @returns The lines of the message.
+ */
+function linesOf(alert: SlackAlert, publicUrl: string): string[] {
+    switch (alert.kind) {
+        case AdminAlertKind.DAPP_DELETED:
+            return deletedLines(alert);
+        case AdminAlertKind.CLIENT_ORPHANED:
+            return orphanedLines(alert);
+        default:
+            return reviewLines(alert, publicUrl);
+    }
+}
+
+/**
+ * Builds the webhook payload for an alert.
+ * @param alert The alert.
+ * @param publicUrl The console's public URL, for the review link.
+ * @returns The webhook payload, with link previews off.
+ */
+export function slackMessage(alert: SlackAlert, publicUrl: string): SlackWebhookPayload {
+    const lines = linesOf(alert, publicUrl);
+    return { text: lines.join("\n"), unfurl_links: false, unfurl_media: false };
 }
 
 export class SlackService implements ISlackNotifierService {

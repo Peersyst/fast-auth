@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { Button } from "@frontend/design-system-react/button";
 import { Callout } from "@frontend/design-system-react/callout";
-import { BackIcon } from "@frontend/design-system-react/icons";
+import { BackIcon, TrashIcon } from "@frontend/design-system-react/icons";
 import { PageTitle } from "@frontend/design-system-react/page-title";
-import { useEditDapp } from "@frontend/console-dapp/ui/queries";
+import { useDeleteDapp, useEditDapp } from "@frontend/console-dapp/ui/queries";
 import { useTranslate } from "@frontend/locale/react";
 import { DappDto } from "@shared/console";
+import { ConfirmDialog } from "../../../common/containers/confirm-dialog/confirm-dialog";
+import { useErrorMessage } from "../../../common/hooks/use-error-message";
 import { useHeadingFocus } from "../../../common/hooks/use-heading-focus";
 import { ChangeUnderReview } from "../../components/change-under-review/change-under-review";
 import { DappSummary } from "../../components/dapp-summary/dapp-summary";
@@ -35,10 +38,17 @@ export function DappView({ dapp, focusTitle, reload }: DappViewProps): React.JSX
     const translate = useTranslate();
     const [editing, setEditing] = useState<DappDto | null>(null);
     const { mutateAsync: edit } = useEditDapp();
+    const [deleting, setDeleting] = useState(false);
+    const remove = useDeleteDapp();
+    const removeError = useErrorMessage(remove.error);
     const { heading, focusHeadingAfterRender } = useHeadingFocus(focusTitle);
     const approvalRule = translate("myDapp.approvalRule");
     const editNote =
-        dapp.status === "approved" ? translate("myDapp.edit.approvedNote", { rule: approvalRule }) : translate("myDapp.edit.pendingNote");
+        dapp.status === "approved"
+            ? translate("myDapp.edit.approvedNote", { rule: approvalRule })
+            : dapp.status === "rejected"
+              ? translate("myDapp.edit.rejectedNote")
+              : translate("myDapp.edit.pendingNote");
 
     const switchView = (next: DappDto | null): void => {
         focusHeadingAfterRender();
@@ -110,7 +120,31 @@ export function DappView({ dapp, focusTitle, reload }: DappViewProps): React.JSX
                     <p>{approvalRule}</p>
                 </div>
             )}
-            <DappSummary dapp={dapp} onEdit={dapp.status === "rejected" ? undefined : () => switchView(dapp)} />
+            <DappSummary dapp={dapp} onEdit={() => switchView(dapp)} />
+            <Button variant="danger" className="self-start" onClick={() => setDeleting(true)}>
+                <TrashIcon />
+                {translate("myDapp.delete.action")}
+            </Button>
+            <ConfirmDialog
+                open={deleting}
+                onClose={() => {
+                    setDeleting(false);
+                    remove.reset();
+                }}
+                title={translate("myDapp.delete.dialog.title", { name: dapp.name })}
+                description={translate("myDapp.delete.dialog.description")}
+                icon={<TrashIcon size={20} />}
+                confirmLabel={translate("myDapp.delete.dialog.confirm")}
+                destructive
+                loading={remove.isPending}
+                onConfirm={() => remove.mutate(dapp.id, { onError: () => void reload() })}
+            >
+                {remove.isError && (
+                    <Callout tone="error" title={translate("myDapp.delete.notDone")}>
+                        <p>{removeError}</p>
+                    </Callout>
+                )}
+            </ConfirmDialog>
         </div>
     );
 }

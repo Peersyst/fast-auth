@@ -1,4 +1,5 @@
 import { closeTestApp, createTestApp, TestApp, truncateAll } from "@backend/test";
+import { Logger } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { register } from "prom-client";
@@ -487,8 +488,32 @@ describe("DappModule (integration)", () => {
                 .expect(200);
         });
 
-        it("should answer 409 INVALID_TRANSITION for a rejected dApp", async () => {
-            const dapp = await createDapp(dataSource.manager, { ownerEmail, status: DappStatus.REJECTED });
+        it("should edit a rejected dApp in place, send it back to pending and alert the admins", async () => {
+            const dapp = await pendingDapp({ status: DappStatus.REJECTED, reviewedAt: new Date("2026-01-02T00:00:00Z") });
+
+            const { body } = await patch(dapp.id, { name: "Acme Pay" }).expect(200);
+
+            expect(body).toMatchObject({ name: "Acme Pay", status: "pending", auth0ClientId: null, reviewedAt: null, pendingChange: null });
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ name: "Acme Pay", status: "pending", reviewedAt: null });
+            expect(await dataSource.manager.count(DappChange)).toBe(0);
+            expect(slack.notify).toHaveBeenCalledTimes(1);
+            expect(slack.notify).toHaveBeenCalledWith({ kind: "dapp_submitted", dapp: expect.objectContaining({ id: dapp.id }) });
+            expect(provisioner.calls).toEqual([]);
+            expect(await transitionCounts()).toEqual({ "update success": 1 });
+        });
+
+        it("should send a rejected dApp back to pending for an empty edit", async () => {
+            const dapp = await pendingDapp({ status: DappStatus.REJECTED, reviewedAt: new Date("2026-01-02T00:00:00Z") });
+
+            const { body } = await patch(dapp.id, {}).expect(200);
+
+            expect(body).toMatchObject({ name: "Acme Wallet", status: "pending", reviewedAt: null });
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ status: "pending", reviewedAt: null });
+            expect(slack.notify).toHaveBeenCalledTimes(1);
+        });
+
+        it("should answer 409 INVALID_TRANSITION for a removed dApp", async () => {
+            const dapp = await pendingDapp({ status: DappStatus.REMOVED });
 
             const { body } = await patch(dapp.id, { name: "Acme Pay" }).expect(409);
 
@@ -509,6 +534,107 @@ describe("DappModule (integration)", () => {
 
         it("should answer 400 for an id that is not a uuid", async () => {
             await patch("not-a-uuid", { name: "Acme Pay" }).expect(400);
+        });
+    });
+
+    describe("DELETE /dapp/:id", () => {
+        /**
+         * Sends a DELETE to the dApp.
+         * @param id The dApp id.
+         * @param authorization The caller's Authorization header.
+         * @returns The pending request.
+         */
+        const remove = (id: string, authorization: string = owner) =>
+            testApp.request.delete(`/dapp/${id}`).set("Authorization", authorization);
+
+        it("should delete the owner's pending dApp", async () => {
+            const dapp = await pendingDapp();
+
+            const { body } = await remove(dapp.id).expect(204);
+
+            expect(body).toEqual({});
+            expect(await dataSource.manager.countBy(Dapp, { id: dapp.id })).toBe(0);
+            expect(await transitionCounts()).toEqual({ "delete success": 1 });
+            expect(slack.notify).toHaveBeenCalledTimes(1);
+            expect(slack.notify).toHaveBeenCalledWith({
+                kind: "dapp_deleted",
+                dapp: expect.objectContaining({ id: dapp.id, name: "Acme Wallet", auth0ClientId: null }),
+                deletedBy: "user",
+            });
+        });
+
+        it("should delete the owner's approved dApp with its changes, call no Auth0 and alert the admins with its client", async () => {
+            const dapp = await approvedDapp();
+            await createDappChange(dataSource.manager, { dappId: dapp.id });
+
+            await remove(dapp.id).expect(204);
+
+            expect(await dataSource.manager.countBy(Dapp, { id: dapp.id })).toBe(0);
+            expect(await findChanges(dataSource.manager, dapp.id)).toEqual([]);
+            expect(provisioner.calls).toEqual([]);
+            expect(slack.notify).toHaveBeenCalledTimes(1);
+            expect(slack.notify).toHaveBeenCalledWith({
+                kind: "dapp_deleted",
+                dapp: expect.objectContaining({ id: dapp.id, name: "Acme Wallet", auth0ClientId: "client_live" }),
+                deletedBy: "user",
+            });
+        });
+
+        it("should still answer 204, delete the dApp and log its Auth0 client when the Slack alert fails", async () => {
+            const dapp = await approvedDapp();
+            const warn = jest.spyOn(Logger.prototype, "warn").mockImplementation();
+            slack.notify.mockRejectedValueOnce(new Error("Slack is down"));
+
+            await remove(dapp.id).expect(204);
+
+            expect(slack.notify).toHaveBeenCalledTimes(1);
+            expect(warn.mock.calls).toEqual([[`Slack alert for dApp ${dapp.id} failed: Error. Delete Auth0 client client_live by hand`]]);
+            warn.mockRestore();
+            expect(await dataSource.manager.countBy(Dapp, { id: dapp.id })).toBe(0);
+        });
+
+        it("should answer 404 DAPP_NOT_FOUND for another owner's dApp and keep it", async () => {
+            const dapp = await pendingDapp();
+
+            const { body } = await remove(dapp.id, await bearer("stranger@owners.test")).expect(404);
+
+            expect(body).toEqual({ statusCode: 404, message: "DAPP_NOT_FOUND" });
+            expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ id: dapp.id, ownerEmail });
+            expect(slack.notify).not.toHaveBeenCalled();
+        });
+
+        it("should let an admin delete another owner's rejected dApp and name the admin in the alert", async () => {
+            const dapp = await pendingDapp({ status: DappStatus.REJECTED, reviewedAt: new Date("2026-01-05T00:00:00Z") });
+
+            await remove(dapp.id, admin).expect(204);
+
+            expect(await dataSource.manager.countBy(Dapp, { id: dapp.id })).toBe(0);
+            expect(slack.notify).toHaveBeenCalledTimes(1);
+            expect(slack.notify).toHaveBeenCalledWith({
+                kind: "dapp_deleted",
+                dapp: expect.objectContaining({ id: dapp.id, name: "Acme Wallet", auth0ClientId: null }),
+                deletedBy: "admin",
+            });
+        });
+
+        it("should answer 404 DAPP_NOT_FOUND for an unknown id", async () => {
+            const { body } = await remove("00000000-0000-4000-8000-000000000000", admin).expect(404);
+
+            expect(body).toEqual({ statusCode: 404, message: "DAPP_NOT_FOUND" });
+            expect(slack.notify).not.toHaveBeenCalled();
+        });
+
+        it("should answer 400 for an id that is not a uuid", async () => {
+            await remove("not-a-uuid").expect(400);
+        });
+
+        it("should answer 401 UNAUTHENTICATED without a token and keep the dApp", async () => {
+            const dapp = await pendingDapp();
+
+            const { body } = await testApp.request.delete(`/dapp/${dapp.id}`).expect(401);
+
+            expect(body).toEqual({ statusCode: 401, message: "UNAUTHENTICATED" });
+            expect(await dataSource.manager.countBy(Dapp, { id: dapp.id })).toBe(1);
         });
     });
 });

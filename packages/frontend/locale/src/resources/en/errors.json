@@ -11,6 +11,7 @@
     "dappNotFound": "This dApp no longer exists. Reload to see the current state.",
     "dappAlreadyExists": "This email already has a dApp; each email can have one dApp at a time. Reload to see it.",
     "invalidTransition": "That action is not possible in the dApp's current state. Reload to see it.",
+    "originTaken": "A web origin of this dApp is already used by another approved dApp. Reject it, or ask the owner to change the origin.",
     "noPendingChange": "There is no change waiting for review any more. Reload to see the current state.",
     "forbiddenRole": "You don't have access to this page.",
     "nameInvalid": "Enter a name of at most {{max}} characters (most emoji count as two or more), with no < or > and no control characters.",

@@ -9,9 +9,9 @@ import { FieldList, Value } from "../field-values/field-values";
 export type DappSummaryProps = {
     dapp: DappDto;
     /**
-     * Opens the form, when the dApp can still be edited.
+     * Opens the form.
      */
-    onEdit?: () => void;
+    onEdit: () => void;
 };
 
 export function DappSummary({ dapp, onEdit }: DappSummaryProps): React.JSX.Element {
@@ -29,12 +29,10 @@ export function DappSummary({ dapp, onEdit }: DappSummaryProps): React.JSX.Eleme
                     <h2>{dapp.name}</h2>
                     {dapp.description && <p>{dapp.description}</p>}
                 </div>
-                {onEdit && (
-                    <Button variant="secondary" onClick={onEdit}>
-                        <PencilIcon />
-                        {translate("myDapp.edit.action")}
-                    </Button>
-                )}
+                <Button variant="secondary" onClick={onEdit}>
+                    <PencilIcon />
+                    {translate("myDapp.edit.action")}
+                </Button>
             </div>
             <FieldList
                 rows={[

@@ -86,7 +86,8 @@
             "wait": "You can keep editing the details below while you wait."
         },
         "rejected": {
-            "title": "Your application was not approved"
+            "title": "Your application was not approved",
+            "description": "Edit the details below and save to submit it for review again."
         },
         "changeUnderReview": {
             "title": "Change under review",
@@ -114,7 +115,17 @@
             "kicker": "Edit details",
             "save": "Save changes",
             "pendingNote": "Your dApp is still in review. Saved edits keep it in the queue, so you don't need to resubmit.",
-            "approvedNote": "Your dApp is live. {{rule}}"
+            "approvedNote": "Your dApp is live. {{rule}}",
+            "rejectedNote": "Your dApp was not approved. Saving your edits sends it back to the NEAR Auth team for review."
+        },
+        "delete": {
+            "action": "Delete dApp",
+            "dialog": {
+                "title": "Delete {{name}}?",
+                "description": "This deletes your dApp and any change under review. If it is approved, sign-in through NEAR Connect stops right away. Integrations that hard-code its client ID keep working until the NEAR Auth team removes its Auth0 application. You can register a new dApp afterwards.",
+                "confirm": "Delete dApp"
+            },
+            "notDone": "Not deleted"
         }
     },
     "admin": {
@@ -144,6 +155,7 @@
             "submitted": "Submitted {{date}} · owned by",
             "approve": "Approve",
             "reject": "Reject",
+            "delete": "Delete",
             "approveDialog": {
                 "title": "Approve {{name}}?",
                 "description": "This creates its Auth0 application. The dApp can authenticate real users immediately.",
@@ -165,6 +177,11 @@
                 "title": "Reject the change?",
                 "description": "The live values stay as they are.",
                 "confirm": "Reject change"
+            },
+            "deleteDialog": {
+                "title": "Delete {{name}}?",
+                "description": "This deletes the dApp and its changes from the console. If it is approved, sign-in through NEAR Connect stops right away. Its Auth0 client is not removed.",
+                "confirm": "Delete dApp"
             },
             "notDone": "Not done",
             "changeReview": {
