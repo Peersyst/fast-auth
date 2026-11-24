@@ -127,15 +127,17 @@ spec:
     {{- end }}
     {{- end }}
     {{- if .Values.sandboxBroker.enabled }}
-    - host: sandbox.auth.near.org
+    {{- range $host := .Values.sandboxBroker.hosts }}
+    - host: {{ $host }}
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: sandbox-broker-{{ .Values.environment }}
+                name: sandbox-broker-{{ $.Values.environment }}
                 port:
                   name: use-annotation
+    {{- end }}
     {{- end }}
 {{- end }}

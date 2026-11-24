@@ -16,6 +16,8 @@ export default (): ServerConfig => {
             port: 3000,
             publicUrl: {
                 default: "https://sandbox.auth.near.org",
+                // Until sandbox.auth.near.org has its certificate on the ALB.
+                staging: "https://sandbox-staging.aws.peersyst.tech",
                 development: "http://localhost:3000",
             },
         },

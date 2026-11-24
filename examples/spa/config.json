@@ -2,7 +2,7 @@
     "auth0": {
         "network": "testnet",
         "clientId": "np8paqIpMWmNbzT4xAvOOapZBjsOpptl",
-        "domain": "sandbox.auth.near.org",
+        "domain": "sandbox-staging.aws.peersyst.tech",
         "issuer": "login.testnet.fast-auth.com"
     },
     "near": {

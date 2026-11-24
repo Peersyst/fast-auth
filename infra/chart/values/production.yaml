@@ -126,17 +126,7 @@ consoleWeb:
 
 # The sandbox runs on staging only.
 sandboxBroker:
-  enabled: true
-  # The broker's Auth0 client, which has no secret.
-  clientId: "np8paqIpMWmNbzT4xAvOOapZBjsOpptl"
-  service:
-    port: 3000
-    targetPort: 3000
-  deployment:
-    memoryRequest: 128Mi
-    cpuRequest: 50m
-    memoryLimit: 256Mi
-    cpuLimit: 200m
+    enabled: false
 
 ingress:
     enabled: true
