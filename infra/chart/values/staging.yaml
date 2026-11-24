@@ -181,10 +181,8 @@ consoleWeb:
 
 sandboxBroker:
     enabled: true
-    # The first host is the broker's public URL, its client's callback. sandbox-staging is covered by the ALB's
-    # *.aws.peersyst.tech certificate; sandbox.auth.near.org answers once ingress.certificate covers it too.
+    # The broker's public URL, and so its client's callback (/callback), is in apps/sandbox-broker/src/config.
     hosts:
-        - sandbox-staging.aws.peersyst.tech
         - sandbox.auth.near.org
     # The broker's Auth0 client, which has no secret.
     clientId: "np8paqIpMWmNbzT4xAvOOapZBjsOpptl"
@@ -199,4 +197,4 @@ sandboxBroker:
 
 ingress:
     enabled: true
-    certificate: "arn:aws:acm:us-east-1:291847425310:certificate/b183b365-4363-4245-9966-7e990bf7b3d4,arn:aws:acm:us-east-1:291847425310:certificate/98ea271d-f264-4788-b668-db3f52f8e2c5"
+    certificate: "arn:aws:acm:us-east-1:291847425310:certificate/b183b365-4363-4245-9966-7e990bf7b3d4,arn:aws:acm:us-east-1:291847425310:certificate/98ea271d-f264-4788-b668-db3f52f8e2c5,arn:aws:acm:us-east-1:291847425310:certificate/8226d513-1548-4153-a78e-2154a2917341"
