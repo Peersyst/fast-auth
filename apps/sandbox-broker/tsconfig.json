@@ -1,0 +1,7 @@
+{
+    "extends": "@shared/tsconfig/nest",
+    "compilerOptions": {
+        "outDir": "./dist"
+    },
+    "include": ["src", "test"]
+}
