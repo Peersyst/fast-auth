@@ -11,7 +11,7 @@ import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
 import { Connection } from "near-api-js";
 
 // Start on testnet (no approval needed). Switch to "mainnet" once your
-// app has been whitelisted and approved Auth0 credentials issued.
+// dApp is approved in the console and its Auth0 credentials issued.
 const connection = new Connection({
   networkId: "testnet",
   provider: { type: "JsonRpcProvider", args: { url: "https://rpc.testnet.near.org" } },

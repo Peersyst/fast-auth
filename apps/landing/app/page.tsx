@@ -15,8 +15,7 @@ const DOCS_HREF = "https://docs.auth.near.org/";
 const STATUS_HREF = "/status";
 const AUDIT_HREF =
   "https://peersyst-public-production.s3.eu-west-1.amazonaws.com/FastAuth_Halborn.pdf";
-const APPLY_HREF =
-  "https://docs.auth.near.org/home/apply";
+const APPLY_HREF = "https://console.auth.near.org";
 
 export const revalidate = 60;
 
