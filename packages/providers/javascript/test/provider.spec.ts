@@ -9,6 +9,7 @@ import {
     setupGlobalLocationMock,
     mockAuth0Client,
 } from "./mocks";
+import { Auth0Client } from "@auth0/auth0-spa-js";
 import { encodeSignMessage, JavascriptProvider } from "../src";
 import {
     JavascriptProviderOptions,
@@ -295,6 +296,37 @@ describe("JavascriptProvider", () => {
             mockAuth0Client.logout.mockRejectedValueOnce(error);
 
             await expect(provider.logout()).rejects.toThrow("Logout failed");
+        });
+    });
+
+    describe("issuer", () => {
+        const sandbox: JavascriptProviderOptions = {
+            network: "testnet",
+            domain: "sandbox.auth.near.org",
+            issuer: "login.testnet.fast-auth.com",
+            clientId: "test-client-id",
+        };
+
+        it("should talk to the domain and check the tokens against the issuer", () => {
+            new JavascriptProvider(sandbox);
+
+            expect(Auth0Client).toHaveBeenCalledWith(
+                expect.objectContaining({ domain: "sandbox.auth.near.org", issuer: "login.testnet.fast-auth.com" }),
+            );
+        });
+
+        it("should derive the path and the guard from the issuer", async () => {
+            const sandboxProvider = new JavascriptProvider(sandbox);
+            mockAuth0Client.getIdTokenClaims.mockResolvedValue({ sub: "user123" });
+            mockAuth0Client.getTokenSilently.mockResolvedValue("mock-jwt-token");
+            mockDecodeJwt.mockReturnValue({ fatxn: [1, 2, 3] });
+
+            expect(await sandboxProvider.getPath()).toBe("jwt#https://login.testnet.fast-auth.com/#user123");
+            expect((await sandboxProvider.getSignatureRequest()).signatureRequest.guardId).toBe("jwt#https://login.testnet.fast-auth.com/");
+        });
+
+        it("should leave the issuer to the domain when none is set", () => {
+            expect(Auth0Client).toHaveBeenCalledWith(expect.not.objectContaining({ issuer: expect.anything() }));
         });
     });
 
