@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-const { onExecutePostLogin, onContinuePostLogin, SCHEMA } = require("../src/actions/authorize-app.action.js");
+const { onExecutePostLogin, onContinuePostLogin, SCHEMA, SANDBOX_NOTICE } = require("../src/actions/authorize-app.action.js");
 const { serialize } = require("borsh");
 const { buildTransaction, buildDelegateAction, buildAction, ALL_ACTION_TYPES, DELEGATE_ACTION_TYPES } = require("./fixtures/builders.js");
 
@@ -37,13 +37,14 @@ function makeApi() {
     return { api, calls };
 }
 
-function makeEvent({ query = {}, audience = ONCHAIN_AUDIENCE } = {}) {
+function makeEvent({ query = {}, audience = ONCHAIN_AUDIENCE, secrets = {} } = {}) {
     return {
         secrets: {
             ONCHAIN_AUDIENCE,
             TRANSACTION_FORM: "modal_tx",
             DELEGATE_ACTION_FORM: "modal_delegate",
             NEP413_FORM: "modal_nep413",
+            ...secrets,
         },
         request: { query },
         resource_server: { identifier: audience },
@@ -151,6 +152,7 @@ describe("onExecutePostLogin — rendering", () => {
         expect(calls.render.opts.fields).toEqual({
             name: "Test App",
             imageUrl: "https://logo.example/x.png",
+            notice: "",
             message: "héllo 👋\nworld",
             recipient: "example.near",
             callbackUrl: "https://example.com/cb",
@@ -206,6 +208,23 @@ describe("onExecutePostLogin — rendering", () => {
         expect(calls.deny).toEqual([]);
         expect(calls.render.modalId).toBe(kind(winner).modalId);
         expect(calls.customClaims.fatxn).toEqual(payloads[winner]);
+    });
+});
+
+describe("onExecutePostLogin — sandbox notice", () => {
+    test.each(KINDS.map((k) => k.key))("shows the sandbox notice on the %s form when SANDBOX is true", async (key) => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(makeEvent({ query: { [key]: kind(key).bytes().join(",") }, secrets: { SANDBOX: "true" } }), api);
+
+        expect(calls.deny).toEqual([]);
+        expect(calls.render.opts.fields.notice).toBe(SANDBOX_NOTICE);
+    });
+
+    test.each([[undefined], ["false"], ["TRUE"], [""]])("leaves the notice empty when SANDBOX is %j", async (value) => {
+        const { api, calls } = makeApi();
+        await onExecutePostLogin(makeEvent({ query: { transaction: buildTransaction().csv }, secrets: { SANDBOX: value } }), api);
+
+        expect(calls.render.opts.fields.notice).toBe("");
     });
 });
 

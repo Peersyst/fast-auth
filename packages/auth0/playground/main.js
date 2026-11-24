@@ -8,6 +8,10 @@
 
     const root = document.getElementById("cards");
     const fuzzToggle = document.getElementById("fuzz-toggle");
+    const sandboxToggle = document.getElementById("sandbox-toggle");
+    // A copy of SANDBOX_NOTICE in the action, which the browser cannot load.
+    const SANDBOX_NOTICE_PREVIEW =
+        "⚠️ Sandbox: a testing environment with no security guarantees. Do not use it for real funds. Use it at your own risk.";
     const refreshBtn = document.getElementById("refresh");
     const modeFilter = document.getElementById("mode-filter");
 
@@ -44,6 +48,10 @@
 
         const body = document.createElement("div");
         body.className = "card-body";
+
+        // The notice opens every step, exactly like the form. Outside the sandbox the action leaves it empty.
+        const noticeText = sandboxToggle.checked ? SANDBOX_NOTICE_PREVIEW : "";
+        body.appendChild(window.AuthorizeAppNotice(window.createMockContext({ text: noticeText })).init());
 
         let payload;
         let rendered;
@@ -108,6 +116,7 @@
 
     refreshBtn.addEventListener("click", render);
     fuzzToggle.addEventListener("change", render);
+    sandboxToggle.addEventListener("change", render);
     modeFilter.addEventListener("change", render);
     render();
 })();

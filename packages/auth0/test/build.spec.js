@@ -103,6 +103,28 @@ describe("buildForm — nep413 form", () => {
     });
 });
 
+describe.each(buildModule.FORMS.map((form) => [form.name, form]))("buildForm — %s notice", (_, form) => {
+    const outPath = path.join(buildModule.FORMS_DIR, form.name, form.out);
+
+    beforeAll(() => {
+        buildModule.buildForm(form, buildModule.readHelpersPreamble());
+    });
+
+    test("opens every step with the notice component, fed by the notice field", () => {
+        const built = JSON.parse(fs.readFileSync(outPath, "utf8"));
+        const steps = built.form.nodes.filter((n) => n.type === "STEP");
+        expect(steps.length).toBeGreaterThan(0);
+        for (const step of steps) {
+            const [first] = step.config.components;
+            expect(first.type).toBe("CUSTOM");
+            expect(first.config.params).toEqual({ text: "{{ fields.notice }}" });
+            expect(first.config.code).toContain("function AuthorizeAppNotice");
+            expect(first.config.css).toContain(".environment-notice");
+        }
+        expect(built.form.start.hidden_fields.map((f) => f.key)).toContain("notice");
+    });
+});
+
 describe("readComponent (isolated)", () => {
     test("returns empty code/css/schema for a component folder with only schema.json", () => {
         const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "auth0-build-"));
