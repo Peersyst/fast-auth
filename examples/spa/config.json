@@ -1,7 +1,9 @@
 {
     "auth0": {
         "network": "testnet",
-        "clientId": "np8paqIpMWmNbzT4xAvOOapZBjsOpptl"
+        "clientId": "np8paqIpMWmNbzT4xAvOOapZBjsOpptl",
+        "domain": "sandbox.auth.near.org",
+        "issuer": "login.testnet.fast-auth.com"
     },
     "near": {
         "mpcContractId": "v1.signer-prod.testnet",

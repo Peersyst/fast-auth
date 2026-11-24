@@ -45,16 +45,21 @@ spec:
             cpu: {{ .Values.sandboxBroker.deployment.cpuLimit }}
         ports:
         - containerPort: {{ .Values.sandboxBroker.service.targetPort }}
-        # The broker depends on nothing it could check, so an open port is enough.
-        readinessProbe:
-          tcpSocket:
-            port: {{ .Values.sandboxBroker.service.targetPort }}
-          periodSeconds: 10
         livenessProbe:
-          tcpSocket:
+          httpGet:
+            path: /livez
             port: {{ .Values.sandboxBroker.service.targetPort }}
           initialDelaySeconds: 30
+          timeoutSeconds: 10
           periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: {{ .Values.sandboxBroker.service.targetPort }}
+          initialDelaySeconds: 10
+          timeoutSeconds: 10
+          periodSeconds: 10
+          failureThreshold: 6
         env:
         - name: CONFIG_ENV
           value: {{ .Values.environment }}
