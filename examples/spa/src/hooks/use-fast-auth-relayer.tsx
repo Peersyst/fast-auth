@@ -34,6 +34,8 @@ export function FastAuthProvider({ children }: { children: ReactNode }) {
                 return new JavascriptProvider({
                     network: config.auth0.network,
                     clientId: config.auth0.clientId,
+                    domain: config.auth0.domain,
+                    issuer: config.auth0.issuer,
                 });
             }
 
