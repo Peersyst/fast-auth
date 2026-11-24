@@ -205,30 +205,25 @@ from outside on purpose — Prometheus scrapes the pod directly.
 
 ## The sandbox broker
 
-The sandbox broker (`apps/sandbox-broker`) runs on staging only. It is off in
-`chart/values/production.yaml`.
+The sandbox broker (`apps/sandbox-broker`) runs on staging only, at
+`sandbox.auth.near.org`. It is off in `chart/values/production.yaml`.
 
 - **Hosts.** It answers on every host in `sandboxBroker.hosts`.
-  `sandbox-staging.aws.peersyst.tech` works now, under the ALB's
-  `*.aws.peersyst.tech` certificate. `sandbox.auth.near.org` works once
-  `ingress.certificate` covers it.
+- **Certificate.** `make -C infra/terraform deploy-staging` issues the
+  certificate for `sandbox.auth.near.org`, validated in the `auth.near.org`
+  zone. Its ARN, the `sandbox_broker_certificate_arn` output, is in
+  `ingress.certificate`.
 - **Callback.** The broker's own URL, and so its client's callback, is the
-  staging `publicUrl` in `apps/sandbox-broker/src/config/server.config.ts`,
-  for now `https://sandbox-staging.aws.peersyst.tech`.
+  `publicUrl` in `apps/sandbox-broker/src/config/server.config.ts`.
 - **Auth0 client.** The broker signs everyone in through the examples' shared
   testnet client, `sandboxBroker.clientId`. Its Allowed Callback URLs need
-  `https://sandbox-staging.aws.peersyst.tech/callback`.
-- **Moving to `sandbox.auth.near.org`:**
-  1. Run `make -C infra/terraform deploy-staging`, which issues its
-     certificate, validated in the `auth.near.org` zone.
-  2. Add the `sandbox_broker_certificate_arn` output to `ingress.certificate`.
-  3. Point the staging `publicUrl` at it, and add its `/callback` to the client.
+  `https://sandbox.auth.near.org/callback`.
 
 To check it, run the command below. A 400 means the broker answers, since the
 request carries no client:
 
 ```bash
-curl -s -o /dev/null -w "%{http_code}\n" https://sandbox-staging.aws.peersyst.tech/authorize
+curl -s -o /dev/null -w "%{http_code}\n" https://sandbox.auth.near.org/authorize
 ```
 
 ## Production
