@@ -18,6 +18,7 @@ new Auth0Client({
 | `GET /callback` | Redeems Auth0's code with the broker's own PKCE verifier and hands the dApp a one-time code of its own: by redirect, or by `postMessage` for popups. |
 | `POST /oauth/token` | Redeems that code for Auth0's tokens, if the dApp's PKCE verifier matches. |
 | `GET /v2/logout` | Sends the user back to `returnTo`. |
+| `GET /livez`, `GET /readyz` | Probes, like the console API's. The broker has no dependency to check, so both answer `ok`. |
 
 Sign-ins and codes live in memory for 10 minutes, on a single replica.
 

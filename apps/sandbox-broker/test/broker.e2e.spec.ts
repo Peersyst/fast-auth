@@ -175,4 +175,14 @@ describe("sandbox broker", () => {
 
         expect(res.headers.location).toBe(DAPP);
     });
+
+    it.each([
+        ["/livez", { status: "ok" }],
+        ["/readyz", { status: "ok", checks: {} }],
+    ])("should answer the %s probe", async (path, body) => {
+        const res = await request(app.getHttpServer()).get(path);
+
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual(body);
+    });
 });
