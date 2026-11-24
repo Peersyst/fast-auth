@@ -29,8 +29,8 @@ export const useTransactionSigner = ({ signer, publicKey }: UseTransactionSigner
 
         const checkPendingSignature = async () => {
             try {
-                const signatureRequest = await signer.getSignatureRequest();
-                if ("signPayload" in signatureRequest && signatureRequest.signPayload) {
+                const { signatureRequest } = await signer.getSignatureRequest();
+                if (signatureRequest.signPayload) {
                     setState((prev) => ({ ...prev, signatureRequest }));
                 }
             } catch (error) {
@@ -60,8 +60,8 @@ export const useTransactionSigner = ({ signer, publicKey }: UseTransactionSigner
                     transaction,
                 });
 
-                const signatureRequest = await signer.getSignatureRequest();
-                if ("signPayload" in signatureRequest && signatureRequest.signPayload) {
+                const { signatureRequest } = await signer.getSignatureRequest();
+                if (signatureRequest.signPayload) {
                     setState((prev) => ({ ...prev, signatureRequest }));
                 }
             } catch (err) {

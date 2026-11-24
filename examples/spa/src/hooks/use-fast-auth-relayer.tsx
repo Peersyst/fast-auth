@@ -2,58 +2,35 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import FastAuthRelayer from "../services/fast-auth-relayer";
 import { FastAuthClient } from "@fast-auth-near/browser-sdk";
 import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
-import { FirebaseProvider } from "@fast-auth-near/firebase-provider";
 import config from "../config";
 import { Connection } from "near-api-js";
 
-export type ProviderType = "auth0" | "firebase-google" | "firebase-apple";
-
 interface FastAuthContextType {
     relayer: FastAuthRelayer | null;
-    client: FastAuthClient<JavascriptProvider | FirebaseProvider> | null;
+    client: FastAuthClient<JavascriptProvider> | null;
     isRelayerInitialized: boolean;
     isClientInitialized: boolean;
     error: Error | null;
-    providerType: ProviderType;
-    setProviderType: (type: ProviderType) => void;
 }
 
 const FastAuthContext = createContext<FastAuthContextType | null>(null);
 
 export function FastAuthProvider({ children }: { children: ReactNode }) {
     const [relayer, setRelayer] = useState<FastAuthRelayer | null>(null);
-    const [client, setClient] = useState<FastAuthClient<JavascriptProvider | FirebaseProvider> | null>(null);
+    const [client, setClient] = useState<FastAuthClient<JavascriptProvider> | null>(null);
     const [isRelayerInitialized, setIsRelayerInitialized] = useState(false);
     const [isClientInitialized, setIsClientInitialized] = useState(false);
     const [error, setError] = useState<Error | null>(null);
-    const [providerType, setProviderType] = useState<ProviderType>("auth0");
 
     useEffect(() => {
-        const createProvider = (type: ProviderType): JavascriptProvider | FirebaseProvider => {
-            if (type === "auth0") {
-                return new JavascriptProvider({
+        const initializeClient = async (connection: Connection) => {
+            try {
+                const provider = new JavascriptProvider({
                     network: config.auth0.network,
                     clientId: config.auth0.clientId,
                     domain: config.auth0.domain,
                     issuer: config.auth0.issuer,
                 });
-            }
-
-            return new FirebaseProvider({
-                apiKey: config.firebase.apiKey,
-                authDomain: config.firebase.authDomain,
-                projectId: config.firebase.projectId,
-                storageBucket: config.firebase.storageBucket,
-                messagingSenderId: config.firebase.messagingSenderId,
-                appId: config.firebase.appId,
-                issuerUrl: config.firebase.issuerUrl,
-                customJwtIssuerUrl: config.firebase.customJwtIssuerUrl,
-            });
-        };
-
-        const initializeClient = async (connection: Connection) => {
-            try {
-                const provider = createProvider(providerType);
                 const newClient = new FastAuthClient(provider, connection, {
                     mpcContractId: config.near.mpcContractId,
                     fastAuthContractId: config.near.fastAuthContractId,
@@ -85,7 +62,7 @@ export function FastAuthProvider({ children }: { children: ReactNode }) {
         };
 
         initializeRelayer();
-    }, [providerType]);
+    }, []);
 
     return (
         <FastAuthContext.Provider
@@ -94,8 +71,6 @@ export function FastAuthProvider({ children }: { children: ReactNode }) {
                 client,
                 isRelayerInitialized,
                 isClientInitialized,
-                providerType,
-                setProviderType,
                 error,
             }}
         >

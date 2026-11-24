@@ -1,8 +1,7 @@
 import { FastAuthSigner, SignatureRequest } from "@fast-auth-near/browser-sdk";
 import { JavascriptProvider } from "@fast-auth-near/javascript-provider";
-import { FirebaseProvider } from "@fast-auth-near/firebase-provider";
 
-export type FastAuthProviderType = JavascriptProvider | FirebaseProvider;
+export type FastAuthProviderType = JavascriptProvider;
 export type FastAuthSignerType = FastAuthSigner<FastAuthProviderType>;
 
 export interface AuthState {
