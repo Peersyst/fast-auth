@@ -3,7 +3,7 @@
 | Path | What it is |
 | --- | --- |
 | `chart/` | The Helm chart deployed to the `fast-auth` namespace of `peersyst-privatenet`, one release per environment (`staging`, `production`). One template per component, one values file per environment. |
-| `terraform/` | The console's AWS side: its Secrets Manager secret and its production database. Follows the conventions in `Peersyst/peersyst-infra`. |
+| `terraform/` | The console's AWS side: its Secrets Manager secret and its production database. On staging, also the sandbox broker's certificate. Follows the conventions in `Peersyst/peersyst-infra`. |
 
 The pipelines are in `.github/workflows`: `build-and-deploy.yaml` builds every
 image on a push to `main` and deploys staging, and `manual-deploy.yml` deploys
@@ -202,6 +202,31 @@ The host has to resolve to the shared ALB and be covered by a certificate in
 once the ingress is applied, it has to be created by hand, the way
 `fast-auth-staging.aws.peersyst.tech` is. `/api/console/metrics` answers `403`
 from outside on purpose — Prometheus scrapes the pod directly.
+
+## Bringing the sandbox broker up
+
+The sandbox broker (`apps/sandbox-broker`) runs on staging only, at
+`sandbox.auth.near.org`. It is off in `chart/values/staging.yaml` until these
+steps are done.
+
+1. In the testnet tenant, create the broker's Auth0 client as its README says:
+   a Single Page Application with no secret, and
+   `https://sandbox.auth.near.org/callback` as its callback.
+2. Run `make -C infra/terraform deploy-staging`. It creates the certificate for
+   `sandbox.auth.near.org`, validated in the `auth.near.org` zone.
+3. In `chart/values/staging.yaml`:
+   - set `sandboxBroker.clientId` to the client's id;
+   - add the `sandbox_broker_certificate_arn` output to `ingress.certificate`;
+   - set `sandboxBroker.enabled: true`.
+
+   A push to `main` deploys it. external-dns creates the record, as it did for
+   `console.auth.near.org`.
+4. Check it. A 400 means the broker answers, since the request carries no
+   client:
+
+   ```bash
+   curl -s -o /dev/null -w "%{http_code}\n" https://sandbox.auth.near.org/authorize
+   ```
 
 ## Production
 

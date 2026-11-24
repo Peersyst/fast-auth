@@ -1,0 +1,65 @@
+{{- if .Values.sandboxBroker.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: sandbox-broker-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+spec:
+  ports:
+  - name: api
+    port: {{ .Values.sandboxBroker.service.port }}
+    targetPort: {{ .Values.sandboxBroker.service.targetPort }}
+  selector:
+    app: sandbox-broker-{{ .Values.environment }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sandbox-broker-{{ .Values.environment }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: sandbox-broker-{{ .Values.environment }}
+spec:
+  # Sign-ins in progress live in the pod's memory, so there is one.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sandbox-broker-{{ .Values.environment }}
+  template:
+    metadata:
+      annotations:
+        timestamp: {{ .Values.timestamp }}
+      labels:
+        app: sandbox-broker-{{ .Values.environment }}
+    spec:
+      containers:
+      - name: sandbox-broker
+        image: ghcr.io/peersyst/fast-auth-sandbox-broker:{{ .Values.tagSandboxBroker }}
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: {{ .Values.sandboxBroker.deployment.memoryRequest }}
+            cpu: {{ .Values.sandboxBroker.deployment.cpuRequest }}
+          limits:
+            memory: {{ .Values.sandboxBroker.deployment.memoryLimit }}
+            cpu: {{ .Values.sandboxBroker.deployment.cpuLimit }}
+        ports:
+        - containerPort: {{ .Values.sandboxBroker.service.targetPort }}
+        # The broker depends on nothing it could check, so an open port is enough.
+        readinessProbe:
+          tcpSocket:
+            port: {{ .Values.sandboxBroker.service.targetPort }}
+          periodSeconds: 10
+        livenessProbe:
+          tcpSocket:
+            port: {{ .Values.sandboxBroker.service.targetPort }}
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        env:
+        - name: CONFIG_ENV
+          value: {{ .Values.environment }}
+        - name: AUTH0_CLIENT_ID
+          value: {{ .Values.sandboxBroker.clientId | quote }}
+      imagePullSecrets:
+      - name: regcred
+{{- end }}

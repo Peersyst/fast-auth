@@ -35,6 +35,10 @@ metadata:
     alb.ingress.kubernetes.io/actions.console-web-{{ .Values.environment }}: >
       {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"console-web-{{ .Values.environment }}","servicePort":"web","weight":20}]}}
     {{- end }}
+    {{- if .Values.sandboxBroker.enabled }}
+    alb.ingress.kubernetes.io/actions.sandbox-broker-{{ .Values.environment }}: >
+      {"type":"forward","forwardConfig":{"targetGroups":[{"serviceName":"sandbox-broker-{{ .Values.environment }}","servicePort":"api","weight":20}]}}
+    {{- end }}
   name: {{ .Values.namespace }}-{{ .Values.environment }}
   namespace: {{ .Values.namespace }}
 spec:
@@ -121,5 +125,17 @@ spec:
                   name: use-annotation
           {{- end }}
     {{- end }}
+    {{- end }}
+    {{- if .Values.sandboxBroker.enabled }}
+    - host: sandbox.auth.near.org
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: sandbox-broker-{{ .Values.environment }}
+                port:
+                  name: use-annotation
     {{- end }}
 {{- end }}
