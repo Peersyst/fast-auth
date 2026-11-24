@@ -2,22 +2,12 @@
     "auth0": {
         "network": "testnet",
         "clientId": "np8paqIpMWmNbzT4xAvOOapZBjsOpptl",
-        "domain": "sandbox.auth.near.org",
+        "domain": "sandbox-staging.aws.peersyst.tech",
         "issuer": "login.testnet.fast-auth.com"
     },
     "near": {
         "mpcContractId": "v1.signer-prod.testnet",
         "fastAuthContractId": "fast-auth.testnet",
         "fastNearApiBaseUrl": "https://test.api.fastnear.com/v0"
-    },
-    "firebase": {
-        "apiKey": "AIzaSyDwA1fdclM79wk2r6TuIUe6pUKgQu3Egzw",
-        "authDomain": "near-mobile-99e38.firebaseapp.com",
-        "projectId": "near-mobile-99e38",
-        "storageBucket": "",
-        "messagingSenderId": "",
-        "appId": "",
-        "issuerUrl": "https://fast-auth.testnet.swe.at",
-        "customJwtIssuerUrl": "https://fast-auth-staging.aws.peersyst.tech/issuer/issue"
     }
 }

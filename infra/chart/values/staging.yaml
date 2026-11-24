@@ -179,10 +179,13 @@ consoleWeb:
         memoryLimit: 128Mi
         cpuLimit: 100m
 
-# Off until the broker's Auth0 client exists and ingress.certificate covers
-# sandbox.auth.near.org (infra/README.md).
 sandboxBroker:
     enabled: true
+    # The first host is the broker's public URL, its client's callback. sandbox-staging is covered by the ALB's
+    # *.aws.peersyst.tech certificate; sandbox.auth.near.org answers once ingress.certificate covers it too.
+    hosts:
+        - sandbox-staging.aws.peersyst.tech
+        - sandbox.auth.near.org
     # The broker's Auth0 client, which has no secret.
     clientId: "np8paqIpMWmNbzT4xAvOOapZBjsOpptl"
     service:

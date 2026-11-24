@@ -203,30 +203,33 @@ once the ingress is applied, it has to be created by hand, the way
 `fast-auth-staging.aws.peersyst.tech` is. `/api/console/metrics` answers `403`
 from outside on purpose — Prometheus scrapes the pod directly.
 
-## Bringing the sandbox broker up
+## The sandbox broker
 
-The sandbox broker (`apps/sandbox-broker`) runs on staging only, at
-`sandbox.auth.near.org`. It is off in `chart/values/staging.yaml` until these
-steps are done.
+The sandbox broker (`apps/sandbox-broker`) runs on staging only. It is off in
+`chart/values/production.yaml`.
 
-1. In the testnet tenant, create the broker's Auth0 client as its README says:
-   a Single Page Application with no secret, and
-   `https://sandbox.auth.near.org/callback` as its callback.
-2. Run `make -C infra/terraform deploy-staging`. It creates the certificate for
-   `sandbox.auth.near.org`, validated in the `auth.near.org` zone.
-3. In `chart/values/staging.yaml`:
-   - set `sandboxBroker.clientId` to the client's id;
-   - add the `sandbox_broker_certificate_arn` output to `ingress.certificate`;
-   - set `sandboxBroker.enabled: true`.
+- **Hosts.** It answers on every host in `sandboxBroker.hosts`.
+  `sandbox-staging.aws.peersyst.tech` works now, under the ALB's
+  `*.aws.peersyst.tech` certificate. `sandbox.auth.near.org` works once
+  `ingress.certificate` covers it.
+- **Callback.** The broker's own URL, and so its client's callback, is the
+  staging `publicUrl` in `apps/sandbox-broker/src/config/server.config.ts`,
+  for now `https://sandbox-staging.aws.peersyst.tech`.
+- **Auth0 client.** The broker signs everyone in through the examples' shared
+  testnet client, `sandboxBroker.clientId`. Its Allowed Callback URLs need
+  `https://sandbox-staging.aws.peersyst.tech/callback`.
+- **Moving to `sandbox.auth.near.org`:**
+  1. Run `make -C infra/terraform deploy-staging`, which issues its
+     certificate, validated in the `auth.near.org` zone.
+  2. Add the `sandbox_broker_certificate_arn` output to `ingress.certificate`.
+  3. Point the staging `publicUrl` at it, and add its `/callback` to the client.
 
-   A push to `main` deploys it. external-dns creates the record, as it did for
-   `console.auth.near.org`.
-4. Check it. A 400 means the broker answers, since the request carries no
-   client:
+To check it, run the command below. A 400 means the broker answers, since the
+request carries no client:
 
-   ```bash
-   curl -s -o /dev/null -w "%{http_code}\n" https://sandbox.auth.near.org/authorize
-   ```
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://sandbox-staging.aws.peersyst.tech/authorize
+```
 
 ## Production
 

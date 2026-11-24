@@ -62,7 +62,7 @@
  * ```
  */
 
-export { FastAuthProvider, useFastAuth, type ProviderType } from "./use-fast-auth-relayer";
+export { FastAuthProvider, useFastAuth } from "./use-fast-auth-relayer";
 export { useAuth } from "./use-auth";
 export { useAccountManager } from "./use-account-manager";
 export { useTransactionSigner } from "./use-transaction-signer";
