@@ -1,4 +1,4 @@
-import { DAPP_FIELDS, SYNCED_FIELDS } from "./constants";
+import { DAPP_FIELDS } from "./constants";
 import { DappFields, FieldValue } from "./types";
 
 /**
@@ -27,13 +27,4 @@ export function changedFields(live: DappFields, requested: Partial<DappFields>):
         if (value !== undefined && !isSameValue(live[field], value)) changed[field] = value;
     }
     return changed as Partial<DappFields>;
-}
-
-/**
- * Tells whether a change touches a field that syncs to Auth0.
- * @param change The changed fields.
- * @returns Whether any synced field changes.
- */
-export function hasSyncedChange(change: Partial<DappFields>): boolean {
-    return SYNCED_FIELDS.some((field) => change[field] !== undefined);
 }

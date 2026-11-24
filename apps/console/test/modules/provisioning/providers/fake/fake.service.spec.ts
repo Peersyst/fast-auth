@@ -1,4 +1,4 @@
-import { DappClient } from "../../../../../src/modules/provisioning/interfaces/i-auth0-provisioner.service";
+import { DappClient, ProvisioningError } from "../../../../../src/modules/provisioning/interfaces/i-auth0-provisioner.service";
 import { FakeProvisionerService } from "../../../../../src/modules/provisioning/providers/fake/fake.service";
 import { FakeProvisionerMock } from "../../../../mocks/provisioning/fake-provisioner.mock";
 
@@ -45,6 +45,17 @@ describe("FakeProvisionerService", () => {
 
             await expect(mock.create(client)).rejects.toMatchObject({ kind: "rejected" });
             expect(mock.clients.size).toBe(0);
+        });
+
+        it("should run a call scripted to succeed and fail the one scripted after it", async () => {
+            mock.script("success").script("failed");
+
+            const clientId = await mock.create(client);
+
+            await expect(mock.update(clientId, { ...client, name: "Acme 2" })).rejects.toEqual(
+                new ProvisioningError("failed", "Fake update: scripted failed"),
+            );
+            expect(mock.clients.get(clientId)).toEqual(client);
         });
 
         it("should keep the effect of a call scripted to time out after success", async () => {

@@ -79,3 +79,18 @@ export const IsDappDescription = (): PropertyDecorator =>
         { name: "isDappDescription", validator: { validate: (value: unknown) => typeof value === "string" && isValidDescription(value) } },
         { message: "$property must be a valid dApp description" },
     );
+
+/**
+ * Accepts only a string in the form of a browser's origin: scheme, host and port, with no path.
+ * @returns The property decorator.
+ */
+export const IsOrigin = (): PropertyDecorator =>
+    ValidateBy(
+        {
+            name: "isOrigin",
+            validator: {
+                validate: (value: unknown) => typeof value === "string" && URL.canParse(value) && new URL(value).origin === value,
+            },
+        },
+        { message: "$property must be an origin such as https://example.com" },
+    );

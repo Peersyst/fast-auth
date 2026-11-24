@@ -319,8 +319,20 @@ describe("DappModule (integration)", () => {
             expect(body).toMatchObject({
                 id: dapp.id,
                 ownerEmail,
+                auth0ClientId: "client_live",
                 pendingChange: expect.objectContaining({ id: change.id, name: "Acme Pay" }),
             });
+        });
+
+        it("should hide the Auth0 client of a dApp whose approval has not finished", async () => {
+            const dapp = await pendingDapp({ auth0ClientId: "client_half" });
+
+            const { body } = await testApp.request
+                .get(`/dapp/${dapp.id}`)
+                .set("Authorization", await bearer(ownerEmail))
+                .expect(200);
+
+            expect(body).toMatchObject({ id: dapp.id, status: "pending", auth0ClientId: null });
         });
 
         it("should answer 404 DAPP_NOT_FOUND for another owner's dApp and for an unknown id", async () => {
@@ -349,6 +361,16 @@ describe("DappModule (integration)", () => {
             expect(await findDapp(dataSource.manager, dapp.id)).toMatchObject({ name: "Acme Pay", contactEmail: "ops@acme.xyz" });
             expect(await dataSource.manager.count(DappChange)).toBe(0);
             expect(slack.notify).not.toHaveBeenCalled();
+        });
+
+        it("should answer a pending dApp unchanged for an edit equal to its current values", async () => {
+            const dapp = await createDapp(dataSource.manager, { ...dappForm(), ownerEmail });
+
+            const { body } = await patch(dapp.id, { name: "Acme Wallet" }).expect(200);
+
+            expect(body).toMatchObject({ ...dappForm(), id: dapp.id, status: "pending", pendingChange: null });
+            expect(await findDapp(dataSource.manager, dapp.id)).toEqual(dapp);
+            expect(await transitionCounts()).toEqual({ "update success": 1 });
         });
 
         it("should record an approved dApp's edit as a pending change of only the changed fields, keep the live values and alert the admins", async () => {
@@ -427,6 +449,17 @@ describe("DappModule (integration)", () => {
             expect(body).toMatchObject({ id: dapp.id, pendingChange: null });
             expect(await dataSource.manager.count(DappChange)).toBe(0);
             expect(slack.notify).not.toHaveBeenCalled();
+        });
+
+        it("should delete the pending change and alert nobody when a later edit puts the live values back", async () => {
+            const dapp = await approvedDapp();
+            await patch(dapp.id, { name: "Acme Pay" }).expect(200);
+
+            const { body } = await patch(dapp.id, { name: "Acme Wallet" }).expect(200);
+
+            expect(body).toMatchObject({ name: "Acme Wallet", status: "approved", pendingChange: null });
+            expect(await dataSource.manager.count(DappChange)).toBe(0);
+            expect(slack.notify).toHaveBeenCalledTimes(1);
         });
 
         it("should answer 404 DAPP_NOT_FOUND for another owner's dApp and for an unknown id, and change nothing", async () => {

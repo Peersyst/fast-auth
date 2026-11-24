@@ -9,6 +9,7 @@ export type ProviderOverride = {
 
 export type CreateTestAppOptions = ModuleMetadata & {
     overrides?: ProviderOverride[];
+    configure?: (app: INestApplication) => void;
 };
 
 export type TestApp = {
@@ -21,11 +22,11 @@ export type TestApp = {
  * Creates a NestJS test application with supertest.
  * Bootstraps the module, applies global validation pipe, and returns
  * the app, module, and a supertest agent for HTTP assertions.
- * @param options Module metadata and optional provider overrides.
+ * @param options Module metadata, optional provider overrides, and an optional hook to configure the app before it starts.
  * @returns The test app, module, and supertest request agent.
  */
 export async function createTestApp(options: CreateTestAppOptions): Promise<TestApp> {
-    const { overrides = [], ...moduleMetadata } = options;
+    const { overrides = [], configure, ...moduleMetadata } = options;
 
     let builder = Test.createTestingModule(moduleMetadata);
 
@@ -43,6 +44,8 @@ export async function createTestApp(options: CreateTestAppOptions): Promise<Test
             forbidNonWhitelisted: true,
         }),
     );
+
+    configure?.(app);
 
     await app.init();
 

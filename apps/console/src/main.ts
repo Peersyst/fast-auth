@@ -8,6 +8,7 @@ import morgan from "morgan";
 import { utilities as nestWinstonModuleUtilities, WinstonModule } from "nest-winston";
 import * as winston from "winston";
 import { AppModule } from "./app.module";
+import { corsOptions } from "./cors";
 import * as packageJson from "../package.json";
 
 /**
@@ -29,8 +30,9 @@ async function bootstrap(): Promise<void> {
     app.useLogger(logger);
     app.use(helmet());
     app.use(morgan("tiny"));
-    app.enableCors({ origin: configService.get<string>("server.publicUrl") });
-    app.setGlobalPrefix("api/console");
+    const prefix = "api/console";
+    app.enableCors(corsOptions(configService.get<string>("server.publicUrl"), `/${prefix}`));
+    app.setGlobalPrefix(prefix);
     app.useGlobalPipes(
         new ValidationPipe({
             transform: true,

@@ -1,4 +1,4 @@
-import { changedFields, DappFields, hasSyncedChange, MauBracket } from "../../../src/dapp";
+import { changedFields, DappFields, MauBracket } from "../../../src/dapp";
 
 describe("dapp edits", () => {
     const live: DappFields = {
@@ -43,17 +43,6 @@ describe("dapp edits", () => {
             const callbackUrls = ["https://acme.xyz/callback", "https://acme.xyz/other"];
 
             expect(changedFields(live, { callbackUrls })).toEqual({ callbackUrls });
-        });
-    });
-
-    describe("hasSyncedChange", () => {
-        it.each<[string, Partial<DappFields>, boolean]>([
-            ["a name change", { name: "Acme Wallet" }, true],
-            ["a web origin change", { webOrigins: ["https://app.acme.xyz"] }, true],
-            ["a contact email and MAU change", { contactEmail: "ops@acme.xyz", mauBracket: MauBracket.GT_25K }, false],
-            ["no change", {}, false],
-        ])("should answer for %s", (_case, change, synced) => {
-            expect(hasSyncedChange(change)).toBe(synced);
         });
     });
 });

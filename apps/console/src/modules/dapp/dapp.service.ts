@@ -1,18 +1,21 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectDataSource } from "@nestjs/typeorm";
-import { DataSource, EntityManager, In, QueryFailedError } from "typeorm";
-import { Dapp, DappChange, OWNER_EMAIL_LIVE_INDEX } from "@database/console/entities";
 import {
-    changedFields,
-    DAPP_FIELDS,
-    DappChangeStatus,
-    DappField,
-    DappFields,
-    DappStatus,
-    FieldValue,
-    hasSyncedChange,
-} from "@shared/modules/dapp";
+    And,
+    ArrayContainedBy,
+    ArrayContains,
+    ArrayOverlap,
+    DataSource,
+    EntityManager,
+    FindOptionsWhere,
+    In,
+    IsNull,
+    Not,
+    QueryFailedError,
+} from "typeorm";
+import { Dapp, DappChange, OWNER_EMAIL_LIVE_INDEX } from "@database/console/entities";
+import { changedFields, DAPP_FIELDS, DappChangeStatus, DappField, DappFields, DappStatus, FieldValue } from "@shared/modules/dapp";
 import { Role, SessionUser } from "../auth/types/session-user";
 import { BusinessException } from "../common/exception/business.exception";
 import { AdminAlertKind, SlackAlert } from "../notification/interfaces/i-slack-notifier.service";
@@ -26,6 +29,7 @@ import { DappErrorCode } from "./error/dapp.error-codes";
 import { CreateDappRequest } from "./requests/create-dapp.request";
 import { UpdateDappRequest } from "./requests/update-dapp.request";
 import { DEFAULT_PAGE_SIZE, ListDappsRequest } from "./requests/list-dapps.request";
+import { DappClientDto } from "./dtos/dapp-client.dto";
 import { DappDto } from "./dtos/dapp.dto";
 import { PaginatedDappsDto } from "./dtos/paginated-dapps.dto";
 
@@ -69,6 +73,25 @@ function clientOf(dapp: Dapp): DappClient {
         callbackUrls: dapp.callbackUrls,
         logoutUrls: dapp.logoutUrls,
         webOrigins: dapp.webOrigins,
+    };
+}
+
+/**
+ * Matches the dApps that still hold every field an approval read. An owner edit landing during the Auth0 call then
+ * cannot be approved unreviewed. Lists compare as sets because TypeORM's find options cannot express array equality.
+ * @param dapp The dApp, as the approval read it.
+ * @returns The condition.
+ */
+function holding(dapp: Dapp): FindOptionsWhere<Dapp> {
+    return {
+        name: dapp.name,
+        description: dapp.description,
+        logoUrl: dapp.logoUrl,
+        contactEmail: dapp.contactEmail,
+        mauBracket: dapp.mauBracket,
+        callbackUrls: And(ArrayContains(dapp.callbackUrls), ArrayContainedBy(dapp.callbackUrls)),
+        logoutUrls: And(ArrayContains(dapp.logoutUrls), ArrayContainedBy(dapp.logoutUrls)),
+        webOrigins: And(ArrayContains(dapp.webOrigins), ArrayContainedBy(dapp.webOrigins)),
     };
 }
 
@@ -120,8 +143,23 @@ export class DappService {
     }
 
     /**
-     * Stores the caller's dApp as pending and alerts the admins, then approves it when auto-approval is on. An owner may only
-     * have one dApp.
+     * Finds the Auth0 client of the dApp that lists the origin among its live web origins, not among a pending change's. Only an
+     * approved dApp with a client counts. When several list it, the oldest wins.
+     * @param origin The origin, normalised as the stored web origins are.
+     * @returns The client.
+     */
+    async findClientByOrigin(origin: string): Promise<DappClientDto> {
+        const dapp = await this.dataSource.manager.findOne(Dapp, {
+            where: { status: DappStatus.APPROVED, auth0ClientId: Not(IsNull()), webOrigins: ArrayContains([origin]) },
+            order: { createdAt: "ASC", id: "ASC" },
+        });
+        if (dapp === null) throw new BusinessException(DappErrorCode.DAPP_NOT_FOUND);
+        return { clientId: dapp.auth0ClientId! };
+    }
+
+    /**
+     * Stores the caller's dApp as pending and alerts the admins, then approves it when auto-approval is on. An approval that
+     * fails is logged and the owner still gets the stored dApp, pending for an admin. An owner may only have one dApp.
      * @param user The owner.
      * @param request The dApp's fields.
      * @returns The new dApp.
@@ -137,14 +175,20 @@ export class DappService {
         this.logger.log(`Stored pending dApp ${dapp.id}`);
         this.metrics.countTransition("create", "success");
         await this.alertAdmins({ kind: AdminAlertKind.DAPP_SUBMITTED, dapp });
-        if (this.configService.get<boolean>("admin.autoApprovalEnabled", false)) return this.approve(dapp.id);
-        return DappDto.fromEntity(dapp, null);
+        if (!this.configService.get<boolean>("admin.autoApprovalEnabled", false)) return DappDto.fromEntity(dapp, null);
+        try {
+            return await this.approve(dapp.id);
+        } catch (error) {
+            this.logger.warn(`Auto-approval of dApp ${dapp.id} failed: ${error instanceof Error ? error.message : String(error)}`);
+            return DappDto.fromEntity(dapp, null);
+        }
     }
 
     /**
-     * Edits the caller's dApp. A pending dApp changes in place. An approved dApp keeps its fields: the edit is stored as a
-     * pending change of the fields it changes, replacing the dApp's earlier pending change in one transaction, and the admins
-     * are alerted, whether auto-approval is on or not.
+     * Edits the caller's dApp. A pending dApp changes in place, as long as it is still pending when the edit is written. An
+     * approved dApp keeps its fields: the edit is stored as a pending change of the fields it changes, replacing the dApp's
+     * earlier pending change in one transaction, and the admins are alerted, whether auto-approval is on or not. An edit that
+     * sets fields, all to the dApp's live values, deletes the pending change instead and alerts nobody.
      * @param user The owner.
      * @param id The dApp id.
      * @param request The fields to change.
@@ -155,13 +199,19 @@ export class DappService {
         const live = await manager.findOneBy(Dapp, { id, ownerEmail: user.email });
         if (live === null) throw new BusinessException(DappErrorCode.DAPP_NOT_FOUND);
         const changed = changedFields(live, request);
+        let dapp = live;
         switch (live.status) {
             case DappStatus.PENDING:
-                await manager.save(Object.assign(live, changed));
+                if (Object.keys(changed).length > 0) dapp = await this.writePending(manager, live.id, changed);
                 this.logger.log(`Updated pending dApp ${live.id}`);
                 break;
             case DappStatus.APPROVED: {
-                if (Object.keys(changed).length === 0) break;
+                if (Object.keys(changed).length === 0) {
+                    if (DAPP_FIELDS.every((field) => request[field] === undefined)) break;
+                    const { affected } = await manager.delete(DappChange, { dappId: live.id, status: DappChangeStatus.PENDING });
+                    if (affected) this.logger.log(`Deleted the pending change of dApp ${live.id}: its owner put the live values back`);
+                    break;
+                }
                 const change = await this.dataSource.transaction(async (transaction) => {
                     await transaction.delete(DappChange, { dappId: live.id, status: DappChangeStatus.PENDING });
                     return transaction.save(
@@ -176,21 +226,28 @@ export class DappService {
                 throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
         }
         this.metrics.countTransition("update", "success");
-        return DappDto.fromEntity(live, await this.pendingChangeOf(manager, live.id));
+        return DappDto.fromEntity(dapp, await this.pendingChangeOf(manager, dapp.id));
     }
 
     /**
-     * Approves a pending dApp: creates its Auth0 client with the fields its owner submitted, and stores the client on the dApp.
-     * The transaction keeps the dApp pending when either step fails.
+     * Approves a pending dApp. Creates its Auth0 client and stores it on the dApp before configuring it with the fields
+     * its owner submitted. A step that fails leaves the dApp pending with its client stored, so approving it again reuses
+     * that client instead of creating a second one. The approval only lands on a dApp that is still pending and still holds
+     * the fields Auth0 got, so a rejection that came first stays and an owner edit that came first is not approved unsent.
+     * A dApp that lists a web origin another approved dApp already has is refused before anything is created, and again
+     * after the client is created, since an owner edit made meanwhile is what gets approved.
      * @param id The dApp id.
      * @returns The dApp.
      */
     async approve(id: string): Promise<DappDto> {
-        const dapp = await this.dataSource.transaction(async (manager) => {
-            const pending = await this.findPending(manager, id);
-            const auth0ClientId = await this.provisioner.create(clientOf(pending));
-            return manager.save(Object.assign(pending, { status: DappStatus.APPROVED, auth0ClientId, reviewedAt: new Date() }));
-        });
+        const { manager } = this.dataSource;
+        const found = await this.findPending(manager, id);
+        await this.assertOriginsFree(manager, found.id, found.webOrigins);
+        const { pending, clientId } =
+            found.auth0ClientId === null ? await this.createClient(manager, found) : { pending: found, clientId: found.auth0ClientId };
+        if (pending !== found) await this.assertOriginsFree(manager, pending.id, pending.webOrigins);
+        await this.provisioner.update(clientId, clientOf(pending));
+        const dapp = await this.writePending(manager, id, { status: DappStatus.APPROVED, reviewedAt: new Date() }, holding(pending));
         this.logger.log(`Approved dApp ${dapp.id} with Auth0 client ${dapp.auth0ClientId}`);
         this.metrics.countTransition("approve", "success");
         return DappDto.fromEntity(dapp, null);
@@ -203,29 +260,44 @@ export class DappService {
      */
     async reject(id: string): Promise<DappDto> {
         const { manager } = this.dataSource;
-        const pending = await this.findPending(manager, id);
-        const dapp = await manager.save(Object.assign(pending, { status: DappStatus.REJECTED, reviewedAt: new Date() }));
+        await this.findPending(manager, id);
+        const dapp = await this.writePending(manager, id, { status: DappStatus.REJECTED, reviewedAt: new Date() });
         this.logger.log(`Rejected dApp ${dapp.id}`);
         this.metrics.countTransition("reject", "success");
         return DappDto.fromEntity(dapp, null);
     }
 
     /**
-     * Approves the dApp's pending change. Checks that the dApp is approved with an Auth0 client, updates that client when the change
-     * touches a synced field, and applies the change to the dApp. The transaction leaves the dApp and the change as they were when either step fails.
+     * Approves the dApp's pending change. Checks that the dApp is approved with an Auth0 client, updates that client, which also
+     * creates the template's user grants it lacks, and applies the change to the dApp. The approval only lands on a change that
+     * is still pending, so a rejection, an owner edit that replaced it or another approval that came first stays. The
+     * transaction opens after the Auth0 call, so it holds no connection while Auth0 answers, and leaves the dApp and the change
+     * as they were when a step fails. The Auth0 client keeps the change's fields then.
+     * A change that adds a web origin another approved dApp already has is refused before Auth0 is called.
      * @param id The dApp id.
      * @returns The dApp with its pending change.
      */
     async approveChange(id: string): Promise<DappDto> {
-        const { dapp, change } = await this.dataSource.transaction(async (manager) => {
-            const { live, change } = await this.findPendingChange(manager, id);
-            if (live.status !== DappStatus.APPROVED || live.auth0ClientId === null) {
-                throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
-            }
-            const changed = fieldsOf(change);
-            if (hasSyncedChange(changed)) await this.provisioner.update(live.auth0ClientId, clientOf({ ...live, ...changed }));
-            await manager.save(Object.assign(change, { status: DappChangeStatus.APPROVED, reviewedAt: new Date() }));
-            return { dapp: await manager.save(Object.assign(live, changed)), change };
+        const { live, change } = await this.findPendingChange(this.dataSource.manager, id);
+        if (live.status !== DappStatus.APPROVED || live.auth0ClientId === null) {
+            throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
+        }
+        const changed = fieldsOf(change);
+        await this.assertOriginsFree(
+            this.dataSource.manager,
+            live.id,
+            (changed.webOrigins ?? []).filter((origin) => !live.webOrigins.includes(origin)),
+        );
+        await this.provisioner.update(live.auth0ClientId, clientOf({ ...live, ...changed }));
+        const dapp = await this.dataSource.transaction(async (manager) => {
+            const approved = await manager.update(
+                DappChange,
+                { id: change.id, status: DappChangeStatus.PENDING },
+                { status: DappChangeStatus.APPROVED, reviewedAt: new Date() },
+            );
+            if (approved.affected === 0) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
+            await manager.update(Dapp, { id: live.id }, changed);
+            return manager.findOneByOrFail(Dapp, { id: live.id });
         });
         this.logger.log(`Approved change ${change.id} of dApp ${dapp.id}`);
         this.metrics.countTransition("approveChange", "success");
@@ -233,14 +305,20 @@ export class DappService {
     }
 
     /**
-     * Rejects the dApp's pending change, leaving the dApp as it is.
+     * Rejects the dApp's pending change, leaving the dApp as it is. The rejection only lands on a change that is still pending,
+     * so an approval that came first stays.
      * @param id The dApp id.
      * @returns The dApp with its pending change.
      */
     async rejectChange(id: string): Promise<DappDto> {
         const { manager } = this.dataSource;
         const { live, change } = await this.findPendingChange(manager, id);
-        await manager.save(Object.assign(change, { status: DappChangeStatus.REJECTED, reviewedAt: new Date() }));
+        const { affected } = await manager.update(
+            DappChange,
+            { id: change.id, status: DappChangeStatus.PENDING },
+            { status: DappChangeStatus.REJECTED, reviewedAt: new Date() },
+        );
+        if (affected === 0) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
         this.logger.log(`Rejected change ${change.id} of dApp ${live.id}`);
         this.metrics.countTransition("rejectChange", "success");
         return DappDto.fromEntity(live, await this.pendingChangeOf(manager, live.id));
@@ -257,6 +335,82 @@ export class DappService {
         if (dapp === null) throw new BusinessException(DappErrorCode.DAPP_NOT_FOUND);
         if (dapp.status !== DappStatus.PENDING) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
         return dapp;
+    }
+
+    /**
+     * Writes columns of a dApp only while it is pending. A request that read the dApp earlier writes just these columns, so
+     * it neither undoes a review that landed since nor puts back the values it read.
+     * @param manager The entity manager to write with.
+     * @param id The dApp id.
+     * @param columns The columns to write.
+     * @param unchanged What else the dApp must still match for the write to land.
+     * @returns The dApp as stored after the write.
+     */
+    private async writePending(
+        manager: EntityManager,
+        id: string,
+        columns: Partial<Dapp>,
+        unchanged: FindOptionsWhere<Dapp> = {},
+    ): Promise<Dapp> {
+        const { affected } = await manager.update(Dapp, { ...unchanged, id, status: DappStatus.PENDING }, columns);
+        if (affected === 0) throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
+        return manager.findOneByOrFail(Dapp, { id });
+    }
+
+    /**
+     * Creates the Auth0 client of a pending dApp and stores it on the dApp. A dApp that got a client or was reviewed while
+     * Auth0 created this one keeps what it has, and the new client is logged as an orphan. So is one the database failed to
+     * store, before the failure is thrown again.
+     * @param manager The entity manager to read and write with.
+     * @param found The pending dApp, read before the client exists.
+     * @returns The dApp as stored now, with any edit that landed meanwhile, and its client.
+     */
+    private async createClient(manager: EntityManager, found: Dapp): Promise<{ pending: Dapp; clientId: string }> {
+        const created = await this.provisioner.create(clientOf(found));
+        let affected: number | undefined;
+        let pending: Dapp;
+        try {
+            ({ affected } = await manager.update(
+                Dapp,
+                { id: found.id, status: DappStatus.PENDING, auth0ClientId: IsNull() },
+                { auth0ClientId: created },
+            ));
+            pending = await manager.findOneByOrFail(Dapp, { id: found.id });
+        } catch (error) {
+            this.logger.warn(`Auth0 client ${created} of dApp ${found.id} may be an orphan: storing it failed`);
+            throw error;
+        }
+        if (affected === 1) {
+            this.logger.log(`Created Auth0 client ${created} for pending dApp ${found.id}`);
+            return { pending, clientId: created };
+        }
+        if (pending.status !== DappStatus.PENDING || pending.auth0ClientId === null) {
+            this.logger.warn(`Auth0 client ${created} of dApp ${found.id} is an orphan: the dApp is ${pending.status}`);
+            throw new BusinessException(DappErrorCode.INVALID_TRANSITION);
+        }
+        this.logger.warn(
+            `Auth0 client ${created} of dApp ${found.id} is an orphan: the dApp already has the client ${pending.auth0ClientId}`,
+        );
+        return { pending, clientId: pending.auth0ClientId };
+    }
+
+    /**
+     * Refuses web origins that another approved dApp with a client already lists live. The lookup by origin answers with one
+     * client, so two dApps sharing an origin would leave one of them signing in through the other's client. It reads before the
+     * approval writes, so two approvals that overlap can still both land, and the lookup then answers with the older dApp.
+     * @param manager The entity manager to read with.
+     * @param id The id of the dApp that lists the origins, which does not count against itself.
+     * @param webOrigins The origins to check.
+     */
+    private async assertOriginsFree(manager: EntityManager, id: string, webOrigins: string[]): Promise<void> {
+        if (webOrigins.length === 0) return;
+        const taken = await manager.existsBy(Dapp, {
+            id: Not(id),
+            status: DappStatus.APPROVED,
+            auth0ClientId: Not(IsNull()),
+            webOrigins: ArrayOverlap(webOrigins),
+        });
+        if (taken) throw new BusinessException(DappErrorCode.ORIGIN_TAKEN);
     }
 
     /**
