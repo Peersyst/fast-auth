@@ -1,0 +1,15 @@
+.environment-notice {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #b45309;
+    border-radius: 12px;
+    background-color: #fff4cc;
+    color: #3f4246;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.4;
+    text-align: center;
+    overflow-wrap: anywhere;
+    margin-bottom: 0.75rem;
+}

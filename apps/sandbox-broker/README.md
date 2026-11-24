@@ -26,7 +26,7 @@ Sign-ins and codes live in memory for 10 minutes, on a single replica.
 A Single Page Application on the sandbox tenant, with no secret like every other client:
 
 - **Token endpoint authentication:** None. The broker redeems codes with PKCE.
-- **Allowed Callback URLs:** `https://sandbox.auth.near.org/callback`, plus `http://localhost:3000/callback` to run it locally.
+- **Allowed Callback URLs:** `https://sandbox.auth.near.org/callback`.
 - **Name:** something like "A sandbox app". The consent screen shows this client's name for every dApp.
 - **Access:** authorized on the signing API.
 
@@ -34,4 +34,4 @@ Its id is `AUTH0_CLIENT_ID`. Everything else is a default in `src/config`.
 
 ## Running it
 
-Copy `.env.example` to `.env`, then run `pnpm start` and `pnpm test`.
+Copy `.env.example` to `.env`, then run `pnpm start` and `pnpm test`. Locally the broker uses the examples' shared testnet client, which allows `http://localhost:3000/callback`.

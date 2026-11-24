@@ -277,6 +277,13 @@ const SIGNING_REQUESTS = [
     },
 ];
 
+// SANDBOX
+
+// Shown on every consent screen of a tenant whose SANDBOX secret is "true". The login page template
+// (src/universal-login/sandbox.liquid) carries the same text, and a test keeps the two in step.
+const SANDBOX_NOTICE =
+    "⚠️ Sandbox: a testing environment with no security guarantees. Do not use it for real funds. Use it at your own risk.";
+
 // HANDLERS
 
 /**
@@ -324,6 +331,8 @@ exports.onExecutePostLogin = async (event, api) => {
         imageUrl: event.client.metadata?.logo_uri ?? "",
         name: event.client.name,
     };
+    // Every form renders the notice as its first block, and renders nothing when it is empty.
+    const notice = event.secrets.SANDBOX === "true" ? SANDBOX_NOTICE : "";
 
     let values;
     let decoded;
@@ -344,7 +353,7 @@ exports.onExecutePostLogin = async (event, api) => {
         return api.access.deny("Consent form is not configured");
     }
 
-    api.prompt.render(formId, { fields: { ...branding, ...request.toFields(decoded) } });
+    api.prompt.render(formId, { fields: { ...branding, notice, ...request.toFields(decoded) } });
     api.accessToken.setCustomClaim("fatxn", values);
 };
 
@@ -372,3 +381,4 @@ exports.parseTransaction = parseTransaction;
 exports.decodeDelegateAction = decodeDelegateAction;
 exports.stringifyActions = stringifyActions;
 exports.SCHEMA = SCHEMA;
+exports.SANDBOX_NOTICE = SANDBOX_NOTICE;
