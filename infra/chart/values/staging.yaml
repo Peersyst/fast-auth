@@ -182,9 +182,9 @@ consoleWeb:
 # Off until the broker's Auth0 client exists and ingress.certificate covers
 # sandbox.auth.near.org (infra/README.md).
 sandboxBroker:
-    enabled: false
+    enabled: true
     # The broker's Auth0 client, which has no secret.
-    clientId: ""
+    clientId: "np8paqIpMWmNbzT4xAvOOapZBjsOpptl"
     service:
         port: 3000
         targetPort: 3000
